@@ -575,3 +575,7 @@ Step 29a of release 0.7.0 builds the shorthands `line` and `bar`. The specificat
 
 Step 29b of release 0.7.0 builds the shorthand `scatter`. By open decision #133 (option A) its usage line gains `by:`: it is now `data.scatter(x, y, fit: none | linear = none, color: Var, by: Var | Vars)`, and the row is `implemented`.
 
+## 13 November 2026 — zeff_functions.csv, rows 229, 233 and 234
+
+Step 29c2 of release 0.7.0 builds the shorthands `histogram`, `boxplot` and `density` on a frame. Row 229 had `data.histogram(var, bins: Int)`: by the owner's ruling of 10 November 2026 on question 2 of open decision #99, which the checklist's step 29 carries, the shorthand has the options of the layer, and by open decision #133 (option A) it has `by:`, which the sample script writes; it is now `data.histogram(var, bins: Int | sturges | scott | fd = fd, binwidth: Float, start: Float, scale: count | density | fraction | percent = count, by: Var | Vars)`. Row 234 had `data.density(var, color: Var)`: by the same two decisions it is now `data.density(var, color: Var, bandwidth: Float, adjust: Float = 1, kernel: gaussian | epanechnikov | rectangular | triangular | biweight | cosine = gaussian, by: Var | Vars)`. Row 233 had `data.boxplot(var, group: Var)`: by open decision #133 it is now `data.boxplot(var, group: Var, by: Var | Vars)`. The three rows are `implemented`.
+

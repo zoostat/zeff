@@ -202,3 +202,91 @@ pub fn scatter(ctx: &mut CallContext<'_>, args: Args) -> Result<Value, Fail> {
     let by = handed(ctx, &args, S_BY);
     parted(ctx, drawn, by)
 }
+
+// ----- histogram, density and boxplot of a frame (step 29c2) -----
+
+const H_VAR: usize = 1;
+const H_BINS: usize = 2;
+const H_BINWIDTH: usize = 3;
+const H_START: usize = 4;
+const H_SCALE: usize = 5;
+const H_BY: usize = 6;
+
+/// `data.histogram(var, bins:, binwidth:, start:, scale:, by:)`:
+/// `data.plot(x: var).histogram(bins:, binwidth:, start:, scale:)`, parted into panels by
+/// `by:`.
+pub fn histogram(ctx: &mut CallContext<'_>, args: Args) -> Result<Value, Fail> {
+    if !matches!(args.get(DATA), Some(Value::Frame(_))) {
+        return Err(internal(
+            ctx,
+            "`histogram` reached its body without a frame",
+        ));
+    }
+    let mapped = vec![handed(ctx, &args, DATA), handed(ctx, &args, H_VAR)];
+    let started = call(ctx, plot, mapped)?;
+    let layer = vec![
+        (Some(started), None),
+        NONE,
+        handed(ctx, &args, H_BINS),
+        handed(ctx, &args, H_BINWIDTH),
+        handed(ctx, &args, H_START),
+        handed(ctx, &args, H_SCALE),
+    ];
+    let drawn = call(ctx, marks::histogram, layer)?;
+    let by = handed(ctx, &args, H_BY);
+    parted(ctx, drawn, by)
+}
+
+const D_VAR: usize = 1;
+const D_COLOR: usize = 2;
+const D_BANDWIDTH: usize = 3;
+const D_ADJUST: usize = 4;
+const D_KERNEL: usize = 5;
+const D_BY: usize = 6;
+
+/// `data.density(var, color:, bandwidth:, adjust:, kernel:, by:)`:
+/// `data.plot(x: var, color:).density(bandwidth:, adjust:, kernel:)`, parted into panels by
+/// `by:`.
+pub fn density(ctx: &mut CallContext<'_>, args: Args) -> Result<Value, Fail> {
+    if !matches!(args.get(DATA), Some(Value::Frame(_))) {
+        return Err(internal(ctx, "`density` reached its body without a frame"));
+    }
+    let mapped = vec![
+        handed(ctx, &args, DATA),
+        handed(ctx, &args, D_VAR),
+        NONE,
+        handed(ctx, &args, D_COLOR),
+    ];
+    let started = call(ctx, plot, mapped)?;
+    let layer = vec![
+        (Some(started), None),
+        NONE,
+        handed(ctx, &args, D_BANDWIDTH),
+        handed(ctx, &args, D_ADJUST),
+        handed(ctx, &args, D_KERNEL),
+    ];
+    let drawn = call(ctx, marks::density, layer)?;
+    let by = handed(ctx, &args, D_BY);
+    parted(ctx, drawn, by)
+}
+
+const X_VAR: usize = 1;
+const X_GROUP: usize = 2;
+const X_BY: usize = 3;
+
+/// `data.boxplot(var, group:, by:)`: `data.plot(x: group, y: var).boxplot()`, a box of `var`
+/// for each value of `group`, or one box without it, parted into panels by `by:`.
+pub fn boxplot(ctx: &mut CallContext<'_>, args: Args) -> Result<Value, Fail> {
+    if !matches!(args.get(DATA), Some(Value::Frame(_))) {
+        return Err(internal(ctx, "`boxplot` reached its body without a frame"));
+    }
+    let mapped = vec![
+        handed(ctx, &args, DATA),
+        handed(ctx, &args, X_GROUP),
+        handed(ctx, &args, X_VAR),
+    ];
+    let started = call(ctx, plot, mapped)?;
+    let drawn = call(ctx, marks::boxplot, vec![(Some(started), None)])?;
+    let by = handed(ctx, &args, X_BY);
+    parted(ctx, drawn, by)
+}

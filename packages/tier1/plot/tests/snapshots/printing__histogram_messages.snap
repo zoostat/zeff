@@ -125,13 +125,13 @@ error[Z0402]: `share` is not one of the allowed words
   |                    ^^^^^ expected one of count, density, fraction, percent
 
 == a_histogram_of_a_frame
-error[Z0401]: `histogram` cannot be called on a Frame
- --> scripts/main.zeff:3:1
+error[Z0406]: `histogram` needs `var`
+ --> scripts/main.zeff:3:3
   |
 3 | d.histogram(bins: 4)
-  | ^ this is a Frame
+  |   ^^^^^^^^^ `var` is missing
   |
-  = help: `histogram` takes a Plot first; `x.histogram(...)` is `histogram(x, ...)`
+  = help: usage: `data.histogram(var, bins: Int | sturges | scott | fd = fd, binwidth: Float, start: Float, scale: count | density | fraction | percent = count, by: Var | Vars)`
 
 == a_frame_without_the_variable
 error[Z0101]: no variable `score` in `the frame`

@@ -46,13 +46,13 @@ error[Z0101]: nothing is called `none` here
   |                                    ^^^^ not a binding
 
 == a_box_plot_of_a_frame
-error[Z0401]: `boxplot` cannot be called on a Frame
- --> scripts/main.zeff:3:1
+error[Z0406]: `boxplot` needs `var`
+ --> scripts/main.zeff:3:3
   |
 3 | d.boxplot()
-  | ^ this is a Frame
+  |   ^^^^^^^ `var` is missing
   |
-  = help: `boxplot` takes a Plot first; `x.boxplot(...)` is `boxplot(x, ...)`
+  = help: usage: `data.boxplot(var, group: Var, by: Var | Vars)`
 
 == a_fill_on_a_ramp
 error[Z0401]: `boxplot` fills each area in one colour, so `fill` must show categories, but `score` is an Int without value labels, which is shown on a continuous scale

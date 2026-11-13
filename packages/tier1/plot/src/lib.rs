@@ -985,6 +985,137 @@ pub fn functions() -> Vec<Function> {
         },
         Function {
             spec: FunctionSpec {
+                name: "histogram",
+                package: "plot",
+                method: true,
+                params: vec![
+                    ParamSpec::required("data", "Frame"),
+                    ParamSpec::required("var", "Var | Expr"),
+                    ParamSpec::option_with_default("bins", "Int | sturges | scott | fd", "fd"),
+                    ParamSpec::option("binwidth", "Float"),
+                    ParamSpec::option("start", "Float"),
+                    ParamSpec::option_with_default(
+                        "scale",
+                        "count | density | fraction | percent",
+                        "count",
+                    ),
+                    ParamSpec::option("by", "Var | Vars"),
+                ],
+                rest: None,
+                returns: "Plot",
+                diagnostics: vec![
+                    DiagnosticDecl::note(
+                        "the rows not counted for NA, or for an infinite value, in var; the rows below start:; more bins than a histogram may have",
+                    ),
+                    DiagnosticDecl::new(
+                        "W0102",
+                        "a name in an expression is both a variable and a binding",
+                    ),
+                    DiagnosticDecl::new(
+                        "Z0101",
+                        "no such variable in the frame, mapped, read by an expression or named by by:",
+                    ),
+                    DiagnosticDecl::new(
+                        "Z0102",
+                        "a variable that differs only in case from the name written",
+                    ),
+                    DiagnosticDecl::new(
+                        "Z0401",
+                        "a variable that is not numbers, bins below 1, a width not above 0, a start above the smallest value; a variable named twice in by:",
+                    ),
+                ],
+                help: include_str!("../help/histogram_of_a_frame.md"),
+                accuracy: None,
+            },
+            body: shorthands::histogram,
+        },
+        Function {
+            spec: FunctionSpec {
+                name: "density",
+                package: "plot",
+                method: true,
+                params: vec![
+                    ParamSpec::required("data", "Frame"),
+                    ParamSpec::required("var", "Var | Expr"),
+                    ParamSpec::option("color", "Var"),
+                    ParamSpec::option("bandwidth", "Float"),
+                    ParamSpec::option_with_default("adjust", "Float", "1"),
+                    ParamSpec::option_with_default(
+                        "kernel",
+                        "gaussian | epanechnikov | rectangular | triangular | biweight | cosine",
+                        "gaussian",
+                    ),
+                    ParamSpec::option("by", "Var | Vars"),
+                ],
+                rest: None,
+                returns: "Plot",
+                diagnostics: vec![
+                    DiagnosticDecl::note(
+                        "the rows not used for NA, or for an infinite value, in var; the groups with fewer than two values; more categories than the palette has colours",
+                    ),
+                    DiagnosticDecl::new(
+                        "W0102",
+                        "a name in an expression is both a variable and a binding",
+                    ),
+                    DiagnosticDecl::new(
+                        "Z0101",
+                        "no such variable in the frame, mapped, read by an expression or named by by:",
+                    ),
+                    DiagnosticDecl::new(
+                        "Z0102",
+                        "a variable that differs only in case from the name written",
+                    ),
+                    DiagnosticDecl::new(
+                        "Z0401",
+                        "a variable that is not numbers, a bandwidth or an adjustment not above 0; a colour by a number without value labels; a variable named twice in by:",
+                    ),
+                ],
+                help: include_str!("../help/density_of_a_frame.md"),
+                accuracy: None,
+            },
+            body: shorthands::density,
+        },
+        Function {
+            spec: FunctionSpec {
+                name: "boxplot",
+                package: "plot",
+                method: true,
+                params: vec![
+                    ParamSpec::required("data", "Frame"),
+                    ParamSpec::required("var", "Var | Expr"),
+                    ParamSpec::option("group", "Var"),
+                    ParamSpec::option("by", "Var | Vars"),
+                ],
+                rest: None,
+                returns: "Plot",
+                diagnostics: vec![
+                    DiagnosticDecl::note(
+                        "the rows not used for NA, or for an infinite value, in var or group",
+                    ),
+                    DiagnosticDecl::new(
+                        "W0102",
+                        "a name in an expression is both a variable and a binding",
+                    ),
+                    DiagnosticDecl::new(
+                        "Z0101",
+                        "no such variable in the frame, mapped, read by an expression or named by by:",
+                    ),
+                    DiagnosticDecl::new(
+                        "Z0102",
+                        "a variable that differs only in case from the name written",
+                    ),
+                    DiagnosticDecl::new(
+                        "Z0401",
+                        "a variable that is not numbers; a variable named twice in by:",
+                    ),
+                ],
+                help: include_str!("../help/boxplot_of_a_frame.md"),
+                accuracy: None,
+            },
+            body: shorthands::boxplot,
+        },
+        Function {
+            spec: FunctionSpec {
                 name: "coord",
                 package: "plot",
                 method: true,

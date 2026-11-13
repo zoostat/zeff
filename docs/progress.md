@@ -152,3 +152,13 @@ Step 28 was split in four. 28a `[function]`: `histogram`, the rows of `x` counte
 
 **For the owner to decide.** Nothing new waits for him. Taken on the recommendation at this step, his to overturn: in the function form the choice between two functions of one name is made by the first argument only where it is a binding. Open as before: #133, #132, the marks of a slide (step 26b), #131, #109 (question 2), #130, the internal error of `add` under #108, #129, #105, #102, #101, #100, the stray file `Rplots.pdf` and the permission to install `emmeans` 2.0.4.
 
+## 13 November 2026, release 0.7.0, step 29c2 (`histogram`, `density` and `boxplot` on a frame)
+
+**Done.** `wages.histogram(wage)`, `wages.density(wage, color: union)` and `wages.boxplot(wage, group: industry)` draw in one call what `plot(...)` and the layer of the same name draw, with the layer's options on `histogram` and `density` and `by:` for panels on all three. The specification's sample line `wages.histogram(lwage, bins: 40, by: female)` runs. Six of the eight shorthands are built.
+
+**Green.** Format, clippy with warnings denied, the tier and message checks, every test program of the routine; `zeff selftest` at 449 of 449; CI is read job by job after the push.
+
+**Next.** Step 29d `[function]`: `qq_plot`.
+
+**For the owner to decide.** Nothing new waits for him. Taken on the recommendation at this step, his to overturn: the shorthand `histogram` takes no `color:` (groups go to panels with `by:`); the shorthand `boxplot` takes `group:` and `by:` only. Open as before: #133, #132, the marks of a slide (step 26b), #131, #109 (question 2), #130, the internal error of `add` under #108, #129, #105, #102, #101, #100, the stray file `Rplots.pdf` and the permission to install `emmeans` 2.0.4.
+

@@ -1,0 +1,74 @@
+---
+source: packages/tier1/plot/tests/shorthands.rs
+expression: "written(&all[2].0).unwrap()"
+---
+{
+  "zeff_scene": 1,
+  "layout": {
+    "rows": 1,
+    "columns": 1
+  },
+  "scales": [
+    {
+      "id": "x",
+      "kind": "category",
+      "title": "",
+      "limits": [0.4, 1.6],
+      "breaks": [1],
+      "labels": [""],
+      "range": null
+    },
+    {
+      "id": "y",
+      "kind": "linear",
+      "title": "y",
+      "limits": [1.3850000000000002, 17.115],
+      "breaks": [2, 4, 6, 8, 10, 12, 14, 16],
+      "labels": ["2", "4", "6", "8", "10", "12", "14", "16"],
+      "range": null
+    }
+  ],
+  "guides": {
+    "axes": [
+      {
+        "scale": "x",
+        "position": "bottom"
+      },
+      {
+        "scale": "y",
+        "position": "left"
+      }
+    ],
+    "legends": []
+  },
+  "panels": [
+    {
+      "row": 1,
+      "column": 1,
+      "x": "x",
+      "y": "y",
+      "layers": [
+        {
+          "mark": "boxplot",
+          "x": [1],
+          "y": [12.3],
+          "color": null,
+          "size": 4.5,
+          "shape": "circle",
+          "alpha": 1,
+          "data": "d",
+          "rows": [],
+          "low": [5.05],
+          "span": [0.75],
+          "fill": null,
+          "middle": [8.4],
+          "whiskers": [
+            [2.1, 16.4]
+          ],
+          "beyond": []
+        }
+      ]
+    }
+  ],
+  "notes": []
+}

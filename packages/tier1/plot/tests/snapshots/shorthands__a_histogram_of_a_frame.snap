@@ -1,0 +1,70 @@
+---
+source: packages/tier1/plot/tests/shorthands.rs
+expression: "written(&all[0].0).unwrap()"
+---
+{
+  "zeff_scene": 1,
+  "layout": {
+    "rows": 1,
+    "columns": 1
+  },
+  "scales": [
+    {
+      "id": "x",
+      "kind": "linear",
+      "title": "y",
+      "limits": [1.3850000000000002, 17.115],
+      "breaks": [2, 4, 6, 8, 10, 12, 14, 16],
+      "labels": ["2", "4", "6", "8", "10", "12", "14", "16"],
+      "range": null
+    },
+    {
+      "id": "y",
+      "kind": "linear",
+      "title": "count",
+      "limits": [-0.15000000000000002, 3.15],
+      "breaks": [0, 0.5, 1, 1.5, 2, 2.5, 3],
+      "labels": ["0", "0.5", "1", "1.5", "2", "2.5", "3"],
+      "range": null
+    }
+  ],
+  "guides": {
+    "axes": [
+      {
+        "scale": "x",
+        "position": "bottom"
+      },
+      {
+        "scale": "y",
+        "position": "left"
+      }
+    ],
+    "legends": []
+  },
+  "panels": [
+    {
+      "row": 1,
+      "column": 1,
+      "x": "x",
+      "y": "y",
+      "layers": [
+        {
+          "mark": "bars",
+          "x": [4.483333333333333, 9.25, 14.016666666666666],
+          "y": [3, 3, 2],
+          "color": null,
+          "size": 4.5,
+          "shape": "circle",
+          "alpha": 1,
+          "data": "d",
+          "rows": [],
+          "low": [0, 0, 0],
+          "span": [4.766666666666667, 4.766666666666667, 4.766666666666667],
+          "fill": null,
+          "position": "stack"
+        }
+      ]
+    }
+  ],
+  "notes": []
+}

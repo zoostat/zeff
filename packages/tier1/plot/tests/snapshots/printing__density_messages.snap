@@ -91,13 +91,13 @@ error[Z0403]: expected one of gaussian, epanechnikov, rectangular, triangular, b
   = help: write the word without quotes: `gaussian`
 
 == a_density_of_a_frame
-error[Z0401]: `density` cannot be called on a Frame
- --> scripts/main.zeff:3:1
+error[Z0406]: `density` needs `var`
+ --> scripts/main.zeff:3:3
   |
 3 | d.density()
-  | ^ this is a Frame
+  |   ^^^^^^^ `var` is missing
   |
-  = help: `density` takes a Plot first; `x.density(...)` is `density(x, ...)`
+  = help: usage: `data.density(var, color: Var, bandwidth: Float, adjust: Float = 1, kernel: gaussian | epanechnikov | rectangular | triangular | biweight | cosine = gaussian, by: Var | Vars)`
 
 == a_colour_on_a_ramp
 error[Z0401]: `density` draws each line in one colour, so `color` must show categories, but `score` is an Int without value labels, which is shown on a continuous scale

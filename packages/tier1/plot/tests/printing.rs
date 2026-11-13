@@ -4274,3 +4274,106 @@ fn every_message_of_scatter() {
     }
     insta::assert_snapshot!("scatter_messages", all);
 }
+
+// ----- `histogram`, `density` and `boxplot` of a frame (step 29c2) -----
+
+#[test]
+fn the_three_of_a_frame_print_what_their_grammar_forms_print() {
+    for (short, long) in [
+        ("d.histogram(score)", "d.plot(x: score).histogram()"),
+        (
+            "d.histogram(score, bins: 4, scale: percent)",
+            "d.plot(x: score).histogram(bins: 4, scale: percent)",
+        ),
+        (
+            "d.histogram(score, binwidth: 2, start: 0, by: arm)",
+            "d.plot(x: score).histogram(binwidth: 2, start: 0).facet(by: arm)",
+        ),
+        (
+            "d.histogram(log(score), bins: sturges)",
+            "d.plot(x: log(score)).histogram(bins: sturges)",
+        ),
+        ("d.density(score)", "d.plot(x: score).density()"),
+        (
+            "d.density(score, color: arm, adjust: 0.5, kernel: epanechnikov)",
+            "d.plot(x: score, color: arm).density(adjust: 0.5, kernel: epanechnikov)",
+        ),
+        (
+            "d.density(score, bandwidth: 1, by: arm)",
+            "d.plot(x: score).density(bandwidth: 1).facet(by: arm)",
+        ),
+        ("d.boxplot(score)", "d.plot(y: score).boxplot()"),
+        (
+            "d.boxplot(score, group: arm)",
+            "d.plot(x: arm, y: score).boxplot()",
+        ),
+        (
+            "d.boxplot(score, group: arm, by: arm).coord(flip)",
+            "d.plot(x: arm, y: score).boxplot().facet(by: arm).coord(flip)",
+        ),
+        // The function form chooses by its first argument: a frame, or a plot.
+        ("histogram(d, score)", "d.plot(x: score).histogram()"),
+        ("density(p)", "d.plot(x: score).density()"),
+        (
+            "boxplot(d, score, group: arm)",
+            "d.plot(x: arm, y: score).boxplot()",
+        ),
+    ] {
+        let (one, other) = (
+            printed(&format!("{SCORES}{short}\n")),
+            printed(&format!("{SCORES}{long}\n")),
+        );
+        assert_eq!(one, other, "{short}");
+    }
+}
+
+#[test]
+fn every_message_of_the_three_of_a_frame() {
+    let mut all = String::new();
+    for (name, script) in [
+        ("a_histogram_without_a_variable", "d.histogram()\n"),
+        ("a_histogram_of_text", "d.histogram(name)\n"),
+        (
+            "a_histogram_of_a_variable_not_there",
+            "d.histogram(scores)\n",
+        ),
+        ("a_histogram_with_no_bin", "d.histogram(score, bins: 0)\n"),
+        (
+            "a_histogram_with_a_rule_that_is_none",
+            "d.histogram(score, bins: knuth)\n",
+        ),
+        (
+            "a_histogram_in_panels_by_a_variable_not_there",
+            "d.histogram(score, by: site)\n",
+        ),
+        (
+            "a_histogram_with_a_colour",
+            "d.histogram(score, color: arm)\n",
+        ),
+        ("a_density_of_dates", "d.density(day)\n"),
+        (
+            "a_density_with_a_bandwidth_of_nothing",
+            "d.density(score, bandwidth: 0)\n",
+        ),
+        (
+            "a_density_coloured_by_a_number",
+            "d.density(score, color: score)\n",
+        ),
+        ("a_boxplot_of_text", "d.boxplot(name)\n"),
+        (
+            "a_boxplot_by_a_group_not_there",
+            "d.boxplot(score, group: site)\n",
+        ),
+        (
+            "a_boxplot_with_an_option_of_the_layer",
+            "d.boxplot(score, outliers: false)\n",
+        ),
+        ("a_histogram_of_a_number", "histogram(3)\n"),
+    ] {
+        let (code, stdout, stderr) = go(&format!("{SCORES}{script}"));
+        assert_eq!(code, 1, "{name}\n{stdout}\n{stderr}");
+        assert_eq!(stdout, "", "{name}");
+        all.push_str(&format!("== {name}\n{stderr}\n"));
+    }
+    insta::assert_snapshot!("the_three_of_a_frame_messages", all);
+}

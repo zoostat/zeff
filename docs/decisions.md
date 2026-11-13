@@ -4002,3 +4002,17 @@ In `zeff run`, a `let` of the script's top level is freed after the last top-lev
 
 **Reason.** The checklist's step 29c; Engine and Project Specification, section 8.1, rule 6; catalogue rows 229, 233, 234 and 472 to 474.
 
+## 13 November 2026: `histogram`, `density` and `boxplot` on a frame (release 0.7.0, step 29c2)
+
+**Three shorthands on the engine of step 29c1.** `data.histogram(var, bins:, binwidth:, start:, scale:, by:)` is `data.plot(x: var).histogram(bins:, binwidth:, start:, scale:)`; `data.density(var, color:, bandwidth:, adjust:, kernel:, by:)` is `data.plot(x: var, color:).density(bandwidth:, adjust:, kernel:)`; `data.boxplot(var, group:, by:)` is `data.plot(x: group, y: var).boxplot()`; each parted into panels by `by:`. They are built as `line` and `bar` are, by calling the functions of the grammar, and registered in `plot` under the names of the layers: the first argument, a frame or a plot, chooses, in the method form and in the function form.
+
+**Rulings where the text is silent** (each the owner's to overturn). (a) The shorthands `histogram` and `density` carry every option of their layers, as the owner ruled on question 2 of #99; `boxplot` carries what the catalogue gives it, `group:`, and not `outliers:` or a fill, for which the help page shows the grammar form. (b) `histogram` takes no `color:`: the catalogue gives it none, and a stack of histograms is the hardest of these plots to read; groups go to panels with `by:`, which is what the sample script writes. (c) `var` takes a variable or an expression, as the positions of `plot` do, so `wages.histogram(log(wage))` is written in one call; `group:` and `color:` take a variable. (d) Each help page is a page of its own, shorter than the page of the layer, to which it points for the options: `zeff help histogram` prints both.
+
+**Tests.** `packages/tier1/plot/tests/shorthands.rs`: for the three, with a colour or a group or without, in panels or not, with options or without, the shorthand gives the `Plot` of its grammar form, the scene byte for byte and the same notes, or the same refusal, on fixed rows and as a property; two snapshots of a scene. `tests/printing.rs`: thirteen pairs of a shorthand and its grammar form that print the same, three of them in the function form (`histogram(d, score)`, `density(p)`, `boxplot(d, score, group: arm)`), and every message of the three (fourteen). One verified example in each help page; the three pages are complete, with details and references. The two stored checks of the sample script change: `wages.histogram(lwage, bins: 40, by: female)` runs. One stored message of each of the three layers changes, as it must: `d.histogram()`, `d.density()` and `d.boxplot()` on a frame said that the function cannot be called on a frame, and now say that `var` is missing, with the usage of the shorthand.
+
+**The specification.** Catalogue rows 229, 233 and 234 are amended and `implemented` (`docs/spec_changes.md`).
+
+**Dependencies.** None added.
+
+**Reason.** The checklist's step 29c2; section 7.6 of the Language Reference ("Shorthands"); catalogue rows 229, 233 and 234; the sample script, line 56.
+

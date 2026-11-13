@@ -538,3 +538,151 @@ proptest! {
         }
     }
 }
+
+// ----- histogram, density and boxplot of a frame (step 29c2) -----
+
+/// A shorthand of one variable and its grammar form: the plot's mappings, the layer with
+/// its options, and the panels.
+fn one_variable_both(
+    frame: &Frame,
+    short: (Body, Vec<Option<Value>>),
+    mapped: Vec<Option<Value>>,
+    layer: (Body, Vec<Option<Value>>),
+    by: Option<&str>,
+) -> (Gave, Gave) {
+    let data = Value::Frame(frame.clone());
+    let short = chain(data.clone(), vec![short]);
+    let mut steps: Vec<(Body, Vec<Option<Value>>)> = vec![(grammar::plot, mapped), layer];
+    if let Some(by) = by {
+        steps.push((scales::facet, vec![var(by)]));
+    }
+    (short, chain(data, steps))
+}
+
+fn int(value: i64) -> Option<Value> {
+    Some(Value::Int(value))
+}
+
+fn float(value: f64) -> Option<Value> {
+    Some(Value::Float(value))
+}
+
+/// The three shorthands on a frame with `y`, the number, `g`, the categories, and `z`.
+fn three_both(
+    frame: &Frame,
+    color: Option<&str>,
+    by: Option<&str>,
+    options: bool,
+) -> Vec<(Gave, Gave)> {
+    let (bins, scale) = if options {
+        (int(4), word("density"))
+    } else {
+        (None, None)
+    };
+    let (adjust, kernel) = if options {
+        (float(0.5), word("epanechnikov"))
+    } else {
+        (None, None)
+    };
+    vec![
+        // `histogram(y, bins:, scale:, by:)` is `plot(x: y).histogram(bins:, scale:)`.
+        one_variable_both(
+            frame,
+            (
+                shorthands::histogram,
+                vec![
+                    var("y"),
+                    bins.clone(),
+                    None,
+                    None,
+                    scale.clone(),
+                    by.and_then(var),
+                ],
+            ),
+            vec![var("y")],
+            (marks::histogram, vec![None, bins, None, None, scale]),
+            by,
+        ),
+        // `density(y, color:, adjust:, kernel:, by:)` is `plot(x: y, color:).density(...)`.
+        one_variable_both(
+            frame,
+            (
+                shorthands::density,
+                vec![
+                    var("y"),
+                    color.and_then(var),
+                    None,
+                    adjust.clone(),
+                    kernel.clone(),
+                    by.and_then(var),
+                ],
+            ),
+            vec![var("y"), None, color.and_then(var)],
+            (marks::density, vec![None, None, adjust, kernel]),
+            by,
+        ),
+        // `boxplot(y, group:, by:)` is `plot(x: group, y: y).boxplot()`.
+        one_variable_both(
+            frame,
+            (
+                shorthands::boxplot,
+                vec![var("y"), color.and_then(var), by.and_then(var)],
+            ),
+            vec![color.and_then(var), var("y")],
+            (marks::boxplot, Vec::new()),
+            by,
+        ),
+    ]
+}
+
+#[test]
+fn histogram_density_and_boxplot_of_a_frame_are_their_grammar_forms() {
+    let frame = doses();
+    for (color, by, options) in [
+        (None, None, false),
+        (Some("g"), None, false),
+        (None, Some("g"), true),
+        (Some("g"), Some("g"), true),
+    ] {
+        for (short, long) in three_both(&frame, color, by, options) {
+            assert!(short.0.is_ok(), "{:?}", short.0);
+            same(&short, &long).unwrap();
+        }
+    }
+    // What the grammar refuses the shorthand refuses, in the same words: a variable the
+    // frame lacks for the colour, the group or the panels.
+    for (color, by) in [(Some("w"), None), (None, Some("w"))] {
+        for (at, (short, long)) in three_both(&frame, color, by, false).into_iter().enumerate() {
+            // A histogram takes no colour: it is refused for its panels alone.
+            if at == 0 && by.is_none() {
+                continue;
+            }
+            assert!(short.0.is_err(), "{at} {color:?} {by:?}");
+            same(&short, &long).unwrap();
+        }
+    }
+    // A scene of each, kept.
+    let all = three_both(&frame, None, None, false);
+    insta::assert_snapshot!("a_histogram_of_a_frame", written(&all[0].0).unwrap());
+    insta::assert_snapshot!("a_boxplot_of_a_frame", written(&all[2].0).unwrap());
+}
+
+proptest! {
+    #![proptest_config(ProptestConfig::with_cases(property_cases(64)))]
+
+    /// Whatever the rows, with a colour or a group or without, in panels or not, with
+    /// options or without: each of the three gives what its grammar form gives, the plot,
+    /// the scene byte for byte and the notes, or the same refusal.
+    #[test]
+    fn the_three_of_a_frame_give_the_scenes_of_their_grammar_forms(
+        rows in rows(),
+        color in prop::sample::select(vec![None, Some("g")]),
+        by in prop::sample::select(vec![None, Some("g")]),
+        options in any::<bool>(),
+    ) {
+        let frame = tried(&rows);
+        for (short, long) in three_both(&frame, color, by, options) {
+            prop_assert_eq!(same(&short, &long), Ok(()));
+        }
+    }
+}
