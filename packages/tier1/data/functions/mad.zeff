@@ -24,5 +24,7 @@
 /// 3
 fn mad(data: Frame, var: Var, constant: Float = 1.4826) -> Float {
     let centre = data.median(var)
-    constant * data.add(deviation = abs(var - centre)).median(deviation)
+    // The deviations are taken outside the frame, as a column: inside one of its methods a
+    // name of this body could be a variable of the frame given.
+    constant * frame(deviation = abs(data[name_of(var)] - centre)).median(deviation)
 }

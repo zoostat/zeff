@@ -85,6 +85,14 @@ is never listed here as accepted: it is fixed or the function is withdrawn.
 
 ## As of 0.5.0
 
+- **`iqr`, `mad`, `skewness` and `kurtosis` refuse a frame that has a variable called `var`**,
+  and `iqr` one that has a variable called `type`, with Z0106: those are names of their own
+  parameters, used inside a method of the frame given. It is an error and never another number;
+  renaming the variable (`rename(v = var)`) is the way round. The same holds for a function of a
+  project: a parameter named as a variable of the frame it is given is Z0106, and a `let` of
+  that name gives way to the variable under the warning W0102, so the function's result can
+  depend on the names of the frame's variables. (Since 0.5.0; found on 13 November 2026; open
+  decision #140, and step 38c of 0.7.0 if it is ruled as recommended.)
 - **A function written in a script does not see, by its short name, a module function the
   script brought in with `use`.** After `use functions::checks`, a call of `positive(x)` inside a
   `fn` of the script is refused as an unknown function (Z0103), though the same call at the top
@@ -114,7 +122,7 @@ is never listed here as accepted: it is fixed or the function is withdrawn.
   "Warnings and notes" is the union of the codes declared by the functions a body calls
   (`frame`'s and the reducers' for `center`, `skewness` and their kin), a message raised by an
   inner reducer names that reducer (`median` needs a Bool, Int or Float, from `mad`) and the
-  body's column (`value`, from `standardize`). The lists are narrowed at step 32d of 0.7.0,
+  body's column (`value`, from `standardize`). The lists are narrowed at step 32e of 0.7.0,
   by the rule of open decision #139. (Since 0.5.0; the warning of `skewness` and `kurtosis` for
   too few values carries W0205 from step 4.3 of 0.7.0.)
 - **The mean of values that cancel is within a rounding of the largest input, not of the
@@ -269,6 +277,16 @@ is never listed here as accepted: it is fixed or the function is withdrawn.
 
 ## Resolved at 0.7.0
 
+- **A wrong result, corrected.** From 0.5.0 to 0.6.0, `mad`, `skewness` and `kurtosis` gave a
+  wrong number on a frame that had a variable called `centre`, whatever variable was asked for:
+  the bodies bound that name and used it inside a method of the frame, where the frame's
+  variable came first. The run carried the warning W0102 ("`centre` is both a variable of data
+  and a binding; the variable was used") and no error. `skewness` and `kurtosis` of a variable
+  itself called `dev2` were also wrong, under a note that `dev2` replaced a variable. An
+  analysis is affected only if its data had a variable of one of those two names and it called
+  one of the three functions; such a run printed the warning or the note. Corrected at step
+  32d of 0.7.0: on every other frame the three give the same bits as before. `iqr`, `center`,
+  `standardize`, `winsorize` and `quantile_group` were not affected.
 - The examples of a module function's page are run: `zeff test` runs every `/// >` example of
   every function of `functions/` in the project and compares what it prints with the lines under
   it (listed at 0.5.0 as parsed and syntax-checked but not run). Since steps 32a and 32b.

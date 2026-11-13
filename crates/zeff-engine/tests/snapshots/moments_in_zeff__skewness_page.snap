@@ -39,13 +39,15 @@ WARNINGS AND NOTES
     W0702   date-and-time text carried a zone offset, which was applied to reach UTC
     Note    the script's own warning, printed with its line and with the code `code:` gives it
     Z0206   the result of warn is bound or passed; it has none
-    W0102   a name in a definition is both a variable and a binding
-    Z0101   a definition names a variable the frame does not have
-    Z0217   a definition's column has another number of rows
-    Z0219   a definition is NA alone, whose type is unknown
+    Z0214   a list holds values of more than one type
+    Z0217   the lists have different lengths
+    Z0219   a list has no value, or none but NA, so its type is unknown
+    Z0406   no column is defined
     W0201   missing values skipped, with the count; all missing, or no rows at all, gives NA
     W0204   Inf and -Inf both present, so the result is NA
+    Z0101   no such variable in the frame
     Z0102   a variable that differs only in case from the name written
+    W0102   a name in the condition is both a variable and a binding
     Z0203   the condition is a single Bool, NA, or a column of another type
 
 ACCURACY

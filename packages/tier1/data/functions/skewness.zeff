@@ -37,7 +37,10 @@ fn skewness(data: Frame, var: Var, adjusted: Bool = true) -> Float {
         warn("skewness needs at least two values: the result is NA", code: W0205)
         return to(NA, Float)
     }
-    let m = clean.add(dev2 = (var - centre)^2, dev3 = (var - centre)^3)
+    // The deviations are taken outside the frame, as a column: inside one of its methods a
+    // name of this body could be a variable of the frame given.
+    let deviation = clean[name_of(var)] - centre
+    let m = frame(dev2 = deviation^2, dev3 = deviation^3)
     let g1 = m.mean(dev3) / m.mean(dev2)^1.5
     if adjusted { g1 * sqrt(count * (count - 1)) / (count - 2) } else { g1 }
 }

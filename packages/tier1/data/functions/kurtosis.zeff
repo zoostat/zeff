@@ -39,7 +39,10 @@ fn kurtosis(data: Frame, var: Var, excess: Bool = true, adjusted: Bool = true) -
         warn("kurtosis needs at least two values: the result is NA", code: W0205)
         return to(NA, Float)
     }
-    let m = clean.add(dev2 = (var - centre)^2, dev4 = (var - centre)^4)
+    // The deviations are taken outside the frame, as a column: inside one of its methods a
+    // name of this body could be a variable of the frame given.
+    let deviation = clean[name_of(var)] - centre
+    let m = frame(dev2 = deviation^2, dev4 = deviation^4)
     let g2 = m.mean(dev4) / m.mean(dev2)^2 - 3
     let value = if adjusted {
         ((count + 1) * g2 + 6) * (count - 1) / ((count - 2) * (count - 3))

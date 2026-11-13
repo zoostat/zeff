@@ -2751,3 +2751,28 @@ Raised on 13 November 2026 at step 32c of release 0.7.0. Section 9.1 of the Engi
 *Recommendation.* A. A page that under-declares is worse than one that over-declares, which rules out B; and fourteen pages that list impossible errors are a fault of the help that the release promised to mend, which rules out C. Deadline: 0.7.0, step 32d.
 
 **The decision (13 November 2026).** As recommended, taken under the owner's standing instruction of 12 November 2026 ("If at any point any decisions to be taken by me, I will go by your recommended decisions"), which he may overturn: A. The sentence of section 9.1 on a function written in Zeff is completed at step 32d to say so, and logged.
+
+(Later on 13 November 2026: the narrowing is step 32e of the checklist; 32d became the correction of the wrong results of `mad`, `skewness` and `kurtosis`, found while preparing it.)
+
+### 140. Inside a function's body, which comes first: the function's own name or the frame's variable?
+
+Raised on 13 November 2026 at step 32d of release 0.7.0, from a wrong result. Section 6 of the Language Reference ("Names inside a frame's methods") has a bare name inside a frame's method be the frame's variable first; a binding of the same name gives way under the warning W0102, and a parameter or a loop variable of the same name is an error (Z0106). In a script this is right: the author sees the frame and names its variables. In the body of a function it is a trap, for built-ins and for a project's functions alike, because the function is written before the frame is known:
+
+```
+fn spread(data: Frame, var: Var) -> Float {
+    let centre = data.median(var)
+    data.add(deviation = abs(var - centre)).median(deviation)
+}
+```
+
+On a frame that has a variable called `centre`, `var - centre` subtracts that variable and not the median, and the function returns another number under a warning. This is how `mad`, `skewness` and `kurtosis` were wrong from 0.5.0 to 0.6.0 (now corrected by rewriting their bodies, step 32d). And a frame that has a variable called `var` cannot be given to the function at all (Z0106). Section 5.3 says that a function "gives the same result wherever it is called"; with this rule its result depends on the names of the variables of the frame it is given.
+
+| Option | What it is | For | Against |
+| --- | --- | --- | --- |
+| A. Inside a function's body, the function's own names come first | A name the function binds (a parameter, a `let`, a loop variable) is that binding inside a frame's methods too. A variable of the frame that happens to share the name is reached as `data["name"]`. A name the function does not bind is the frame's variable, as now, so `data.where(year >= 2015)` in a function still names the variable `year`. Scripts are unchanged | A function means the same on every frame; no frame is refused for the names of its variables; the author of a function controls every name in it. It is the ordinary rule of scope | Two rules, one for a script and one for a function body; a function that wanted the variable and bound the same name by accident now gets its binding, silently |
+| B. As now, but a `let` that meets a variable is an error too | The warning W0102 becomes an error inside a function body, as Z0106 is for a parameter | Never a wrong number | A function then fails on some frames for a reason its user cannot see or mend; built-ins must be written around every name, as the three now are |
+| C. As now | The rule of section 6 everywhere, with the warning | One rule | A function's result can depend on the names of the frame's variables, under a warning that names a binding the user did not write |
+
+*Recommendation.* A. The functions written in Zeff are written by people who cannot see the frame, and the rule of section 5.3 promises that this does not matter. Deadline: 0.7.0, step 38c.
+
+**The decision (13 November 2026).** As recommended, taken under the owner's standing instruction of 12 November 2026 ("If at any point any decisions to be taken by me, I will go by your recommended decisions"), which he may overturn: A. It changes a rule of the language, so it is built as a step of its own (38c), late in the release, where a ruling for B or C before then costs nothing; the wrong results themselves are already corrected without it.
