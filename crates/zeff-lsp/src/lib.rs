@@ -2,9 +2,10 @@
 //! engine's language services, `zeff_engine::language`, over the Language Server Protocol, on
 //! any input and output; the program gives it its standard ones.
 //!
-//! This is part 1 of the server (release 0.7.0, step 34b): the conversation is opened and
-//! closed, documents are opened, changed and closed, and after each the editor is told the
-//! checker's diagnostics. Completion, signature help, hover and formatting follow.
+//! The conversation is opened and closed, documents are opened, changed and closed, and
+//! after each the editor is told the checker's diagnostics (release 0.7.0, step 34b). An
+//! editor asks for completion and for signature help at a place in a document (step 35f).
+//! Hover and formatting follow.
 //!
 //! The reader and the writer of the messages are the engine's own: a loop that reads a
 //! message, answers it and reads the next, with nothing running beside it.

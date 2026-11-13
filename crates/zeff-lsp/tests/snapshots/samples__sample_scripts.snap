@@ -17,7 +17,24 @@ expression: editor.told
   "jsonrpc": "2.0",
   "result": {
     "capabilities": {
+      "completionProvider": {
+        "triggerCharacters": [
+          ".",
+          "(",
+          ",",
+          ":"
+        ]
+      },
       "positionEncoding": "utf-16",
+      "signatureHelpProvider": {
+        "retriggerCharacters": [
+          ","
+        ],
+        "triggerCharacters": [
+          "(",
+          ","
+        ]
+      },
       "textDocumentSync": {
         "change": 1,
         "openClose": true
@@ -343,6 +360,486 @@ expression: editor.told
   "params": {
     "contentChanges": [
       {
+        "text": "(79 lines, the last: wages.reg(lwage ~ )"
+      }
+    ],
+    "textDocument": {
+      "uri": "file:///s/user_functions/scripts/main.zeff",
+      "version": 4
+    }
+  }
+}
+<-- {
+  "jsonrpc": "2.0",
+  "method": "textDocument/publishDiagnostics",
+  "params": {
+    "diagnostics": [
+      {
+        "code": "Z0302",
+        "message": "this `(` is never closed",
+        "range": {
+          "end": {
+            "character": 10,
+            "line": 78
+          },
+          "start": {
+            "character": 9,
+            "line": 78
+          }
+        },
+        "severity": 1,
+        "source": "zeff"
+      }
+    ],
+    "uri": "file:///s/user_functions/scripts/main.zeff",
+    "version": 4
+  }
+}
+--> {
+  "id": 10,
+  "jsonrpc": "2.0",
+  "method": "textDocument/completion",
+  "params": {
+    "position": {
+      "character": 18,
+      "line": 78
+    },
+    "textDocument": {
+      "uri": "file:///s/user_functions/scripts/main.zeff"
+    }
+  }
+}
+<-- {
+  "id": 10,
+  "jsonrpc": "2.0",
+  "result": {
+    "isIncomplete": false,
+    "items": [
+      {
+        "detail": "Int",
+        "documentation": "Worker identifier, 0 missing",
+        "kind": 5,
+        "label": "worker",
+        "sortText": "00000",
+        "textEdit": {
+          "newText": "worker",
+          "range": {
+            "end": {
+              "character": 18,
+              "line": 78
+            },
+            "start": {
+              "character": 18,
+              "line": 78
+            }
+          }
+        }
+      },
+      {
+        "detail": "Int",
+        "documentation": "Calendar year, 0 missing",
+        "kind": 5,
+        "label": "year",
+        "sortText": "00001",
+        "textEdit": {
+          "newText": "year",
+          "range": {
+            "end": {
+              "character": 18,
+              "line": 78
+            },
+            "start": {
+              "character": 18,
+              "line": 78
+            }
+          }
+        }
+      },
+      {
+        "detail": "Float",
+        "documentation": "Hourly wage, 211 missing",
+        "kind": 5,
+        "label": "wage",
+        "sortText": "00002",
+        "textEdit": {
+          "newText": "wage",
+          "range": {
+            "end": {
+              "character": 18,
+              "line": 78
+            },
+            "start": {
+              "character": 18,
+              "line": 78
+            }
+          }
+        }
+      },
+      {
+        "detail": "Int",
+        "documentation": "Years of schooling, 0 missing",
+        "kind": 5,
+        "label": "educ",
+        "sortText": "00003",
+        "textEdit": {
+          "newText": "educ",
+          "range": {
+            "end": {
+              "character": 18,
+              "line": 78
+            },
+            "start": {
+              "character": 18,
+              "line": 78
+            }
+          }
+        }
+      },
+      "(and 272 more)"
+    ]
+  }
+}
+--> {
+  "id": 11,
+  "jsonrpc": "2.0",
+  "method": "textDocument/signatureHelp",
+  "params": {
+    "position": {
+      "character": 18,
+      "line": 78
+    },
+    "textDocument": {
+      "uri": "file:///s/user_functions/scripts/main.zeff"
+    }
+  }
+}
+<-- {
+  "id": 11,
+  "jsonrpc": "2.0",
+  "result": {
+    "activeParameter": 1,
+    "activeSignature": 0,
+    "signatures": [
+      {
+        "activeParameter": 1,
+        "documentation": "Linear regression by least squares, with fixed effects",
+        "label": "data.reg(formula, fe: Terms, se: classical | robust | hc2 | hc3, cluster: Var, weights: Var, weight_type: frequency | analytic | sampling = sampling, level: Float = 0.95)",
+        "parameters": [
+          {
+            "documentation": "The frame.",
+            "label": [
+              0,
+              4
+            ]
+          },
+          {
+            "documentation": "`y ~ terms`, written in the call or bound with `let`.",
+            "label": [
+              9,
+              16
+            ]
+          },
+          {
+            "documentation": "The fixed effects to absorb: a variable, `firm`; several joined by `+`, `firm + year`; an interacted effect joined by `:`, `industry:year`. Int, text, category and date variables all serve; `*`, a range, an expression and the intercept are refused, and so is an effect that is also a variable of the formula.",
+            "label": [
+              18,
+              27
+            ]
+          },
+          {
+            "documentation": "The kind of standard error: `classical`, `robust` (HC1), `hc2` or `hc3`; `classical` unless sampling weights are given, when `robust`. With `fe:`, `hc2` and `hc3` are refused (Z0410), since an observation's leverage in the full design is not available.",
+            "label": [
+              29,
+              63
+            ]
+          },
+          {
+            "documentation": "The variable whose values group the observations for clustered errors (CR1).",
+            "label": [
+              65,
+              77
+            ]
+          },
+          {
+            "documentation": "The weight variable.",
+            "label": [
+              79,
+              91
+            ]
+          },
+          {
+            "documentation": "What the weights are: `frequency` counts, `analytic` precision weights, `sampling` probability weights.",
+            "label": [
+              93,
+              148
+            ]
+          },
+          {
+            "documentation": "The confidence level of the intervals.",
+            "label": [
+              150,
+              169
+            ]
+          }
+        ]
+      }
+    ]
+  }
+}
+--> {
+  "jsonrpc": "2.0",
+  "method": "textDocument/didChange",
+  "params": {
+    "contentChanges": [
+      {
+        "text": "(79 lines, the last: wages.reg(lwage ~ educ, se: )"
+      }
+    ],
+    "textDocument": {
+      "uri": "file:///s/user_functions/scripts/main.zeff",
+      "version": 5
+    }
+  }
+}
+<-- {
+  "jsonrpc": "2.0",
+  "method": "textDocument/publishDiagnostics",
+  "params": {
+    "diagnostics": [
+      {
+        "code": "Z0302",
+        "message": "this `(` is never closed",
+        "range": {
+          "end": {
+            "character": 10,
+            "line": 78
+          },
+          "start": {
+            "character": 9,
+            "line": 78
+          }
+        },
+        "severity": 1,
+        "source": "zeff"
+      }
+    ],
+    "uri": "file:///s/user_functions/scripts/main.zeff",
+    "version": 5
+  }
+}
+--> {
+  "id": 12,
+  "jsonrpc": "2.0",
+  "method": "textDocument/completion",
+  "params": {
+    "position": {
+      "character": 28,
+      "line": 78
+    },
+    "textDocument": {
+      "uri": "file:///s/user_functions/scripts/main.zeff"
+    }
+  }
+}
+<-- {
+  "id": 12,
+  "jsonrpc": "2.0",
+  "result": {
+    "isIncomplete": false,
+    "items": [
+      {
+        "detail": "se: classical | robust | hc2 | hc3",
+        "documentation": "The kind of standard error: `classical`, `robust` (HC1), `hc2` or `hc3`; `classical` unless sampling weights are given, when `robust`. With `fe:`, `hc2` and `hc3` are refused (Z0410), since an observation's leverage in the full design is not available.",
+        "kind": 20,
+        "label": "classical",
+        "sortText": "00000",
+        "textEdit": {
+          "newText": "classical",
+          "range": {
+            "end": {
+              "character": 28,
+              "line": 78
+            },
+            "start": {
+              "character": 28,
+              "line": 78
+            }
+          }
+        }
+      },
+      {
+        "detail": "se: classical | robust | hc2 | hc3",
+        "documentation": "The kind of standard error: `classical`, `robust` (HC1), `hc2` or `hc3`; `classical` unless sampling weights are given, when `robust`. With `fe:`, `hc2` and `hc3` are refused (Z0410), since an observation's leverage in the full design is not available.",
+        "kind": 20,
+        "label": "robust",
+        "sortText": "00001",
+        "textEdit": {
+          "newText": "robust",
+          "range": {
+            "end": {
+              "character": 28,
+              "line": 78
+            },
+            "start": {
+              "character": 28,
+              "line": 78
+            }
+          }
+        }
+      },
+      {
+        "detail": "se: classical | robust | hc2 | hc3",
+        "documentation": "The kind of standard error: `classical`, `robust` (HC1), `hc2` or `hc3`; `classical` unless sampling weights are given, when `robust`. With `fe:`, `hc2` and `hc3` are refused (Z0410), since an observation's leverage in the full design is not available.",
+        "kind": 20,
+        "label": "hc2",
+        "sortText": "00002",
+        "textEdit": {
+          "newText": "hc2",
+          "range": {
+            "end": {
+              "character": 28,
+              "line": 78
+            },
+            "start": {
+              "character": 28,
+              "line": 78
+            }
+          }
+        }
+      },
+      {
+        "detail": "se: classical | robust | hc2 | hc3",
+        "documentation": "The kind of standard error: `classical`, `robust` (HC1), `hc2` or `hc3`; `classical` unless sampling weights are given, when `robust`. With `fe:`, `hc2` and `hc3` are refused (Z0410), since an observation's leverage in the full design is not available.",
+        "kind": 20,
+        "label": "hc3",
+        "sortText": "00003",
+        "textEdit": {
+          "newText": "hc3",
+          "range": {
+            "end": {
+              "character": 28,
+              "line": 78
+            },
+            "start": {
+              "character": 28,
+              "line": 78
+            }
+          }
+        }
+      }
+    ]
+  }
+}
+--> {
+  "jsonrpc": "2.0",
+  "method": "textDocument/didChange",
+  "params": {
+    "contentChanges": [
+      {
+        "text": "(79 lines, the last: wages.sha)"
+      }
+    ],
+    "textDocument": {
+      "uri": "file:///s/user_functions/scripts/main.zeff",
+      "version": 6
+    }
+  }
+}
+<-- {
+  "jsonrpc": "2.0",
+  "method": "textDocument/publishDiagnostics",
+  "params": {
+    "diagnostics": [
+      {
+        "code": "Z0213",
+        "message": "`.sha` reads a record field, but this is a Frame\nhelp: a method call has parentheses: `.sha()`",
+        "range": {
+          "end": {
+            "character": 9,
+            "line": 78
+          },
+          "start": {
+            "character": 0,
+            "line": 78
+          }
+        },
+        "severity": 1,
+        "source": "zeff"
+      }
+    ],
+    "uri": "file:///s/user_functions/scripts/main.zeff",
+    "version": 6
+  }
+}
+--> {
+  "id": 13,
+  "jsonrpc": "2.0",
+  "method": "textDocument/completion",
+  "params": {
+    "position": {
+      "character": 9,
+      "line": 78
+    },
+    "textDocument": {
+      "uri": "file:///s/user_functions/scripts/main.zeff"
+    }
+  }
+}
+<-- {
+  "id": 13,
+  "jsonrpc": "2.0",
+  "result": {
+    "isIncomplete": false,
+    "items": [
+      {
+        "detail": "data.shapiro_test(var)",
+        "documentation": "Shapiro–Wilk test of normality",
+        "kind": 2,
+        "label": "shapiro_test",
+        "sortText": "00000",
+        "textEdit": {
+          "newText": "shapiro_test",
+          "range": {
+            "end": {
+              "character": 9,
+              "line": 78
+            },
+            "start": {
+              "character": 6,
+              "line": 78
+            }
+          }
+        }
+      },
+      {
+        "detail": "share_missing(data: Frame, var: Var) -> Float",
+        "documentation": "Share of rows where a variable is missing.",
+        "kind": 3,
+        "label": "share_missing",
+        "sortText": "00001",
+        "textEdit": {
+          "newText": "share_missing",
+          "range": {
+            "end": {
+              "character": 9,
+              "line": 78
+            },
+            "start": {
+              "character": 6,
+              "line": 78
+            }
+          }
+        }
+      }
+    ]
+  }
+}
+--> {
+  "jsonrpc": "2.0",
+  "method": "textDocument/didChange",
+  "params": {
+    "contentChanges": [
+      {
         "text": "(15 lines, the last: })"
       }
     ],
@@ -383,48 +880,16 @@ expression: editor.told
         "source": "zeff"
       },
       {
-        "code": "Z0101",
-        "message": "no variable `wagee` in `wages`\nhelp: did you mean `wage`? If you meant a category level, write it in quotes: `\"wage\"`",
+        "code": "Z0213",
+        "message": "`.sha` reads a record field, but this is a Frame\nhelp: a method call has parentheses: `.sha()`",
         "range": {
           "end": {
-            "character": 16,
+            "character": 9,
             "line": 78
           },
           "start": {
-            "character": 11,
+            "character": 0,
             "line": 78
-          }
-        },
-        "severity": 1,
-        "source": "zeff"
-      },
-      {
-        "code": "Z0302",
-        "message": "this `(` is never closed",
-        "range": {
-          "end": {
-            "character": 25,
-            "line": 79
-          },
-          "start": {
-            "character": 24,
-            "line": 79
-          }
-        },
-        "severity": 1,
-        "source": "zeff"
-      },
-      {
-        "code": "Z0302",
-        "message": "this `[` is never closed",
-        "range": {
-          "end": {
-            "character": 26,
-            "line": 79
-          },
-          "start": {
-            "character": 25,
-            "line": 79
           }
         },
         "severity": 1,
@@ -432,7 +897,7 @@ expression: editor.told
       }
     ],
     "uri": "file:///s/user_functions/scripts/main.zeff",
-    "version": 3
+    "version": 6
   }
 }
 --> {
@@ -465,48 +930,16 @@ expression: editor.told
   "params": {
     "diagnostics": [
       {
-        "code": "Z0101",
-        "message": "no variable `wagee` in `wages`\nhelp: did you mean `wage`? If you meant a category level, write it in quotes: `\"wage\"`",
+        "code": "Z0213",
+        "message": "`.sha` reads a record field, but this is a Frame\nhelp: a method call has parentheses: `.sha()`",
         "range": {
           "end": {
-            "character": 16,
+            "character": 9,
             "line": 78
           },
           "start": {
-            "character": 11,
+            "character": 0,
             "line": 78
-          }
-        },
-        "severity": 1,
-        "source": "zeff"
-      },
-      {
-        "code": "Z0302",
-        "message": "this `(` is never closed",
-        "range": {
-          "end": {
-            "character": 25,
-            "line": 79
-          },
-          "start": {
-            "character": 24,
-            "line": 79
-          }
-        },
-        "severity": 1,
-        "source": "zeff"
-      },
-      {
-        "code": "Z0302",
-        "message": "this `[` is never closed",
-        "range": {
-          "end": {
-            "character": 26,
-            "line": 79
-          },
-          "start": {
-            "character": 25,
-            "line": 79
           }
         },
         "severity": 1,
@@ -514,7 +947,7 @@ expression: editor.told
       }
     ],
     "uri": "file:///s/user_functions/scripts/main.zeff",
-    "version": 3
+    "version": 6
   }
 }
 --> {
@@ -528,7 +961,7 @@ expression: editor.told
     ],
     "textDocument": {
       "uri": "file:///s/user_functions/scripts/main.zeff",
-      "version": 4
+      "version": 7
     }
   }
 }
@@ -538,7 +971,7 @@ expression: editor.told
   "params": {
     "diagnostics": [],
     "uri": "file:///s/user_functions/scripts/main.zeff",
-    "version": 4
+    "version": 7
   }
 }
 --> {
@@ -695,7 +1128,7 @@ expression: editor.told
   }
 }
 --> {
-  "id": 2,
+  "id": 20,
   "jsonrpc": "2.0",
   "method": "textDocument/hover",
   "params": {
@@ -713,16 +1146,16 @@ expression: editor.told
     "code": -32601,
     "message": "`textDocument/hover` is not a request this server answers"
   },
-  "id": 2,
+  "id": 20,
   "jsonrpc": "2.0"
 }
 --> {
-  "id": 3,
+  "id": 21,
   "jsonrpc": "2.0",
   "method": "shutdown"
 }
 <-- {
-  "id": 3,
+  "id": 21,
   "jsonrpc": "2.0",
   "result": null
 }

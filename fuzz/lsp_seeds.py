@@ -39,6 +39,10 @@ def conversation(uri, text, changed):
             {"textDocument": {"uri": uri, "version": 3}, "contentChanges": [part]},
         ),
         message("textDocument/hover", {"textDocument": {"uri": uri}}, id=2),
+        # Completion and signature help at a place inside the document, and past its end.
+        message("textDocument/completion", {"textDocument": {"uri": uri}, "position": {"line": 2, "character": 4}}, id=4),
+        message("textDocument/signatureHelp", {"textDocument": {"uri": uri}, "position": {"line": 2, "character": 4}}, id=5),
+        message("textDocument/completion", {"textDocument": {"uri": uri}, "position": {"line": 9999, "character": 9999}}, id=6),
         message("textDocument/didClose", {"textDocument": {"uri": uri}}),
         message("shutdown", id=3),
         message("exit"),

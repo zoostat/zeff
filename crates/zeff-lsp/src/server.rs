@@ -12,7 +12,10 @@ use std::collections::BTreeMap;
 use std::panic::{AssertUnwindSafe, catch_unwind};
 use std::path::{Path, PathBuf};
 use zeff_engine::fs::FileSystem;
-use zeff_engine::language::{Documents, Finding, Level, Position, Range, diagnostics, offset};
+use zeff_engine::language::{
+    Completion, CompletionKind, Documents, Finding, Level, Position, Range, SignatureHelp,
+    completions, diagnostics, offset, signature_help,
+};
 
 /// The errors of JSON-RPC and of the protocol that this server gives.
 pub mod code {
@@ -25,6 +28,10 @@ pub mod code {
     pub const METHOD_NOT_FOUND: i64 = -32601;
     /// A request before `initialize`.
     pub const SERVER_NOT_INITIALIZED: i64 = -32002;
+    /// A request this server serves, without what it needs to be answered.
+    pub const INVALID_PARAMS: i64 = -32602;
+    /// A fault of the engine while a request was answered.
+    pub const INTERNAL_ERROR: i64 = -32603;
 }
 
 /// Where the conversation stands.
@@ -73,17 +80,87 @@ fn range(range: Range) -> Value {
 }
 
 /// A place the editor sent, where it is one.
-fn sent_range(value: &Value) -> Option<Range> {
-    let place = |value: &Value| {
-        Some(Position {
-            line: u32::try_from(value.get("line")?.as_u64()?).ok()?,
-            character: u32::try_from(value.get("character")?.as_u64()?).ok()?,
-        })
-    };
-    Some(Range {
-        start: place(value.get("start")?)?,
-        end: place(value.get("end")?)?,
+fn sent_position(value: &Value) -> Option<Position> {
+    Some(Position {
+        line: u32::try_from(value.get("line")?.as_u64()?).ok()?,
+        character: u32::try_from(value.get("character")?.as_u64()?).ok()?,
     })
+}
+
+/// A stretch of text the editor sent, where it is one.
+fn sent_range(value: &Value) -> Option<Range> {
+    Some(Range {
+        start: sent_position(value.get("start")?)?,
+        end: sent_position(value.get("end")?)?,
+    })
+}
+
+/// A completion as the protocol's `CompletionItem`: what is shown, what it is, what is
+/// written in place of the word being typed, and the order the engine gives, which an editor
+/// would otherwise replace by the order of the letters.
+fn completion_item(item: &Completion, replace: Range, order: usize) -> Value {
+    // The protocol's kinds: 2 a method, 3 a function, 5 a field, 6 a variable, 10 a property,
+    // 12 a value, 20 a member of a fixed list.
+    let kind = match item.kind {
+        CompletionKind::Method => 2,
+        CompletionKind::Function => 3,
+        // A field of a record and a variable of a frame are both a named part of a value.
+        CompletionKind::Field | CompletionKind::Variable => 5,
+        CompletionKind::Binding => 6,
+        CompletionKind::Argument => 10,
+        CompletionKind::Dataset => 12,
+        CompletionKind::Word => 20,
+    };
+    let mut out = Map::new();
+    out.insert("label".into(), json!(item.label));
+    out.insert("kind".into(), json!(kind));
+    if !item.detail.is_empty() {
+        out.insert("detail".into(), json!(item.detail));
+    }
+    if !item.summary.is_empty() {
+        out.insert("documentation".into(), json!(item.summary));
+    }
+    out.insert("sortText".into(), json!(format!("{order:05}")));
+    out.insert(
+        "textEdit".into(),
+        json!({ "range": range(replace), "newText": item.insert }),
+    );
+    Value::Object(out)
+}
+
+/// Signature help as the protocol's `SignatureHelp`: the one usage line, each parameter by
+/// where it stands in the line, and the one the place is in. Where the place is in none of
+/// them the line is sent without its parameters, so that no editor marks one.
+fn signature(help: &SignatureHelp) -> Value {
+    let mut line = Map::new();
+    line.insert("label".into(), json!(help.usage));
+    if !help.summary.is_empty() {
+        line.insert("documentation".into(), json!(help.summary));
+    }
+    let mut out = Map::new();
+    if let Some(active) = help.active {
+        let parameters: Vec<Value> = help
+            .parameters
+            .iter()
+            .map(|parameter| {
+                let mut one = Map::new();
+                one.insert(
+                    "label".into(),
+                    json!([parameter.range.0, parameter.range.1]),
+                );
+                if !parameter.help.is_empty() {
+                    one.insert("documentation".into(), json!(parameter.help));
+                }
+                Value::Object(one)
+            })
+            .collect();
+        line.insert("parameters".into(), Value::Array(parameters));
+        line.insert("activeParameter".into(), json!(active));
+        out.insert("activeParameter".into(), json!(active));
+    }
+    out.insert("signatures".into(), json!([Value::Object(line)]));
+    out.insert("activeSignature".into(), json!(0));
+    Value::Object(out)
 }
 
 /// A finding as the protocol's `Diagnostic`. Its text is the message, the mark of section 11
@@ -214,14 +291,14 @@ impl Server {
         };
         let params = message.get("params").unwrap_or(&Value::Null);
         match id {
-            Some(id) => answer.messages.push(self.request(id, method)),
+            Some(id) => answer.messages.push(self.request(fs, id, method, params)),
             None => self.notification(fs, method, params, &mut answer),
         }
         answer
     }
 
     /// A request, answered.
-    fn request(&mut self, id: &Value, method: &str) -> String {
+    fn request(&mut self, fs: &dyn FileSystem, id: &Value, method: &str, params: &Value) -> String {
         match (self.state, method) {
             (State::New, "initialize") => {
                 self.state = State::Running;
@@ -235,6 +312,16 @@ impl Server {
                             // A document opened and closed is told, and a change comes as
                             // the whole text (1).
                             "textDocumentSync": { "openClose": true, "change": 1 },
+                            // Completion is asked for as a word is typed, and at once after
+                            // a dot, an opening bracket, a comma and the colon of an
+                            // argument's name.
+                            "completionProvider": { "triggerCharacters": [".", "(", ",", ":"] },
+                            // Signature help is asked for after an opening bracket and at
+                            // each comma.
+                            "signatureHelpProvider": {
+                                "triggerCharacters": ["(", ","],
+                                "retriggerCharacters": [","],
+                            },
                         },
                         "serverInfo": { "name": "zeff", "version": zeff_engine::VERSION },
                     }),
@@ -251,6 +338,47 @@ impl Server {
             (State::Running, "shutdown") => {
                 self.state = State::ShutDown;
                 response(id, Value::Null)
+            }
+            (State::Running, "textDocument/completion" | "textDocument/signatureHelp") => {
+                // The document and the place in it, which both requests name alike.
+                let uri = params
+                    .get("textDocument")
+                    .and_then(|d| d.get("uri"))
+                    .and_then(Value::as_str);
+                let place = params.get("position").and_then(sent_position);
+                let (Some(uri), Some(at)) = (uri, place) else {
+                    return error(
+                        id,
+                        code::INVALID_PARAMS,
+                        &format!("`{method}` names a document and a place in it"),
+                    );
+                };
+                let path = path_of(uri);
+                let documents = &self.documents;
+                let result = catch_unwind(AssertUnwindSafe(|| match method {
+                    "textDocument/completion" => {
+                        let found = completions(fs, documents, &path, at);
+                        let items: Vec<Value> = found
+                            .items
+                            .iter()
+                            .enumerate()
+                            .map(|(order, item)| completion_item(item, found.replace, order))
+                            .collect();
+                        // The whole list for the place: an editor narrows it as more is
+                        // typed, and asks again when the place is another.
+                        json!({ "isIncomplete": false, "items": items })
+                    }
+                    _ => signature_help(fs, documents, &path, at)
+                        .map_or(Value::Null, |help| signature(&help)),
+                }));
+                match result {
+                    Ok(result) => response(id, result),
+                    Err(_) => error(
+                        id,
+                        code::INTERNAL_ERROR,
+                        "internal error: this is a bug in Zeff, not in your script (Z9001)",
+                    ),
+                }
             }
             (State::Running, _) => error(
                 id,

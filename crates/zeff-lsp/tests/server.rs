@@ -150,6 +150,11 @@ fn initialize_says_what_the_server_does() {
                 "capabilities": {
                     "positionEncoding": "utf-16",
                     "textDocumentSync": {"openClose": true, "change": 1},
+                    "completionProvider": {"triggerCharacters": [".", "(", ",", ":"]},
+                    "signatureHelpProvider": {
+                        "triggerCharacters": ["(", ","],
+                        "retriggerCharacters": [","],
+                    },
                 },
                 "serverInfo": {"name": "zeff", "version": VERSION},
             },
@@ -482,13 +487,7 @@ fn a_notification_that_cannot_be_acted_on_is_put_in_the_editors_log() {
 fn what_the_server_does_not_serve() {
     let mut session = Session::started();
     // A request it does not answer is answered so; the parts that follow in later steps too.
-    for method in [
-        "textDocument/hover",
-        "textDocument/completion",
-        "workspace/symbol",
-        "$/unknown",
-        "",
-    ] {
+    for method in ["textDocument/hover", "workspace/symbol", "$/unknown", ""] {
         let answers =
             session.send(&json!({"jsonrpc": "2.0", "id": 9, "method": method, "params": {}}));
         assert_eq!(answers.len(), 1);
@@ -672,4 +671,224 @@ fn a_conversation_over_an_input_and_an_output() {
     }
     let mut input = Cursor::new(framed(&bodies));
     assert_eq!(serve(&fs, &mut input, &mut Closed), 1);
+}
+
+/// A place in a text: its last character, as the protocol counts it.
+fn end_of(text: &str) -> Value {
+    let line = text.lines().count().saturating_sub(1);
+    let character = text
+        .lines()
+        .last()
+        .map_or(0, |last| last.encode_utf16().count());
+    json!({"line": line, "character": character})
+}
+
+impl Session {
+    /// A request about the end of a text typed into the script.
+    fn ask(&mut self, method: &str, text: &str) -> Value {
+        self.open(MAIN, text);
+        let answers = self.send(&json!({
+            "jsonrpc": "2.0", "id": 7, "method": method,
+            "params": {"textDocument": {"uri": MAIN}, "position": end_of(text)},
+        }));
+        self.close(MAIN);
+        assert_eq!(answers.len(), 1, "{answers:?}");
+        assert_eq!(answers[0]["id"], 7);
+        answers[0].clone()
+    }
+}
+
+#[test]
+fn completion_is_answered_with_the_engines_list_in_its_order() {
+    let mut session = Session::started();
+    // After the name of an argument of a fixed list: the words, as the protocol's items.
+    let text = "let d = import(\"data/small.csv\")\nd.merge(d, on: a, join: in";
+    let answer = session.ask("textDocument/completion", text);
+    assert_eq!(
+        answer,
+        json!({
+            "jsonrpc": "2.0",
+            "id": 7,
+            "result": {
+                "isIncomplete": false,
+                "items": [{
+                    "label": "inner",
+                    "kind": 20,
+                    "detail": "join: left | inner | full = left",
+                    "documentation": "Which rows to keep: `left` (all left rows), `inner` (matched rows only) or `full` (all rows of both frames); `left` unless given.",
+                    "sortText": "00000",
+                    // The word being typed is what the completion takes the place of.
+                    "textEdit": {
+                        "range": {"start": {"line": 1, "character": 24}, "end": {"line": 1, "character": 26}},
+                        "newText": "inner",
+                    },
+                }],
+            },
+        })
+    );
+    // Each kind of thing by the protocol's number for it, and the name of an argument
+    // written with its colon.
+    let text =
+        "use functions::clean\nlet d = import(\"data/small.csv\")\nlet r = {n: 1}\nd.reg(b ~ a, ";
+    let answer = session.ask("textDocument/completion", text);
+    let items = answer["result"]["items"].as_array().expect("a list");
+    let kind_of = |label: &str| -> (i64, String) {
+        let item = items
+            .iter()
+            .find(|item| item["label"] == label)
+            .unwrap_or_else(|| panic!("{label}"));
+        (
+            item["kind"].as_i64().unwrap(),
+            item["textEdit"]["newText"].as_str().unwrap().to_string(),
+        )
+    };
+    assert_eq!(kind_of("b"), (5, "b".to_string()));
+    assert_eq!(kind_of("se"), (10, "se: ".to_string()));
+    assert_eq!(kind_of("d"), (6, "d".to_string()));
+    assert_eq!(kind_of("twice"), (3, "twice".to_string()));
+    assert_eq!(kind_of("where"), (2, "where".to_string()));
+    // The list is the engine's, in the engine's order, which the editor is told to keep.
+    let mut open = zeff_engine::language::Documents::new();
+    open.open(zeff_lsp::uri::path_of(MAIN), text, 1);
+    let engine = zeff_engine::language::completions(
+        &session.fs,
+        &open,
+        &zeff_lsp::uri::path_of(MAIN),
+        zeff_engine::language::Position {
+            line: 3,
+            character: 13,
+        },
+    );
+    assert!(engine.items.len() > 200);
+    let labels: Vec<&str> = items
+        .iter()
+        .map(|item| item["label"].as_str().unwrap())
+        .collect();
+    let expected: Vec<&str> = engine
+        .items
+        .iter()
+        .map(|item| item.label.as_str())
+        .collect();
+    assert_eq!(labels, expected);
+    let orders: Vec<&str> = items
+        .iter()
+        .map(|item| item["sortText"].as_str().unwrap())
+        .collect();
+    assert!(orders.is_sorted() && orders[0] == "00000");
+    // A variable carries its type, and what else is known of it as its documentation.
+    let text = "dataset(wages).mean(wa";
+    let answer = session.ask("textDocument/completion", text);
+    assert_eq!(
+        answer["result"]["items"][0],
+        json!({
+            "label": "wage",
+            "kind": 5,
+            "detail": "Float",
+            "documentation": "Hourly wage, 211 missing",
+            "sortText": "00000",
+            "textEdit": {
+                "range": {"start": {"line": 0, "character": 20}, "end": {"line": 0, "character": 22}},
+                "newText": "wage",
+            },
+        })
+    );
+    // Where nothing may be completed the list is empty, and still a list.
+    let answer = session.ask("textDocument/completion", "let s = \"d.");
+    assert_eq!(
+        answer["result"],
+        json!({"isIncomplete": false, "items": []})
+    );
+    // After a dataset inside `dataset(`: a value.
+    let answer = session.ask("textDocument/completion", "let w = dataset(wa");
+    assert_eq!(answer["result"]["items"][0]["kind"], 12);
+}
+
+#[test]
+fn signature_help_is_answered_with_the_usage_line_and_the_argument() {
+    let mut session = Session::started();
+    let answer = session.ask(
+        "textDocument/signatureHelp",
+        "let d = import(\"data/small.csv\")\nd.mean(a, ",
+    );
+    assert_eq!(
+        answer["result"],
+        json!({
+            "activeSignature": 0,
+            "activeParameter": 2,
+            "signatures": [{
+                "label": "data.mean(var, by: Vars, weights: Var, weight_type: frequency | analytic | sampling = sampling)",
+                "documentation": "Mean of a variable",
+                "activeParameter": 2,
+                "parameters": [
+                    {"label": [0, 4], "documentation": "The frame."},
+                    {"label": [10, 13], "documentation": "The variable, which must be Bool, Int or Float."},
+                    {"label": [15, 23], "documentation": "Repeat the computation within each group; plots draw one panel per group."},
+                    {"label": [25, 37], "documentation": "Weight variable."},
+                    {"label": [39, 94], "documentation": "Stata's fweight, aweight and pweight. In 1.0 the tests refuse `weights:` with `weight_type: sampling` (Z0411) and point to regression with robust errors."},
+                ],
+            }],
+        })
+    );
+    // Outside a call there is none, which the protocol writes as nothing.
+    let answer = session.ask("textDocument/signatureHelp", "let x = 1 + ");
+    assert_eq!(answer, json!({"jsonrpc": "2.0", "id": 7, "result": null}));
+    // A place that is in no parameter: the usage line without its parameters, so that no
+    // editor marks one.
+    let answer = session.ask(
+        "textDocument/signatureHelp",
+        "let d = import(\"data/small.csv\")\nd.n_rows(1, ",
+    );
+    assert_eq!(
+        answer["result"],
+        json!({
+            "activeSignature": 0,
+            "signatures": [{"label": "data.n_rows()", "documentation": "Number of rows"}],
+        })
+    );
+}
+
+#[test]
+fn the_two_requests_need_a_document_and_a_place() {
+    let mut session = Session::started();
+    for method in ["textDocument/completion", "textDocument/signatureHelp"] {
+        for params in [
+            json!(null),
+            json!({}),
+            json!({"textDocument": {"uri": MAIN}}),
+            json!({"position": {"line": 0, "character": 0}}),
+            json!({"textDocument": {"uri": MAIN}, "position": {"line": -1, "character": 0}}),
+            json!({"textDocument": {"uri": MAIN}, "position": {"line": 0}}),
+            json!({"textDocument": {"uri": 7}, "position": {"line": 0, "character": 0}}),
+        ] {
+            let answers = session
+                .send(&json!({"jsonrpc": "2.0", "id": 4, "method": method, "params": params}));
+            assert_eq!(answers.len(), 1);
+            assert_eq!(error_code(&answers[0]), -32602, "{method} {params}");
+            assert_eq!(
+                answers[0]["error"]["message"],
+                format!("`{method}` names a document and a place in it")
+            );
+        }
+    }
+    // A document that is not open is read from the disk; one that is nowhere has nothing.
+    let saved = json!({"textDocument": {"uri": MAIN}, "position": {"line": 1, "character": 6}});
+    let answers = session.send(&json!({"jsonrpc": "2.0", "id": 5, "method": "textDocument/signatureHelp", "params": saved}));
+    assert_eq!(
+        answers[0]["result"]["signatures"][0]["label"],
+        "print(x, ...)"
+    );
+    let nowhere = json!({"textDocument": {"uri": "file:///work/demo/scripts/none.zeff"}, "position": {"line": 0, "character": 0}});
+    let answers = session.send(&json!({"jsonrpc": "2.0", "id": 6, "method": "textDocument/completion", "params": nowhere.clone()}));
+    assert_eq!(
+        answers[0]["result"],
+        json!({"isIncomplete": false, "items": []})
+    );
+    let answers = session.send(&json!({"jsonrpc": "2.0", "id": 6, "method": "textDocument/signatureHelp", "params": nowhere}));
+    assert_eq!(answers[0]["result"], Value::Null);
+    // Before `initialize` they are refused as any request is.
+    let mut early = Session::new();
+    let answers = early.send(
+        &json!({"jsonrpc": "2.0", "id": 1, "method": "textDocument/completion", "params": saved}),
+    );
+    assert_eq!(error_code(&answers[0]), -32002);
 }

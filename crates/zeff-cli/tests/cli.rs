@@ -2199,6 +2199,47 @@ fn zeff_lsp_serves_an_editor_on_standard_input_and_output() {
         "{}",
         err(&o)
     );
+    // Completion and signature help, asked of the real program at `d.mean(wa|gee)`.
+    let ask = |id: u32, method: &str| {
+        format!(
+            "{{\"jsonrpc\":\"2.0\",\"id\":{id},\"method\":\"{method}\",\"params\":{{\"textDocument\":{{\"uri\":{}}},\"position\":{{\"line\":1,\"character\":9}}}}}}",
+            json_text(&uri)
+        )
+    };
+    let asking = [
+        conversation[0].clone(),
+        conversation[1].clone(),
+        open("let d = dataset(wages)\nd.mean(wagee)\n"),
+        ask(5, "textDocument/completion"),
+        ask(6, "textDocument/signatureHelp"),
+        conversation[5].clone(),
+        conversation[6].clone(),
+    ];
+    let o = zeff_with(&project, dir.path(), &lsp_messages(&asking), &["lsp"]);
+    assert_eq!(code(&o), 0, "{}", err(&o));
+    let answered = out(&o);
+    assert!(
+        answered
+            .contains("\"completionProvider\":{\"triggerCharacters\":[\".\",\"(\",\",\",\":\"]}"),
+        "{answered}"
+    );
+    // The variable of the shipped dataset, with its type and what else is known of it, to
+    // be written in the place of the whole word the cursor is in.
+    assert!(
+        answered.contains(
+            "{\"detail\":\"Float\",\"documentation\":\"Hourly wage, 211 missing\",\"kind\":5,\"label\":\"wage\",\"sortText\":\"00000\",\"textEdit\":{\"newText\":\"wage\",\"range\":{\"end\":{\"character\":12,\"line\":1},\"start\":{\"character\":7,\"line\":1}}}}"
+        ),
+        "{answered}"
+    );
+    // The usage line of `mean`, the cursor in its variable.
+    assert!(
+        answered.contains("\"label\":\"data.mean(var, by: Vars, weights: Var, weight_type: frequency | analytic | sampling = sampling)\""),
+        "{answered}"
+    );
+    assert!(
+        answered.contains("{\"activeParameter\":1,\"activeSignature\":0,"),
+        "{answered}"
+    );
     // It takes no arguments.
     let o = zeff(&project, &["lsp", "now"]);
     assert_eq!(code(&o), 1);

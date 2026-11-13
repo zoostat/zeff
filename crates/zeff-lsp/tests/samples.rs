@@ -97,6 +97,16 @@ impl Conversation {
                 assert_eq!(version, zeff_engine::VERSION);
                 *version = json!("(the version of the engine)");
             }
+            // A long list of completions: its first four, and how many follow.
+            if let Some(items) = value
+                .pointer_mut("/result/items")
+                .and_then(Value::as_array_mut)
+                && items.len() > 4
+            {
+                let more = items.len() - 4;
+                items.truncate(4);
+                items.push(json!(format!("(and {more} more)")));
+            }
             self.told.push_str(&format!(
                 "<-- {}\n",
                 serde_json::to_string_pretty(&value).expect("JSON")
@@ -180,6 +190,47 @@ fn the_messages_exchanged_on_the_sample_scripts() {
         3,
         &format!("{script_text}wages.mean(wagee)\nlet half = wages.summary([lwage, exper\n"),
     );
+    // A call begun at the end of the script: what may stand in it, which begins with the
+    // variables of the frame, each with its type, its label and its count of missing values;
+    // and the usage line of the function, with the argument the cursor is in.
+    let begun = format!("{script_text}wages.reg(lwage ~ ");
+    let end = begun.lines().last().map_or(0, |line| line.chars().count());
+    let place = json!({"line": begun.lines().count() - 1, "character": end});
+    editor.change(script, 4, &begun);
+    editor.send(json!({
+        "jsonrpc": "2.0",
+        "id": 10,
+        "method": "textDocument/completion",
+        "params": {"textDocument": {"uri": script}, "position": place},
+    }));
+    editor.send(json!({
+        "jsonrpc": "2.0",
+        "id": 11,
+        "method": "textDocument/signatureHelp",
+        "params": {"textDocument": {"uri": script}, "position": place},
+    }));
+    // After the name of an argument that takes one of a fixed list of words.
+    let begun = format!("{script_text}wages.reg(lwage ~ educ, se: ");
+    let end = begun.lines().last().map_or(0, |line| line.chars().count());
+    let place = json!({"line": begun.lines().count() - 1, "character": end});
+    editor.change(script, 5, &begun);
+    editor.send(json!({
+        "jsonrpc": "2.0",
+        "id": 12,
+        "method": "textDocument/completion",
+        "params": {"textDocument": {"uri": script}, "position": place},
+    }));
+    // After a dot, with a word begun: the project's own function among the engine's.
+    let begun = format!("{script_text}wages.sha");
+    let end = begun.lines().last().map_or(0, |line| line.chars().count());
+    let place = json!({"line": begun.lines().count() - 1, "character": end});
+    editor.change(script, 6, &begun);
+    editor.send(json!({
+        "jsonrpc": "2.0",
+        "id": 13,
+        "method": "textDocument/completion",
+        "params": {"textDocument": {"uri": script}, "position": place},
+    }));
     // The module's function renamed, not saved: the script is told what it now lacks.
     editor.change(
         module,
@@ -188,18 +239,18 @@ fn the_messages_exchanged_on_the_sample_scripts() {
     );
     // The module as it was, and the script as it was: nothing is left to say.
     editor.change(module, 3, &module_text);
-    editor.change(script, 4, &script_text);
+    editor.change(script, 7, &script_text);
     for (uri, _) in &documents {
         editor.close(uri);
     }
     // A request for a part of the server that a later step builds.
     editor.send(json!({
         "jsonrpc": "2.0",
-        "id": 2,
+        "id": 20,
         "method": "textDocument/hover",
         "params": {"textDocument": {"uri": script}, "position": {"line": 0, "character": 0}},
     }));
-    editor.send(json!({"jsonrpc": "2.0", "id": 3, "method": "shutdown"}));
+    editor.send(json!({"jsonrpc": "2.0", "id": 21, "method": "shutdown"}));
     assert_eq!(
         editor.send(json!({"jsonrpc": "2.0", "method": "exit"})),
         Some(0)
