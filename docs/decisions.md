@@ -4677,3 +4677,11 @@ error[Z0001]: no rows to take the mean of
 **Step 35 is complete.** Completion after a dot and at a word (35a), inside a call (35b), the variables of a frame (35c) with their labels and counts of missing values (35d), signature help (35e), and both over the protocol (35f). The corpora of cursor places hold 43, 29, 45 and 34 places. What the specification's table asks of completion and signature help is served; no real editor has been tried yet.
 
 **Reason.** The checklist's step 35f; Engine and Project Specification, section 12.
+
+## 13 November 2026: step 36 split in four (release 0.7.0)
+
+**The split.** Step 36 names hover on three kinds of thing and formatting of two extents, and their place in the protocol. 36a: hover on a function (its help page) and on a variable of a frame (its type, label and count of missing values). 36b: hover on a binding, its type and, for a frame, its size, which needs the run's record to gain the number of rows. 36c: formatting a document and a selection, in the engine. 36d: all of it over the protocol in `zeff lsp`.
+
+**The order.** As at steps 34 and 35: the services in the engine first, where Zemp in the browser calls them directly, and the protocol last. Hover on a binding is a part of its own because it extends what the checker carries and what a run records, as step 35d did for the counts.
+
+**Reason.** The standing instructions: a step that turns out too large is split in the checklist, not pushed through.
