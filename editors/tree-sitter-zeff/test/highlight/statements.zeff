@@ -1,0 +1,36 @@
+use functions::clean
+// <- keyword
+//  ^ module
+let wages = dataset(wages)
+// <- keyword
+//  ^ variable
+//        ^ operator
+//          ^ function.call
+// zeff: allow(W0101) the name is meant
+// <- keyword.directive
+let mean = 3   // a plain comment
+//         ^ number
+//             ^ comment
+for i in 1..10 {
+// <- keyword.repeat
+//    ^ keyword.repeat
+//        ^ operator
+    if i > 5 { break } else { continue }
+//  ^ keyword.conditional
+//             ^ keyword.repeat
+//                     ^ keyword.conditional
+//                            ^ keyword.repeat
+}
+let s = "a \"b\" c"
+//      ^ string
+//         ^ string.escape
+let p = r"\d+"
+//      ^ string.special
+let flags = [true, false, NA, Inf]
+//           ^ boolean
+//                 ^ boolean
+//                        ^ constant.builtin
+//                            ^ constant.builtin
+let pay = wages.mean(`hourly wage`)
+//              ^ function.method.call
+//                   ^ string.special.symbol

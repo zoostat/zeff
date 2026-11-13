@@ -1,0 +1,42 @@
+let fit = wages.reg(log(wage) ~ educ + firm:year, se: robust, cluster: firm)
+//              ^ function.method.call
+//                  ^ function.call
+//                            ^ operator.formula
+//                                   ^ operator
+//                                         ^ operator.formula
+//                                                ^ property
+//                                                    ^ constant.option
+//                                                            ^ property
+//                                                                     ^ variable
+let all = wages.reg(wage ~ ., fe: firm + year)
+//                       ^ operator.formula
+//                         ^ variable.builtin
+//                            ^ property
+wages.merge(firms, on: firm, join: inner, relation: many_to_one)
+//                                 ^ constant.option
+//                                                  ^ constant.option
+wages.summary([wage, hours], stats: [mean, sd])
+//                                   ^ constant.option
+//                                         ^ constant.option
+//             ^ variable
+wages.reg(wage ~ educ, ..{se: hc3, level: 0.9})
+//                        ^ property
+//                            ^ constant.option
+//                                        ^ number
+wages.plot(x: x, y: y).points(alpha: 0.2)
+//         ^ property
+//            ^ variable
+//                     ^ function.method.call
+wages.reg(wage ~ educ, cluster: robust)
+//                              ^ variable
+wages.add(lwage = log(wage), by: firm)
+//        ^ variable.member
+//                           ^ property
+let label = case {
+//          ^ keyword.conditional
+    age < 25 => "young",
+//           ^ operator
+//              ^ string
+    _ => "older",
+//  ^ keyword.conditional
+}

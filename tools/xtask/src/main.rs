@@ -14,6 +14,7 @@ fn main() -> ExitCode {
         Some("compare-identity") => compare_identity(),
         Some("check-messages") => check_messages(),
         Some("check-grammar") => grammar::check(),
+        Some("grammar-words") => grammar::write_words(),
         Some("build-datasets") => datasets::build(),
         Some("export-samples") => export_samples(),
         _ => {
@@ -21,6 +22,7 @@ fn main() -> ExitCode {
                 "usage: cargo run -p xtask -- check-tiers\n       \
                  cargo run -p xtask -- check-messages\n       \
                  cargo run -p xtask -- check-grammar\n       \
+                 cargo run -p xtask -- grammar-words\n       \
                  cargo run -p xtask -- build-datasets\n       \
                  cargo run -p xtask -- export-samples\n       \
                  cargo run -p xtask -- compare-identity <folder> <number of reports>"

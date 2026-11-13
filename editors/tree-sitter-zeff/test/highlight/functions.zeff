@@ -1,0 +1,24 @@
+/// Twice a number.
+// <- comment.documentation
+fn twice(x: Float, by: List<Str>) -> Float {
+// <- keyword.function
+// ^ function
+//       ^ variable.parameter
+//          ^ type
+//                     ^ type
+//                          ^ type
+//                                ^ operator
+    return x * 2
+//  ^ keyword.return
+//         ^ variable
+//           ^ operator
+}
+let halves = map(xs, fn(v) v / 2)
+//           ^ function.call
+//                   ^ keyword.function
+//                      ^ variable.parameter
+let m = data::mean(wages, wage)
+//      ^ module
+//            ^ function.call
+let z = state.loglik
+//            ^ variable.member

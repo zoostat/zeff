@@ -1745,7 +1745,9 @@ dependencies = [
  "zeff-columns",
  "zeff-conformance",
  "zeff-data",
+ "zeff-engine",
  "zeff-hash",
+ "zeff-ir",
  "zeff-results",
  "zeff-syntax",
 ]

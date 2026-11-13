@@ -1,0 +1,25 @@
+let m = model {
+//      ^ keyword.type
+    ability =~ test1 + test2
+//          ^ operator.model
+//                   ^ operator
+    wage ~ ability + educ
+//       ^ operator.formula
+    test1 ~~ test2
+//        ^ operator.model
+    indirect := a * b
+//  ^ variable.parameter
+//           ^ operator.model
+    wage ~ a as educ
+//           ^ keyword
+//              ^ label
+}
+let g = dag {
+//      ^ keyword.type
+    ability -> educ -> wage
+//          ^ operator.model
+    ability <-> family
+//          ^ operator.model
+    latent ability
+//  ^ keyword.modifier
+}

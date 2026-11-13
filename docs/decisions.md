@@ -4801,3 +4801,19 @@ error[Z0001]: no rows to take the mean of
 **Tests.** Unit: the statements read from a printed tree, with comments left out and an error found; the statements of the engine's parser, a function from its `fn`; a difference said with its place, for a statement that ends elsewhere and for one statement more or fewer. The check itself, on 131 scripts.
 
 **Reason.** The checklist's step 37b; Engine and Project Specification, section 12; the Testing Handbook, section 1.
+
+## 14 November 2026: the highlight queries (release 0.7.0, step 37c; step 37 complete)
+
+**What was built.** `editors/tree-sitter-zeff/queries/highlights.scm`: the rules an editor colours a script by, on the grammar of step 37a. Section 12 asks for four things styled distinctly, and each has a style of its own: keywords (by kind: binding, function, return, conditional, loop, block); the `~` of a formula, the `:` of an interaction and the lone `.` (`operator.formula`); the operators of a model block, `=~`, `~~` and `:=`, with the edges of a causal graph (`operator.model`); and bare option words (`constant.option`). Beside them: comments, help lines and pragmas each their own; literals; the names of functions where defined, called and called as methods; parameters, options, definitions, fields and types. The names of the styles follow the common ones of tree-sitter editors, so that a theme that knows `operator` and `constant` colours the two new kinds sensibly without knowing them.
+
+**Bare option words come from the registry.** A bare word is only a word by the function that takes it: `se: robust` is an option word and `cluster: firm` a variable, and nothing in the syntax tells them apart. The queries therefore name the words, under the argument that takes them: 30 argument names, each with the words some function takes under that name (`se`: classical, hc2, hc3, robust). So `robust` after `se:` is an option word, and after `cluster:` it is a variable; and a variable that happens to be called `x` is no option word in `plot(x: x)`, though `x` is a word of another argument. The lines are written by `cargo run -p xtask -- grammar-words` between two marks of the file, and `check-grammar`, which CI runs, fails when they are not the registry's: a function added with a new word cannot leave the colouring behind.
+
+**Words in a list** (`stats: [mean, sd]`) are named without their argument: the words that some argument takes in a list. A rule that also tested the argument's name fitted once for each word of the list with the name in common, and the highlighter kept one such fit, so that one word of a list was coloured and the others were not. The tests found it.
+
+**The order of the rules.** Where several rules fit one name or sign, the highlighter takes the last. So the rule for any name and the rules for signs stand first, and what a name or sign is in particular stands after; the file says so at its head.
+
+**Tests.** The grammar's highlight tests, four files, 85 assertions: each line of a small script with, under it, the style a word of it must have. Among them: `robust` after `se:` an option word and after `cluster:` a variable; `x` in `plot(x: x)` a property and then a variable; both words of `stats: [mean, sd]`; `~` of a formula and `=~`, `~~`, `:=` of a model block under their two styles; `fn` a keyword in a definition and in a literal; a package before `::`; a help line, a pragma and a comment each its own. Unit: the written part put between its marks, and unchanged when written again; the registry's words under their names. `check-grammar`: the words current.
+
+**Step 37 is complete.** The grammar with its scanner and corpus (37a), held to the engine's parser on 131 scripts in CI (37b), and the highlight queries with the registry's option words (37c). Not yet seen: the grammar in an editor.
+
+**Reason.** The checklist's step 37c; Engine and Project Specification, section 12.

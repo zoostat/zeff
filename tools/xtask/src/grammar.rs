@@ -164,7 +164,167 @@ fn scripts() -> Vec<(String, String)> {
     found
 }
 
+const HIGHLIGHTS: &str = "editors/tree-sitter-zeff/queries/highlights.scm";
+const WORDS_BEGIN: &str = "; BEGIN WORDS";
+const WORDS_END: &str = "; END WORDS";
+
+/// The fixed lists of the engine's functions, as the highlight queries need them.
+struct OptionWords {
+    /// For each argument name that takes one of a fixed list of words in some function
+    /// (`se: classical | robust | hc2 | hc3`), the words it takes there; both by the letters.
+    by_name: Vec<(String, Vec<String>)>,
+    /// The words that some argument takes in a list (`stats: [mean, sd]`), by the letters.
+    in_lists: Vec<String>,
+}
+
+fn option_words() -> Result<OptionWords, String> {
+    let registry =
+        zeff_engine::registry::registry().map_err(|_| "the registry does not build".to_string())?;
+    let mut by_name: std::collections::BTreeMap<String, std::collections::BTreeSet<String>> =
+        std::collections::BTreeMap::new();
+    let mut in_lists: std::collections::BTreeSet<String> = std::collections::BTreeSet::new();
+    for parameter in registry
+        .functions()
+        .iter()
+        .flat_map(|f| f.spec.params.iter())
+    {
+        let Some(ty) = zeff_ir::Ty::parse(parameter.ty) else {
+            continue;
+        };
+        let words = ty.words();
+        if words.is_empty() {
+            continue;
+        }
+        // The words a list of the type may hold: of the type itself, or of one of its
+        // alternatives.
+        let listed = |ty: &zeff_ir::Ty| match ty {
+            zeff_ir::Ty::List(inner) => inner.words(),
+            _ => Vec::new(),
+        };
+        in_lists.extend(listed(&ty));
+        if let zeff_ir::Ty::Union(options) = &ty {
+            in_lists.extend(options.iter().flat_map(listed));
+        }
+        by_name
+            .entry(parameter.name.to_string())
+            .or_default()
+            .extend(words);
+    }
+    Ok(OptionWords {
+        by_name: by_name
+            .into_iter()
+            .map(|(name, words)| (name, words.into_iter().collect()))
+            .collect(),
+        in_lists: in_lists.into_iter().collect(),
+    })
+}
+
+/// The part of the highlight queries that is written from the registry. A bare word is an
+/// option word where it is the whole value of an argument or of a record's field of a name
+/// that takes such words, and is one of the words that name takes: `se: robust`,
+/// `{se: robust}`. So a variable that happens to be called `x` is no option word in
+/// `plot(x: x)`. The name is captured under the style it has anyway, a property: the
+/// highlighter styles by every capture, the one a rule only tests among them.
+///
+/// A word in a list (`stats: [mean, sd]`) is an option word where some argument takes it in
+/// a list, whatever the argument's name: a rule that also captured the name would fit once
+/// for each word of the list with the name in common, and the highlighter keeps one such
+/// fit, colouring one word of the list and no other.
+fn words_section(words: &OptionWords) -> String {
+    let quoted = |words: &[String]| {
+        words
+            .iter()
+            .map(|word| format!("\"{word}\""))
+            .collect::<Vec<_>>()
+            .join(" ")
+    };
+    let mut out = String::new();
+    for (name, words) in &words.by_name {
+        for place in [
+            "(named_argument name: (identifier) @property value: (qualified_name . (identifier) @constant.option .))",
+            "(field name: (identifier) @property value: (qualified_name . (identifier) @constant.option .))",
+        ] {
+            out.push_str(&format!(
+                "({place}\n  (#eq? @property \"{name}\") (#any-of? @constant.option {}))\n",
+                quoted(words)
+            ));
+        }
+    }
+    if !words.in_lists.is_empty() {
+        for place in [
+            "(named_argument value: (list (qualified_name . (identifier) @constant.option .)))",
+            "(field value: (list (qualified_name . (identifier) @constant.option .)))",
+        ] {
+            out.push_str(&format!(
+                "({place}\n  (#any-of? @constant.option {}))\n",
+                quoted(&words.in_lists)
+            ));
+        }
+    }
+    out
+}
+
+/// The highlight queries with their written part put in, or `Err` where the marks that
+/// bound it are not there.
+fn with_words(queries: &str, section: &str) -> Result<String, String> {
+    let begin = queries
+        .find(WORDS_BEGIN)
+        .ok_or(format!("`{WORDS_BEGIN}` is not in {HIGHLIGHTS}"))?;
+    let end = queries
+        .find(WORDS_END)
+        .filter(|end| *end > begin)
+        .ok_or(format!("`{WORDS_END}` is not in {HIGHLIGHTS}"))?;
+    Ok(format!(
+        "{}{WORDS_BEGIN}\n{section}{}",
+        &queries[..begin],
+        &queries[end..]
+    ))
+}
+
+/// `cargo run -p xtask -- grammar-words`: write the option words of the registry into the
+/// highlight queries.
+pub fn write_words() -> ExitCode {
+    let written = option_words().and_then(|words| {
+        let queries = std::fs::read_to_string(HIGHLIGHTS)
+            .map_err(|why| format!("cannot read {HIGHLIGHTS}: {why}"))?;
+        let new = with_words(&queries, &words_section(&words))?;
+        std::fs::write(HIGHLIGHTS, new)
+            .map_err(|why| format!("cannot write {HIGHLIGHTS}: {why}"))?;
+        Ok(words.by_name.len())
+    });
+    match written {
+        Ok(words) => {
+            println!(
+                "grammar: the option words of {words} argument names written into {HIGHLIGHTS}"
+            );
+            ExitCode::SUCCESS
+        }
+        Err(why) => {
+            eprintln!("error: {why}");
+            ExitCode::from(2)
+        }
+    }
+}
+
+/// Whether the option words in the highlight queries are the registry's.
+fn words_are_current() -> Result<(), String> {
+    let words = option_words()?;
+    let queries = std::fs::read_to_string(HIGHLIGHTS)
+        .map_err(|why| format!("cannot read {HIGHLIGHTS}: {why}"))?;
+    if with_words(&queries, &words_section(&words))? == queries {
+        Ok(())
+    } else {
+        Err(format!(
+            "the option words of {HIGHLIGHTS} are not the registry's; `cargo run -p xtask -- grammar-words` writes them"
+        ))
+    }
+}
+
 pub fn check() -> ExitCode {
+    if let Err(why) = words_are_current() {
+        eprintln!("error: {why}");
+        return ExitCode::from(1);
+    }
     let grammar = Path::new(GRAMMAR);
     if !grammar.join("src/parser.c").is_file() {
         eprintln!(
@@ -264,6 +424,60 @@ mod tests {
             grammar_statements("(script [0, 0] - [0, 0])\n"),
             Ok(Vec::new())
         );
+    }
+
+    #[test]
+    fn the_option_words_are_written_between_their_marks() {
+        let queries = "(comment) @comment\n; BEGIN WORDS\nold\n; END WORDS\n(number) @number\n";
+        let section = words_section(&OptionWords {
+            by_name: vec![(
+                "se".to_string(),
+                vec!["hc2".to_string(), "robust".to_string()],
+            )],
+            in_lists: vec!["mean".to_string(), "sd".to_string()],
+        });
+        let new = with_words(queries, &section).expect("the marks are there");
+        assert!(new.starts_with(
+            "(comment) @comment\n; BEGIN WORDS\n((named_argument name: (identifier) @property value:"
+        ));
+        assert!(new.ends_with("; END WORDS\n(number) @number\n"));
+        // A word under its argument's name, in an argument and in a record's field; a word
+        // in a list under no name.
+        assert_eq!(
+            new.matches("(#eq? @property \"se\") (#any-of? @constant.option \"hc2\" \"robust\")")
+                .count(),
+            2
+        );
+        assert_eq!(
+            new.matches("(list (qualified_name . (identifier) @constant.option .)))\n  (#any-of? @constant.option \"mean\" \"sd\")")
+                .count(),
+            2
+        );
+        assert!(!new.contains("old"));
+        // Written again, nothing changes.
+        assert_eq!(with_words(&new, &section).as_deref(), Ok(new.as_str()));
+        assert!(with_words("(comment) @comment\n", &section).is_err());
+        assert!(with_words("; END WORDS\n; BEGIN WORDS\n", &section).is_err());
+        // The registry's lists: the words of `se:` and of `join:` under their names, each
+        // once, by the letters; no words under a name that takes none; and the words of
+        // `stats:`, which are given in a list.
+        let words = option_words().expect("the registry builds");
+        let of = |name: &str| {
+            words
+                .by_name
+                .iter()
+                .find(|(n, _)| n == name)
+                .map(|(_, words)| words.join(" "))
+        };
+        assert_eq!(of("se").as_deref(), Some("classical hc2 hc3 robust"));
+        assert_eq!(of("join").as_deref(), Some("full inner left"));
+        assert_eq!(of("cluster"), None);
+        assert_eq!(of("x"), None);
+        assert!(words.by_name.is_sorted() && words.by_name.len() > 20);
+        for word in ["mean", "sd", "missing"] {
+            assert!(words.in_lists.contains(&word.to_string()), "{word}");
+        }
+        assert!(!words.in_lists.contains(&"robust".to_string()));
     }
 
     #[test]
