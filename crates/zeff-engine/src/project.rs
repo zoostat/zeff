@@ -102,3 +102,39 @@ impl Project {
             ))))
     }
 }
+
+/// The scripts of a project, as their paths from its root with `/` between the parts, in
+/// order: every `.zeff` file of the folders named (`scripts`, `functions`), at any depth. A
+/// folder the project does not have holds none.
+pub fn script_files(
+    fs: &dyn FileSystem,
+    project: &Project,
+    folders: &[&str],
+) -> std::io::Result<Vec<String>> {
+    fn walk(
+        fs: &dyn FileSystem,
+        root: &Path,
+        folder: &str,
+        found: &mut Vec<String>,
+    ) -> std::io::Result<()> {
+        let mut names = fs.list(&root.join(folder))?;
+        names.sort();
+        for name in names {
+            let shown = format!("{folder}/{name}");
+            let path = root.join(&shown);
+            if fs.is_dir(&path) {
+                walk(fs, root, &shown, found)?;
+            } else if name.ends_with(".zeff") && fs.is_file(&path) {
+                found.push(shown);
+            }
+        }
+        Ok(())
+    }
+    let mut found = Vec::new();
+    for folder in folders {
+        if fs.is_dir(&project.root.join(folder)) {
+            walk(fs, &project.root, folder, &mut found)?;
+        }
+    }
+    Ok(found)
+}

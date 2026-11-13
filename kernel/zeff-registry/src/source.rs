@@ -28,6 +28,30 @@ fn key_line(line: &str) -> Option<(&str, &str)> {
     plain.then_some((key, rest.trim()))
 }
 
+/// The examples of a function written in Zeff, from the `///` lines above its `fn` (without
+/// their marker): from the first `> statement` line on, each run of such lines with the output
+/// printed under it, read by the rule of every page (section 9.1), so that `zeff test` runs a
+/// project's examples as the engine's own are run.
+pub fn doc_examples(doc: &[String]) -> Vec<crate::help::Example> {
+    let Some(from) = doc
+        .iter()
+        .position(|line| line.trim_start().starts_with('>'))
+    else {
+        return Vec::new();
+    };
+    let lines: Vec<String> = doc[from..]
+        .iter()
+        .map(|line| match line.trim_start().strip_prefix('>') {
+            Some(rest) => format!("> {}", rest.trim_start()),
+            None => line.trim_end().to_string(),
+        })
+        .collect();
+    let lines: Vec<&str> = lines.iter().map(String::as_str).collect();
+    let (mut examples, mut errors) = (Vec::new(), Vec::new());
+    crate::help::parse_examples(&lines, &mut examples, &mut errors);
+    examples
+}
+
 /// The Markdown page of a function written in Zeff, from the `///` lines above its `fn` (without
 /// their marker, the summary first) and its parameter names: the first line is the Summary, a
 /// `name: text` line an Argument, `returns:` the Value, `details:` Details, `reference:` or

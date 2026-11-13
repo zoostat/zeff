@@ -1,0 +1,21 @@
+---
+source: crates/zeff-engine/tests/project_tests.rs
+expression: shown(&tests)
+---
+example 1 of mean_of (functions/summaries.zeff, line 7): passed
+example 2 of mean_of (functions/summaries.zeff, line 10): failed
+    > error("the example stops here")
+  the page says:
+    1
+  it printed:
+    error[Z0001]: the example stops here
+     --> examples.zeff:3:1
+      |
+    3 | error("the example stops here")
+      | ^^^^^ the script stops here
+example 3 of mean_of (functions/summaries.zeff, line 12): failed
+    > mean_of(frame(x = [4.0])["x"])
+  the page says:
+    4
+  it printed:
+3 tests, 2 failed, exit code 1

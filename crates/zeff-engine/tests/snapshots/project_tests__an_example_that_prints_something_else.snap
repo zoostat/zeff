@@ -1,0 +1,14 @@
+---
+source: crates/zeff-engine/tests/project_tests.rs
+expression: shown(&tests)
+---
+example 1 of share_missing (functions/clean.zeff, line 7): passed
+example 2 of share_missing (functions/clean.zeff, line 10): passed
+example 1 of twice (functions/clean.zeff, line 22): passed
+example 2 of twice (functions/clean.zeff, line 24): failed
+    > twice(4) + 1
+  the page says:
+    10
+  it printed:
+    9
+4 tests, 1 failed, exit code 1

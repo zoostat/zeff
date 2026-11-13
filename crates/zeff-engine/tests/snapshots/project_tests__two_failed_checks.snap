@@ -1,0 +1,18 @@
+---
+source: crates/zeff-engine/tests/project_tests.rs
+expression: shown(&tests)
+---
+script scripts/main.zeff: 4 checks, 2 failed, exit code 0
+-- a check failed:
+error[Z0001]: more than five rows
+ --> scripts/main.zeff:3:1
+  |
+3 | assert(d.n_rows() > 5, "more than five rows")
+  | ^^^^^^ in this call
+-- a check failed:
+error[Z0001]: the maximum is 4
+ --> scripts/main.zeff:6:1
+  |
+6 | assert(d.max(x) == 4, "the maximum is 4")
+  | ^^^^^^ in this call
+4 tests, 2 failed, exit code 1

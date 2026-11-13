@@ -21,6 +21,7 @@ pub mod run;
 pub mod schemas;
 pub mod scratch;
 pub mod session;
+pub mod testing;
 
 /// The engine's version: the version of this build of Zeff.
 pub const VERSION: &str = env!("CARGO_PKG_VERSION");

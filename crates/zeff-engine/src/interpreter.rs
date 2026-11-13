@@ -48,6 +48,18 @@ pub struct Output {
     pub produced: Vec<(u64, Vec<(String, String)>)>,
     /// The warnings a pragma silenced, in the order raised (Language Reference, section 11.1).
     pub allowed: Vec<Allowed>,
+    /// Under `zeff test`: every `assert` the run evaluated, in order.
+    pub checks: Vec<Check>,
+}
+
+/// An `assert` evaluated under `zeff test`, where a failed one is kept and the script carries
+/// on, so that every check of a script is reported and not the first that fails alone.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct Check {
+    /// The line of the statement of the script that reached it.
+    pub line: u32,
+    /// The error it would have stopped the script with, as shown; `None` when it held.
+    pub failure: Option<String>,
 }
 
 /// One line of the memory record: a frame bound, with its own bytes and the parent bytes it
@@ -110,6 +122,9 @@ pub struct Interpreter<'a> {
     allowed: Vec<Allowed>,
     /// `--deny-warnings`: a warning no pragma allows stops the run as an error.
     deny_warnings: bool,
+    /// Under `zeff test`: the checks of the statement being run, each with the error of a
+    /// failed one; `None` in a run, where a failed `assert` stops the script.
+    checks: Option<Vec<Option<Diagnostic>>>,
 }
 
 #[derive(Debug, Clone, PartialEq)]
@@ -184,6 +199,7 @@ impl<'a> Interpreter<'a> {
             allows: None,
             allowed: Vec::new(),
             deny_warnings: false,
+            checks: None,
         }
     }
 
@@ -194,6 +210,12 @@ impl<'a> Interpreter<'a> {
     }
 
     /// `--deny-warnings`: the first warning that no pragma allows stops the run.
+    /// `zeff test`: a failed `assert` is kept in the output's checks and the script carries on.
+    pub fn with_checks(mut self, collect: bool) -> Self {
+        self.checks = collect.then(Vec::new);
+        self
+    }
+
     pub fn with_denied_warnings(mut self, deny: bool) -> Self {
         self.deny_warnings = deny;
         self
@@ -372,6 +394,22 @@ impl<'a> Interpreter<'a> {
                     }
                 }
                 statement_errors.push_str(&error.render(&sources));
+            }
+            // The checks of the statement, under `zeff test`: a failed one as it is shown.
+            if let Some(checks) = self.checks.as_mut() {
+                let mut sources = zeff_diagnostics::Sources::new();
+                sources.add(self.source.clone());
+                if let Some(modules) = self.sources {
+                    for module in modules.values() {
+                        sources.add(module.clone());
+                    }
+                }
+                for failure in checks.drain(..) {
+                    output.checks.push(Check {
+                        line,
+                        failure: failure.map(|error| error.render(&sources)),
+                    });
+                }
             }
             output.stdout.push_str(&printed);
             output.stderr.push_str(&statement_errors);
@@ -2662,7 +2700,30 @@ impl<'a> Interpreter<'a> {
         }
     }
 
+    /// A call. Under `zeff test` a call of `assert` that fails with the script's own error
+    /// (Z0001) is kept as a failed check and gives `Nothing`, as one that holds does; any
+    /// other error of the call, a condition that is `NA` among them, stops the script.
     fn call(
+        &mut self,
+        call: &Call,
+        printed: &mut String,
+        messages: &mut Vec<Diagnostic>,
+    ) -> Result<Value, Fail> {
+        if self.checks.is_none() || call.package != "core" || call.name != "assert" {
+            return self.call_plain(call, printed, messages);
+        }
+        let outcome = match self.call_plain(call, printed, messages) {
+            Ok(value) => (Ok(value), None),
+            Err(error) if error.code == "Z0001" => (Ok(Value::Nothing), Some(*error)),
+            Err(error) => return Err(error),
+        };
+        if let Some(checks) = self.checks.as_mut() {
+            checks.push(outcome.1);
+        }
+        outcome.0
+    }
+
+    fn call_plain(
         &mut self,
         call: &Call,
         printed: &mut String,

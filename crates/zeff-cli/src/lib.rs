@@ -966,37 +966,6 @@ fn check_command(
     exit_code
 }
 
-/// The scripts of a project, as their paths from its root with `/` between the parts, in
-/// order: every `.zeff` file of `functions/` and of `scripts/`, at any depth.
-fn scripts_of(fs: &dyn FileSystem, project: &Project) -> std::io::Result<Vec<String>> {
-    fn walk(
-        fs: &dyn FileSystem,
-        root: &Path,
-        folder: &str,
-        found: &mut Vec<String>,
-    ) -> std::io::Result<()> {
-        let mut names = fs.list(&root.join(folder))?;
-        names.sort();
-        for name in names {
-            let shown = format!("{folder}/{name}");
-            let path = root.join(&shown);
-            if fs.is_dir(&path) {
-                walk(fs, root, &shown, found)?;
-            } else if name.ends_with(".zeff") && fs.is_file(&path) {
-                found.push(shown);
-            }
-        }
-        Ok(())
-    }
-    let mut found = Vec::new();
-    for folder in ["functions", "scripts"] {
-        if fs.is_dir(&project.root.join(folder)) {
-            walk(fs, &project.root, folder, &mut found)?;
-        }
-    }
-    Ok(found)
-}
-
 /// `zeff fmt`: every script of the project written in the one style of the language (Language
 /// Reference, section 3.5), and with `--check` nothing written and the scripts that would
 /// change named. A script that does not parse is left as it is, with its errors shown. Exit
@@ -1009,7 +978,8 @@ fn fmt_command(command: &Command<'_, '_>, err: &mut dyn Write) -> i32 {
         Err(code) => return code,
     };
     let check = command.settings.check;
-    let scripts = match scripts_of(fs, &project) {
+    let scripts = match zeff_engine::project::script_files(fs, &project, &["functions", "scripts"])
+    {
         Ok(scripts) => scripts,
         Err(error) => {
             let _ = writeln!(

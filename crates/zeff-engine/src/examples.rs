@@ -123,56 +123,18 @@ pub fn run_examples_with(
         )
         .collect();
     for (package, name, examples) in pages {
-        // One script per page; remember which lines belong to which example.
-        let mut script = String::new();
-        let mut ranges: Vec<(u32, u32)> = Vec::new();
-        let mut line = 1u32;
-        for example in examples {
-            let start = line;
-            for code in &example.code {
-                script.push_str(code);
-                script.push('\n');
-                line += 1;
-            }
-            ranges.push((start, line - 1));
-        }
-        let outcome = run_script_in(
+        let options = RunOptions::default();
+        let (found, outcome) = run_page_with(
             &fs,
             &project,
-            "examples.zeff",
-            &script,
-            &RunOptions::default(),
+            &[],
+            examples,
+            &options,
             registry,
             bodies,
             zeff,
         );
-        // An error found before anything ran (a check error) belongs to no statement; it is shown
-        // as the output of the first example that produced nothing.
-        let no_statement_failed = outcome
-            .output
-            .statements
-            .iter()
-            .all(|s| s.stderr.is_empty());
-        let mut unplaced_error =
-            (outcome.exit_code != 0 && no_statement_failed).then(|| outcome.output.stderr.clone());
-        for (i, (example, (start, end))) in examples.iter().zip(&ranges).enumerate() {
-            let mut found = String::new();
-            for statement in outcome
-                .output
-                .statements
-                .iter()
-                .filter(|s| (*start..=*end).contains(&s.line))
-            {
-                found.push_str(&statement.stdout);
-                found.push_str(&statement.stderr);
-            }
-            if found.is_empty()
-                && let Some(error) = unplaced_error.take()
-            {
-                found = error;
-            }
-            let found_lines: Vec<String> =
-                found.lines().map(|l| l.trim_end().to_string()).collect();
+        for (i, (example, found_lines)) in examples.iter().zip(found).enumerate() {
             let expected_lines: Vec<String> = example
                 .output
                 .iter()
@@ -203,4 +165,94 @@ pub fn run_examples_with(
         }
     }
     failures
+}
+
+/// Run the examples of one page as one script in a project, after the lines of `prelude` (the
+/// `use` line of a module, for a function of `functions/`), and give what each example
+/// printed, line by line, its warnings and notes included, in the order printed.
+#[allow(clippy::too_many_arguments)]
+pub fn run_page(
+    fs: &dyn crate::fs::FileSystem,
+    project: &Project,
+    prelude: &[String],
+    examples: &[zeff_registry::Example],
+    options: &RunOptions,
+    registry: &Registry,
+    bodies: &crate::registry::Bodies,
+    zeff: &crate::registry::ZeffBodies,
+) -> Vec<Vec<String>> {
+    run_page_with(
+        fs, project, prelude, examples, options, registry, bodies, zeff,
+    )
+    .0
+}
+
+#[allow(clippy::too_many_arguments)]
+fn run_page_with(
+    fs: &dyn crate::fs::FileSystem,
+    project: &Project,
+    prelude: &[String],
+    examples: &[zeff_registry::Example],
+    options: &RunOptions,
+    registry: &Registry,
+    bodies: &crate::registry::Bodies,
+    zeff: &crate::registry::ZeffBodies,
+) -> (Vec<Vec<String>>, crate::run::Outcome) {
+    // One script per page; remember which lines belong to which example.
+    let mut script = String::new();
+    let mut ranges: Vec<(u32, u32)> = Vec::new();
+    let mut line = 1u32;
+    for written in prelude {
+        script.push_str(written);
+        script.push('\n');
+        line += 1;
+    }
+    for example in examples {
+        let start = line;
+        for code in &example.code {
+            script.push_str(code);
+            script.push('\n');
+            line += 1;
+        }
+        ranges.push((start, line - 1));
+    }
+    let outcome = run_script_in(
+        fs,
+        project,
+        "examples.zeff",
+        &script,
+        options,
+        registry,
+        bodies,
+        zeff,
+    );
+    // An error found before anything ran (a check error) belongs to no statement; it is shown
+    // as the output of the first example that produced nothing.
+    let no_statement_failed = outcome
+        .output
+        .statements
+        .iter()
+        .all(|s| s.stderr.is_empty());
+    let mut unplaced_error =
+        (outcome.exit_code != 0 && no_statement_failed).then(|| outcome.output.stderr.clone());
+    let mut all = Vec::with_capacity(examples.len());
+    for (start, end) in &ranges {
+        let mut found = String::new();
+        for statement in outcome
+            .output
+            .statements
+            .iter()
+            .filter(|s| (*start..=*end).contains(&s.line))
+        {
+            found.push_str(&statement.stdout);
+            found.push_str(&statement.stderr);
+        }
+        if found.is_empty()
+            && let Some(error) = unplaced_error.take()
+        {
+            found = error;
+        }
+        all.push(found.lines().map(|l| l.trim_end().to_string()).collect());
+    }
+    (all, outcome)
 }

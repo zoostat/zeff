@@ -4183,3 +4183,23 @@ In `zeff run`, a `let` of the script's top level is freed after the last top-lev
 **Step 31 is complete.** The formatter (31a), the command with `--check` and every script of the repository formatted (31b), the nightly fuzz target (31c). `zeff fmt --check` runs on every change in the `lint` job.
 
 **Reason.** The checklist's step 31c; the Testing Handbook, section 1 (fuzzing) and section 2.2 (the nightly jobs).
+
+## 13 November 2026: the test run of a project (release 0.7.0, step 32a; open decision #138; step 32 split in three)
+
+**The split.** Step 32 is built in three: the test run of a project in the engine (32a), the command with its reports and exit codes (32b), the engine's own pages under it in CI and the two known issues (32c).
+
+**What a test run is.** `zeff_engine::testing::test_project(fs, project, options)` gives a `ProjectTests`: a `ScriptTest` for each script that was run (its file, the number of checks evaluated, the failed ones as the errors they would have stopped the script with, the messages of an error that did stop it, the exit code of its run), an `ExampleTest` for each example of each function of `functions/` (file, function, which example, the line of the file it begins on, its statements, what the page says and what was printed), the scripts that hold no check, and what could not be read. `counts()` and `exit_code()` are derived from these, so that the command of 32b only writes them out.
+
+**Which scripts, and a failed check** (open decision #138, A on both, the owner's to overturn). A script is run when its text calls `assert` (the name followed by a parenthesis among its tokens, so a comment, a string and a `///` line do not count). In a test run a failed `assert` is kept and the script carries on. The interpreter does this at the call: with `RunOptions::collect_checks`, a call of `core::assert` that fails with the script's own error (Z0001) is recorded and gives `Nothing`; any other error of the call (a condition that is `NA`, Z0203) stops the script as before. `zeff run` does not set the option and is unchanged; the conformance results are unchanged.
+
+**The examples.** The examples of one function run as one script in the project, after `use functions::<module>`, so that they see the project's data and the other modules as a script would; each is compared with what its own statements print, warnings and notes included. This is the runner of the engine's own pages (`examples::run_examples_with`), whose core is now one function, `examples::run_page`, used by both. The examples are read from the `///` lines by the registry's own rule (`zeff_registry::doc_examples`, over `parse_examples`), so a project's page and a built-in's are split into examples alike. An error of the check (an unknown name) stops every example of the page, and is shown as what the first printed. The examples of a function private to its file are not run, and `--deny-warnings` is not applied to examples (#138, questions 3 and 4).
+
+**Exit code** (section 3.8 of the Language Reference): 2 when a script met an internal error; 1 when a check or an example failed, a script stopped on an error, or a file could not be read; 3 when the only failures are warnings refused by `--deny-warnings`; 0 otherwise.
+
+**Moved.** The listing of a project's scripts, written for `zeff fmt` at step 31b, is now `zeff_engine::project::script_files`, which the command line calls: the test run needs the same list.
+
+**Found in passing.** A function written in a script cannot call, by its short name, a module function the script brought in with `use` (Z0103), against section 5.3 of the Language Reference; `module::name` works. It dates from 0.5.0 and is not of this step: it is entered in `docs/known_issues.md` and is step 38b of the checklist.
+
+**Tests.** `crates/zeff-engine/tests/project_tests.rs`: every check of a script evaluated with two failing (a snapshot); checks in a loop, in a script function and in a module function counted where they are reached, a failure inside a module naming the module's file and line; a script that stops on an error after a check, and one refused by the check; a script without a check not run (and `assert` in a comment, a string or a page not counted); the examples of a module, one of which prints something else (a snapshot); an example that warns as its page says, one that stops at run time and the examples after it, a private function's examples, and an error of the check; a project without tests; `--deny-warnings` (exit code 3, the example untouched) and an internal error (exit code 2); a script that is not text.
+
+**Reason.** The checklist's step 32a; sections 2.1, 9.1 and 12 of the Engine and Project Specification; sections 3.8, 5.3 and 5.4 of the Language Reference.

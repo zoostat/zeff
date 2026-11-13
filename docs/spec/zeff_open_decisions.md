@@ -2709,3 +2709,21 @@ Raised on 13 November 2026 at step 31 of release 0.7.0, where `zeff fmt` is buil
 
 Under these rules the specification's sample script changes on 11 of its 292 lines, in spacing alone: nine comments at the ends of lines move to column 55 (or to two spaces after their code), one `by:` aligned by hand moves under the first argument of its call, and the one line whose code is longer than 100 characters (line 246, a call of 105) is broken after its commas. The scripts are rewritten at step 31b, not at this one.
 
+### 138. What `zeff test` runs, and what a failed `assert` does under it
+
+Raised on 13 November 2026 at step 32a of release 0.7.0, where the test run of a project is built. The specification says that `zeff test` "runs every `assert` and each project function's examples written in its `///` help, so a project can check its own numbers on every run" (Engine and Project Specification, sections 2.1 and 12), and that `assert(condition, message)` "stops when a check fails" (Language Reference, section 5.4). It does not say which scripts are run, nor whether a failed check stops the script under `zeff test` as it does under `zeff run`. Four questions follow; the first two decide what a statistician sees when he types the command.
+
+| # | Question | Option A (recommended) | Option B |
+| --- | --- | --- | --- |
+| 1 | Which scripts does `zeff test` run? | The scripts that call `assert`, anywhere in their text. A script with no `assert` holds no check: it is named as such and not run | Every script of `scripts/`. A script that stops on any error is then a failed test, but an analysis of an hour with no check in it is run each time the tests are |
+| 2 | A failed `assert` under `zeff test` | It is kept, with the error it would have stopped the script with, and the script carries on: every check of the script is reported in one run. Under `zeff run` nothing changes, the first failed check stops the script | The script stops at the first failed check, as under `zeff run`; the checks after it are not evaluated until the first is put right |
+| 3 | The examples of a function private to its file (a name beginning with `_`) | Not run: no script can call such a function, so no example can | Run inside the module, which needs a second way of running an example |
+| 4 | `--deny-warnings` and the examples | The option holds for the scripts. An example is compared with its page, warnings included: a warning the page shows is expected, and one it does not show already fails the example | The option stops an example at its first warning, so a page could not show a warning |
+
+*For A on question 1.* `zeff test` is the command one runs often, before sharing a project or after changing a function. It should cost what the checks cost. A project keeps its checks in a script written for them (`scripts/checks.zeff`) or beside the analysis; either way the script says so by calling `assert`.
+
+*For A on question 2.* An `assert` binds nothing and returns nothing, so the statements after it never depend on it: carrying on is always possible. Three checks that fail are then three lines of one report, not three runs.
+
+*Recommendation.* A on all four. Deadline: 0.7.0, step 32a.
+
+**The decision (13 November 2026).** As recommended, taken under the owner's standing instruction of 12 November 2026 ("If at any point any decisions to be taken by me, I will go by your recommended decisions"), which he may overturn: A on the four questions. Question 1 is one function of the engine (`testing::calls_assert`) and question 2 one option of a run (`collect_checks`), so another ruling on either is a small change.

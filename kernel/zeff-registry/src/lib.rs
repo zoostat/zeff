@@ -23,7 +23,7 @@ pub use dataset::{
 pub use help::{Block, Example, HelpDoc, HelpError, check_help, parse_help};
 pub use render::{PAGE_WIDTH, TEXT_WIDTH, render_page, render_page_with};
 pub use shared::{SHARED, SharedArgument, shared_argument};
-pub use source::{ZeffSource, page_markdown};
+pub use source::{ZeffSource, doc_examples, page_markdown};
 pub use spec::{
     AccuracyRecord, DiagnosticDecl, FunctionSpec, ParamSpec, RESULT_KINDS, Rest, is_result_type,
     receiver_types, receivers_overlap,

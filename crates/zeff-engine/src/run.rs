@@ -285,6 +285,9 @@ pub struct RunOptions {
     /// `--deny-warnings` (Language Reference, section 11.1): a warning that no pragma allows
     /// is an error; the run stops at the first, with exit code 3.
     pub deny_warnings: bool,
+    /// `zeff test`: a failed `assert` is kept among the output's checks and the script
+    /// carries on, so that every check is reported.
+    pub collect_checks: bool,
 }
 
 impl Default for RunOptions {
@@ -295,6 +298,7 @@ impl Default for RunOptions {
             panic_at_line: None,
             fused: std::env::var_os("ZEFF_UNFUSED").is_none(),
             deny_warnings: false,
+            collect_checks: false,
         }
     }
 }
@@ -437,7 +441,8 @@ pub fn run_script_in(
         .with_freeing(options.free_bindings)
         .with_fusion(options.fused)
         .with_allows(&allows)
-        .with_denied_warnings(options.deny_warnings);
+        .with_denied_warnings(options.deny_warnings)
+        .with_checks(options.collect_checks);
     let result = interpreter.run(&mut output);
     for (statement, columns) in std::mem::take(&mut output.produced) {
         schemas.record_run(statement, columns);

@@ -85,6 +85,13 @@ is never listed here as accepted: it is fixed or the function is withdrawn.
 
 ## As of 0.5.0
 
+- **A function written in a script does not see, by its short name, a module function the
+  script brought in with `use`.** After `use functions::checks`, a call of `positive(x)` inside a
+  `fn` of the script is refused as an unknown function (Z0103), though the same call at the top
+  level of the script is accepted and section 5.3 of the Language Reference lets a function body
+  see the project's functions. Written with its module, `checks::positive(x)`, the call is
+  accepted. (Since 0.5.0; found on 13 November 2026 at step 32a of 0.7.0; put right at step 38b
+  of 0.7.0.)
 - **The constructs the grammar has but this release does not run** are a `model { }` block
   (1.3), a `dag { }` block (0.10.0), a label written with `as` (1.3) and `use` of a third-party
   package (1.11); each is refused with Z0304, whose explained page lists them. Everything else of
