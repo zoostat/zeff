@@ -106,6 +106,11 @@ is never listed here as accepted: it is fixed or the function is withdrawn.
   see the project's functions. Written with its module, `checks::positive(x)`, the call is
   accepted. (Since 0.5.0; found on 13 November 2026 at step 32a of 0.7.0; put right at step 38b
   of 0.7.0.)
+- **A misspelt name is not compared with the project's own functions.** After `use
+  functions::clean`, which holds `twice`, a call of `twise(2)` is refused as it should be
+  (Z0103), but the message offers no "did you mean `twice`?" and says "not a function of Zeff";
+  the suggestion is drawn from the engine's functions alone. Nothing wrong is computed. (Since
+  0.5.0; found on 13 November 2026 at step 34a of 0.7.0; put right at step 38b of 0.7.0.)
 - **The constructs the grammar has but this release does not run** are a `model { }` block
   (1.3), a `dag { }` block (0.10.0), a label written with `as` (1.3) and `use` of a third-party
   package (1.11); each is refused with Z0304, whose explained page lists them. Everything else of

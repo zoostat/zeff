@@ -4478,3 +4478,23 @@ error[Z0001]: no rows to take the mean of
 **Kept.** The draw is in the test's file of saved cases, so it is run first every time. The property was then run two hundred times its usual number (12,800 draws) without a failure. The engine is unchanged.
 
 **Reason.** A test that fails is read and put right before a commit; the Testing Handbook, section 1 (property tests).
+
+## 13 November 2026: the language services as functions of the engine (release 0.7.0, step 34a)
+
+**What was built.** A module of the engine, `zeff_engine::language`, with two things an editor needs before any protocol: the documents it has open, each with its whole text as last typed and the editor's count of its changes; and the diagnostics of a document, which are the checker's own (the same check as `zeff check`, so the same codes, suggestions and marks), each placed as the Language Server Protocol places things. `zeff lsp` (step 34b) will call them over the protocol; Zemp in the browser calls them directly, as section 12 of the Engine and Project Specification has it.
+
+**Places.** The checker counts bytes; the protocol counts a line from 0 and a column in UTF-16 code units from 0. The conversion is the engine's, both ways, with the three line ends the protocol names (line feed, carriage return and line feed, carriage return alone). A byte inside a character is the start of the character, a column between the two code units of a character outside the basic plane likewise, and a place past the end of a line or of the text is its end, so that no place an editor sends can fall inside a character.
+
+**The editor's text comes before the disk's.** The check reads files through a layer that serves each open document in place of its saved file, and lists a document opened and never saved in its folder. So a script is checked against the module beside it as that module is being typed, and a new module can be used before its first save. Nothing else of the check changes; it writes the cache of the data files' schemas as `zeff check` does, and nothing more.
+
+**Which check a document gets.** A script of a project: the project's check, of which only the diagnostics of that script are kept (those of a module are shown in the module). A module of `functions/`: the same check with an empty script standing in, keeping the module's diagnostics. A file outside any project, or in a folder whose `zeff.toml` cannot be read: checked alone, in a project of its own in memory, for its syntax, names and types; the note that an imported file "does not exist yet" is left out there, since nothing is known of the files such a script reads. A document that cannot be read has no diagnostics.
+
+**Left out, on purpose.** The changes a diagnostic offers (its fixes) are not passed on: the release's row names diagnostics, completion, signature help, hover and formatting, and no code actions. The message and what the diagnostic says of the place underlined are kept apart, for step 34b to join as the protocol's one text. The project's pin of the engine version is not checked by the service, and the diagnostics of `zeff.toml` itself are not served; both are the command line's.
+
+**No new dependency.**
+
+**Tests.** Unit: places on a text with a face, a Greek letter, a combining mark and the three line ends, both ways; the store of documents; a script checked as typed and not as saved; a column after a character outside the basic plane; a module open in the editor, renamed, faulty, half typed, closed; a module never saved; a file outside a project; a document that cannot be read and a project that cannot be opened. Property: for any text the place of a byte names that byte again, places go forward with the bytes, and any place names the start of a character. Snapshot: the messages of ten scripts of a project (half-typed statements, a misspelt variable and function, the two marks of section 11, diagnostics with two places, warnings, a wrong type), of a file outside a project, and of every script and module of the seven sample projects (none has a message).
+
+**Found in passing.** A misspelt name is not compared with the project's own functions when the engine looks for a suggestion; entered in the known issues and added to step 38b.
+
+**Reason.** The checklist's step 34a; Engine and Project Specification, section 12; Language Reference, section 11.

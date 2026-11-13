@@ -1,0 +1,87 @@
+---
+source: crates/zeff-engine/tests/language.rs
+expression: all
+---
+> let d = frame(x = [1.0, 2
+0:13-0:14 error[Z0302]: this `(` is never closed
+    here: opened here
+0:18-0:19 error[Z0302]: this `[` is never closed
+    here: opened here
+----
+> let x = 1 +
+1:0-1:0 error[Z0301]: expected an expression, found the end of the line
+    here: expected an expression
+----
+> let d = import("data/small.csv")
+> d.
+1:1-1:2 error[Z0312]: a line may not end with `.`
+    here: a name must follow the dot
+    help: write the method name after the dot, or remove the dot
+----
+> for i in 1..3 {
+>     print(i
+> }
+1:9-1:10 error[Z0302]: this `(` is never closed
+    here: opened here
+2:0-2:1 error[Z0301]: expected `,` or `)`, found `}`
+    here: expected `,` or `)`
+----
+> let d = import("data/small.csv")
+> d.mean(aa)
+> d.maen(a)
+1:7-1:9 error[Z0101]: no variable `aa` in `d`
+    here: not a variable of d
+    help: did you mean `a`? If you meant a category level, write it in quotes: `"a"`
+2:2-2:6 error[Z0103]: no function is called `maen`
+    here: not a function of Zeff
+    help: did you mean `mean`?
+----
+> let d = import("data/small.csv")
+> let wide = d.to_wide(id: a, names_from: c, values_from: b)
+> let m = import("data/none.csv")
+> m.mean(zzz)
+1:13-1:20 note: `to_wide` is checked at run time: its columns depend on the data, so the variables of this frame are checked when the script runs
+    here: no schema before the run
+    mark: checked at run time
+2:15-2:30 note: `data/none.csv` is checked at run time: the file does not exist yet, so the variables of this frame are checked when the script runs
+    here: no schema before the run
+    mark: checked at run time
+----
+> /// One.
+> fn f(x: Float) -> Float { x }
+> /// Two.
+> fn f(x: Float) -> Float { x + 1 }
+> let d = import("data/small.csv")
+> let a = 3
+> d.add(k = a)
+> let y = if d.n_rows() > 2 { 1.5 } else { "few" }
+3:3-3:4 error[Z0107]: `f` is defined twice in this file
+    here: the second definition
+    also 1:3-1:4: the first
+    help: give each function its own name; a file's functions share one namespace
+7:39-7:48 error[Z0214]: the branches of an `if` must give one type: this one has a Float and a Str
+    here: a Str
+    also 7:26-7:33: a Float
+    help: Int and Float join as Float and NA fits any type; other types need a conversion, `to(x, Str)`
+----
+> let mean = 3
+> fn half(x: Float) -> Float { x / 2 }
+> print(half(mean))
+0:4-0:8 warning[W0101]: `mean` hides the function `data::mean`
+    here: a binding with a built-in name
+    help: the function is still reachable as `data::mean`; a different name avoids the confusion
+1:3-1:7 warning[W0303]: `half` has no summary line
+    here: a function without `///` text
+    help: write one line above it, `/// What the function gives.`; the line is its help, its hover text and the title of its dialog
+----
+> use functions::clean
+> print(twice("two"))
+1:12-1:17 error[Z0401]: `x` of `twice` must be a Float, but this is a Str
+    here: a Str
+    help: usage: `twice(x: Float)`
+----
+> use functions::clean
+> let d = import("data/small.csv")
+> print(twice(d.mean(b)))
+nothing
+----

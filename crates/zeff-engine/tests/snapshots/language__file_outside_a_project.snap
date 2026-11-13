@@ -1,0 +1,15 @@
+---
+source: crates/zeff-engine/tests/language.rs
+expression: shown(&found)
+---
+3:7-3:9 error[Z0101]: no variable `xx` in `f`
+    here: not a variable of f
+    help: did you mean `x`? If you meant a category level, write it in quotes: `"x"`
+4:2-4:6 error[Z0103]: no function is called `maen`
+    here: not a function of Zeff
+    help: did you mean `mean`?
+5:6-5:10 error[Z0101]: nothing is called `nope` here
+    here: not a binding
+6:13-6:20 note: `to_wide` is checked at run time: its columns depend on the data, so the variables of this frame are checked when the script runs
+    here: no schema before the run
+    mark: checked at run time
