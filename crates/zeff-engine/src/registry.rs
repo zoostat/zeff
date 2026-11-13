@@ -42,8 +42,10 @@ pub fn specs() -> Vec<FunctionSpec> {
     functions().into_iter().map(|f| f.spec).collect()
 }
 
-/// The Rust bodies, by package and name.
-pub type Bodies = HashMap<(String, String), Body>;
+/// The Rust bodies, by package, name and the type the function is a method of
+/// (`FunctionSpec::on`): a package may have two functions of one name, a function of a frame
+/// and a function of a plot.
+pub type Bodies = HashMap<(String, String, String), Body>;
 
 /// A built-in written in Zeff, lowered: one program per form (which parameters are columns),
 /// each holding the function and its private helpers, and its source for the lines of its
@@ -414,7 +416,11 @@ pub fn bodies() -> &'static Bodies {
             .into_iter()
             .map(|f| {
                 (
-                    (f.spec.package.to_string(), f.spec.name.to_string()),
+                    (
+                        f.spec.package.to_string(),
+                        f.spec.name.to_string(),
+                        f.spec.on().to_string(),
+                    ),
                     f.body,
                 )
             })
@@ -446,8 +452,9 @@ mod tests {
         let zeff = zeff_bodies();
         for f in registry.functions() {
             let key = (f.spec.package.to_string(), f.spec.name.to_string());
+            let on = (key.0.clone(), key.1.clone(), f.spec.on().to_string());
             assert!(
-                bodies().contains_key(&key) || zeff.contains_key(&key),
+                bodies().contains_key(&on) || zeff.contains_key(&key),
                 "{} has no body",
                 f.spec.name
             );

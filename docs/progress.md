@@ -138,33 +138,17 @@ Step 27e was split in two. 27e1 `[engine]`: `facet(rows:, cols:)`, a grid of pan
 
 Step 28 was split in four. 28a `[function]`: `histogram`, the rows of `x` counted in bins of one width by the rule of Freedman and Diaconis, Sturges's or Scott's, a number of bins or a width, from the smallest value or from `start:`, as counts, densities, fractions or percentages, a thousand bins at most; the numbers of bins and the counts are those of R. 28b `[function]`: `density`, the kernel estimate computed in `stats`, which `plot` now depends on, with Silverman's bandwidth, `bandwidth:`, `adjust:` and six kernels, computed exactly where R bins first; the bandwidth matches R to thirteen places. 28c `[function]`: `boxplot`, a box for each value of `x` or one box, with Tukey's hinges and the values beyond the whiskers as R's `boxplot.stats`, side by side for a fill, `outliers: false`. Rulings taken on the recommendation at each step are in `docs/decisions.md` under the same dates.
 
-## 13 November 2026, release 0.7.0, step 28d (`errorbars`; step 28 complete)
+## 13 November 2026, steps 28d to 29b of release 0.7.0 (folded)
 
-**Done.** `p.errorbars(low:, high:)` draws an interval at each row's `x`, from `low` to `high`, with a cap across each end (`width:`, 0.3 of the gap; 0 for none). Over bars side by side, and beside boxes, each interval stands over its own bar. The scene records what the interval is (`given`: the two ends are the script's). The four statistical layers are built, catalogue rows 472 to 475 are `implemented`, and the grammar of section 7.6 stands at 25 of 25.
+28d `[function]`: `errorbars(low:, high:, width:)`, an interval at each row's `x` with a cap at each end, over its own bar where bars stand side by side; the scene records what an interval is (`given`); the grammar table's `errorbars(ci:)` corrected and logged. Step 28 complete: the four statistical layers built, the grammar of section 7.6 at 25 of 25. Step 29 was then split in five. 29a `[function]`: `line` and `bar`; a shorthand calls the functions of the grammar themselves, so it gives the very `Plot` of its grammar form; `by:` parts any shorthand that draws rows into panels (open decision #133, option A, taken on the recommendation). 29b `[engine]`: `scatter`, and with `fit: linear` the least-squares line and its 95% confidence band, computed in `stats` by the kernel's QR and equal to R's `lm` and `predict` to nine places, one for each colour category and panel, fitted to the values as the axes show them; the scene records `ci 0.95` and the caption says what the band is. Rulings taken on the recommendation at each step are in `docs/decisions.md` under the same dates.
 
-**Green.** Format, clippy with warnings denied, the tier and message checks, every test program of the routine; `zeff selftest` at 449 of 449; CI is read job by job after the push.
+## 13 November 2026, release 0.7.0, step 29c1 (one name, a function of a frame and one of a plot), and step 29c split in two
 
-**Next.** Step 29 `[function]`: the eight shorthands (`histogram`, `scatter`, `line`, `bar`, `boxplot`, `density`, `qq_plot`, `heatmap`).
-
-**For the owner to decide.** Nothing new waits for him. Taken on the recommendation at this step, his to overturn: intervals in the colour of the text, not of their group; intervals follow bars side by side without a `position:` of their own; an interval with `low` above `high` is drawn and counted in a note, not refused; nothing is written on the figure about what a given interval is (the author says it in the caption). One error of the specification corrected and logged: the grammar table had `errorbars(ci:)`. Open as before: #132, the marks of a slide (step 26b), #131, #109 (question 2), #130, the internal error of `add` under #108, #129, #105, #102, #101, #100, the stray file `Rplots.pdf` and the permission to install `emmeans` 2.0.4.
-
-## 13 November 2026, release 0.7.0, step 29a (`line` and `bar`), and step 29 split in five
-
-**Done.** Step 29 was split into 29a (`line`, `bar`), 29b (`scatter` with its fitted line), 29c (`histogram`, `density`, `boxplot` on a frame), 29d (`qq_plot`) and 29e (`heatmap`). A shorthand calls the functions of the grammar themselves, so `m.line(year, rate, color: region)` is the very `Plot` of `m.plot(x: year, y: rate, color: region).lines()`, and `d.bar(arm)` that of `d.plot(x: arm).bars()`; `by:` parts either into panels, as `facet(by:)`.
+**Done.** Step 29c was split: the registry allowed a package one function of a name, and `histogram`, `density` and `boxplot` are already layers of a plot. 29c1 `[engine]`: a function is known by its package, its name and the type it is a method of, as rule 6 of section 8.1 of the Engine Specification has it; the registry, the checked call, the bodies and the interpreter follow, and a call written `f(x, a)` chooses by the type of `x` where `x` is a binding. Nothing a script could do before has changed.
 
 **Green.** Format, clippy with warnings denied, the tier and message checks, every test program of the routine; `zeff selftest` at 449 of 449; CI is read job by job after the push.
 
-**Next.** Step 29b `[engine]`: `scatter`, with `fit: linear`, the least-squares line and its band.
+**Next.** Step 29c2 `[function]`: `histogram`, `density` and `boxplot` on a frame.
 
-**For the owner to decide.** Nothing new waits for him. Taken on the recommendation at this step, his to overturn: open decision #133, `by:` on every shorthand that draws rows, meaning panels; a shorthand's refusals are the grammar's own, naming the grammar's function; the shorthands take only the options the catalogue gives them. Open as before: #132, the marks of a slide (step 26b), #131, #109 (question 2), #130, the internal error of `add` under #108, #129, #105, #102, #101, #100, the stray file `Rplots.pdf` and the permission to install `emmeans` 2.0.4.
-
-## 13 November 2026, release 0.7.0, step 29b (`scatter`)
-
-**Done.** `data.scatter(x, y)` is `plot(x:, y:).points()`. With `fit: linear` the least-squares line of `y` on `x` is drawn over the points and its 95% confidence band under them, for each category of `color:` and each panel of `by:`; the fit is computed in `stats` by the kernel's QR and matches R's `lm` and `predict` to nine places. The scene records the band as `ci 0.95` and the figure's caption says what it is.
-
-**Green.** Format, clippy with warnings denied, the tier and message checks, every test program of the routine; `zeff selftest` at 449 of 449; CI is read job by job after the push.
-
-**Next.** Step 29c `[function]`: `histogram`, `density` and `boxplot` on a frame.
-
-**For the owner to decide.** Nothing new waits for him. Taken on the recommendation at this step, his to overturn: a 95% band with no option for the level; a line for each colour category and panel; no line for fewer than three rows; the line fitted to the values as the axes show them (the logarithms on a log axis); an automatic caption for the band unless the script gives its own. Open as before: #133, #132, the marks of a slide (step 26b), #131, #109 (question 2), #130, the internal error of `add` under #108, #129, #105, #102, #101, #100, the stray file `Rplots.pdf` and the permission to install `emmeans` 2.0.4.
+**For the owner to decide.** Nothing new waits for him. Taken on the recommendation at this step, his to overturn: in the function form the choice between two functions of one name is made by the first argument only where it is a binding. Open as before: #133, #132, the marks of a slide (step 26b), #131, #109 (question 2), #130, the internal error of `add` under #108, #129, #105, #102, #101, #100, the stray file `Rplots.pdf` and the permission to install `emmeans` 2.0.4.
 

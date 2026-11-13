@@ -360,3 +360,161 @@ fn usage_is_generated_from_the_signature() {
     assert_eq!(plain.usage(), "attempt(expr)");
     assert!(plain.receiver().is_none() && spec.receiver().unwrap().name == "data");
 }
+
+// ----- one name, a function of a frame and a function of a plot (release 0.7.0, step 29c1) -----
+
+const BOX_OF_A_FRAME: &str = "# boxplot
+
+## Summary
+A box plot of a variable of a frame
+
+## Description
+Draws a box over the values of `var`, one for each value of `group`.
+
+## Arguments
+- data: The frame whose rows are drawn.
+- var: The variable the boxes are of.
+- group: The variable with a box for each of its values.
+
+## Value
+A `Plot`.
+
+## Details
+The hinges are Tukey's.
+
+## References
+Tukey (1977), Exploratory Data Analysis, Addison-Wesley, Reading, Massachusetts.
+
+## See also
+plot, histogram
+
+## Examples
+> wages.boxplot(wage)
+plot
+";
+
+const BOX_OF_A_PLOT: &str = "# boxplot
+
+## Summary
+A box plot layer
+
+## Description
+Adds a layer of boxes to a plot.
+
+## Arguments
+- p: The plot.
+- data: A frame for this layer alone.
+- outliers: Whether the values beyond the whiskers are drawn.
+
+## Value
+The `Plot` with the layer added.
+
+## Details
+The hinges are Tukey's.
+
+## References
+Tukey (1977), Exploratory Data Analysis, Addison-Wesley, Reading, Massachusetts.
+
+## See also
+plot, histogram
+
+## Examples
+> p.boxplot()
+plot
+";
+
+fn box_spec(of_a_frame: bool) -> FunctionSpec {
+    FunctionSpec {
+        name: "boxplot",
+        package: "plot",
+        method: true,
+        params: if of_a_frame {
+            vec![
+                ParamSpec::required("data", "Frame"),
+                ParamSpec::required("var", "Var"),
+                ParamSpec::option("group", "Var"),
+            ]
+        } else {
+            vec![
+                ParamSpec::required("p", "Plot"),
+                ParamSpec::option("data", "Frame"),
+                ParamSpec::option_with_default("outliers", "Bool", "true"),
+            ]
+        },
+        rest: None,
+        returns: "Plot",
+        diagnostics: Vec::new(),
+        help: if of_a_frame {
+            BOX_OF_A_FRAME
+        } else {
+            BOX_OF_A_PLOT
+        },
+        accuracy: None,
+    }
+}
+
+#[test]
+fn a_package_may_have_a_function_of_a_frame_and_one_of_a_plot_under_one_name() {
+    let catalogue = Catalogue::compiled().unwrap();
+    // The two are methods of types apart: both are registered, each on its own row of the
+    // catalogue, and each is found by the type it is a method of.
+    let registry =
+        Registry::build_with(vec![box_spec(false), box_spec(true)], catalogue.clone()).unwrap();
+    assert_eq!(registry.named("boxplot").len(), 2);
+    let (of_a_frame, of_a_plot) = (
+        registry.function_on("plot", "boxplot", "Frame").unwrap(),
+        registry.function_on("plot", "boxplot", "Plot").unwrap(),
+    );
+    assert_eq!(
+        (of_a_frame.spec.on(), of_a_plot.spec.on()),
+        ("Frame", "Plot")
+    );
+    assert_eq!(of_a_frame.row.usage_parameters()[0], "data");
+    assert_eq!(of_a_plot.row.usage_parameters()[0], "p");
+    assert_ne!(of_a_frame.row.id, of_a_plot.row.id);
+    assert!(registry.function_on("plot", "boxplot", "Table").is_none());
+    // By the name alone, the first registered.
+    assert_eq!(
+        registry.function("plot", "boxplot").unwrap().spec.on(),
+        "Plot"
+    );
+    // A function that is no method is of no type.
+    assert_eq!(where_spec(GOOD).on(), "Frame");
+    let mut plain = where_spec(GOOD);
+    plain.method = false;
+    assert_eq!(plain.on(), "");
+
+    // The same one twice is refused, as before.
+    let twice =
+        Registry::build_with(vec![box_spec(true), box_spec(true)], catalogue.clone()).unwrap_err();
+    assert_eq!(
+        twice,
+        [RegistryError::Duplicate {
+            package: "plot".into(),
+            name: "boxplot".into()
+        }]
+    );
+    // And so are two whose types overlap: a call on a frame could be either.
+    let mut both = box_spec(false);
+    both.params[0] = ParamSpec::required("p", "Frame | Plot");
+    let overlapping =
+        Registry::build_with(vec![box_spec(true), both], catalogue.clone()).unwrap_err();
+    assert!(
+        overlapping.contains(&RegistryError::Duplicate {
+            package: "plot".into(),
+            name: "boxplot".into()
+        }),
+        "{overlapping:?}"
+    );
+    // And one that is no method beside one that is.
+    let mut plain = box_spec(false);
+    plain.method = false;
+    let mixed = Registry::build_with(vec![box_spec(true), plain], catalogue).unwrap_err();
+    assert!(
+        mixed.contains(&RegistryError::Duplicate {
+            package: "plot".into(),
+            name: "boxplot".into()
+        }),
+        "{mixed:?}"
+    );
+}

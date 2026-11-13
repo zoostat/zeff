@@ -1491,7 +1491,16 @@ impl<'a> Interpreter<'a> {
         printed: &mut String,
         messages: &mut Vec<Diagnostic>,
     ) -> Result<Value, Fail> {
-        let Some(body) = self.bodies.get(&(package.to_string(), name.to_string())) else {
+        // A function value names a built-in by its package and its name; where a package has
+        // two of the name, methods of types apart, it is the one whose type is written first
+        // in the order of the letters, so that the choice is the same on every run.
+        let found = self
+            .bodies
+            .iter()
+            .filter(|((p, n, _), _)| p == package && n == name)
+            .min_by(|a, b| a.0.2.cmp(&b.0.2))
+            .map(|(_, body)| body);
+        let Some(body) = found else {
             return Err(fail(
                 Diagnostic::error("Z9001", format!("internal error: this is a bug in Zeff, not in your script (`{package}::{name}` has no body)"))
                     .in_file(self.script)
@@ -2661,7 +2670,9 @@ impl<'a> Interpreter<'a> {
     ) -> Result<Value, Fail> {
         let key = (call.package.clone(), call.name.clone());
         let zeff = self.zeff.and_then(|z| z.get(&key));
-        let body = self.bodies.get(&key);
+        let body = self
+            .bodies
+            .get(&(call.package.clone(), call.name.clone(), call.on.clone()));
         if zeff.is_none() && body.is_none() {
             return Err(self.no_body(call));
         }
@@ -2923,7 +2934,9 @@ impl<'a> Interpreter<'a> {
     ) -> Result<Value, Fail> {
         let key = (call.package.clone(), call.name.clone());
         let zeff = self.zeff.and_then(|z| z.get(&key));
-        let body = self.bodies.get(&key);
+        let body = self
+            .bodies
+            .get(&(call.package.clone(), call.name.clone(), call.on.clone()));
         if !takes_failed(call) {
             let in_list = |v: &Value| match v {
                 Value::List(items) => items.iter().find_map(|i| match i {
@@ -3098,7 +3111,10 @@ impl<'a> Interpreter<'a> {
             && !takes_failed(call)
             && !(call.package == "core" && call.name == "iterate")
             && self.zeff.and_then(|z| z.get(&key)).is_none()
-            && self.bodies.get(&key).is_some()
+            && self
+                .bodies
+                .get(&(call.package.clone(), call.name.clone(), call.on.clone()))
+                .is_some()
     }
 
     /// An expression inside a frame method, compiled into a plan and evaluated (fused, unless
@@ -3388,9 +3404,11 @@ impl<'a> Interpreter<'a> {
                 .zip(&call.scalar_params)
                 .any(|(k, scalar)| *scalar && k.is_some_and(is_column))
                 || (call.rest_scalar && rest.iter().any(|k| k.is_some_and(is_column))));
-        let key = (call.package.clone(), call.name.clone());
         if call.lifted || column_given {
-            let Some(body) = self.bodies.get(&key) else {
+            let Some(body) =
+                self.bodies
+                    .get(&(call.package.clone(), call.name.clone(), call.on.clone()))
+            else {
                 for (_, sub) in built {
                     plan.absorb(sub);
                 }

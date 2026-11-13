@@ -5158,6 +5158,7 @@ impl Checker<'_> {
             kind: ExprKind::Call(Call {
                 package: "core".to_string(),
                 name: fname,
+                on: spec.on().to_string(),
                 callee_span,
                 args: slots,
                 rest: Vec::new(),
@@ -5593,8 +5594,34 @@ impl Checker<'_> {
                         && f.spec.params.first().is_some_and(|p| p.ty == "Frame")
                         && f.spec.params.iter().skip(1).filter(|p| !p.option).count() == positional
                 });
-                match reducer {
-                    Some(f) if self.frame_scope > 0 && homes.len() > 1 => f,
+                // `f(x, a)` is `x.f(a)` (section 3.1, "Methods"): where a name has several
+                // homes that are methods and the first argument is a binding, whose type is
+                // known, the home is the one whose first parameter takes it, as it would be
+                // for the method form (`histogram(wages, lwage)` is the histogram of a frame,
+                // `histogram(p)` the layer of a plot).
+                let first_is = args.iter().find_map(|a| match a {
+                    ast::Arg::Positional(e) => Some(e),
+                    _ => None,
+                });
+                let known: Option<Ty> = match first_is.map(|e| &e.kind) {
+                    Some(ast::ExprKind::Name(path)) if path.segments.len() == 1 => self
+                        .lookup(&path.segments[0].text)
+                        .map(|id| self.bindings[id].ty.clone()),
+                    _ => None,
+                };
+                let by_first = known.filter(|ty| *ty != Ty::Unknown).and_then(|ty| {
+                    homes.iter().find(|f| {
+                        f.spec.method
+                            && f.spec
+                                .params
+                                .first()
+                                .and_then(|p| Ty::parse(p.ty))
+                                .is_some_and(|t| t.accepts(&ty))
+                    })
+                });
+                match (reducer, by_first) {
+                    (Some(f), _) if self.frame_scope > 0 && homes.len() > 1 => f,
+                    (_, Some(f)) if homes.len() > 1 => f,
                     _ => homes[0],
                 }
             }
@@ -6399,6 +6426,7 @@ impl Checker<'_> {
             kind: ExprKind::Call(Call {
                 package,
                 name: fname,
+                on: spec.on().to_string(),
                 callee_span,
                 args: slots,
                 rest,
@@ -7040,6 +7068,7 @@ impl Checker<'_> {
             kind: ExprKind::Call(Call {
                 package: "core".to_string(),
                 name: name.to_string(),
+                on: constant.spec.on().to_string(),
                 callee_span: span,
                 args: Vec::new(),
                 rest: Vec::new(),

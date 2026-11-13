@@ -189,10 +189,16 @@ impl Registry {
         };
         for spec in specs {
             let (package, name) = (spec.package.to_string(), spec.name.to_string());
-            if functions
-                .iter()
-                .any(|f| f.spec.package == spec.package && f.spec.name == spec.name)
-            {
+            // A package has one function of a name, or several that are methods of types
+            // apart (section 8.1, rule 6): `histogram` of a frame and `histogram` of a plot.
+            if functions.iter().any(|f| {
+                f.spec.package == spec.package
+                    && f.spec.name == spec.name
+                    && match (f.spec.receiver(), spec.receiver()) {
+                        (Some(a), Some(b)) => receivers_overlap(a.ty, b.ty),
+                        _ => true,
+                    }
+            }) {
                 errors.push(RegistryError::Duplicate { package, name });
                 continue;
             }
@@ -355,10 +361,20 @@ impl Registry {
             .collect()
     }
 
+    /// The function of a package by its name: the first registered, where the package has
+    /// two of the name ([`Registry::function_on`] tells them apart).
     pub fn function(&self, package: &str, name: &str) -> Option<&Registered> {
         self.functions
             .iter()
             .find(|f| f.spec.package == package && f.spec.name == name)
+    }
+
+    /// The function of a package by its name and the type it is a method of, as
+    /// [`FunctionSpec::on`] gives it.
+    pub fn function_on(&self, package: &str, name: &str, on: &str) -> Option<&Registered> {
+        self.functions
+            .iter()
+            .find(|f| f.spec.package == package && f.spec.name == name && f.spec.on() == on)
     }
 
     /// The methods that apply to a value of the result type `ty` (section 9.1, "Value"): every

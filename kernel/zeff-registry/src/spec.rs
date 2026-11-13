@@ -125,6 +125,15 @@ impl FunctionSpec {
         }
     }
 
+    /// The type a method is a method of, as its registration writes it (`Frame`, `Plot`,
+    /// `Table | Result`); empty for a function that is no method. With the package and the
+    /// name it says which function this is: a package may have two of one name, a function
+    /// of a frame and a function of a plot, whose receivers do not overlap (Engine and
+    /// Project Specification, section 8.1, rule 6: one home per name per type).
+    pub fn on(&self) -> &'static str {
+        self.receiver().map_or("", |receiver| receiver.ty)
+    }
+
     /// The parameter called `name`.
     pub fn param(&self, name: &str) -> Option<&ParamSpec> {
         self.params.iter().find(|p| p.name == name)

@@ -407,6 +407,11 @@ pub struct Spread {
 pub struct Call {
     pub package: String,
     pub name: String,
+    /// The type the function is a method of, as its registration writes it, and empty for a
+    /// function that is no method: with the package and the name, which function this is
+    /// (`FunctionSpec::on`; a package may have a function of a frame and a function of a plot
+    /// under one name).
+    pub on: String,
     /// Where the function's name is written.
     pub callee_span: Span,
     /// One entry per parameter of the signature; `None` where the argument was omitted and the

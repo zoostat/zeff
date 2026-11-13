@@ -3984,3 +3984,21 @@ In `zeff run`, a `let` of the script's top level is freed after the last top-lev
 
 **Reason.** The checklist's step 29b; section 7.6 of the Language Reference ("Statistical layers", "Shorthands"); catalogue row 230; decision #118, F11.
 
+## 13 November 2026: one name, a function of a frame and a function of a plot (release 0.7.0, step 29c1), and step 29c split in two
+
+**The split.** Step 29c was to add `histogram`, `density` and `boxplot` on a frame. The registry refused them: a package could register a name once, and the three are already the layers of a plot. Section 8.1 of the Engine Specification, rule 6, has it otherwise ("One home per name per type ... `histogram`, `density` and `boxplot` (frames as shorthands, plots as layers, both in `plot`)"), so the engine was short of its specification. 29c1 `[engine]` brings it up to the rule; 29c2 `[function]` adds the three shorthands on it.
+
+**What a function is known by.** Its package, its name, and the type it is a method of, as its registration writes it (`FunctionSpec::on`: `Frame`, `Plot`, `Table | Result`; empty for a function that is no method). (a) The registry (`zeff-registry`) refuses a second function of a package and a name only where the two are not both methods, or their receivers overlap; two methods of types apart are both registered, each on its own row of the catalogue, which `find_for` already told apart by the receiver the usage is written on. `Registry::function_on(package, name, on)` finds one; `function(package, name)` gives the first, as before. (b) The checked call (`zeff_ir::Call`) records `on` beside the package and the name. (c) The bodies of the engine are kept by all three, and the interpreter looks a body up by all three. A built-in called through a function value, which names it by package and name alone, takes the one whose type comes first in the order of the letters, so that the choice is the same on every run; no function of this release is reached that way under a shared name. The built-ins written in Zeff are kept by package and name as before: none shares a name within a package.
+
+**The function form.** `x.f(a)` is `f(x, a)` (Language Reference, section 3.1). In the method form the checker already chose among the homes of a name by the type of the receiver. In the function form it took the first home, or the reducer inside a frame method. It now also chooses by the first argument where that is a binding, whose type is known before the arguments are matched: `histogram(wages, lwage)` is the histogram of the frame. Where the first argument is anything else, a call or an expression, the first home stands as before, and the method form is the way to say which is meant; checking an argument once to choose and again to match it would report its faults twice, and the cure is larger than the case. Ruling, the owner's to overturn; the help pages of the three shorthands write the method form.
+
+**Help.** `zeff help histogram` prints the page of each home, as it does for a name with homes in two packages; nothing changed there.
+
+**Tests.** `kernel/zeff-registry/tests/help.rs`: a package with a function of a frame and one of a plot under one name builds, each on its own row and found by its type; the same one twice, two whose types overlap, and one that is no method beside one that is, are refused. `crates/zeff-engine/tests/one_name_two_homes.rs`: two fixture functions of one name in `core`, of an Int and of a Str: the registry holds both and each has its body; the method form on a binding, a literal and a call, and the function form on a binding, each run the function of the type; a type neither takes is refused with both named; `zeff help` prints both pages; the examples of both pages run each on its own function. Every other test of the workspace is unchanged.
+
+**The specification.** Unchanged: the engine now does what rule 6 of section 8.1 says.
+
+**Dependencies.** None added.
+
+**Reason.** The checklist's step 29c; Engine and Project Specification, section 8.1, rule 6; catalogue rows 229, 233, 234 and 472 to 474.
+
