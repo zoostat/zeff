@@ -1,0 +1,45 @@
+---
+source: crates/zeff-engine/tests/formatting.rs
+expression: all
+---
+==== first_engine/scripts
+lines 20 to 21 become:
+    |wages.summary([wage, hours, educ])
+lines 33 to 36 become:
+    |print(scores.variables(), 1e-7, 1234567.891, NA)
+==== data_cleaning/scripts
+lines 21 to 22 become:
+    |    .rename(wage = monthly_wage, hours = weekly_hours, educ = years_of_education)
+lines 46 to 49 become:
+    |dataset(wages).summary([wage, educ], by: union)
+==== regression/scripts
+lines 11 to 12 become:
+    |    .add(lwage = log(wage), exper2 = exper^2, industry = category(industry, contrast: sum))
+lines 67 to 70 become:
+    |m5.export("output/model5.tex")
+==== simulation/scripts
+lines 10 to 11 become:
+    |let wage_mix = dist.mixture([dist.lognormal(meanlog: 2.5, sdlog: 0.3),
+lines 45 to 48 become:
+    |print("mixture P(wage > 40):", wage_mix.cdf(40, upper: true))
+==== user_functions/scripts
+lines 12 to 13 become:
+    |let wages = dataset(wages).add(lwage = log(wage), exper2 = exper^2)
+lines 79 to 82 become:
+    |assert(abs(huber.mu - complete.median(lwage)) < 0.05, "the Huber location lies near the median")
+==== user_functions/functions
+lines 14 to 15 become:
+    |fn robustness(data: Frame, f: Formula, cluster: Var = worker) -> List<RegFit> {
+==== user_functions/functions
+lines 12 to 13 become:
+    |fn share_missing(data: Frame, var: Var) -> Float {
+==== panel/scripts
+lines 13 to 14 become:
+    |    .merge(firms.select([firm, size, founded]), on: firm, relation: many_to_one)
+lines 79 to 82 become:
+    |dd
+==== plots/scripts
+lines 16 to 17 become:
+    |let schooling = wages.plot(x: educ, y: wage).points(alpha: 0.2)
+lines 58 to 61 become:
+    |by_industry.export("output/fig6_industry.png", size: slide)

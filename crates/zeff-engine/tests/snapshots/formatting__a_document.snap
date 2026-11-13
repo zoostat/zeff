@@ -1,0 +1,17 @@
+---
+source: crates/zeff-engine/tests/formatting.rs
+expression: shown(&found)
+---
+lines 1 to 2 become:
+    |let d = import("data/small.csv")
+lines 5 to 7 become:
+    |let fit = d.reg(b ~ a, se: robust)                    // with robust errors
+    |fit.coef()
+lines 8 to 10 become:
+    |    print(i)
+    |    print(i * 2)
+lines 12 to 15 become:
+    |fn half(x: Float) -> Float { x / 2 }
+    |let last = [1,
+    |            2,
+    |            3]

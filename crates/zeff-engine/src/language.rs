@@ -18,10 +18,12 @@ use zeff_diagnostics::{Diagnostic, Severity, Span};
 
 pub(crate) mod call;
 pub mod complete;
+pub mod formatting;
 pub mod hover;
 pub mod signature;
 
 pub use complete::{Completion, CompletionKind, Completions, VariableFacts, completions};
+pub use formatting::{NotFormatted, TextEdit, applied, formatting};
 pub use hover::{BindingFacts, Hover, HoverKind, hover};
 pub use signature::{SignatureHelp, SignatureParameter, signature_help};
 
