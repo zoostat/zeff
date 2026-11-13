@@ -1,0 +1,11 @@
+---
+source: crates/zeff-engine/tests/traceback.rs
+expression: out.output.stderr
+---
+error[Z0001]: a positive number is needed
+ --> scripts/main.zeff:3:5
+  |
+3 |     assert(x > 0, "a positive number is needed")
+  |     ^^^^^^ in this call
+  |
+  = in: `half(x: -1)`, called at scripts/main.zeff:7:7

@@ -85,6 +85,12 @@ impl Diagnostic {
         fields.push(format!("\"labels\": [{}]", labels.join(", ")));
         let help: Vec<String> = self.help.iter().map(|h| json_string(h)).collect();
         fields.push(format!("\"help\": [{}]", help.join(", ")));
+        // The calls an error came through; the field is written only where there are some,
+        // so that a record without a traceback is the record it was.
+        if !self.trace.is_empty() {
+            let trace: Vec<String> = self.trace.iter().map(|t| json_string(t)).collect();
+            fields.push(format!("\"trace\": [{}]", trace.join(", ")));
+        }
         fields.push(format!(
             "\"mark\": {}",
             self.mark.as_deref().map_or("null".to_string(), json_string)
@@ -143,6 +149,21 @@ mod tests {
         assert_eq!(
             json_string("a \"quoted\"\nline\t\u{1}"),
             r#""a \"quoted\"\nline\t\u0001""#
+        );
+        // The calls an error came through are a field of their own, written where there are
+        // some.
+        let traced = Diagnostic::error("Z0001", "stopped")
+            .traced("`half(x: -1)`, called at scripts/main.zeff:7:7");
+        assert!(
+            traced
+                .to_json(&sources)
+                .contains(r#""help": [], "trace": ["`half(x: -1)`, called at scripts/main.zeff:7:7"], "mark": null"#),
+            "{}",
+            traced.to_json(&sources)
+        );
+        assert_eq!(
+            traced.short(None),
+            "error[Z0001]: stopped\n  = in: `half(x: -1)`, called at scripts/main.zeff:7:7\n"
         );
         let plain = Diagnostic::warning("W0201", "3 rows skipped");
         assert_eq!(

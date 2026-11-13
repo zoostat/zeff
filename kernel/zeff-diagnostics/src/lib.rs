@@ -78,6 +78,10 @@ pub struct Diagnostic {
     /// run time` on a step whose columns depend on the data, `from last run` on a diagnostic
     /// whose only evidence is a schema cached from the last run; `None` otherwise.
     pub mark: Option<String>,
+    /// The calls an error came through, the innermost first: for an error raised inside a
+    /// function, each function it was in with the values it was given and where it was
+    /// called, out to the line of the script (open decision #76). Empty for anything else.
+    pub trace: Vec<String>,
 }
 
 /// A count as messages print it, with thousands separators (Language Reference, section 3.8):
@@ -115,6 +119,7 @@ impl Diagnostic {
             help: Vec::new(),
             fixes: Vec::new(),
             mark: None,
+            trace: Vec::new(),
         }
     }
 
@@ -169,6 +174,13 @@ impl Diagnostic {
         self
     }
 
+    /// A call the error came through, printed as `= in: ...` under the lines it points at;
+    /// added from the innermost call outwards.
+    pub fn traced(mut self, text: impl Into<String>) -> Self {
+        self.trace.push(text.into());
+        self
+    }
+
     /// A line of advice, printed as `= help: ...`.
     /// The mark of section 11 (`checked at run time`, `from last run`).
     pub fn mark(mut self, text: impl Into<String>) -> Self {
@@ -208,6 +220,9 @@ impl Diagnostic {
             out.push_str(&format!(" (line {line})"));
         }
         out.push('\n');
+        for call in &self.trace {
+            out.push_str(&format!("  = in: {call}\n"));
+        }
         for help in &self.help {
             out.push_str(&format!("  = help: {help}\n"));
         }

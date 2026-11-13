@@ -1155,11 +1155,92 @@ impl<'a> Interpreter<'a> {
             self.script = source.name();
             self.source = source;
         }
+        // What the function was given, in a few words, should it fail: said before the values
+        // go to the call.
+        let given = Self::given(f, &values);
         let result = self.run_user(f, callee_span, args, values, false, printed, messages);
         self.script = saved_script;
         self.source = saved_source;
         self.receivers = saved;
-        result
+        // The traceback (open decision #76): an error that leaves a function takes with it the
+        // function, what it was given and where it was called, so that an error three calls
+        // deep reads from where it was raised out to the line of the script.
+        result.map_err(|mut error| {
+            if error.severity == zeff_diagnostics::Severity::Error {
+                let at = saved_source.position(callee_span.start);
+                error.trace.push(format!(
+                    "`{}({given})`, called at {saved_script}:{}:{}",
+                    f.name, at.line, at.column
+                ));
+            }
+            error
+        })
+    }
+
+    /// The arguments a function was given, as a traceback shows them: each parameter with a
+    /// number, a logical value or `NA` as it is, a text in quotes and cut short, a variable by
+    /// its name, and anything larger by its type alone.
+    fn given(f: &zeff_ir::Function, values: &[Option<Value>]) -> String {
+        const LONGEST: usize = 24;
+        f.params
+            .iter()
+            .zip(values)
+            .filter_map(|(param, value)| {
+                let value = value.as_ref()?;
+                let shown = match value {
+                    Value::Int(_) | Value::Float(_) | Value::Bool(_) | Value::Na => show(value),
+                    Value::Str(text) => {
+                        let cut: String = text.chars().take(LONGEST).collect();
+                        if cut.len() < text.len() {
+                            format!("\"{cut}…\"")
+                        } else {
+                            format!("\"{cut}\"")
+                        }
+                    }
+                    Value::Var(name) => name.clone(),
+                    // A frame by its shape, which is often what made the call fail.
+                    Value::Frame(frame) => {
+                        let (rows, variables) = (frame.table.rows(), frame.table.names().len());
+                        format!(
+                            "a frame of {} {} × {} {}",
+                            zeff_diagnostics::count(rows as u64),
+                            if rows == 1 { "row" } else { "rows" },
+                            variables,
+                            if variables == 1 {
+                                "variable"
+                            } else {
+                                "variables"
+                            }
+                        )
+                    }
+                    // A small record of single values as it is written, which is what the
+                    // state of an iteration is.
+                    Value::Record(fields)
+                        if fields.len() <= 4
+                            && fields.iter().all(|(_, v)| {
+                                matches!(
+                                    v,
+                                    Value::Int(_) | Value::Float(_) | Value::Bool(_) | Value::Na
+                                )
+                            }) =>
+                    {
+                        let written: Vec<String> = fields
+                            .iter()
+                            .map(|(name, v)| format!("{name}: {}", show(v).trim_end()))
+                            .collect();
+                        format!("{{{}}}", written.join(", "))
+                    }
+                    Value::List(items) => format!(
+                        "a list of {} {}",
+                        zeff_diagnostics::count(items.len() as u64),
+                        if items.len() == 1 { "item" } else { "items" }
+                    ),
+                    other => zeff_core::types::type_name(other),
+                };
+                Some(format!("{}: {}", param.name, shown.trim_end()))
+            })
+            .collect::<Vec<_>>()
+            .join(", ")
     }
 
     /// A function value applied to values in parameter order (what `iterate` does with its

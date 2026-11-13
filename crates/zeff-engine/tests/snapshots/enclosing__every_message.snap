@@ -18,6 +18,7 @@ error[Z0401]: `fixture_rows` reads the frame around it and stands inside a frame
 3 |     fixture_rows()
   |     ^^^^^^^^^^^^ no frame here
   |
+  = in: `rows()`, called at scripts/main.zeff:5:1
   = help: write it inside a definition, as in `wages.add(y = fixture_rows(...))`
 
 ## a_project_function_marking_a_parameter

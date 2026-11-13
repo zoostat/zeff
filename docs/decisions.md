@@ -4385,3 +4385,30 @@ In `zeff run`, a `let` of the script's top level is freed after the last top-lev
 **Tests.** `crates/zeff-engine/tests/budget.rs`: no budget and a roomy one change nothing; a budget below one column refuses the file before it is read (a snapshot); an estimate that meets the budget runs and one byte less does not; a frame built from another counted once more (a snapshot); frames that share columns counted once; a loop over a range (a snapshot); the project's `memory` and the option over it; a file that is not there. `kernel/zeff-columns/tests/selection.rs`: tables that share columns, and a selection with its parent, counted once. `crates/zeff-cli/tests/cli.rs`: `zeff run --memory` on the shipped wages file (a snapshot), `memory` in `zeff.toml`, the page of Z0704, and every refusal of a size.
 
 **Reason.** The checklist's step 33c; section 8.3 of the Engine and Project Specification, point 7; section 11 of the Language Reference (Z0704); open decision #143.
+
+## 13 November 2026: the traceback of an error raised inside a function (release 0.7.0, step 33d; open decision #76)
+
+**What it is.** Open decision #76 (option A, the owner's, 6 November 2026) has "a traceback on every error raised inside a function: the script's line, each module function's line with the values that made it fail". An error raised inside a function was already placed where it was raised, in the function's own file and line. It now also carries the calls it came through, the innermost first, out to the line of the script:
+
+```
+error[Z0001]: no rows to take the mean of
+ --> functions/clean.zeff:12:5
+   = in: `checked_mean(data: a frame of 0 rows × 1 variable, var: x, label: "the rows above the thres…")`, called at functions/clean.zeff:27:29
+   = in: `mean_above(data: a frame of 3 rows × 1 variable, var: x, above: 10)`, called at scripts/main.zeff:4:9
+```
+
+**How.** The interpreter enters every function of a script or a module at one place. When an error leaves the function there, a line is added to it: the function's name, what it was given, and the file, line and column of the call. Each function on the way out adds its own, so the lines read from the failure outwards with no stack kept during the run, and a run that does not fail pays nothing.
+
+**What a function was given**, in a few words: a number, a logical value or `NA` as it is; a text in quotes, cut at 24 characters; a variable by its name; a frame by its shape (`a frame of 0 rows × 1 variable`, which is often the cause); a list by its length; a small record of single values as written (`{x: 0.125}`, the state of an iteration); anything else by its type.
+
+**A field of its own.** A diagnostic gains `trace`, a list of such lines, beside its help lines. It is printed as `= in: ...` under the lines the diagnostic points at and above its advice, in the long form and the short. In JSON it is the field `trace`, written only where there is a traceback, so that a record without one is the record it was and no stored JSON changes.
+
+**Where there is none.** An error at the top level of a script; a warning or a note raised inside a function, which has its line and is not an error; and a failed `assert` kept by `zeff test`, which is recorded where it is raised and never leaves the function. The last would be useful and is left for when `zeff test` is next worked on.
+
+**A built-in written in Zeff** is a leaf of the traceback: its refusal is placed at the call, as since 0.5.0, and the traceback begins at the project's function that made the call. The body of a built-in is not a line of the project.
+
+**What moved.** One stored message, of a function that calls a reducer of the enclosing frame outside a frame method, gains its line, and with it the one digest of the conformance list that holds that message (`control/enclosing/stderr`). Every other case is as it was: 469 of the 470 digests.
+
+**Tests.** `crates/zeff-engine/tests/traceback.rs`: two functions deep (a snapshot, and the two lines exactly); one function deep, in the script itself (a snapshot); through a loop, the pass that failed; a built-in written in Zeff inside a module function (a snapshot); a function given to `iterate`, with the state it was given; none at the top level, none on a warning. `kernel/zeff-diagnostics`: the field in JSON and in the short form.
+
+**Reason.** The checklist's step 33d; open decision #76; section 5.3 of the Language Reference ("a module function runs under its own file").

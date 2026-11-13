@@ -127,9 +127,13 @@ pub(crate) fn render(diagnostic: &Diagnostic, sources: &Sources) -> String {
         let _ = writeln!(out, " --> {name}");
     }
 
-    if !diagnostic.help.is_empty() {
+    if !diagnostic.help.is_empty() || !diagnostic.trace.is_empty() {
         if !placed.is_empty() {
             let _ = writeln!(out, "{pad}|");
+        }
+        // The calls the error came through, the innermost first, then the advice.
+        for line in &diagnostic.trace {
+            let _ = writeln!(out, "{pad}= in: {line}");
         }
         for line in &diagnostic.help {
             let _ = writeln!(out, "{pad}= help: {line}");
