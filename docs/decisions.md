@@ -4975,3 +4975,17 @@ error[Z0001]: no rows to take the mean of
 
 **Reason.** The checklist's step 39c; Testing Handbook, sections 1 and 6.
 
+## 14 November 2026: the engine's worker in headless Chrome (release 0.7.0, step 39d; step 39 complete)
+
+**What was missing.** The worker's messages were tested under a worker thread of Node (step 33e1), which has the browser's kind of worker and of shared memory but is not a browser: `worker.js`, the module worker the interface will start, and the build `wasm-bindgen --target web` writes for it, had never been loaded by anything. Step 33e3 left that for this step.
+
+**The test.** `crates/zeff-web/js/browser.test.mjs`, run by `node --test`, with its page `browser.page.html`. The test serves five files from this machine alone (the page, `worker.js`, `host.mjs` and the two files of the build) with the two headers that make a page cross-origin isolated (`Cross-Origin-Opener-Policy: same-origin`, `Cross-Origin-Embedder-Policy: require-corp`), starts the browser headless on a profile of its own in a temporary folder, and waits for the page to post what it saw. The page starts the worker as the interface will, `new Worker("worker.js", { type: "module" })`, and takes it through four things: a run, with each statement's start and end and the pieces of output; a loop cancelled through the flag in shared memory while the worker computes, and the next run after the flag is cleared; the memory budget, the project's own refusing the shipped wages at 1 MB (Z0704) and admitting them at 64 MB, and the window's default from what the browser says of the device; and a frame passed as an Arrow stream, moved and not copied. What is asserted is what the Node tests assert of the same worker, and first of all that the page is isolated, without which there is no shared memory and no cancelling.
+
+**No new dependency.** The browser is driven by nothing but its own command line and a page that reports by one request: no driver package, so nothing to pin or license. The browser is the one `ZEFF_BROWSER` names, or Chrome, Chromium or Edge where they are usually found. Where none is found the test is skipped; `ZEFF_BROWSER_REQUIRED` makes that a failure, and CI and the local routine set it. On Linux the browser is started without its sandbox, which a runner has no user namespace for; the page is the repository's own.
+
+**Where it runs.** In CI, in the job of the WebAssembly build, after the tests under Node (the runner's image has Chrome); and in the local routine. Here: Google Chrome on this machine, 5.8 seconds, green on the first run; given the wrong build it fails in half a second with the worker's error, not after its two-minute limit.
+
+**Step 39 is complete.** The `tests` sample project (39a); the `plots` sample completed and the sample script counted (39b); the scheduled jobs (39c); the worker in a browser (39d). What is left of the release is step 40, the pre-release routine.
+
+**Reason.** The checklist's step 39d; Engine and Project Specification, section 8.3, point 7.
+

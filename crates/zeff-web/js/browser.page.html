@@ -1,0 +1,143 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>The engine's worker in a browser</title>
+<!-- The page of `browser.test.mjs` (release 0.7.0, step 39d): it starts the engine's worker as
+     the interface will, runs it through its messages, and posts what it saw to the test. -->
+<script type="module">
+const seen = { isolated: self.crossOriginIsolated === true, shared: typeof SharedArrayBuffer };
+const bytes = (text) => new TextEncoder().encode(text);
+
+// A worker, what it has said since it was last asked, and a way to wait for a message.
+function started() {
+  const worker = new Worker("worker.js", { type: "module" });
+  const said = [];
+  let wake = null;
+  const hear = (message) => {
+    said.push(message);
+    if (wake) wake();
+  };
+  worker.onmessage = (event) => hear(event.data);
+  worker.onerror = (event) => hear({ type: "broken", message: String(event.message) });
+  const next = async (type) => {
+    for (;;) {
+      const broken = said.find((message) => message.type === "broken");
+      if (broken) throw new Error(`the worker stopped: ${broken.message}`);
+      const at = said.findIndex((message) => message.type === type);
+      if (at >= 0) return said.splice(at, 1)[0];
+      await new Promise((resolve) => (wake = resolve));
+    }
+  };
+  return { worker, said, next };
+}
+
+// A worker with a project open and the cancel flag the two sides share.
+async function opened() {
+  const { worker, said, next } = started();
+  const ready = await next("ready");
+  const cancel = new SharedArrayBuffer(4);
+  worker.postMessage({ type: "open", name: "demo", cancel });
+  await next("opened");
+  return { worker, said, next, ready, flag: new Int32Array(cancel) };
+}
+
+try {
+  // 1. A run, its steps and its outcome.
+  {
+    const { worker, said, next, ready } = await opened();
+    seen.version = ready.version;
+    worker.postMessage({
+      type: "run",
+      script: "scripts/main.zeff",
+      text: 'print("one")\nlet d = frame(x = [1.0, NA, 3])\nprint(d.mean(x))\n',
+    });
+    const done = await next("done");
+    seen.run = {
+      exit_code: done.exit_code,
+      stdout: done.stdout,
+      stderr: done.stderr,
+      steps: said.map((message) => message.type),
+      first: said[0],
+      printed: said.filter((m) => m.type === "output").map((m) => m.stdout).join(""),
+    };
+    worker.terminate();
+  }
+  // 2. A run cancelled through the shared flag while the worker computes, and the next run.
+  {
+    const { worker, next, flag } = await opened();
+    worker.postMessage({
+      type: "run",
+      script: "scripts/main.zeff",
+      text: 'print("started")\nfor i in 1..200000 {\n    let rows = dataset(wages).where(year == 2015).n_rows()\n}\nprint("never")\n',
+    });
+    await next("pass");
+    Atomics.store(flag, 0, 1);
+    const done = await next("done");
+    Atomics.store(flag, 0, 0);
+    worker.postMessage({ type: "run", script: "scripts/main.zeff", text: "print(1 + 1)\n" });
+    const again = await next("done");
+    seen.cancel = {
+      exit_code: done.exit_code,
+      stdout: done.stdout,
+      stderr: done.stderr,
+      again: { exit_code: again.exit_code, stdout: again.stdout },
+    };
+    worker.terminate();
+  }
+  // 3. The memory budget: the project's own, too small for the shipped wages and then large
+  //    enough; and the window's default, from what the browser says of the device.
+  {
+    const text = 'let w = import("zeff:wages.csv")\nprint(w.n_rows())\n';
+    const manifest = (memory) =>
+      bytes(`[project]\nname = "demo"\nzeff = "${seen.version}"\nedition = "preview"\nmemory = "${memory}"\n`);
+    const { worker, next } = await opened();
+    worker.postMessage({ type: "file", path: "zeff.toml", bytes: manifest("1MB") });
+    worker.postMessage({ type: "run", script: "scripts/main.zeff", text });
+    const refused = await next("done");
+    worker.postMessage({ type: "file", path: "zeff.toml", bytes: manifest("64MB") });
+    worker.postMessage({ type: "run", script: "scripts/main.zeff", text });
+    const ran = await next("done");
+    worker.terminate();
+    const plain = await opened();
+    plain.worker.postMessage({ type: "run", script: "scripts/main.zeff", text });
+    const usual = await plain.next("done");
+    plain.worker.terminate();
+    seen.budget = {
+      refused: { exit_code: refused.exit_code, stderr: refused.stderr },
+      ran: { exit_code: ran.exit_code, stdout: ran.stdout, stderr: ran.stderr },
+      usual: { exit_code: usual.exit_code, stdout: usual.stdout, stderr: usual.stderr },
+      device: navigator.deviceMemory ?? null,
+    };
+  }
+  // 4. A frame of the last run, passed as an Arrow stream and not copied.
+  {
+    const { worker, said, next } = await opened();
+    worker.postMessage({
+      type: "run",
+      script: "scripts/main.zeff",
+      text: 'let pay = frame(region = ["north", "south", "north"], wage = [23.5, NA, 31.25])\nlet n = pay.n_rows()\n',
+    });
+    const done = await next("done");
+    said.length = 0;
+    worker.postMessage({ type: "frame", name: "pay" });
+    const frame = await next("frame");
+    worker.postMessage({ type: "frame", name: "n" });
+    const none = await next("error");
+    seen.frame = {
+      frames: done.frames,
+      name: frame.name,
+      typed: frame.bytes instanceof Uint8Array,
+      length: frame.bytes.byteLength,
+      head: [...frame.bytes.subarray(0, 4)],
+      shared: frame.bytes.buffer instanceof SharedArrayBuffer,
+      names: ["region", "wage"].every((name) => new TextDecoder("latin1").decode(frame.bytes).includes(name)),
+      none,
+      besides: said.length,
+    };
+    worker.terminate();
+  }
+} catch (error) {
+  seen.failure = String((error && error.stack) || error);
+}
+await fetch("/seen", { method: "POST", body: JSON.stringify(seen) });
+document.title = "done";
+</script>

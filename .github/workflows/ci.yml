@@ -317,6 +317,18 @@ jobs:
           ZEFF_WEB_PKG: web-pkg
         run: node --test crates/zeff-web/js/worker.test.mjs
 
+      # The same worker where it will live: the module worker of `worker.js`, with the build
+      # `wasm-bindgen --target web` writes, loaded by headless Chrome from a page that is
+      # cross-origin isolated, as the interface will load it. The runner's image has Chrome.
+      - name: Run the worker in headless Chrome, on a cross-origin isolated page
+        env:
+          ZEFF_WEB_PKG_WEB: web-pkg-browser
+          ZEFF_BROWSER_REQUIRED: "1"
+        run: |
+          wasm-bindgen --target web --out-dir web-pkg-browser target/wasm32-unknown-unknown/release/zeff_web.wasm
+          google-chrome --version
+          node --test crates/zeff-web/js/browser.test.mjs
+
       # What a browser loads is this build, so its size and its start are the figures of risk
       # R4: 5 MB compressed, and a cold start within 1,000 ms.
       - name: Measure the worker build's compressed bundle and cold start (risk R4)

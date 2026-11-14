@@ -2,8 +2,9 @@
 // `new Worker("worker.js", { type: "module" })`. The WebAssembly build beside it is the output
 // of `wasm-bindgen --target web --out-dir pkg`. The messages are those of `host.mjs`.
 //
-// This file is not run by the tests, which have no browser: they run `host.mjs`, where the
-// messages are handled, under a worker thread of Node (`worker.node.mjs`).
+// Two tests run the messages: `worker.test.mjs` runs `host.mjs`, where they are handled, under
+// a worker thread of Node (`worker.node.mjs`); `browser.test.mjs` loads this very file in
+// headless Chrome, from a page that is cross-origin isolated.
 import init, * as engine from "./pkg/zeff_web.js";
 import { serve } from "./host.mjs";
 
