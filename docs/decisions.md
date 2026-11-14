@@ -4931,3 +4931,7 @@ error[Z0001]: no rows to take the mean of
 
 **Reason.** The checklist's step 38f; open decision #105.
 
+## 14 November 2026: step 39 split in four (release 0.7.0)
+
+**Choice.** Step 39, "the samples and the jobs", is split as the standing instructions ask of a step too large for one sitting: 39a, the `tests` sample project; 39b, the `plots` sample read against the release's row and the specification's sample script; 39c, the scheduled jobs (coverage, mutation, fuzz, benchmarks); 39d, the worker in headless Chromium. **Reason.** Each ends at a green commit of its own. One part of the step as written needs no work: the identity job already compares the bytes of every file a sample writes under `output/`, so the eighteen figure files of `plots` (SVG, PDF and PNG) each have their line in the report of every target.
+
