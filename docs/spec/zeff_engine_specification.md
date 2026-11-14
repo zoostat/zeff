@@ -291,7 +291,7 @@ Counts are functions in 1.0 / proposed for 1.0 (none since 16 October 2026) / on
 | 2 | `text` | Work with text | Matching, replacing, splitting, formatting numbers and dates | 13 / 0 / 0 |
 | 3 | `data` | Make any dataset ready for analysis | Frames, verbs, panels, reducers, files | 59 / 0 / 13 |
 | 4 | `dist` | Probability distributions | Fifteen families, the studentized range, truncation and mixtures; `pdf`, `cdf`, `quantile`, `draw` | 22 / 0 / 0 |
-| 5 | `results` | Every result looks and behaves the same | Result interface, estimator interface with marginal effects, publication tables, export | 18 / 0 / 1 |
+| 5 | `results` | Every result looks and behaves the same | Result interface, estimator interface with marginal effects, publication tables, export | 24 / 0 / 1 |
 | 6 | `stats` | Classical inference | Correlation, tests, post-hoc comparisons, power, effect sizes, smoothing | 14 / 0 / 20 |
 | 7 | `optim` | Fit anything defined by an objective | Minimisers, MLE and GMM frameworks, mathematical programming | 0 / 0 / 11 |
 | 8 | `resample` | Uncertainty and validation by resampling | Bootstrap, jackknife, permutation, holdout splits and cross-validation folds | 0 / 0 / 7 |
@@ -304,7 +304,7 @@ Counts are functions in 1.0 / proposed for 1.0 (none since 16 October 2026) / on
 
 | # | Package | Objective | Focus | 1.0 / proposed / roadmap |
 | --- | --- | --- | --- | --- |
-| 1 | `regress` | Linear and IV regression | OLS, fixed effects, IV with the Anderson–Rubin test, event-study terms, linear-model diagnostics, wild bootstrap, quantile regression | 9 / 0 / 8 |
+| 1 | `regress` | Linear and IV regression | OLS, fixed effects, IV with the Anderson–Rubin test, event-study terms, linear-model diagnostics, wild bootstrap, quantile regression | 10 / 0 / 8 |
 | 2 | `glm` | Non-linear outcomes | Binary models with their classification table and ROC curve; count, ordinal, multinomial, censored and selection models | 4 / 0 / 12 |
 | 3 | `multilevel` | Repeated and nested data | Random effects (`re:`), mixed and growth models, dynamic panels | 0 / 0 / 6 |
 | 4 | `explore` | Find structure before testing | Dimension reduction, missingness, imputation and outlier checks | 0 / 0 / 9 |
@@ -330,7 +330,7 @@ Counts are functions in 1.0 / proposed for 1.0 (none since 16 October 2026) / on
 
 **Tier 4: extensions.** The project's own functions in `functions/` (they may call every package) and, from 2.0 at the earliest, third-party packages under rule 9.
 
-Totals: 272 functions in 1.0 (75 in tier 0, 177 in tier 1, 14 in tier 2, 6 in tier 3), of which 250 are written in Rust and 22 in Zeff; none remain proposed, and 266 are on the roadmap, 538 in all (eight functions joined 1.0 on 7 November 2026, five of them from the roadmap; zeff_open_decisions.md, #88). Eighteen packages have no function in 1.0 (four in tier 1, six in tier 2 and every tier-3 package but `identify`): they give the roadmap its structure and stay out of menus until they ship (rule 7). Most 1.0 functions are small; what limits the schedule is the seven hard engine pieces listed in section 14.
+Totals: 279 functions in 1.0 (75 in tier 0, 183 in tier 1, 15 in tier 2, 6 in tier 3), of which 264 are written in Rust and 15 in Zeff; none remain proposed, and 266 are on the roadmap, 545 in all (eight functions joined 1.0 on 7 November 2026, five of them from the roadmap; zeff_open_decisions.md, #88; six methods of a test's result joined `results` on 9 November 2026, #94, and `design` joined `regress` at release 0.7.0, #71). Eighteen packages have no function in 1.0 (four in tier 1, six in tier 2 and every tier-3 package but `identify`): they give the roadmap its structure and stay out of menus until they ship (rule 7). Most 1.0 functions are small; what limits the schedule is the seven hard engine pieces listed in section 14.
 
 ### 8.3 Engine architecture
 
@@ -610,13 +610,13 @@ fn share_missing(data: Frame, var: Var) -> Float {
 
 ### 9.2 The functions by package
 
-#### `core` (tier 0) · 70 in 1.0, 0 proposed, 3 on the roadmap
+#### `core` (tier 0) · 75 in 1.0, 0 proposed, 3 on the roadmap
 
 - **Maths:** `abs`, `sign`, `sqrt`, `exp`, `log`, `log2`, `log10`, `log1p`, `expm1`, `round`, `floor`, `ceil`, `truncate`, `min`, `max`, `clamp`, `div`, `mod`, `sin`, `cos`, `tan`, `asin`, `acos`, `atan`, `atan2`, `logit`, `inv_logit`, `factorial`, `choose`, `gamma`, `log_gamma`, `beta`, `is_finite`, `PI`, `E`
 - **Types and categories:** `to`, `is`, `type_of`, `vars`, `category`, `levels`, `base`
 - **Collections:** `len`, `first`, `last`, `unique`, `sorted`, `reversed`, `any`, `all`, `append`, `keys`, `is_in`, `seq`, `equal`, `table`, `map`, `filter`, `reduce`
 - **Missing values:** `is_missing`, `fill_missing`, `coalesce`, `n_missing`
-- **Program:** `print`, `warn`, `error`, `assert`, `attempt`, `iterate`, `seed`, `timer`, `version`, `help`
+- **Program:** `print`, `warn`, `note`, `error`, `assert`, `name_of`, `attempt`, `iterate`, `seed`, `timer`, `version`, `help`
 - **Roadmap (1.8; names reserved in `core` before the 1.0 freeze):** `matrix`, `vector`, `transpose`
 
 #### `time` (tier 1) · 14 in 1.0, 0 proposed, 2 on the roadmap
@@ -680,7 +680,7 @@ fn share_missing(data: Frame, var: Var) -> Float {
 
 - **Roadmap (1.1, section 8.6):** `fetch`, `secret`, `flatten`, `rate_limit`
 
-#### `regress` (tier 2) · 9 in 1.0, 0 proposed, 8 on the roadmap
+#### `regress` (tier 2) · 10 in 1.0, 0 proposed, 8 on the roadmap
 
 - **Models:** `reg`, `ivreg`
 - **Linear-model methods:** `r_squared`, `influence`, `vif`, `design`, `first_stage`, `ar_test` (the generic result methods are in `results`)

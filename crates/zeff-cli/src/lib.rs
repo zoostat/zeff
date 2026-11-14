@@ -824,6 +824,12 @@ fn run_command(
         Ok(found) => found,
         Err(code) => return code,
     };
+    // The engine's own registry first, as `zeff check` has it: when it does not build, the
+    // run tells of no statement, and its error, which is written as the statements are told,
+    // would be lost.
+    if let Err(errors) = zeff_engine::registry::registry() {
+        return internal_error(err, errors);
+    }
     let started = Instant::now();
     zeff_regress::reg::reset_fixed_effect_work();
     // What each statement prints and says is written as the statement ends, so that a long

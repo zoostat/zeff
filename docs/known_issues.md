@@ -5,14 +5,142 @@ each release (testing handbook, section 2.4) and copied into the release notes. 
 release that introduced it and, where one is planned, the release that removes it. A wrong result
 is never listed here as accepted: it is fixed or the function is withdrawn.
 
+## As of 0.7.0
+
+- **A function of `time` or `text` given a column of a type it does not take ends in an internal
+  error.** `f.add(y = year(industry))` stops with Z9001, "this is a bug in Zeff", where it should
+  say that `year` takes a date; from 0.7.0 the same happens in a plot's mapping. And a numeric
+  function of `core` given a text or category column, `log(industry)`, gives `NA` on every row
+  without a message. Nothing wrong is computed in the first case; in the second the `NA`s are
+  the sign. (The first since 0.6.0, found at 0.7.0; open decision #108, for 0.8.0.)
+- **Inside a function, a parameter does not stand for a term of a fit.** `fit.coef(on)` in a
+  function with a parameter `on` asks for a term called `on`, and stops with Z0414 listing the
+  terms; `coef(name_of(on))` reads the term the parameter names. The same holds for a loop
+  variable in a script. An error, never another number. (Since 0.4.0; found at 0.7.0; open
+  decision #147, for 0.8.0.)
+- **A function written on the spot is taken only where a function is expected**, as in
+  `map(xs, fn(x) x * 2)`: its body is one expression, and `let f = fn(x) ...` is refused
+  (Z0205); a function with a name is written with `fn name(...)`. `filter` refuses an `NA` from
+  its function, and `map`, `filter` and `reduce` a list that holds a failed item. (Since 0.7.0;
+  functions bound to a name after 1.0.)
+- **The tests take one variable at a time and no sampling weights.** `each(...)`, for the same
+  test over several variables, is not built: a loop over `vars(...)` does it, as the `tests`
+  sample shows. Sampling weights are refused by every test (Z0411), since a design weight gives
+  no distribution for a p-value; frequency weights are taken, analytic weights by some. Under
+  analytic weights the one-way and the factorial forms of `anova` scale the weights differently
+  and can differ on the same data. (Since 0.7.0.)
+- **Some tests stop at a size.** `shapiro_test` is refused above 5,000 values (Z0421), as in R.
+  `fisher_test` on a table larger than 2 × 2 gives the p-value alone, no odds ratio and no
+  one-sided form (Z0420), and is refused when its enumeration would pass a million tables,
+  where R's network algorithm reaches further; `chi2_test` is the way then. `ks_test` is exact
+  below 100 values without ties and asymptotic otherwise, and estimates the parameters for the
+  normal family alone (Z0422). `wilcoxon_test` is exact below 50 in each group. Hommel's
+  adjustment in `p_adjust` takes time quadratic in the number of p-values (20,000 in 0.3 s,
+  100,000 in 6.5 s). (Since 0.7.0.)
+- **An effect size has no exact interval.** Eta, omega and epsilon squared of `anova` have none,
+  and the interval of Hedges' g in `t_test` is the large-sample one: the exact intervals need
+  the noncentral t and F distributions, which `dist` does not have. (Since 0.7.0; open decision
+  #93, for 0.8.0.)
+- **`posthoc` compares the means of an `anova` by ten methods and no other.** Games and
+  Howell's, Dunnett's, Student, Newman and Keuls's and Duncan's are not built (open decision
+  #85 for the first). The step-wise methods (`holm`, `hochberg`, `hommel`, `bh`, `by`) have no
+  intervals, and `level:` written with one of them changes nothing (note W0401). `ci(level:)`
+  on the result at another level than the result's is refused: ask `posthoc(level:)`. A
+  comparison is the first group less the second, where R's `TukeyHSD` and Stata's `pwcompare`
+  print the second less the first, and it is read by name in that order alone. No table of the
+  marginal means is printed; that belongs with `margins`. (Since 0.7.0.)
+- **`anova(effect: omega_f)` rests on Stata's documented formula, not on a run of Stata.** The
+  figure is held to the formula written out in R; no Stata output is in the reference library.
+  (Since 0.7.0; open decision #101.)
+- **`dist.tukey` is slow.** A value of the studentized range's distribution takes about 5 ms (35
+  ms on one or two degrees of freedom) and a quantile about a tenth of a second, since each is
+  computed to the accuracy class of the distributions (1e-12), which R's `ptukey` does not
+  reach; `draw` from it is slow for many values. (Since 0.7.0.)
+- **`tabulate` takes one or two variables and no weights.** (Since 0.7.0; weights with open
+  decision #53, at 1.1.)
+- **Text functions use the simple forms of Unicode.** `upper` and `lower` map one character to
+  one (`ß` stays as it is), `ignore_case:` folds case in the same way, and a pattern has no
+  back-reference and no look-around (Z0419). `replace` writes its replacement as plain text, with
+  no reference to a group. `split` takes one text and not a column, and keeps a last empty
+  piece, which R drops. (Since 0.7.0.)
+- **A figure's text is set in IBM Plex and no other face**, upright only: there is no italic,
+  no ligature and no shaping of scripts that need it. A character the faces lack (Chinese, an
+  emoji) is drawn as an empty box, with a note. (Since 0.7.0; italic by open decision #119,
+  after 1.0; wider coverage with the fetch store of 0.11.0.)
+- **A figure file is plain.** SVG: the text is drawn as outlines, so a dense figure is large
+  (0.85 to 3 MB for 18,201 points) and has no title or description for a screen reader. PDF:
+  version 1.4, one page, each face embedded whole (a small figure is about 91 kB), no tagging.
+  PNG: a white page at 300 dots to the inch, with no option for another. A page too small for
+  its labels is refused and never set smaller; no text is below 8 points. (Since 0.7.0;
+  accessible files at 1.2.)
+- **Only the two axes take an expression.** `x:` and `y:` may be `log(wage)` or a `case`; the
+  other mappings (`color:`, `fill:`, `size:`, `shape:`, `group:`, `label:`) take a variable or
+  a constant, and a variable computed with `add` first. The same holds wherever a frame method
+  names a variable: `mean(wage * 2)` is refused (Z0401). A reducer, a project function and
+  `if` are not taken in a mapping. (Since 0.7.0.)
+- **A plot has eight colours and eight shapes for categories**, which repeat from the ninth
+  with a note; a colour scale of dates is refused; the legends of sizes and shapes cannot be
+  given a title by `labels` (open decision #131, for 0.8.0); every level of a category that has
+  no row is left out of the legend. (Since 0.7.0.)
+- **Some marks and scales refuse one another.** Bars and areas are refused on a logarithmic
+  axis, and a value at or below zero there is an error that names the rows; `area` and `ribbon`
+  are refused on an axis of categories; a histogram has no axis of dates; free scales are
+  refused in fixed and in polar coordinates; fixed and flipped coordinates are not offered
+  together; polar coordinates start at the top and turn clockwise, with no argument to change
+  it (open decision #132). A panel smaller than 12.7 mm is refused when the figure is written.
+  (Since 0.7.0.)
+- **Zeff's figures are not ggplot2's.** By choice: limits are never rounded outward; the breaks
+  of a logarithmic axis are 5, 10, 20, 50, 100; areas of several groups overlay unless stacked;
+  a gap in the data breaks a line or an area; legends above or below a panel start at its left
+  edge; titles start at the page's margin; a box plot uses Tukey's hinges; a histogram's bins
+  start as Stata's do; the density is computed exactly at 512 places, so it agrees with R's
+  binned `density()` to about three places. (Since 0.7.0.)
+- **The shorthands and the plots of a result take few options.** `scatter(fit: linear)` draws a
+  95% band and no other; `coef_plot` takes no option and leaves the intercept out; the plot of
+  an event study does not join its points; `heatmap` draws Pearson's correlations without their
+  numbers; a refusal names the grammar's function and not the shorthand. A fitted line as a
+  layer of its own is `smooth`, at 1.2. (Since 0.7.0.)
+- **The figures are read by eye, in part.** Every target must write the same bytes for each of
+  the 31 figure files of the `plots` sample, which the identity check holds on every push; that
+  the bytes draw what the script says was read by eye for the fifteen figures, in the PNG form
+  for all and in the PDF and SVG forms for some, on one machine. (Since 0.7.0.)
+- **The language server has been driven by tests, not yet by an editor.** `zeff lsp` serves
+  diagnostics as one types, completion, signature help, hover and formatting, and answers any
+  other request as not served: quick fixes, navigation, rename and inlay hints are 1.1; folding,
+  snippets and the ranges behind Run are open decision #86, for 0.8.0. A changed document is
+  sent whole. Completion offers a frame's variables with their types; their counts of missing
+  values are known for a shipped dataset or from the last run, and before a project's first run
+  a file's variables show their types alone. The tree-sitter grammar has likewise been held to
+  the engine's parser on 131 scripts and seen in no editor. (Since 0.7.0.)
+- **`zeff fmt` has one style and no options**, formats the whole project and leaves a script
+  that does not parse as it is. `zeff test` runs a script only when its text calls `assert`,
+  and does not run the examples of a function private to its file. (Since 0.7.0.)
+- **A run is cancelled between two steps, not inside one.** A single call that takes long, a
+  regression on ten million rows, ends before the cancel takes effect; a loop is left before
+  its next pass. Ctrl-C cancels `zeff run`; the interrupt is tested on Linux and macOS.
+  (Since 0.7.0.)
+- **The memory budget is an estimate that leans high**, looked at before each top-level
+  statement: a file read as text counts five times its size, a list built by a loop three
+  times its values, a statement that builds from frames one more copy of them. It may refuse
+  what would have fitted, and says its figure; it does not see an `import` inside a function or
+  a loop, a many-to-many `merge`, `to_long`, `append` or a fit's model matrix. The command line
+  has no budget unless `memory` in `zeff.toml` or `--memory` sets one. (Since 0.7.0; open
+  decision #143.)
+- **In a browser the engine needs a page that is cross-origin isolated**, since a run is
+  cancelled through shared memory; the worker is tested in headless Chrome and in no other
+  browser. Only the frames held by a run's top-level bindings cross to the interface; packages
+  loaded on first use are not yet built, so the whole engine loads at once. (Since 0.7.0.)
+- **A completion file holds the words of the engine that wrote it** and is written again after
+  an upgrade; the PowerShell file is run in CI alone. (Since 0.7.0.)
+- **The reference file of `posthoc` after a formula was written with emmeans 2.0.3**, while CI
+  holds it to the pinned 2.0.4 within tolerance; `emmeans` is not on the development machine,
+  so that script is regenerated in CI alone. (Since 0.7.0; the installation is the owner's.)
+- **The weekly mutation job tests `zeff-stats` against its own tests**, not the workspace's,
+  which take a quarter of an hour for each mutant at this release; a mutant that only another
+  package's tests would catch is counted as missed. (Since 0.7.0.)
+
 ## As of 0.6.0
 
-- **`zeff run` is silent when the engine's own registry does not build.** If a function of the
-  engine has a parameter that its help page or the catalogue lacks, `zeff check` prints the
-  internal error with the reason, but `zeff run` ends with exit code 2 and prints nothing. No
-  released engine can be in that state, since every test fails in it; it is met only while a
-  function is being built. (Since 0.7.0 in development; found on 14 November 2026 at step 38d;
-  to be put right with the pre-release routine of 0.7.0, step 40c.)
 - **`save` writes CSV and TSV only.** Parquet, Arrow, Stata, Excel and JSON are refused with
   Z0716, which names 0.11.0, the release of the reader and writer interface (SPSS 1.1); an
   opaque column is refused with the advice to drop it. What is written reads back bit for bit.
@@ -69,8 +197,9 @@ is never listed here as accepted: it is fixed or the function is withdrawn.
 - **`winsorize` warns twice and names `value`.** It is written in Zeff over two calls of
   `quantile`, each of which counts the missing rows of the body's own column, so a column with
   `NA` prints "rows with NA in value were skipped" twice, where the script's variable is meant;
-  a share outside 0 to 0.5 is refused by the body's `assert` (Z0001). Both wait for a coded
-  warning from a body (open decision #70, 0.7.0). (Since 0.6.0.)
+  a share outside 0 to 0.5 is refused by the body's `assert` (Z0001). A body can raise a coded
+  warning since 0.7.0 (open decision #70), but it cannot yet name the script's variable behind
+  a column it was given, so the body is as it was. (Since 0.6.0.)
 - **Six functions planned in Zeff are written in Rust**, each with the reason in its catalogue
   row: `row_mean` and `row_sum` (the kernel's compensated row reduction, which `+` over columns
   does not reproduce), `diff` (its `lag` reads the panel of the frame around the call, which a
@@ -78,10 +207,13 @@ is never listed here as accepted: it is fixed or the function is withdrawn.
   table's formatting and combined warning need `format` and `join` of `text`, its title the
   frame's name, and it takes `weights:`) and `duplicates` (its pieces came later in 0.6.0);
   `drop_missing` stays too until a body can resolve a variable range and raise the errors
-  its page declares (open decisions #90 and #89, 0.8.0), and `vif` moves at step 30 with
-  `design()`. `fill_missing` and `quantile_group` returned to Zeff at steps 4.1 and 4.4 of
-  0.7.0. Nothing a script sees differs, and section 8.2's totals follow the catalogue. (Since
-  0.5.0; the list as of step 5b of 0.7.0.)
+  its page declares (open decisions #90 and #89, 0.8.0), and `vif` stays in Rust at 0.7.0
+  though `design()` now exists (open decision #136, for 0.8.0). `fill_missing` and
+  `quantile_group` returned to Zeff at steps 4.1 and 4.4 of 0.7.0. Of the functions of 0.7.0
+  that were planned in Zeff, `t_test`, `proportion_test`, `chi2_test`, `kruskal_test` and
+  `p_adjust` are in Rust, since a body has no way to build a test's result (open decision #92,
+  0.8.0), and so is `coef_plot`. Nothing a script sees differs, and section 8.2's totals follow
+  the catalogue. (Since 0.5.0; the list as of the close of 0.7.0.)
 - **Eight conditions carry codes numbered at this release**, the next free numbers of their
   families, each logged in `docs/spec_changes.md` and listed in section 11 of the Language
   Reference: Z0507 (`event`'s `ref:`), Z0601 and Z0602 (the panel declaration and the panel
@@ -147,8 +279,9 @@ is never listed here as accepted: it is fixed or the function is withdrawn.
   fuzz target.)
 - **`predict` gives no standard error of prediction**, only the fitted values on new data; the
   interval of a prediction arrives with the panel models. (Since 0.4.0.)
-- **A test's result has no interval**: `std_errors()` and `ci()` on it give `NA`, and
-  `estimates()` one row; the tests of `stats` bring their intervals at 0.7.0. (Since 0.4.0.)
+- **The result of `test` or `compare` has no interval**: `std_errors()` and `ci()` on it give
+  `NA`, and `estimates()` one row. The tests of `stats` carry their intervals from 0.7.0, at the
+  level the test was made at. (Since 0.4.0.)
 - **`test` reads linear restrictions only.** Constants, coefficients, their sums and
   differences, and products and quotients by a constant, on both sides of one `==`; a product or
   quotient of two coefficients, a power or a function is refused (Z0415), and `derive` is the way
@@ -217,7 +350,10 @@ is never listed here as accepted: it is fixed or the function is withdrawn.
 - **Draws are keyed by position.** As in R and Stata, inserting a statement that draws changes the
   draws after it, and inserting a drawing call into a statement changes the later calls of that
   statement. A `seed:` given to one call is a stream of its own, so two calls with the same `seed:`
-  in one statement repeat each other. (Since 0.3.0; by design, section 8.3.)
+  in one statement repeat each other. From 0.7.0 the key is the statement's place among the
+  statements that draw, as section 8.3 has it, so that `seed(n)` at the top repeats a run and a
+  statement that draws nothing moves no draw; the numbers under a script-wide `seed(n)` are
+  therefore not those of 0.3.0 to 0.6.0. (Since 0.3.0; by design, section 8.3.)
 - **The reference for `dist.truncated` is written from base R's functions**, not the `truncdist`
   package, which the rules do not allow to be installed; a discrete truncation keeps the mass at
   `lower:` (the package drops it). (Since 0.3.0.)
@@ -250,14 +386,16 @@ is never listed here as accepted: it is fixed or the function is withdrawn.
 - **The console's `:undo` re-runs the whole session** without its last statement, so a long
   session with large imports takes a moment to undo; the result cache that makes it immediate is
   0.11.0. (Since 0.2.0.)
-- **The browser engine bundle is 1.65 MB compressed** (brotli; 1.46 MB at 0.5.0, 1.34 MB at
-  0.4.0, 1.15 MB at 0.3.0, 1.10 MB at 0.2.0, 355 kB at 0.1.0), because the three datasets are
-  embedded and the packages, the interpreter and the functions written in Zeff were added, `time`
-  and `text` loaded at start among them; it stays under the 5 MB warning level of risk R4. The
-  cold start is 107 ms against 1,000 ms (67 ms at 0.5.0): the module loads in 29 ms and the
-  engine's first call, its start on a one-line script, takes 75 ms. The whole conformance report,
-  printed for information, takes 1,904 ms with 194 cases. (Since 0.2.0; the figures are those of
-  0.6.0.)
+- **The build a browser loads is 2.5 MB compressed** (2,535 kB with Brotli, 3,659 kB with gzip,
+  13.4 MB before compression), measured from 0.7.0 on the engine's worker build, which is what
+  an interface loads; until 0.6.0 the measure was the conformance build's (1.65 MB at 0.6.0,
+  1.46 MB at 0.5.0, 1.34 MB at 0.4.0, 1.15 MB at 0.3.0, 1.10 MB at 0.2.0, 355 kB at 0.1.0;
+  1.93 MB at 0.7.0). The three datasets are embedded, and this release adds the plot renderer
+  with its three faces of type (about 0.6 MB), the tests and the regular expressions (216 kB).
+  It stays under the 5 MB warning level of risk R4, with a little under half its room left. The
+  cold start is 52 ms against 1,000 ms: the module loads in 11 ms and a one-line script on a
+  project just opened takes 41 ms. (Since 0.2.0; the figures are those of 0.7.0, on the
+  development machine.)
 - **Each project pins the exact engine version** (`zeff = "0.2.0"`). An engine of another
   version refuses the project with exit code 4; there is no launcher yet to pick the pinned engine
   (0.9.0). (Since 0.1.0.)
@@ -288,6 +426,10 @@ is never listed here as accepted: it is fixed or the function is withdrawn.
   in 24 MB; it begins at once and can be cancelled before its first pass; the results and the
   draws of every pass are the same. Under a memory budget such a loop counts one item, and a
   list built by one counts its values with the room a growing list takes. Since step 38g.
+- `zeff run` says why it will not run when the engine's own registry does not build (found at
+  step 38d of 0.7.0: it ended with exit code 2 and printed nothing, where `zeff check` printed
+  the reason). Only a development build can be in that state. Since step 40c: the command looks
+  at the registry first, as `zeff check` does.
 - `iqr`, `mad`, `skewness` and `kurtosis` take a frame that has a variable called `var` or
   `type` (listed at 0.6.0 as refused with Z0106), and a function of a project gives the same
   result whatever the variables of the frame it is given are called (listed as depending on
