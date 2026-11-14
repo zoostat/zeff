@@ -191,3 +191,105 @@ fn the_signed_rank_test_with_a_zero_and_with_ties_on_either_side_of_its_centre()
         assert!(out.contains(&format!("{method}\n")), "{out}");
     }
 }
+
+/// The interval of the signed-rank form where its ends are hardest to hold: a level that a tail
+/// of the exact distribution meets exactly, tied ranks and a difference of zero in very small
+/// samples (an end that is not reached is infinite), and the approximation where the level
+/// asked for cannot be reached and R doubles the error rate until it can. Thirteen cases,
+/// each as `wilcox.test(x, conf.int = TRUE, ...)` gives it in R 4.6.0; under the
+/// approximation R's ends are those of its solver, within 1e-4 of the ones here.
+#[test]
+fn the_signed_rank_interval_at_exact_levels_in_small_samples_and_past_the_level() {
+    for (values, options, interval, statistic) in [
+        (
+            "-2.5, 2.2, -1.5, 1.1",
+            ", level: 0.875, alternative: greater",
+            "87.5% CI [-2.000, Inf)",
+            "V = 4.00   p = 0.688",
+        ),
+        (
+            "-2.5, 2.0, 1.5, 0.5, -2.5, 1.0",
+            ", level: 0.9",
+            "90% CI [-1.000, 1.500]",
+            "V = 10.00   p = 0.938",
+        ),
+        (
+            "-2.5, 2.5, 1.0, 1.0, 1.5, -1.0, 2.0, 2.0, -2.5, 3.0, 0.5, 1.0, 2.0, 1.5",
+            ", exact: false, level: 0.99",
+            "99% CI [-0.750, 2.000]",
+            "V = 77.50   p = 0.122",
+        ),
+        (
+            "-2.5, 2.0, 1.5, 0.5, -2.5, 1.0",
+            "",
+            "95% CI [-2.500, 2.000]",
+            "V = 10.00   p = 0.938",
+        ),
+        (
+            "-2.5, 2.0, 1.5, 0.5, -2.5, 1.0",
+            ", level: 0.9375",
+            "93.75% CI [-2.500, 1.750]",
+            "V = 10.00   p = 0.938",
+        ),
+        (
+            "-2.5, 2.0, 1.5, 0.5, -2.5, 1.0",
+            ", exact: false",
+            "95% CI [-1.000, 1.500]",
+            "V = 10.00   p = 1.000",
+        ),
+        (
+            "1.0, 2.5, 1.0, 3.0, -0.5, 3.0, 3.0, 1.0",
+            ", exact: false",
+            "95% CI [1.000, 3.000]",
+            "V = 35.00   p = 0.020",
+        ),
+        (
+            "1.0, 1.0, 2.0",
+            "",
+            "95% CI [1.000, Inf)",
+            "V = 6.00   p = 0.250",
+        ),
+        (
+            "1.0, -1.0, 2.0",
+            ", level: 0.5",
+            "50% CI [0.500, 1.500]",
+            "V = 4.50   p = 0.750",
+        ),
+        (
+            "0.0, 1.0, 2.0",
+            "",
+            "95% CI [0.000, Inf)",
+            "V = 5.00   p = 0.500",
+        ),
+        (
+            "1.5, 2.5",
+            ", exact: false, level: 0.5",
+            "50% CI [2.000, 2.000]",
+            "V = 3.00   p = 0.371",
+        ),
+        (
+            "1.5, 2.5",
+            ", exact: false, level: 0.5, alternative: greater",
+            "50% CI [1.500, Inf)",
+            "V = 3.00   p = 0.186",
+        ),
+        (
+            "1.5, 2.5",
+            ", exact: false, level: 0.75, alternative: greater",
+            "75% CI [1.500, Inf)",
+            "V = 3.00   p = 0.186",
+        ),
+    ] {
+        let out = printed(&format!(
+            "frame(x = [{values}]).wilcoxon_test(x, mu: 0{options})\n"
+        ));
+        assert!(
+            out.contains(&format!("{interval}\n")),
+            "{values}{options}: {out}"
+        );
+        assert!(
+            out.contains(&format!("{statistic}\n")),
+            "{values}{options}: {out}"
+        );
+    }
+}

@@ -138,6 +138,19 @@ is never listed here as accepted: it is fixed or the function is withdrawn.
 - **The weekly mutation job tests `zeff-stats` against its own tests**, not the workspace's,
   which take a quarter of an hour for each mutant at this release; a mutant that only another
   package's tests would catch is counted as missed. (Since 0.7.0.)
+- **The weekly mutation job's time budget is too small for the four older packages.** It gives
+  each mutant of `zeff-numeric`, `zeff-kernels`, `zeff-results` and `zeff-regress` four minutes
+  of the whole workspace's tests, which now take over twenty; a mutant that late tests catch is
+  listed as timed out, and at this release 29 of the 34 shards were cancelled at the job's
+  limit. No survivor is hidden by it. Until the job tests each mutant against its own package
+  first, its lists for those packages are completed by runs on the development machine.
+  (Since 0.7.0.)
+- **A one-sided interval of `wilcoxon_test` at a level of exactly 50 per cent is not unique under
+  the normal approximation.** The standardised statistic can equal the quantile, which is 0
+  there, along a whole step of the shift, and any point of the step is a bound. Zeff gives the
+  left end of the step; R gives the point at which its solver stops (1.3 where Zeff prints
+  1.000, for the upper bound on the five values 0, 1, −2, 3, 4). At every other level the two
+  agree within R's solver tolerance. (Since 0.7.0.)
 
 ## As of 0.6.0
 
