@@ -4915,3 +4915,19 @@ error[Z0001]: no rows to take the mean of
 
 **Reason.** The checklist's step 38e; open decision #101.
 
+## 14 November 2026: `posthoc(level:)` and the code W0401 (release 0.7.0, step 38f)
+
+**What is built.** Open decision #105, option A, the owner's ruling: `level: Float = 0.95` on `posthoc`, after the one-way form and after a formula. The kernel already took the level; the function now reads it (a level outside (0, 1) is Z0401, by the reader the other tests use) and carries it to the quantile of each method, the heading of the table (`99% CI`), the line under the table (Bonferroni's `1 − 0.01/3`, Šidák's `0.99^(1/3)`) and the result, so that `ci()` gives the intervals at the level asked. The p-values, the t and the test of the whole do not depend on it and are the same bits at every level.
+
+**The note and its code.** A step-wise method (`holm`, `hochberg`, `hommel`, `bh`, `by`) has no intervals. With `level:` written out there, a note says that the option changes nothing. The checklist asks for a code: W0401, "an option written out that changes nothing in the call", worded so that another option of the kind can use it. It is a note that carries a code, as W0703 is: printed `note[W0401]`, allowed by `// zeff: allow(W0401) reason`, refused under `--deny-warnings`. The number is the first of the W04 family, which the Language Reference keeps for the area of arguments. Whether `level:` was written is read from the call (an argument with a place in the text), since a default is never a reason for a note.
+
+**`ci(level:)` on the result** at a level other than the result's stays an error: the intervals come from the studentized range or from F, which the result does not keep. The message now names `posthoc(level:)`.
+
+**Reference.** A new script, `tests/reference/r/posthoc_level.R`, with base R and DescTools alone, so that it runs wherever the reference job runs and on this machine, where `emmeans`, which `posthoc.R` needs, is not installed: twelve of the one-way cases of `posthoc.R`, each at 0.90 and 0.99; `TukeyHSD(conf.level = )` and `ScheffeTest(conf.level = )` for their own methods; `none`, Bonferroni and Šidák by their formulas, with `qt` on the pooled variance and through `t.test(conf.level = )` for Welch's pairs. 1,000 intervals and more are compared. Scheffé's and the three t-based agree with R within 1e-9; Tukey's within a thousandth of a standard error, since R's `qtukey` stops at about four digits, and what R cannot settle is held exactly: the studentized range leaves 1 less the level above the edge of each interval, within 1e-9. The script is entered in the CI job that regenerates the references and in `check_r.py`.
+
+**Tests besides.** Property: at 0.95 every interval is the interval of step 19, bit for bit; at 0.5, 0.8, 0.9, 0.95, 0.99 and 0.999 each interval is wider than the one before and centred on the same difference; a step-wise method has none at any level. Edge cases: a level of 1.5, of 0, a text; `ci(level:)` at another level; the note for two step-wise methods and its absence without `level:` or with a method that has intervals; the pragma; the level after a formula. Snapshots: nine tables with the notes, and the messages.
+
+**The page** of `posthoc` describes `level:`, gives each method's interval in terms of the level, and ends with a table at 99% and `ci()` at 90%. The four completion files gain the code.
+
+**Reason.** The checklist's step 38f; open decision #105.
+

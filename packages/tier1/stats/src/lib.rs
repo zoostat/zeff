@@ -868,12 +868,17 @@ pub fn functions() -> Vec<Function> {
                         "tukey",
                     ),
                     ParamSpec::option("term", "Term"),
+                    ParamSpec::option_with_default("level", "Float", "0.95"),
                 ],
                 rest: None,
                 returns: "TestResult",
                 diagnostics: vec![
                     DiagnosticDecl::note(
                         "after Welch's anova, method: tukey or scheffe pools the variances that the anova did not assume equal",
+                    ),
+                    DiagnosticDecl::new(
+                        "W0401",
+                        "level: written out with a step-wise method, which has no intervals",
                     ),
                     DiagnosticDecl::note(
                         "a marginal mean that cannot be estimated, left out of the comparisons",
@@ -883,7 +888,7 @@ pub fn functions() -> Vec<Function> {
                     ),
                     DiagnosticDecl::new(
                         "Z0401",
-                        "a receiver that is not the result of an anova; term: after the one-way form, left out when the formula has several terms of categories, or naming a term with a numeric part; a formula with no category",
+                        "a receiver that is not the result of an anova; a level outside 0 to 1; term: after the one-way form, left out when the formula has several terms of categories, or naming a term with a numeric part; a formula with no category",
                     ),
                     DiagnosticDecl::new("Z0414", "term: naming no term of the model"),
                     DiagnosticDecl::new(

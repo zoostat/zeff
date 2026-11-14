@@ -631,3 +631,7 @@ Step 38d of release 0.7.0 builds open decision #100 (option A, the owner's rulin
 
 Step 38e of release 0.7.0 builds open decision #101 (option A, the owner's ruling of 13 November 2026). The usage of `anova` had `effect: eta | omega | epsilon = eta` in both forms; it now has `effect: eta | omega | omega_f | epsilon = eta`. The description gains one clause, that `effect: omega_f` gives the partial omega squared computed from F as Stata's `estat esize` and R's `F_to_omega2` give it, and the list of counterparts gains `F_to_omega2()`. `omega` stays the ruled formula and the default stays `eta`.
 
+## 14 November 2026 — zeff_functions.csv (row 195, `posthoc`) and zeff_language_reference.md, section 11 (the codes numbered while the engine was built)
+
+Step 38f of release 0.7.0 builds open decision #105 (option A, the owner's ruling of 13 November 2026). The usage of `posthoc` was `fit.posthoc(method: ..., term: Term?)`; it gains `level: Float = 0.95`, the level of the intervals of the five single-step methods. The ruling asks for a note where `level:` is written out with a step-wise method, which has no intervals, and the checklist for a code on it: the table of codes numbered while the engine was built gains the row W0401, "an option written out that changes nothing in the call, printed as a note". It is the first code of the W04 family, the warnings of the area of arguments (Z04xx), as the table of areas provides.
+

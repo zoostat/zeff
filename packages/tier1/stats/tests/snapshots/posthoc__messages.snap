@@ -14,7 +14,7 @@ error[Z0401]: `method` of `posthoc` must be a tukey | bonferroni | holm | hochbe
 2 | d.anova(x, group: g).posthoc(method: 2)
   |                                      ^ an Int
   |
-  = help: usage: `fit.posthoc(method: tukey | bonferroni | holm | hochberg | hommel | bh | by | sidak | scheffe | none = tukey, term: Term)`
+  = help: usage: `fit.posthoc(method: tukey | bonferroni | holm | hochberg | hommel | bh | by | sidak | scheffe | none = tukey, term: Term, level: Float = 0.95)`
 
 error[Z0401]: `posthoc` compares the group means of an `anova`, but this is the result of `kruskal_test`
  --> scripts/main.zeff:2:1
@@ -66,13 +66,38 @@ error[Z0401]: `posthoc` compares the group means of an `anova`, but this is the 
   |
   = help: write `d.anova(y, group: g).posthoc()`; the comparisons rest on the group means and variances of that test
 
-error[Z0404]: `posthoc` has no argument called `level`
- --> scripts/main.zeff:2:30
+error[Z0401]: `level:` of `posthoc` is a confidence level between 0 and 1, but this is 1.5
+ --> scripts/main.zeff:2:37
   |
-2 | d.anova(x, group: g).posthoc(level: 0.9)
-  |                              ^^^^^ unknown argument
+2 | d.anova(x, group: g).posthoc(level: 1.5)
+  |                                     ^^^ outside (0, 1)
   |
-  = help: usage: `fit.posthoc(method: tukey | bonferroni | holm | hochberg | hommel | bh | by | sidak | scheffe | none = tukey, term: Term)`
+  = help: write a level such as 0.95 or 0.99
+
+error[Z0401]: `level:` of `posthoc` is a confidence level between 0 and 1, but this is 0
+ --> scripts/main.zeff:2:37
+  |
+2 | d.anova(x, group: g).posthoc(level: 0)
+  |                                     ^ outside (0, 1)
+  |
+  = help: write a level such as 0.95 or 0.99
+
+error[Z0401]: `level` of `posthoc` must be a Float, but this is a Str
+ --> scripts/main.zeff:2:37
+  |
+2 | d.anova(x, group: g).posthoc(level: "high")
+  |                                     ^^^^^^ a Str
+  |
+  = help: usage: `fit.posthoc(method: tukey | bonferroni | holm | hochberg | hommel | bh | by | sidak | scheffe | none = tukey, term: Term, level: Float = 0.95)`
+
+note: `tukey` pools the variances of the groups, which the `anova` did not assume equal; `method: holm` compares the pairs by Welch's t-tests (line 2)
+error[Z0401]: `ci` of a test's result gives the intervals the test was made at, 90%, not at 95%
+ --> scripts/main.zeff:2:52
+  |
+2 | d.anova(x, group: g).posthoc(level: 0.9).ci(level: 0.95)
+  |                                                    ^^^^ another level
+  |
+  = help: run `posthoc` with `level:` for intervals at another level; they come from the method's own distribution, which the result does not keep
 
 error[Z0401]: `ci` of a test's result gives the intervals the test was made at, 95%, not at 90%
  --> scripts/main.zeff:2:54
@@ -80,7 +105,7 @@ error[Z0401]: `ci` of a test's result gives the intervals the test was made at, 
 2 | d.anova(x, group: g).posthoc(method: none).ci(level: 0.9)
   |                                                      ^^^ another level
   |
-  = help: `posthoc` gives its intervals at 95% and takes no `level:`
+  = help: run `posthoc` with `level:` for intervals at another level; they come from the method's own distribution, which the result does not keep
 
 error[Z0401]: Welch's `anova` needs at least two values of `x` in every group, but g=3 has one
  --> scripts/main.zeff:2:9

@@ -1337,6 +1337,7 @@ Zeff reports problems the way Rust does: a code, the location, a marker under th
 | W0210 | Values of `bin` outside every interval of its breaks, which are `NA`, with the count (section 4.2) |
 | W0211 | Expected counts below 5 in `chi2_test`, where the chi-squared approximation may be poor, with the count of such cells |
 | W0212 | Tied values in `ks_test`, whose distribution theory assumes a continuous distribution, with their count; the asymptotic p-value is used |
+| W0401 | An option written out that changes nothing in the call, printed as a note: `level:` of `posthoc` with a step-wise method, which has no intervals (open decision #105) |
 | Z0225 | A function whose body, or a `return` in it, gives a type other than the declared return type, or no value where one is declared (sections 3.7, "Inference", and 5.3) |
 | Z0323 | A module file that is not one: a statement in a file of `functions/`, or a file whose name is not a name of the language or is a package's (section 5.3, "Modules") |
 | Z0712 to Z0715 | `zeff.toml` is not valid TOML; valid TOML but wrong for Zeff; a script named on the command line that the project lacks; `import` of a project path with no readable file |

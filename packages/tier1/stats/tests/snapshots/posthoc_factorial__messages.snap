@@ -106,7 +106,7 @@ error[Z0401]: `term` of `posthoc` must be a Term, but this is an Int
 2 | d.anova(gain ~ dose * diet).posthoc(term: 3)
   |                                           ^ an Int
   |
-  = help: usage: `fit.posthoc(method: tukey | bonferroni | holm | hochberg | hommel | bh | by | sidak | scheffe | none = tukey, term: Term)`
+  = help: usage: `fit.posthoc(method: tukey | bonferroni | holm | hochberg | hommel | bh | by | sidak | scheffe | none = tukey, term: Term, level: Float = 0.95)`
 
 error[Z0402]: `dose` is not one of the allowed words
  --> scripts/main.zeff:2:37

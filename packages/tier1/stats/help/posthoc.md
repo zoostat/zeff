@@ -34,10 +34,12 @@ and its degrees of freedom, and the family is the pairs of the one term compared
 After Welch's `anova`, which did not assume equal variances, a note says so and names
 `method: holm`, which compares the pairs by Welch's t-tests.
 
-Intervals for the differences, at 95%, come with the single-step methods: `tukey`, `scheffe`,
-`bonferroni`, `sidak` and `none`. The step-wise methods, `holm`, `hochberg`, `hommel`, `bh` and
-`by`, adjust each p-value by its place among the others and have no intervals to match, so
-their table has none.
+Intervals for the differences come with the single-step methods: `tukey`, `scheffe`,
+`bonferroni`, `sidak` and `none`. They are at the level `level:` asks for, 95% unless given, as
+R's `TukeyHSD(conf.level = )` and Stata's `pwcompare, level(#)` take it; the p-values do not
+depend on the level. The step-wise methods, `holm`, `hochberg`, `hommel`, `bh` and `by`, adjust
+each p-value by its place among the others and have no intervals to match, so their table has
+none, and `level:` written out with one of them changes nothing, which a note says (W0401).
 
 `posthoc` follows an `anova`. The result of any other test is an error (Z0401).
 
@@ -55,6 +57,9 @@ their table has none.
   of categories alone; a name that is no term is an error (Z0414) that lists the terms. It may
   be left out when the formula has one such term and is required when it has several (Z0401).
   After the one-way form there is nothing to choose and `term:` is an error (Z0401).
+- level: The confidence level of the intervals, between 0 and 1; 0.95 unless given. It is the
+  level that holds jointly over the comparisons under `tukey`, `scheffe`, `bonferroni` and
+  `sidak`, and of each interval on its own under `none`.
 
 ## Value
 A `TestResult`, with the result interface (`summary`, `estimates`, `p_values`, `ci`, `n_obs`,
@@ -87,20 +92,23 @@ se = √(sᵢ²/nᵢ + sⱼ²/nⱼ) and the Welch–Satterthwaite degrees of fre
 `t_test` of the two groups alone, and its p-value before adjustment is that test's.
 
 Tukey. The p-value is P(Q > |t|·√2), where Q is the studentized range of k means on N − k
-degrees of freedom (`dist.tukey`), and the interval is d ± q·se/√2, with q the 95% quantile of
-Q. With groups of one size the intervals hold jointly at exactly 95%; with unequal sizes this is
-the Tukey–Kramer form, which is conservative (Hayter 1984).
+degrees of freedom (`dist.tukey`), and the interval is d ± q·se/√2, with q the quantile of Q at
+the level, 95% unless `level:` says otherwise. With groups of one size the intervals hold
+jointly at exactly the level; with unequal sizes this is the Tukey–Kramer form, which is
+conservative (Hayter 1984).
 
 Scheffé. The p-value is P(F > t²/(k − 1)), with F on k − 1 and N − k degrees of freedom, and
-the interval is d ± se·√((k − 1)·f), with f the 95% quantile of that F. The level holds jointly
+the interval is d ± se·√((k − 1)·f), with f the quantile of that F at the level. The level
+holds jointly
 over every contrast of the group means, the pairs among them, so for the pairs alone the
 intervals are wider than Tukey's. A pair is significant by Scheffé's method only if the
 classical F of the groups is.
 
 Adjusted t-tests. With p the two-sided p-value of a pair's t-test, Bonferroni's p-value is c·p
-and its interval d ± t₁·se, with t₁ the quantile of t at 1 − 0.05/(2c). Šidák's p-value is
-1 − (1 − p)^c and its interval takes the quantile at 1 − (1 − 0.95^(1/c))/2. `none` gives p
-and the quantile at 0.975, which after Welch's `anova` is the interval of `t_test`. Holm,
+and its interval d ± t₁·se, with t₁ the quantile of t at 1 − α/(2c), α being 1 less the level,
+0.05 unless `level:` says otherwise. Šidák's p-value is 1 − (1 − p)^c and its interval takes
+the quantile at 1 − (1 − (1 − α)^(1/c))/2. `none` gives p and the quantile at 1 − α/2, which
+after Welch's `anova` is the interval of `t_test` at that level. Holm,
 Hochberg, Hommel, Benjamini–Hochberg and Benjamini–Yekutieli are computed over the c p-values
 as in `p_adjust`. No p-value is above 1.
 
@@ -316,3 +324,21 @@ residual variance of the model on 14 degrees of freedom; N = 18
 4.39931
 > b.df("b − c")
 11
+> d.anova(gain, group: diet, equal_var: true).posthoc(level: 0.99)
+posthoc · Tukey HSD · gain by diet
+each row tests H0: the two population means are equal, against H1: they differ
+
+  comparison   difference   std.error   t value   p value   99% CI
+  a − b            -1.120       0.206     -5.44     0.001   [-1.869, -0.371]
+  a − c            -0.160       0.218     -0.73     0.750   [-0.954, 0.634]
+  b − c             0.960       0.218      4.40     0.003   [0.166, 1.754]
+
+Tukey's HSD over 3 comparisons of 3 groups: p-values and intervals from the studentized range, family-wise
+pooled within-group variance on 11 degrees of freedom; N = 14
+> d.anova(gain, group: diet, equal_var: true).posthoc(method: sidak, level: 0.9).ci()
+ci · 90%
+
+  term     lower    upper
+  a − b   -1.616   -0.624
+  a − c   -0.686    0.366
+  b − c    0.434    1.486

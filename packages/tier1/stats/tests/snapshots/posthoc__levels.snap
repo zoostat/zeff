@@ -1,0 +1,95 @@
+---
+source: packages/tier1/stats/tests/posthoc.rs
+expression: "format!(\"{stdout}---\\n{stderr}\")"
+---
+posthoc · Tukey HSD · s by site
+each row tests H0: the two population means are equal, against H1: they differ
+
+  comparison        difference   std.error   t value   p value   99% CI
+  site=1 − site=2       -0.385       0.424     -0.91     0.646   [-1.927, 1.157]
+  site=1 − site=3        0.020       0.399      0.05     0.999   [-1.433, 1.473]
+  site=2 − site=3        0.405       0.424      0.96     0.618   [-1.137, 1.947]
+
+Tukey's HSD over 3 comparisons of 3 groups: p-values and intervals from the studentized range, family-wise
+pooled within-group variance on 11 degrees of freedom; N = 14
+posthoc · Scheffé · s by site
+each row tests H0: the two population means are equal, against H1: they differ
+
+  comparison        difference   std.error   t value   p value   90% CI
+  site=1 − site=2       -0.385       0.424     -0.91     0.672   [-1.398, 0.628]
+  site=1 − site=3        0.020       0.399      0.05     0.999   [-0.935, 0.975]
+  site=2 − site=3        0.405       0.424      0.96     0.645   [-0.608, 1.418]
+
+Scheffé over 3 comparisons of 3 groups: p-values and intervals from F(2, 11), family-wise over every contrast
+pooled within-group variance on 11 degrees of freedom; N = 14
+posthoc · Bonferroni · s by site
+each row tests H0: the two population means are equal, against H1: they differ
+
+  comparison        difference   std.error   t value   p value   90% CI
+  site=1 − site=2       -0.385       0.424     -0.91     1.000   [-1.415, 0.645]
+  site=1 − site=3        0.020       0.399      0.05     1.000   [-0.951, 0.991]
+  site=2 − site=3        0.405       0.424      0.96     1.000   [-0.625, 1.435]
+
+Bonferroni over 3 comparisons of 3 groups: each p-value multiplied by 3, each interval at the level 1 − 0.1/3
+pooled within-group variance on 11 degrees of freedom; N = 14
+posthoc · Šidák · s by site
+each row tests H0: the two population means are equal, against H1: they differ
+
+  comparison        difference   std.error   t value   p value   99% CI
+  site=1 − site=2       -0.385       0.424     -0.91     0.765   [-1.964, 1.194]
+  site=1 − site=3        0.020       0.399      0.05     1.000   [-1.468, 1.508]
+  site=2 − site=3        0.405       0.424      0.96     0.737   [-1.174, 1.984]
+
+Šidák over 3 comparisons of 3 groups: each p-value 1 − (1 − p)^3, each interval at the level 0.99^(1/3)
+pooled within-group variance on 11 degrees of freedom; N = 14
+posthoc · unadjusted · s by site
+each row tests H0: the two population means are equal, against H1: they differ
+
+  comparison        difference   std.error   t value   p value   90% CI
+  site=1 − site=2       -0.385       0.424     -0.91     0.383   [-1.146, 0.376]
+  site=1 − site=3        0.020       0.399      0.05     0.961   [-0.697, 0.737]
+  site=2 − site=3        0.405       0.424      0.96     0.360   [-0.356, 1.166]
+
+3 comparisons of 3 groups, each on its own: p-values and intervals not adjusted for the number of comparisons
+pooled within-group variance on 11 degrees of freedom; N = 14
+ci · 90%
+
+  term               lower   upper
+  site=1 − site=2   -1.146   0.376
+  site=1 − site=3   -0.697   0.737
+  site=2 − site=3   -0.356   1.166
+posthoc · Bonferroni · s by site
+each row tests H0: the two population means are equal, against H1: they differ
+
+  comparison        difference   std.error   t value    df   p value   99% CI
+  site=1 − site=2       -0.385       0.417     -0.92   3.6     1.000   [-3.244, 2.474]
+  site=1 − site=3        0.020       0.354      0.06   5.2     1.000   [-1.788, 1.828]
+  site=2 − site=3        0.405       0.515      0.79   6.3     1.000   [-1.953, 2.763]
+
+Bonferroni over 3 comparisons of 3 groups: each p-value multiplied by 3, each interval at the level 1 − 0.01/3
+Welch's t-test of each pair, the variances not assumed equal; N = 14
+posthoc · Holm · s by site
+each row tests H0: the two population means are equal, against H1: they differ
+
+  comparison        difference   std.error   t value   p value
+  site=1 − site=2       -0.385       0.424     -0.91     1.000
+  site=1 − site=3        0.020       0.399      0.05     1.000
+  site=2 − site=3        0.405       0.424      0.96     1.000
+
+Holm over 3 comparisons of 3 groups: p-values adjusted family-wise; step-wise, so no intervals
+pooled within-group variance on 11 degrees of freedom; N = 14
+posthoc · Benjamini–Hochberg · s by site
+each row tests H0: the two population means are equal, against H1: they differ
+
+  comparison        difference   std.error   t value   p value
+  site=1 − site=2       -0.385       0.424     -0.91     0.574
+  site=1 − site=3        0.020       0.399      0.05     0.961
+  site=2 − site=3        0.405       0.424      0.96     0.574
+
+Benjamini–Hochberg over 3 comparisons of 3 groups: p-values adjusted for the false discovery rate; step-wise, so no intervals
+pooled within-group variance on 11 degrees of freedom; N = 14
+---
+note[W0401]: `level:` changes nothing here: Holm adjusts the p-values step by step and has no intervals (line 10)
+  = help: the methods with intervals at the level asked are tukey, scheffe, bonferroni, sidak and none
+note[W0401]: `level:` changes nothing here: Benjamini–Hochberg adjusts the p-values step by step and has no intervals (line 11)
+  = help: the methods with intervals at the level asked are tukey, scheffe, bonferroni, sidak and none

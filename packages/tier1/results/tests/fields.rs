@@ -399,7 +399,9 @@ fn a_result_of_several_rows_gives_each_row_its_estimate_and_its_interval() {
     );
     assert_eq!(
         failed.help,
-        ["`posthoc` gives its intervals at 95% and takes no `level:`"]
+        [
+            "run `posthoc` with `level:` for intervals at another level; they come from the method's own distribution, which the result does not keep"
+        ]
     );
     let failed = at_90(&welch()).expect_err("another level");
     assert_eq!(

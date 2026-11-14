@@ -162,13 +162,25 @@ fn follow_with_notes(
     test: &TestResult,
     word: Option<&str>,
 ) -> Result<(Vec<Row>, Vec<Diagnostic>), Fail> {
+    follow_at(test, word, None)
+}
+
+/// `posthoc` on a result at a level, 95% when none is given, with its notes.
+fn follow_at(
+    test: &TestResult,
+    word: Option<&str>,
+    level: Option<f64>,
+) -> Result<(Vec<Row>, Vec<Diagnostic>), Fail> {
+    // The slots of `posthoc`: fit, method, term, level.
     let values = vec![
         Some(Value::TestResult(Rc::new(test.clone()))),
         word.map(|w| Value::Word(w.to_string())),
+        None,
+        level.map(Value::Float),
     ];
     let (result, notes) = invoke(posthoc, values, "a.posthoc(method: holm)")?;
     assert_eq!(result.method, "posthoc");
-    assert_eq!(result.level, 0.95);
+    assert_eq!(result.level, level.unwrap_or(0.95));
     // The test of the whole stays the F of the `anova`.
     assert_eq!(result.statistic, test.statistic);
     assert_eq!(result.p_value.to_bits(), test.p_value.to_bits());
@@ -550,6 +562,152 @@ fn every_method_agrees_with_r_on_fifteen_sets_of_groups() {
     }
     assert_eq!(welch_defined, 14);
     assert!(problems.is_empty(), "\n{}", problems.join("\n"));
+}
+
+/// `level:` (open decision #105, option A; step 38f): the intervals of the five single-step
+/// methods at 0.90 and 0.99 against R (`tests/reference/r/posthoc_level.json`): `TukeyHSD` and
+/// `DescTools::ScheffeTest` with `conf.level = `, and the formulas of `none`, Bonferroni and
+/// Šidák written out with `qt` on the pooled variance and through `t.test(conf.level = )` for
+/// Welch's pairs.
+#[test]
+fn the_intervals_at_other_levels_agree_with_r() {
+    let text =
+        std::fs::read_to_string(root().join("tests/reference/r/posthoc_level.json")).unwrap();
+    let r: Json = serde_json::from_str(&text).unwrap();
+    let cases = r["cases"].as_array().unwrap();
+    assert_eq!(cases.len(), 12);
+    let mut problems = Vec::new();
+    let mut compared = 0;
+    for (i, case) in cases.iter().enumerate() {
+        let frame = frame_of(vec![
+            ("x", Column::floats(floats(&case["x"])).0),
+            ("g", group_column(case)),
+        ]);
+        let first: Vec<&str> = case["first"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .map(|v| v.as_str().unwrap())
+            .collect();
+        let second: Vec<&str> = case["second"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .map(|v| v.as_str().unwrap())
+            .collect();
+        let k = {
+            let mut names: Vec<&str> = first.iter().chain(&second).copied().collect();
+            names.sort_unstable();
+            names.dedup();
+            names.len()
+        };
+        let difference = values(&case["difference"]);
+        for at in case["levels"].as_array().unwrap() {
+            let level = number(&at["level"]).unwrap();
+            for pooled in [true, false] {
+                let form = if pooled { "pooled" } else { "welch" };
+                if !pooled && at.get("welch").is_none() {
+                    continue;
+                }
+                let fitted = one_way(&frame, "x", "g", pooled).unwrap();
+                for word in ["tukey", "scheffe", "none", "bonferroni", "sidak"] {
+                    let mut against = Against {
+                        label: format!("cases[{i}] at {level} after {form} {word}"),
+                        problems: &mut problems,
+                    };
+                    let (rows, _) = follow_at(&fitted, Some(word), Some(level)).unwrap();
+                    let (same_p, _) = follow_with_notes(&fitted, Some(word)).unwrap();
+                    // Tukey and Scheffé pool whichever F the `anova` computed.
+                    let block = match word {
+                        "tukey" | "scheffe" => &at[word],
+                        "none" => &at[form]["none"],
+                        word => &at[form][word],
+                    };
+                    let lower = by_pair(&block["lower"], &first, &second);
+                    let upper = by_pair(&block["upper"], &first, &second);
+                    assert_eq!(rows.len(), lower.len());
+                    for (j, row) in rows.iter().enumerate() {
+                        assert_eq!(row.p.to_bits(), same_p[j].p.to_bits(), "{word}");
+                        assert_eq!(row.t.to_bits(), same_p[j].t.to_bits(), "{word}");
+                        against.close("difference", row.difference, difference[j], 1e-9, 1e-12);
+                        let (lo, hi) = row.ci.unwrap();
+                        if word == "tukey" {
+                            // R's `qtukey` stops at about four digits; what it cannot settle is
+                            // held exactly: the range leaves 1 − level above the edge.
+                            against.close("lower", lo, lower[j], 0.0, 1e-3 * row.std_error);
+                            against.close("upper", hi, upper[j], 0.0, 1e-3 * row.std_error);
+                            let edge = (hi - row.difference) / row.std_error * SQRT_2;
+                            let tail = families::cdf(&range(k, row.df), edge).upper;
+                            against.close("the tail at the edge", tail, 1.0 - level, 1e-9, 0.0);
+                        } else {
+                            against.close("lower", lo, lower[j], 1e-9, 1e-9 * row.std_error);
+                            against.close("upper", hi, upper[j], 1e-9, 1e-9 * row.std_error);
+                        }
+                        compared += 1;
+                    }
+                }
+            }
+        }
+    }
+    assert!(compared > 1000, "{compared} intervals compared");
+    assert!(problems.is_empty(), "\n{}", problems.join("\n"));
+}
+
+/// At 0.95 every interval is what it was before `level:`, bit for bit; a higher level gives a
+/// wider interval round the same difference; a step-wise method has none at any level.
+#[test]
+fn the_level_widens_the_intervals_and_leaves_the_rest() {
+    let r = reference();
+    for case in r["cases"].as_array().unwrap() {
+        let frame = frame_of(vec![
+            ("x", Column::floats(floats(&case["x"])).0),
+            ("g", group_column(case)),
+        ]);
+        for pooled in [true, false] {
+            let Ok(fitted) = one_way(&frame, "x", "g", pooled) else {
+                continue;
+            };
+            for word in ["tukey", "scheffe", "none", "bonferroni", "sidak"] {
+                let (plain, _) = follow_with_notes(&fitted, Some(word)).unwrap();
+                let (at_95, _) = follow_at(&fitted, Some(word), Some(0.95)).unwrap();
+                let mut before: Option<Vec<f64>> = None;
+                for level in [0.5, 0.8, 0.9, 0.95, 0.99, 0.999] {
+                    let (rows, _) = follow_at(&fitted, Some(word), Some(level)).unwrap();
+                    let widths: Vec<f64> = rows
+                        .iter()
+                        .zip(&plain)
+                        .map(|(row, usual)| {
+                            let (lo, hi) = row.ci.unwrap();
+                            assert_eq!(row.difference.to_bits(), usual.difference.to_bits());
+                            assert_eq!(row.p.to_bits(), usual.p.to_bits());
+                            assert!(lo < row.difference && row.difference < hi, "{word} {level}");
+                            // The interval is centred on the difference.
+                            let centre = (lo + hi) / 2.0;
+                            assert!(
+                                (centre - row.difference).abs() <= 1e-9 * (1.0 + hi - lo),
+                                "{word} {level}"
+                            );
+                            hi - lo
+                        })
+                        .collect();
+                    if let Some(narrower) = &before {
+                        for (wide, narrow) in widths.iter().zip(narrower) {
+                            assert!(wide > narrow, "{word} at {level}: {wide} against {narrow}");
+                        }
+                    }
+                    before = Some(widths);
+                }
+                for (row, usual) in at_95.iter().zip(&plain) {
+                    let ((lo, hi), (lo0, hi0)) = (row.ci.unwrap(), usual.ci.unwrap());
+                    assert_eq!((lo.to_bits(), hi.to_bits()), (lo0.to_bits(), hi0.to_bits()));
+                }
+            }
+            for word in ["holm", "hochberg", "hommel", "bh", "by"] {
+                let (rows, _) = follow_at(&fitted, Some(word), Some(0.99)).unwrap();
+                assert!(rows.iter().all(|row| row.ci.is_none()), "{word}");
+            }
+        }
+    }
 }
 
 #[test]
@@ -1089,6 +1247,61 @@ fn what_is_not_a_one_way_anova_is_refused() {
 
 // ----- the snapshots -----
 
+/// `level:` through a script (open decision #105, option A; step 38f): the heading, the line
+/// under the table, `ci()` on the result, and the note where the method has no intervals.
+#[test]
+fn the_level_is_named_in_the_table_and_a_method_without_intervals_says_so() {
+    let data = "let g = frame(s = [2.9, 3.0, 2.5, 2.6, 3.2, 3.8, 2.7, 4.0, 2.4, 2.8, 3.4, 3.7, 2.2, 2.0], site = [1, 1, 1, 1, 1, 2, 2, 2, 2, 3, 3, 3, 3, 3])\nlet a = g.anova(s, group: site, equal_var: true)\n";
+    let (exit, stdout, stderr) = go(&format!(
+        "{data}a.posthoc(level: 0.99)\na.posthoc(method: scheffe, level: 0.9)\na.posthoc(method: bonferroni, level: 0.9)\na.posthoc(method: sidak, level: 0.99)\na.posthoc(method: none, level: 0.9)\na.posthoc(method: none, level: 0.9).ci()\ng.anova(s, group: site).posthoc(method: bonferroni, level: 0.99)\na.posthoc(method: holm, level: 0.99)\na.posthoc(method: bh, level: 0.9)\n"
+    ));
+    assert_eq!(exit, 0, "{stderr}");
+    insta::assert_snapshot!("levels", format!("{stdout}---\n{stderr}"));
+    for said in [
+        "p value   99% CI\n",
+        "p value   90% CI\n",
+        "each interval at the level 1 − 0.1/3",
+        "each interval at the level 0.99^(1/3)",
+        "ci · 90%\n",
+    ] {
+        assert!(stdout.contains(said), "{said}\n{stdout}");
+    }
+    // The note, once for each call that wrote a level where there is no interval, and for no
+    // other.
+    assert_eq!(stderr.matches("note[W0401]").count(), 2, "{stderr}");
+    assert!(
+        stderr.contains("note[W0401]: `level:` changes nothing here: Holm adjusts the p-values step by step and has no intervals (line 10)"),
+        "{stderr}"
+    );
+    assert!(
+        stderr.contains(
+            "Benjamini–Hochberg adjusts the p-values step by step and has no intervals (line 11)"
+        ),
+        "{stderr}"
+    );
+    // Left out, or with a method that has intervals, there is no note; and the p-values and
+    // the test of the whole are the same at every level.
+    let (exit, stdout, stderr) = go(&format!(
+        "{data}let plain = a.posthoc()\nlet wide = a.posthoc(level: 0.99)\nlet h = a.posthoc(method: holm)\nplain.p_values(\"site=1 − site=2\") == wide.p_values(\"site=1 − site=2\")\nplain.statistic() == wide.statistic()\nh.ci()\n"
+    ));
+    assert_eq!(exit, 0, "{stderr}");
+    assert_eq!(stderr, "");
+    assert_eq!(stdout, "true\ntrue\nNA\n");
+    // A pragma allows the note, and `--deny-warnings` is not needed to see it.
+    let (exit, _, stderr) = go(&format!(
+        "{data}a.posthoc(method: holm, level: 0.99) // zeff: allow(W0401) the level is kept for the day the method changes\n"
+    ));
+    assert_eq!(exit, 0, "{stderr}");
+    assert!(!stderr.contains("W0401"), "{stderr}");
+    // After a formula the level reaches the marginal means' intervals too.
+    let (exit, stdout, stderr) = go(
+        "let f = frame(gain = [4.1, 4.9, 3.6, 4.6, 5.3, 4.0, 5.0, 5.8, 4.4, 5.2, 6.4, 5.1, 5.2, 5.9, 4.6, 6.9, 7.8, 6.1], dose = [\"low\", \"low\", \"low\", \"low\", \"low\", \"low\", \"mid\", \"mid\", \"mid\", \"mid\", \"mid\", \"mid\", \"top\", \"top\", \"top\", \"top\", \"top\", \"top\"])\nlet m = f.anova(gain ~ category(dose))\nlet wide = m.posthoc(level: 0.99).estimates()\nlet usual = m.posthoc().estimates()\nwide.min(ci_lower) < usual.min(ci_lower)\nwide.max(ci_upper) > usual.max(ci_upper)\nm.posthoc(level: 0.99)\n",
+    );
+    assert_eq!(exit, 0, "{stderr}");
+    assert!(stdout.starts_with("true\ntrue\n"), "{stdout}");
+    assert!(stdout.contains("p value   99% CI\n"), "{stdout}");
+}
+
 #[test]
 fn every_form_and_every_message() {
     let (exit, stdout, stderr) = go(
@@ -1106,7 +1319,10 @@ fn every_form_and_every_message() {
         "let d = frame(x = [1, 2, 4, 3, 5.5, 7], g = [1, 1, 1, 2, 2, 2])\nd.posthoc()\n",
         "let d = frame(x = [1, 2, 4, 3, 5.5, 7], g = [1, 1, 1, 2, 2, 2])\nd.reg(x ~ g).posthoc()\n",
         "let d = frame(x = [1, 2, 4, 3, 5.5, 7], g = [1, 1, 1, 2, 2, 2])\nd.anova(x, group: g).posthoc().posthoc()\n",
-        "let d = frame(x = [1, 2, 4, 3, 5.5, 7], g = [1, 1, 1, 2, 2, 2])\nd.anova(x, group: g).posthoc(level: 0.9)\n",
+        "let d = frame(x = [1, 2, 4, 3, 5.5, 7], g = [1, 1, 1, 2, 2, 2])\nd.anova(x, group: g).posthoc(level: 1.5)\n",
+        "let d = frame(x = [1, 2, 4, 3, 5.5, 7], g = [1, 1, 1, 2, 2, 2])\nd.anova(x, group: g).posthoc(level: 0)\n",
+        "let d = frame(x = [1, 2, 4, 3, 5.5, 7], g = [1, 1, 1, 2, 2, 2])\nd.anova(x, group: g).posthoc(level: \"high\")\n",
+        "let d = frame(x = [1, 2, 4, 3, 5.5, 7], g = [1, 1, 1, 2, 2, 2])\nd.anova(x, group: g).posthoc(level: 0.9).ci(level: 0.95)\n",
         "let d = frame(x = [1, 2, 4, 3, 5.5, 7], g = [1, 1, 1, 2, 2, 2])\nd.anova(x, group: g).posthoc(method: none).ci(level: 0.9)\n",
         "let d = frame(x = [1.5, 2.5, 3.5, 4.5, 9.0], g = [1, 1, 2, 2, 3])\nd.anova(x, group: g).posthoc()\n",
     ] {

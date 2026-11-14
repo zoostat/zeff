@@ -251,7 +251,7 @@ pub fn ci(ctx: &mut CallContext<'_>, args: Args) -> Result<Value, Fail> {
                     .in_file(ctx.script)
                     .primary(ctx.span_of(2), "another level")
                     .help(if test.method == "posthoc" {
-                        "`posthoc` gives its intervals at 95% and takes no `level:`"
+                        "run `posthoc` with `level:` for intervals at another level; they come from the method's own distribution, which the result does not keep"
                     } else {
                         "run the test with `level:` for intervals at another level"
                     }),

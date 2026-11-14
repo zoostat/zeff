@@ -24,7 +24,8 @@
 //! studentized range, Scheffé's from the quantile of F, Bonferroni's and Šidák's from the t
 //! quantile at each comparison's adjusted level, and `none` at the level itself. The step-wise
 //! methods (Holm, Hochberg, Hommel, Benjamini–Hochberg, Benjamini–Yekutieli) have no
-//! simultaneous intervals and print none. The level is 95%, the level of the `anova`.
+//! simultaneous intervals and print none. The level is `level:`, 95% unless given (open decision
+//! #105); written out with a step-wise method it changes nothing, and a note says so (W0401).
 
 use std::f64::consts::SQRT_2;
 use std::rc::Rc;
@@ -38,7 +39,7 @@ use zeff_diagnostics::{Diagnostic, count};
 use zeff_dist::families;
 use zeff_numeric::maths::{expm1, log};
 
-use crate::anova::{GroupSummary, LEVEL, Undefined, classical, count_text, upper_tail};
+use crate::anova::{GroupSummary, Undefined, classical, count_text, upper_tail};
 use crate::marginal::{self, Mean};
 use crate::p_adjust;
 use crate::testing;
@@ -47,6 +48,7 @@ const FIT: usize = 0;
 const METHOD: usize = 1;
 // After `method:`, which came first (step 19), so that `fit.posthoc(holm)` keeps its meaning.
 const TERM: usize = 2;
+const LEVEL: usize = 3;
 
 /// The ten methods of the catalogue's usage line.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -352,7 +354,14 @@ fn comparisons_text(m: usize) -> String {
 }
 
 /// The line under the table that says what the method does to the p-values and the intervals.
-fn method_line(method: Method, k: usize, m: usize, pooled_df: Option<f64>, what: &str) -> String {
+fn method_line(
+    method: Method,
+    k: usize,
+    m: usize,
+    pooled_df: Option<f64>,
+    what: &str,
+    level: f64,
+) -> String {
     let over = format!("{} of {} {what}", comparisons_text(m), count(k as u64));
     let name = method.name();
     match method {
@@ -368,13 +377,13 @@ fn method_line(method: Method, k: usize, m: usize, pooled_df: Option<f64>, what:
             p_adjust::Method::Bonferroni => format!(
                 "Bonferroni over {over}: each p-value multiplied by {}, each interval at the level 1 − {}/{}",
                 count(m as u64),
-                format_float(testing::alpha(LEVEL)),
+                format_float(testing::alpha(level)),
                 count(m as u64)
             ),
             p_adjust::Method::Sidak => format!(
                 "Šidák over {over}: each p-value 1 − (1 − p)^{}, each interval at the level {}^(1/{})",
                 count(m as u64),
-                format_float(LEVEL),
+                format_float(level),
                 count(m as u64)
             ),
             p_adjust::Method::Unadjusted => format!(
@@ -454,6 +463,23 @@ pub fn posthoc(ctx: &mut CallContext<'_>, args: Args) -> Result<Value, Fail> {
         Some(Value::Term(name)) => Some(name.clone()),
         _ => None,
     };
+    let level = testing::level(ctx, &args, LEVEL, "posthoc")?;
+    // `level:` written out with a method that has no intervals changes nothing: said in a
+    // note with a code, so that a script may allow it and `--deny-warnings` refuse it.
+    let written = matches!(args.get(LEVEL), Some(value) if !matches!(value, Value::Na))
+        && ctx.arg_spans.get(LEVEL).is_some_and(Option::is_some);
+    if written && !method.has_intervals() {
+        ctx.message(
+            Diagnostic::note(
+                "W0401",
+                format!(
+                    "`level:` changes nothing here: {} adjusts the p-values step by step and has no intervals",
+                    method.name()
+                ),
+            )
+            .help("the methods with intervals at the level asked are tukey, scheffe, bonferroni, sidak and none"),
+        );
+    }
     match test.follow_up.as_deref() {
         Some(FollowUp::OneWay {
             outcome,
@@ -474,9 +500,19 @@ pub fn posthoc(ctx: &mut CallContext<'_>, args: Args) -> Result<Value, Fail> {
                     .help("leave `term:` out; it is for `d.anova(y ~ a * b).posthoc(term: a)`"),
                 ));
             }
-            one_way(ctx, &test, method, outcome, factor, groups, *pooled)
+            one_way(
+                ctx,
+                &test,
+                (method, level),
+                outcome,
+                factor,
+                groups,
+                *pooled,
+            )
         }
-        Some(FollowUp::Factorial(fit)) => factorial(ctx, &test, method, fit, term.as_deref()),
+        Some(FollowUp::Factorial(fit)) => {
+            factorial(ctx, &test, (method, level), fit, term.as_deref())
+        }
         None => Err(testing::internal(
             ctx,
             "an `anova` that left nothing for `posthoc`",
@@ -495,6 +531,8 @@ struct Report<'a> {
     /// The test of the whole that the comparisons follow.
     statistic: Statistic,
     p_value: f64,
+    /// The level of the intervals.
+    level: f64,
 }
 
 /// The result of `posthoc` from its comparisons.
@@ -507,6 +545,7 @@ fn report(test: &TestResult, method: Method, report: Report<'_>) -> Value {
         after,
         statistic,
         p_value,
+        level,
     } = report;
     let welch_pairs = result.pooled_df.is_none();
     let intervals = method.has_intervals();
@@ -522,7 +561,7 @@ fn report(test: &TestResult, method: Method, report: Report<'_>) -> Value {
     }
     columns.push(("p value".to_string(), Align::Right));
     if intervals {
-        columns.push((format!("{} CI", level_text(LEVEL)), Align::Left));
+        columns.push((format!("{} CI", level_text(level)), Align::Left));
     }
     let table_rows: Vec<Vec<String>> = result
         .rows
@@ -592,7 +631,7 @@ fn report(test: &TestResult, method: Method, report: Report<'_>) -> Value {
         statistic,
         p_value,
         effect: None,
-        level: LEVEL,
+        level,
         alpha: None,
         after,
         notes: Vec::new(),
@@ -605,7 +644,7 @@ fn report(test: &TestResult, method: Method, report: Report<'_>) -> Value {
 fn one_way(
     ctx: &mut CallContext<'_>,
     test: &TestResult,
-    method: Method,
+    (method, level): (Method, f64),
     outcome: &str,
     factor: &str,
     groups: &[GroupMean],
@@ -619,7 +658,7 @@ fn one_way(
             variance: g.variance,
         })
         .collect();
-    let result = compare(&summaries, !pooled, method, LEVEL).map_err(|_| {
+    let result = compare(&summaries, !pooled, method, level).map_err(|_| {
         testing::internal(
             ctx,
             "comparisons undefined after an `anova` that was defined",
@@ -656,12 +695,13 @@ fn one_way(
             title: format!("posthoc · {} · {outcome} by {factor}", method.name()),
             header: "each row tests H0: the two population means are equal, against H1: they differ",
             after: vec![
-                method_line(method, k, m, result.pooled_df, "groups"),
+                method_line(method, k, m, result.pooled_df, "groups", level),
                 variance_line,
             ],
             // The test of the whole: the F of the `anova` the comparisons follow.
             statistic: test.statistic.clone(),
             p_value: test.p_value,
+            level,
         },
     ))
 }
@@ -690,7 +730,7 @@ fn same_term(a: &str, b: &str) -> bool {
 fn factorial(
     ctx: &mut CallContext<'_>,
     test: &TestResult,
-    method: Method,
+    (method, level): (Method, f64),
     fit: &ModelFit,
     term: Option<&str>,
 ) -> Result<Value, Fail> {
@@ -908,7 +948,7 @@ fn factorial(
             listed(&containing)
         )));
     }
-    let result = compare_marginal(fit, &means, method, LEVEL).map_err(|_| {
+    let result = compare_marginal(fit, &means, method, level).map_err(|_| {
         testing::internal(
             ctx,
             "comparisons undefined after an `anova` that was defined",
@@ -949,7 +989,7 @@ fn factorial(
             title: format!("posthoc · {} · {shown} · {formula}", method.name()),
             header: "each row tests H0: the two marginal means of the population are equal, against H1: they differ",
             after: vec![
-                method_line(method, k, m, result.pooled_df, "marginal means"),
+                method_line(method, k, m, result.pooled_df, "marginal means", level),
                 definition,
                 format!(
                     "residual variance of the model on {} degrees of freedom; N = {}",
@@ -959,6 +999,7 @@ fn factorial(
             ],
             statistic: row.map_or_else(|| test.statistic.clone(), |row| row.statistic.clone()),
             p_value: row.map_or(test.p_value, |row| row.p_value),
+            level,
         },
     ))
 }
