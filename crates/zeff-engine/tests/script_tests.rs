@@ -442,4 +442,30 @@ fn the_sample_script_of_the_specification_checks_with_its_module() {
         );
     }
     insta::assert_snapshot!("sample_script_with_module", all);
+    // How far this release reaches (release 0.7.0, step 39b): of the script's statements, the
+    // ones the checker takes whole, and the ones that wait for a function or a block of a later
+    // release. The second number only falls.
+    let waiting = parsed
+        .script
+        .items
+        .iter()
+        .filter(|item| {
+            let span = match item {
+                zeff_syntax::ast::Item::Use(u) => u.span,
+                zeff_syntax::ast::Item::Fn(f) => f.span,
+                zeff_syntax::ast::Item::Statement(s) => s.span,
+            };
+            checked.diagnostics.iter().any(|d| {
+                d.file.as_deref() != Some("functions/robustness.zeff")
+                    && d.labels.iter().any(|label| {
+                        label.primary
+                            && label.span.start >= span.start
+                            && label.span.end <= span.end
+                    })
+            })
+        })
+        .count();
+    // At 0.7.0: 75 statements, 63 taken whole; 12 wait for `ivreg`, `first_stage`, `logistic`,
+    // `probit`, `reliability`, the `dag { }` block and its three functions.
+    assert_eq!((parsed.script.items.len(), waiting), (75, 12));
 }

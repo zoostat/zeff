@@ -39,10 +39,10 @@ lines 13 to 14 become:
 lines 79 to 82 become:
     |dd
 ==== plots/scripts
-lines 16 to 17 become:
+lines 17 to 18 become:
     |let schooling = wages.plot(x: educ, y: wage).points(alpha: 0.2)
-lines 58 to 61 become:
-    |by_industry.export("output/fig6_industry.png", size: slide)
+lines 173 to 176 become:
+    |fit.coef_plot().export("output/fig15_coefficients.svg")
 ==== tests/scripts
 lines 8 to 9 become:
     |    .label(female, [0 => "male", 1 => "female"])

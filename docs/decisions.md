@@ -4947,3 +4947,17 @@ error[Z0001]: no rows to take the mean of
 
 **Reason.** The checklist's step 39a; Engine and Project Specification, section 14, the row of 0.7.0.
 
+## 14 November 2026: the `plots` sample completed, and the sample script counted (release 0.7.0, step 39b)
+
+**The sample.** `samples/plots` had six figures, all of points; its header said that the other marks would join it and that step 39 would complete it. It now has fifteen. The nine new ones: (7) the mean wage of each year with its 95% band, by sex: `ribbon`, `lines`, `points`, `labels`, the legend under the panel; (8) the mean wage of each industry: `bars` with `errorbars`, turned by `coord(type: flip)`; (9) a `histogram` on the density scale with the `density` over it, a `rug` and a `vline`, in `theme(name: minimal)`; (10) a `boxplot` for each industry on `scale_y(type: log)`; (11) an `area` stacked, a `step` line from a second frame, an `hline`, a word by `annotate`, colours by `scale(fill:)` given by hand, the legend on top; (12) a heat map: `tile` with its numbers by `text`, on `scale(fill: viridis)`, with a caption and a variable label for the legend's title; (13) small multiples by `facet` with free scales up the side and `scale_x(breaks:)`; (14) the shorthand `scatter` with its fitted line; (15) `coef_plot` of a regression. With them every function of the plot grammar is drawn in the sample or in a conformance case (the other shorthands, and the plot of an event study, were conformance cases already).
+
+**What is written.** The six figures of points stay in the three formats. Of the nine new ones, two are written in all three (7: lines, bands and a title; 12: tiles and text), so that the PDF and PNG writers draw each kind of shape under the identity job, and the rest as SVG alone, which keeps the run of the sample, in every test build and on every target, short. No figure is committed, as no sample's `output/` is: the conformance report carries a digest for each file, 31 of them now, and the four targets and the WebAssembly build must agree on every byte. The report has 486 cases (473 before), its other lines unchanged but for the two of what the sample prints and says.
+
+**Read by eye.** All nine new figures were written as pictures and looked at: the bands and the legend under the panel, the flipped bars with their error bars, the density over the histogram, the box plots on a logarithmic axis with its breaks at 5, 10, 20, 50 and 100, the stacked areas under the step line, the heat map with its numbers and ramp, the four panels with their own scales, the fitted lines with their bands, and the coefficients with their intervals. Each is as its script says.
+
+**The bands of the heat map** are cut with `-Inf` and `Inf` as the first and last breaks, as the help line of W0210 advises, so that no row falls outside an interval.
+
+**The specification's sample script.** The test that checks `docs/spec/zeff_samples.zeff` with its module now also counts: of its 75 statements, 63 are taken whole at this release; 12 wait for `ivreg`, `first_stage`, `logistic`, `probit`, `reliability`, the `dag { }` block and its three functions, none of which is a function of 0.7.0. The two numbers are asserted, so a later release must lower the second.
+
+**Reason.** The checklist's step 39b; Engine and Project Specification, section 14, the row of 0.7.0.
+

@@ -237,7 +237,7 @@ expression: editor.told
   "params": {
     "textDocument": {
       "languageId": "zeff",
-      "text": "(57 lines, the last: by_industry.export(\"output/fig6_industry.png\", size: slide))",
+      "text": "(172 lines, the last: fit.coef_plot().export(\"output/fig15_coefficients.svg\"))",
       "uri": "file:///s/plots/scripts/main.zeff",
       "version": 1
     }

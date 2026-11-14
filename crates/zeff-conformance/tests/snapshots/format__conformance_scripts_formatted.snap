@@ -1975,13 +1975,14 @@ let counties = import("data/counties.csv").panel(unit: county, time: year)
 let dd = counties.reg(emp ~ treated * post, fe: county + year, cluster: county)
 dd
 ==== script 107
-// The sample project of the plots of release 0.7.0: six figures of the shipped wages, each
-// written under output/ in the three formats of a figure: SVG and PDF, drawn with lines, and
-// PNG, drawn in dots at 300 to the inch. `zeff run` in this folder prints what
-// expected/stdout.txt holds, and its messages are expected/stderr.txt; the script tests compare
-// both byte for byte on every target, and the conformance report carries the digest of every
-// figure, so that the four targets prove they write the same bytes. The figures are the ones
-// the journal theme is read on; marks other than points join them as their steps are built.
+// The sample project of the plots of release 0.7.0: fifteen figures of the shipped wages,
+// written under output/. The first six, of points, are each written in the three formats of a
+// figure: SVG and PDF, drawn with lines, and PNG, drawn in dots at 300 to the inch. The nine
+// after them draw the other marks, the scales, the panels and the shorthands, as SVG, two of
+// them in all three formats. `zeff run` in this folder prints what expected/stdout.txt holds,
+// and its messages are expected/stderr.txt; the script tests compare both byte for byte on
+// every target, and the conformance report carries the digest of every figure, so that the
+// four targets prove they write the same bytes.
 
 // Jitter draws from the seeded stream, so the figures are the same on every run.
 seed(20261112)
@@ -2032,6 +2033,120 @@ let by_industry = w2010.plot(x: age, y: hours, color: industry, shape: industry)
 by_industry.export("output/fig6_industry.svg", size: slide)
 by_industry.export("output/fig6_industry.pdf", size: slide)
 by_industry.export("output/fig6_industry.png", size: slide)
+
+// 7. Lines and a band: the mean wage of each year with its 95% interval, by sex, the legend
+//    under the panel. In the three formats.
+let yearly = wages
+    .drop_missing([wage])
+    .aggregate(mean = mean(wage), se = sd(wage) / sqrt(n()), by: [year, female])
+    .add(low = mean - 1.96 * se, high = mean + 1.96 * se)
+let trend = yearly
+    .plot(x: year, y: mean, color: female)
+    .ribbon(low: low, high: high, fill: female)
+    .lines()
+    .points(size: 3)
+    .labels(title: "Mean hourly wage by year", x: "Year", y: "Mean hourly wage")
+    .legend(position: bottom)
+trend
+trend.export("output/fig7_trend.svg")
+trend.export("output/fig7_trend.pdf")
+trend.export("output/fig7_trend.png")
+
+// 8. Bars with error bars, turned on their side: the mean wage of each industry.
+let industry_means = wages
+    .drop_missing([wage])
+    .aggregate(mean = mean(wage), se = sd(wage) / sqrt(n()), by: industry)
+    .add(low = mean - 1.96 * se, high = mean + 1.96 * se)
+let industries = industry_means
+    .plot(x: industry, y: mean)
+    .bars(fill: "steelblue")
+    .errorbars(low: low, high: high)
+    .coord(type: flip)
+    .labels(x: "", y: "Mean hourly wage")
+industries
+industries.export("output/fig8_industries.svg", size: two_column)
+
+// 9. A histogram on the density scale with the kernel density over it, each value marked at
+//    the foot and the mean by a line; in the plain theme.
+let shape = w2010
+    .plot(x: log(wage))
+    .histogram(bins: 30, scale: density)
+    .density()
+    .rug(alpha: 0.2)
+    .vline(at: 3.02)
+    .theme(name: minimal)
+shape.export("output/fig9_shape.svg")
+
+// 10. Box plots on a logarithmic axis, one for each industry, the industries up the side.
+let boxes = w2010
+    .plot(x: industry, y: wage)
+    .boxplot()
+    .scale_y(type: log)
+    .coord(type: flip)
+    .labels(x: "")
+boxes.export("output/fig10_boxes.svg", size: two_column)
+
+// 11. Areas stacked: the workers of each year by union membership, in colours given by hand,
+//     with a step line for their total, a line across at two thousand and a word beside it.
+let counts = wages.aggregate(workers = n(), by: [year, union])
+let totals = wages.aggregate(workers = n(), by: year)
+let stacked = counts
+    .plot(x: year, y: workers, fill: union)
+    .area(position: stack)
+    .step(data: totals, x: year, y: workers)
+    .hline(at: 2000)
+    .annotate("two thousand", x: 2019.8, y: 2080)
+    .scale(fill: ["#bdbdbd", "#0072b2"])
+    .legend(position: top)
+stacked
+stacked.export("output/fig11_stacked.svg")
+
+// 12. A heat map with its numbers: the mean log wage by schooling and experience in bands, on
+//     the viridis ramp, with a title and a caption. In the three formats.
+let cells = wages
+    .drop_missing([wage, exper])
+    .add(
+        lwage = log(wage),
+        school = bin(educ,
+                     breaks: [-Inf, 11, 12, 15, 16, Inf],
+                     labels: ["under 12", "12", "13 to 15", "16", "over 16"]),
+        years = bin(exper,
+                    breaks: [-Inf, 5, 10, 15, 20, Inf],
+                    labels: ["0 to 5", "6 to 10", "11 to 15", "16 to 20", "over 20"]),
+    )
+    .aggregate(lwage = mean(lwage), by: [school, years])
+    .add(shown = format(lwage, digits: 2))
+    .label(lwage, "Mean log wage")
+let grid = cells
+    .plot(x: years, y: school, fill: lwage)
+    .tile()
+    .text(label: shown, color: "white")
+    .scale(fill: viridis)
+    .labels(x: "Years of experience",
+            y: "Years of schooling",
+            caption: "shipped wages, 2010 to 2021")
+grid.export("output/fig12_grid.svg")
+grid.export("output/fig12_grid.pdf")
+grid.export("output/fig12_grid.png")
+
+// 13. Small multiples: wage on experience in four industries, each panel with its own scale
+//     up the side and the breaks along the foot given.
+let panels = w2010
+    .where(is_in(industry, ["Construction", "Education", "Finance", "Retail"]))
+    .plot(x: exper, y: wage, color: female)
+    .points(alpha: 0.6, size: 3)
+    .facet(by: industry, scales: free_y)
+    .scale_x(breaks: [0, 10, 20])
+    .legend(position: bottom)
+panels
+panels.export("output/fig13_panels.svg", size: two_column)
+
+// 14. A shorthand: one call for a scatter with its fitted line, by union membership.
+w2010.scatter(educ, log(wage), fit: linear, color: union).export("output/fig14_scatter.svg")
+
+// 15. A regression's coefficients with their intervals, the other figure a fit draws of itself.
+let fit = wages.reg(log(wage) ~ educ + exper + female + union, cluster: worker)
+fit.coef_plot().export("output/fig15_coefficients.svg")
 ==== script 108
 // The sample project of release 0.7.0 for its tests: the questions a first look at the shipped
 // wages asks, each answered by the test that fits it. `zeff run` in this folder prints what

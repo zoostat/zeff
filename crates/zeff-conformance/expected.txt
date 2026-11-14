@@ -489,10 +489,18 @@ panel/stderr f599f45b43447c95
 panel/exit_code a8c7f832281a39c5
 # panel/exit_code bits 0000000000000000
 panel/output/industry_year.csv 4a627b56e0a02c82
-plots/stdout 8afbe7fa9286dfef
-plots/stderr e14d55a6c7d63e5e
+plots/stdout fa5e62a74da6c550
+plots/stderr 95eea5d2df55d80c
 plots/exit_code a8c7f832281a39c5
 # plots/exit_code bits 0000000000000000
+plots/output/fig10_boxes.svg a353da77adf72711
+plots/output/fig11_stacked.svg b3100b4a51f2fe27
+plots/output/fig12_grid.pdf 014213a2bb784737
+plots/output/fig12_grid.png 43e30cee8782cc94
+plots/output/fig12_grid.svg a1177f98e6d16d9e
+plots/output/fig13_panels.svg 2c9a103bad0c3324
+plots/output/fig14_scatter.svg 21531d34a1c79b4f
+plots/output/fig15_coefficients.svg a90d74db535204f7
 plots/output/fig1_wage_schooling.pdf 61461bef17db89b4
 plots/output/fig1_wage_schooling.png 489324fc080a3e15
 plots/output/fig1_wage_schooling.svg ee2b114603f1fdbd
@@ -511,6 +519,11 @@ plots/output/fig5_size_shape.svg 5b876fca7694c0c1
 plots/output/fig6_industry.pdf 4ba569255c3d2002
 plots/output/fig6_industry.png 5e26bdfca51142ec
 plots/output/fig6_industry.svg 91aa9cee385c1b0c
+plots/output/fig7_trend.pdf 60e1abe923e51a4c
+plots/output/fig7_trend.png 3d9479bcdede1b06
+plots/output/fig7_trend.svg 95c372a56c500f6c
+plots/output/fig8_industries.svg c80034c74a5d78b0
+plots/output/fig9_shape.svg cbd3616f34331d64
 tests/stdout 1e11b9296fa3833c
 tests/stderr f1bcf360999ab7c4
 tests/exit_code a8c7f832281a39c5
