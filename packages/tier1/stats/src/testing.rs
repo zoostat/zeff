@@ -301,6 +301,46 @@ pub fn variable<'a>(
     }
 }
 
+/// The largest size a value may have where a test squares it: beyond it the square is more
+/// than the arithmetic holds, and a variance, a sum of squares or a product of two deviations
+/// comes out infinite or as nothing. `reg` and the factorial `anova` refuse the same sizes.
+pub const OVERSIZED: f64 = 1e150;
+
+/// Z0803: a variable with a value above 1e150 in size among `rows`, which a test that squares
+/// its values cannot compute with. Without the refusal the standard deviation is infinite, t
+/// is 0 and p is 1 whatever the data, and a group of an `anova` whose variance overflows is
+/// left out of the pooled variance (found by a surviving mutant at step 40a of release 0.7.0).
+pub fn not_oversized(
+    ctx: &CallContext<'_>,
+    name: &str,
+    column: &Column,
+    rows: &[usize],
+    slot: usize,
+) -> Result<(), Fail> {
+    if rows.iter().all(|&row| {
+        let value = number(column, row);
+        value.is_nan() || value.abs() <= OVERSIZED
+    }) {
+        return Ok(());
+    }
+    Err(oversized(ctx, name, slot))
+}
+
+/// The error of [`not_oversized`], for a function that holds its values in another form.
+pub fn oversized(ctx: &CallContext<'_>, name: &str, slot: usize) -> Fail {
+    fail(
+        Diagnostic::error(
+            "Z0803",
+            format!("`{name}` has values too large to compute with (above 1e150 in size)"),
+        )
+        .in_file(ctx.script)
+        .primary(ctx.span_of(slot), "a variable too large to square")
+        .help(format!(
+            "divide the variable by a power of ten first, `add({name}_m = {name} / 1e6)`, and read the result in those units; no p-value changes"
+        )),
+    )
+}
+
 /// A Bool, Int or Float cell as a number; anything else `NaN`.
 pub fn number(column: &Column, row: usize) -> f64 {
     match column.get(row) {

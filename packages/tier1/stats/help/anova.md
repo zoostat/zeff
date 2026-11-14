@@ -141,6 +141,10 @@ in the one-way form it is omega squared itself and the line under the table says
 report is a matter of which program a reader will compare with: `omega` is the definition of
 Olejnik and Algina and of R's `omega_squared()`, `omega_f` the figure of Stata.
 
+A variable with a value above 1e150 in size is refused in both forms (Z0803), since its square
+is more than the arithmetic holds and a sum of squares would be infinite; divide it by a power
+of ten first, which changes no F and no p-value.
+
 When a combination of levels has no observations, or a term repeats the others, some columns of
 the model are determined by the rest. Types 1 and 2 still give the table: those columns carry
 no degree of freedom, a note says how many, and a term left with none keeps its row without a

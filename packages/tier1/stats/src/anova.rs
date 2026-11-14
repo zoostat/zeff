@@ -434,6 +434,7 @@ pub fn anova(ctx: &mut CallContext<'_>, args: Args) -> Result<Value, Fail> {
         testing::weights(ctx, &frame, &args, WEIGHTS, WEIGHT_TYPE, "anova")?;
     let (rows, dropped) =
         testing::complete_rows(ctx, &frame, &[(&var, column), (&group_name, group_column)]);
+    testing::not_oversized(ctx, &var, column, &rows, VAR)?;
     let found = testing::groups(ctx, group_column, &group_name, GROUP, "anova")?;
     let mut labels: Vec<String> = Vec::new();
     let mut samples: Vec<Sample> = Vec::new();

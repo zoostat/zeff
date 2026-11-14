@@ -317,6 +317,20 @@ pub fn correlation(ctx: &mut CallContext<'_>, args: Args) -> Result<Value, Fail>
     };
     let want_p = matches!(args.get(4), Some(Value::Bool(true)));
     let k = series.names.len();
+    // Pearson's coefficient multiplies deviations: a value above 1e150 in size makes the
+    // products overflow and the coefficient come out as 0 whatever the data (Z0803). The
+    // rank correlations read the order of the values alone and take any size.
+    if method == Method::Pearson {
+        for (name, values) in series.names.iter().zip(&series.values) {
+            if values
+                .iter()
+                .flatten()
+                .any(|v| v.abs() > testing::OVERSIZED)
+            {
+                return Err(testing::oversized(ctx, name, 1));
+            }
+        }
+    }
     let mut estimates = vec![vec![String::new(); k]; k];
     let mut p_values = vec![vec![String::new(); k]; k];
     let mut ns = vec![vec![0usize; k]; k];
@@ -468,6 +482,10 @@ pub fn functions() -> Vec<Function> {
                     ),
                     DiagnosticDecl::new("Z0411", "weights: with weight_type: sampling"),
                     DiagnosticDecl::new("Z0412", "group: has one level or more than two"),
+                    DiagnosticDecl::new(
+                        "Z0803",
+                        "a variable with a value above 1e150 in size, too large to square",
+                    ),
                 ],
                 help: include_str!("../help/t_test.md"),
                 accuracy: Some(AccuracyRecord {
@@ -816,7 +834,7 @@ pub fn functions() -> Vec<Function> {
                     ),
                     DiagnosticDecl::new(
                         "Z0803",
-                        "with a formula, an outcome or a term above 1e150 in size",
+                        "a variable, or with a formula an outcome or a term, above 1e150 in size",
                     ),
                 ],
                 help: include_str!("../help/anova.md"),
@@ -930,6 +948,10 @@ pub fn functions() -> Vec<Function> {
                         "a variable that is not numeric, or fewer than two variables",
                     ),
                     DiagnosticDecl::new("W0205", "a variable that does not vary"),
+                    DiagnosticDecl::new(
+                        "Z0803",
+                        "method: pearson with a value above 1e150 in size, too large to multiply",
+                    ),
                 ],
                 help: include_str!("../help/correlation.md"),
                 accuracy: Some(AccuracyRecord {

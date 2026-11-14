@@ -1,0 +1,13 @@
+---
+source: packages/tier1/stats/tests/oversized.rs
+expression: stderr
+---
+note: `y` replaced the variable of that name (line 2)
+note: `y` replaced the variable of that name (line 3)
+error[Z0803]: `y` has values too large to compute with (above 1e150 in size)
+ --> scripts/main.zeff:4:14
+  |
+4 | beyond.anova(y, group: g, equal_var: true)
+  |              ^ a variable too large to square
+  |
+  = help: divide the variable by a power of ten first, `add(y_m = y / 1e6)`, and read the result in those units; no p-value changes

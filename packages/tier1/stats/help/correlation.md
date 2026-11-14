@@ -40,6 +40,11 @@ concordant pairs, otherwise the normal approximation with the tie-corrected vari
 estimate and p-value agrees with R to twelve digits across these branches; the tables print three
 decimals.
 
+Pearson's coefficient multiplies deviations, so a variable with a value above 1e150 in size is
+refused under `method: pearson` (Z0803), where R gives a coefficient of 0; divide the variable
+by a power of ten first, which changes no coefficient. The rank methods read the order of the
+values and take any size.
+
 ## See also
 covariance, mean, sd, describe
 

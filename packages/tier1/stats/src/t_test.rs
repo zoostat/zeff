@@ -328,6 +328,7 @@ fn one_sample(
     weights: Option<&Weights>,
 ) -> Result<Value, Fail> {
     let (rows, dropped) = testing::complete_rows(ctx, frame, &[(var, column)]);
+    testing::not_oversized(ctx, var, column, &rows, VAR)?;
     let sample = Sample::of(column, &rows, weights);
     let n = sample.n();
     if sample.values.len() < 2 {
@@ -402,6 +403,8 @@ fn paired_form(
     weights: Option<&Weights>,
 ) -> Result<Value, Fail> {
     let (rows, dropped) = testing::complete_rows(ctx, frame, &[(a, a_column), (b, b_column)]);
+    testing::not_oversized(ctx, a, a_column, &rows, VAR)?;
+    testing::not_oversized(ctx, b, b_column, &rows, B)?;
     let sample = Sample::differences(a_column, b_column, &rows, weights);
     let n = sample.n();
     if sample.values.len() < 2 {
@@ -481,6 +484,7 @@ fn two_groups(
 ) -> Result<Value, Fail> {
     let (rows, dropped) =
         testing::complete_rows(ctx, frame, &[(var, column), (group_name, group_column)]);
+    testing::not_oversized(ctx, var, column, &rows, VAR)?;
     let groups = testing::two_groups(ctx, group_column, group_name, GROUP, "t_test")?;
     // The groups' rows among the rows kept.
     let kept = |members: &[usize]| -> Vec<usize> {

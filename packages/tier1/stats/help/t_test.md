@@ -51,6 +51,10 @@ directly, never as 1 − CDF; a one-sided alternative gives a one-sided interval
 frequency weights N is the sum of the weights; under analytic weights the variance uses the
 weights scaled to sum to n, as Stata's `aweight`.
 
+A value above 1e150 in size cannot be squared by the arithmetic, so a variable that holds one
+is refused (Z0803): divide it by a power of ten first, which changes no t and no p-value. R
+prints a standard deviation of `Inf`, t = 0 and p = 1 for such values.
+
 ## References
 Welch (1947), The generalization of "Student's" problem when several different population
 variances are involved, Biometrika 34, 28–35.

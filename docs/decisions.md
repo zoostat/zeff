@@ -5006,3 +5006,45 @@ Done before parts 1 and 2 are read, because those wait for jobs that run for hou
 
 **Reason.** The checklist's step 40c; Testing Handbook, section 2.4, items 1, 3 and 6.
 
+## 14 November 2026: a wrong result found by the mutation job and corrected: values too large to square (release 0.7.0, step 40a, part one)
+
+**How it was found.** The weekly job was started by hand on 97ef3fe (run 43546750552) and is read shard by shard as the shards end. The first to end was `zeff-stats` 1 of 16: 228 mutants, 214 caught, 5 unviable, 9 missed, all nine in `anova.rs`. Two of the nine are in the filter of the within-groups sum of squares, which keeps a group when it has more than one value and its variance is finite: `>` for `>=` and `&&` for `||`. Asking when a group of several values has a variance that is not finite gave the answer: when its values are so large that their squares overflow.
+
+**The fault.** On nine values of which three are near 1e160, the classical one-way `anova` left the group of the three out of the pooled variance and printed `F(2, 6) = Inf   p < 0.001` with a decision to reject; the same data divided by 1e160 give F = 12.00, p = 0.008. Welch's form refused, but said that the group's values were all equal, which they were not. `t_test` printed `sd = Inf`, `t = 0.00`, `p = 1.000` in its three forms, where the true t is 1.79. Pearson's `correlation` printed -0.000 where the coefficient is -0.775. R 4.6.0 prints the same wrong figures (`sd` Inf, t 0, p 1; F and p NaN; r 0), so no reference test could have shown it. `correlation` has done this since 0.3.0; the two tests are new at this release and were never released so.
+
+**The correction.** A variable with a value above 1e150 in size is refused with Z0803, the code and the limit that `reg` and the factorial `anova` already use, by one helper in the tests' shared code: in `t_test` (the variable, and both variables of the paired form), in the one-way `anova` (and so in `posthoc` after it), and in `correlation` under `method: pearson`. The rank tests and the rank correlations read the order of the values alone and take any size; `shapiro_test` computes on scaled values and was right. `sd` was right (the kernel scales), and `variance` already said `NA` with a warning. The limit is the regression's, 1e150, though sums of squares hold a little further: one rule is easier to state than two.
+
+**Not changed.** Values so small that their squares underflow (1e-160): `t_test` computes them rightly (t = 3.22 on a case, as R), printing a mean and a standard deviation of 0.000 by the fixed three decimals of the known issues. `covariance` of such values gives the right covariances and an infinite variance on its diagonal, printed `inf`: a truthful figure in an unhelpful form, left for the printing of very large numbers, which is a matter of its own.
+
+**The other seven of the nine.** Four change a sum of squares into an algebraically equal form (`Σ n (m + g)(m − g)` for `Σ n (m − g)²`, where g is the weighted mean, in `sums_of_squares` and in `welch`): equal up to rounding, so no test at 1e-9 tells them apart, and none should. One makes the last arm of the reading of `effect:` take any word, which the checker never lets through. Two were gaps and have tests now: the classical form with exactly one degree of freedom within the groups (computed, not refused; R gives F = 16.3333, p = 0.154421 on the case), and an effect size of exactly zero (not negative, so no note).
+
+**Tests.** A new file, `packages/tier1/stats/tests/oversized.rs`: ten statements refused with Z0803 and nothing printed; at 1e150 itself, each statistic equal to that of the data at their ordinary size within 1e-9, with the values R gives there (t 2.1693 and 0.225494; F 0.736264 and 1.46824; r 0.329582); the rank tests and Shapiro and Wilk's W unchanged by the size; a snapshot of the message. The two edge tests in `tests/anova.rs`. The pages of `t_test`, `anova` and `correlation` say it; the row of Z0803 in section 11 of the Language Reference gains a sentence, logged; the explained page of the code gains a paragraph.
+
+**Reason.** The rule of `docs/known_issues.md` that a wrong result is fixed or the function withdrawn; Testing Handbook, sections 1 (mutation testing) and 2.4, item 2.
+
+
+## 14 November 2026: the survivors of the Kolmogorov and Kruskal code, and tests at sizes the suite never reached (release 0.7.0, step 40a, part two)
+
+**What the shards said.** `zeff-stats` 5 of 16: 228 mutants, 203 caught, 17 missed, 4 timed out, 4 unviable. `zeff-stats` 6 of 16: 228 mutants, 207 caught, 16 missed, 1 timed out, 4 unviable. Nearly all the survivors are in `ks_test.rs`, the rest in `kruskal_test.rs`.
+
+**The gap they showed.** The exact distribution of the one-sample Kolmogorov statistic (Marsaglia, Tsang and Wang's matrix power) rescales its entries whenever the middle one passes 1e140, and rescales the running product whenever it falls below 1e-140. `ks_test` uses the exact distribution below 100 values, and there neither rescaling is ever entered: the largest entry at 99 values is about 4e41 and the smallest product about 1.6e-25. So fourteen mutants of the rescaling lines changed nothing the suite could see. The code is right, but it was not held by any test, and the routine is public to the package.
+
+**Tests added.** `the_exact_distribution_agrees_with_r_where_its_entries_are_rescaled`, in `packages/tier1/stats/tests/ks.rs`: twenty cases from 99 to 3,000 values, six of them odd sizes (where an odd power adds the exponent of the half power), each held to R's `stats:::pkolmogorov_two_exact` within 1e-9 relative, with probabilities from 1e-18 to 0.999999996. And `the_limiting_lower_tail_keeps_its_digits_and_equal_values_have_no_lilliefors_test`: the lower tail of the limiting distribution at 0.3, 0.5 and 0.9 to thirteen digits (the theta series, which the alternating series cannot match below 1), and `lilliefors` of equal values has no answer.
+
+**Checked by hand.** Seventeen of the surviving mutations were made one at a time in a copy of the file and the test run against each: sixteen now fail a test. The file was restored byte for byte after each.
+
+**Survivors left, with the reason for each.**
+
+- `ks_test.rs`, the entry that is read to decide a rescaling (`m + m / 2` changed to `m − m / 2` in the index): another entry of the same matrix serves as the gauge equally well; the result differs by rounding only. Equivalent.
+- `ks_test.rs`, the last power of ten (three mutants): the exponent left over is 0 for every probability above about 1e-140, and no sample gives a smaller one that a test could hold. Equivalent in reach.
+- `ks_test.rs`, `d > 1` changed to `d == 1` or `d >= 1`: a statistic is never above 1, and the routine gives exactly 1 at 1 by either road. Equivalent.
+- `ks_test.rs`, `2h − 1 > 0` changed to `>=`: zero to a positive power is zero. Equivalent.
+- `ks_test.rs`, `i + 1 >= j` changed to `i * 1 >= j`: the two differ only where the loop of divisions is empty. Equivalent.
+- `ks_test.rs`, the bounds of the two series (`k < 200`, `term < 1e-300`, six mutants): the terms left out are below 1e-300 and change no sum. Equivalent.
+- `ks_test.rs`, `x < 1` changed to `x <= 1`: at 1 the two series agree to rounding. Equivalent.
+- `ks_test.rs`, one more squaring at the end of the integer power, which nothing reads. Equivalent.
+- `kruskal_test.rs`, two mutants in the count of ties (`i < len` to `<=`, `j = i + 1` to `i * 1`): a run of one value adds t³ − t = 0, and starting the scan at the value itself ends at the same place. Equivalent.
+
+**Timeouts, each a hang by nature.** `pow_int`'s loop test (two), the series' counter `+=` changed to `*=`, the ties' counter `+=` changed to `*=`: loops that never end. `n * d` changed to `n / d`: a matrix of n/d rows, hours of work. None is a catch and none can be one; recorded as hangs, by the rule of 0.4.0.
+
+**Reason.** Testing Handbook, section 1 (mutation testing: each survivor a test or a recorded reason) and section 2.4, item 2.

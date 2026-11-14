@@ -426,6 +426,15 @@ is never listed here as accepted: it is fixed or the function is withdrawn.
   in 24 MB; it begins at once and can be cancelled before its first pass; the results and the
   draws of every pass are the same. Under a memory budget such a loop counts one item, and a
   list built by one counts its values with the room a growing list takes. Since step 38g.
+- **A wrong result, corrected.** From 0.3.0 to 0.6.0, `correlation` with `method: pearson`
+  printed a coefficient of 0.000 for a variable that held a value above 1e150 in size, whatever
+  the data: the products of the deviations overflowed. R prints the same. An analysis is
+  affected only if a variable had such a value, which is seldom a measurement and often a code
+  for a missing value that was not declared. `t_test` and the one-way `anova`, new at 0.7.0,
+  had the same fault before they were released (a standard deviation of `Inf`, t = 0, p = 1;
+  an F of `Inf`). The three now refuse the variable (Z0803), as `reg` and the factorial `anova`
+  do, and at 1e150 itself give what the same data give at their ordinary size. Found by the
+  mutation job at step 40a of 0.7.0, through a mutant of `anova` that no test caught.
 - `zeff run` says why it will not run when the engine's own registry does not build (found at
   step 38d of 0.7.0: it ended with exit code 2 and printed nothing, where `zeff check` printed
   the reason). Only a development build can be in that state. Since step 40c: the command looks

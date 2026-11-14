@@ -48,7 +48,7 @@ use crate::testing;
 pub const PIVOT_TOLERANCE: f64 = 1e-7;
 
 /// Above this size a value's square cannot be represented.
-const OVERSIZED: f64 = 1e150;
+use crate::testing::OVERSIZED;
 
 /// R's rule for an essentially perfect fit (`summary.lm`): a residual mean square below this
 /// share of the mean square of the fitted values is rounding and nothing more.

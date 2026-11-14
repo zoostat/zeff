@@ -276,6 +276,65 @@ fn d_and_the_p_value_agree_with_lillie_test() {
 
 // ----- the kernels -----
 
+/// The exact routine keeps a power of ten apart from the entries of its matrix once they pass
+/// 1e140, and from its running product once that falls below 1e-140. Below a hundred values,
+/// where `ks_test` uses the routine, neither happens (the largest entry met is 4e41 at n = 99),
+/// so the reference cases of the test never entered those steps and their mutants survived
+/// (step 40a of release 0.7.0). Here the routine is held to R 4.6.0's
+/// `stats:::pkolmogorov_two_exact(d, n)` at sizes where both steps are taken, once and several
+/// times, and at 99 for the edge of its use.
+#[test]
+fn the_exact_distribution_agrees_with_r_where_its_entries_are_rescaled() {
+    for (n, d, want) in [
+        (99, 0.02, 1.711_426_852_166_95e-11),
+        (99, 0.05, 0.044_969_243_171_003),
+        (99, 0.1, 0.742_221_953_527_314),
+        (99, 0.3, 0.999_999_978_704_978),
+        (400, 0.1, 0.999_380_820_275_211),
+        (500, 0.1, 0.999_916_577_069_322),
+        (700, 0.08, 0.999_758_880_481_452),
+        (1000, 0.006, 9.349_132_949_163_62e-14),
+        (1000, 0.02, 0.189_102_868_929_785),
+        (1000, 0.05, 0.986_987_928_690_022),
+        (1000, 0.1, 0.999_999_996_296_302),
+        (2000, 0.004, 1.092_955_600_495_76e-15),
+        (2000, 0.03, 0.946_453_054_516_612),
+        (3000, 0.003, 1.037_763_142_661_45e-18),
+        // Odd sizes, where the power of an odd count adds the exponent of the half power.
+        (999, 0.02, 0.188_631_286_514_636),
+        (999, 0.1, 0.999_999_996_221_314),
+        (1501, 0.05, 0.998_938_712_475_231),
+        (1999, 0.03, 0.946_356_569_396_684),
+        (2999, 0.004, 1.516_153_737_004_13e-10),
+        (2999, 0.03, 0.991_135_828_619_392),
+    ] {
+        let got = kolmogorov_exact_cdf(n, d);
+        assert!(
+            close(got, want, 1e-9),
+            "n = {n}, d = {d}: {got:e} against R's {want:e}"
+        );
+    }
+}
+
+/// The lower tail of the limiting distribution below 1 is the theta series, which keeps its
+/// digits where one minus the alternating series would lose them: at 0.3 the tail is 9.3e-6,
+/// and it is held to the series written out in R (`sqrt(2 * pi) / x * sum(exp(-(2 * (1:60) -
+/// 1)^2 * pi^2 / (8 * x^2)))`) to thirteen digits. And `lilliefors` has no answer for values
+/// that do not vary.
+#[test]
+fn the_limiting_lower_tail_keeps_its_digits_and_equal_values_have_no_lilliefors_test() {
+    for (x, want) in [
+        (0.3, 9.305_801_334_566_64e-6),
+        (0.5, 0.036_054_756_335_124_9),
+        (0.9, 0.607_269_292_059_346),
+    ] {
+        let got = kolmogorov_limit(x).lower;
+        assert!(close(got, want, 1e-13), "x = {x}: {got:e} against {want:e}");
+    }
+    assert!(lilliefors(&[2.0; 6]).is_none());
+    assert!(lilliefors(&[1.0, 2.0, 3.0, 4.0, 5.0, 6.0]).is_some());
+}
+
 #[test]
 fn the_kernels_give_their_closed_forms() {
     // One value: P(D ≤ d) = 2d − 1 from 1/2.

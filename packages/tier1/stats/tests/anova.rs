@@ -511,6 +511,31 @@ fn go(script: &str) -> (i32, String, String) {
     )
 }
 
+/// Two edges that a mutant of each comparison survived until step 40a of release 0.7.0: the
+/// classical form with exactly one degree of freedom within the groups, which is computed and
+/// not refused (R: `anova(lm(x ~ factor(k)))` on 1, 2, 5 in groups 1, 1, 2 gives F = 16.3333 on
+/// 1 and 1 degrees of freedom, p = 0.154421); and an effect size of exactly zero, which is not
+/// negative and has no note.
+#[test]
+fn one_degree_of_freedom_within_is_computed_and_an_effect_of_zero_has_no_note() {
+    let (exit, stdout, stderr) = go(
+        "let d = frame(x = [1.0, 2, 5], k = [1, 1, 2])\nlet a = d.anova(x, group: k, equal_var: true)\na.statistic()\na.df()\na.p_values()\n",
+    );
+    assert_eq!(exit, 0, "{stderr}");
+    assert_eq!(stdout, "16.3333\n1\n1\n0.154421\n");
+    // Group means equal to the last bit: nothing between the groups, so every measure is 0.
+    for word in ["eta", "omega", "omega_f", "epsilon"] {
+        let (exit, stdout, stderr) = go(&format!(
+            "let d = frame(x = [1.0, 3, 1, 3, 1, 3], k = [1, 1, 2, 2, 3, 3])\nlet a = d.anova(x, group: k, equal_var: true, effect: {word})\na.statistic()\n"
+        ));
+        assert_eq!(exit, 0, "{word}: {stderr}");
+        assert_eq!(stdout, "0\n", "{word}");
+        if word == "eta" {
+            assert_eq!(stderr, "", "eta squared of exactly zero is not negative");
+        }
+    }
+}
+
 #[test]
 fn a_group_of_one_and_a_group_without_spread_are_refused_by_welch_and_admitted_by_the_classical_form()
  {
