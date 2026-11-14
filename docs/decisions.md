@@ -4935,3 +4935,15 @@ error[Z0001]: no rows to take the mean of
 
 **Choice.** Step 39, "the samples and the jobs", is split as the standing instructions ask of a step too large for one sitting: 39a, the `tests` sample project; 39b, the `plots` sample read against the release's row and the specification's sample script; 39c, the scheduled jobs (coverage, mutation, fuzz, benchmarks); 39d, the worker in headless Chromium. **Reason.** Each ends at a green commit of its own. One part of the step as written needs no work: the identity job already compares the bytes of every file a sample writes under `output/`, so the eighteen figure files of `plots` (SVG, PDF and PNG) each have their line in the report of every target.
 
+## 14 November 2026: the `tests` sample project (release 0.7.0, step 39a)
+
+**What it is.** `samples/tests`, the eighth sample project: nine sections on the shipped wages, each a question a first look at the data asks and the test that answers it. Tables (`tabulate`, one-way and two-way with row percentages); one mean and two (`t_test`, `wilcoxon_test`); proportions and counts (`proportion_test`, `chi2_test`, `fisher_test`); the shape of a distribution (`shapiro_test`, `ks_test` with the parameters estimated); several groups (`anova` by Welch with omega squared, `kruskal_test`, `posthoc` by Tukey at 99% and by Holm); two factors and a covariate (`anova` of a formula with `effect: omega_f`, a term read by its name, `posthoc(term:)`); many tests at once (a list built by a loop over variables, `p_adjust` by Holm and by Benjamini and Hochberg); and `correlation` with p-values, by Pearson and by Spearman. It writes no file and needs no data of its own.
+
+**Where it is entered.** The conformance suite (three cases: what it prints, what it says, its exit code; 473 cases in all, the published report regenerated with those three lines added and no other changed), so that every target must print it byte for byte and `zeff selftest` runs it; the test that runs each sample through `zeff run`; the formatter's test and its snapshot; the language-service and language-server tests over the samples. The nightly fuzz job seeds from every sample's script, so it takes this one without a change.
+
+**Against R.** The figures of twelve of its results were computed again in R 4.6.0 and agree to every printed digit: both t statistics, Welch's degrees of freedom and interval, Wilcoxon's W and shift, the chi-squared, the z and Wilson's interval of the proportion, Welch's F and its degrees of freedom, Kruskal and Wallis's H, Shapiro and Wilk's W and p, Tukey's six intervals at 99% with their p-values, and the correlations. The functions themselves are held to R by their own reference tests; this is a reading of the sample by eye, as the pre-release routine asks.
+
+**Names.** `model`, `table` and `factorial` could not name the result of the factorial `anova` in the script: the first is a reserved word and the other two are functions of `core`. The script calls it `two_way`. Nothing to change; noted because a user will meet the same three.
+
+**Reason.** The checklist's step 39a; Engine and Project Specification, section 14, the row of 0.7.0.
+

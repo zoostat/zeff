@@ -459,6 +459,7 @@ fn the_messages_of_the_sample_scripts() {
         "user_functions",
         "panel",
         "plots",
+        "tests",
     ] {
         let folder = root.join(name);
         let fs = MemoryFileSystem::new();

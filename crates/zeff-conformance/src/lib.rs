@@ -355,9 +355,22 @@ pub const PLOTS: Sample = Sample {
     stderr: include_str!("../../../samples/plots/expected/stderr.txt"),
 };
 
+/// The sample of the tests of release 0.7.0 (step 39a): tables, the tests of one and two
+/// samples, of counts, of a distribution's shape and of several groups, `anova` in both forms
+/// with `posthoc`, p-values adjusted together, and correlations, all on the shipped wages.
+pub const TESTS: Sample = Sample {
+    name: "tests",
+    manifest: include_str!("../../../samples/tests/zeff.toml"),
+    data: &[],
+    modules: &[],
+    script: include_str!("../../../samples/tests/scripts/main.zeff"),
+    stdout: include_str!("../../../samples/tests/expected/stdout.txt"),
+    stderr: include_str!("../../../samples/tests/expected/stderr.txt"),
+};
+
 /// Every sample project, oldest first; each adds three cases to the report, and one more for
 /// every file it writes under `output/`.
-pub const SAMPLES: [&Sample; 7] = [
+pub const SAMPLES: [&Sample; 8] = [
     &FIRST_ENGINE,
     &DATA_CLEANING,
     &SIMULATION,
@@ -365,6 +378,7 @@ pub const SAMPLES: [&Sample; 7] = [
     &USER_FUNCTIONS,
     &PANEL,
     &PLOTS,
+    &TESTS,
 ];
 
 /// Run a sample project on an in-memory copy of its files.

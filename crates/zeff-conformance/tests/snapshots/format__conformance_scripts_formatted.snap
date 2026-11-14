@@ -2032,3 +2032,76 @@ let by_industry = w2010.plot(x: age, y: hours, color: industry, shape: industry)
 by_industry.export("output/fig6_industry.svg", size: slide)
 by_industry.export("output/fig6_industry.pdf", size: slide)
 by_industry.export("output/fig6_industry.png", size: slide)
+==== script 108
+// The sample project of release 0.7.0 for its tests: the questions a first look at the shipped
+// wages asks, each answered by the test that fits it. `zeff run` in this folder prints what
+// expected/stdout.txt holds, and its messages are expected/stderr.txt; the conformance suite
+// compares both byte for byte on every target.
+
+// 1. The data: the shipped wages with the log wage added and the codes of sex labelled.
+let wages = dataset(wages)
+    .add(lwage = log(wage))
+    .label(female, [0 => "male", 1 => "female"])
+
+// 2. Tables: how many rows in each industry, and union membership by sex in row percentages.
+wages.tabulate(industry)
+wages.tabulate([female, union], percent: row)
+
+// 3. One mean and two: is the mean of schooling 13 years, and do men and women differ in the
+//    log wage? Welch's test unless the variances are said to be equal; the rank-sum test asks
+//    the second question without the normal distribution.
+wages.t_test(educ, mu: 13)
+let by_sex = wages.t_test(lwage, group: female)
+by_sex
+print("difference in log wage, Hedges' g:", by_sex.effect_size())
+wages.wilcoxon_test(lwage, group: female)
+
+// 4. Proportions and counts: the share of union members against one in five, the same share
+//    by sex, and the two-way table tested by chi-squared and by Fisher's exact test.
+wages.proportion_test(union, p: 0.2)
+wages.proportion_test(union, group: female)
+wages.chi2_test(union, female)
+wages.where(year == 2010 && industry == "Mining").fisher_test(union, female)
+
+// 5. The shape of a distribution: Shapiro–Wilk on the log wages of one year and one industry,
+//    and Kolmogorov–Smirnov against the normal with the mean and the standard deviation
+//    estimated, which is Lilliefors' test.
+let retail = wages.where(year == 2010 && industry == "Retail")
+retail.shapiro_test(lwage)
+retail.ks_test(lwage, dist.normal(), estimated: true)
+
+// 6. Several groups: the log wage across industries by Welch's analysis of variance, with
+//    omega squared, and by the Kruskal–Wallis test; then the pairs of four industries, by
+//    Tukey's method on the pooled variance at 99%, and by Holm's on Welch's t-tests.
+wages.anova(lwage, group: industry, effect: omega)
+wages.kruskal_test(lwage, group: industry)
+let four = wages.where(is_in(industry, ["Construction", "Education", "Finance", "Retail"]))
+let pooled = four.anova(lwage, group: industry, equal_var: true)
+let pairs = pooled.posthoc(level: 0.99)
+pairs
+print("Finance against Education, p:", pairs.p_values("Finance - Education"))
+four.anova(lwage, group: industry).posthoc(method: holm)
+
+// 7. Two factors and a covariate: the table of a formula, type 2, with the partial omega
+//    squared computed from F; one term read by its name; and the marginal means of sex compared.
+let two_way = wages.anova(lwage ~ industry * category(female) + educ, effect: omega_f)
+two_way
+print("interaction, F:",
+      two_way.statistic("industry:female"),
+      "p:",
+      two_way.p_values("industry:female"))
+print("schooling, partial omega squared from F:", two_way.effect_size(educ))
+two_way.posthoc(term: female, method: none)
+
+// 8. Many tests at once: the same two-group test on four variables, their p-values adjusted
+//    together by Holm's method and by Benjamini and Hochberg's.
+let outcomes = vars(lwage, hours, educ, exper)
+let p = [for v in outcomes { wages.t_test(v, group: female).p_values() }]
+p
+p_adjust(p)
+p_adjust(p, method: bh)
+
+// 9. Association: the correlations of four variables with their p-values, by Pearson and by
+//    Spearman.
+wages.correlation([lwage, educ, exper, hours], p_values: true)
+wages.correlation([lwage, educ, exper, hours], method: spearman)

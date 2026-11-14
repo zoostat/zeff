@@ -254,6 +254,27 @@ expression: editor.told
 }
 --> {
   "jsonrpc": "2.0",
+  "method": "textDocument/didOpen",
+  "params": {
+    "textDocument": {
+      "languageId": "zeff",
+      "text": "(72 lines, the last: wages.correlation([lwage, educ, exper, hours], method: spearman))",
+      "uri": "file:///s/tests/scripts/main.zeff",
+      "version": 1
+    }
+  }
+}
+<-- {
+  "jsonrpc": "2.0",
+  "method": "textDocument/publishDiagnostics",
+  "params": {
+    "diagnostics": [],
+    "uri": "file:///s/tests/scripts/main.zeff",
+    "version": 1
+  }
+}
+--> {
+  "jsonrpc": "2.0",
   "method": "textDocument/didChange",
   "params": {
     "contentChanges": [
@@ -1431,6 +1452,23 @@ expression: editor.told
   "params": {
     "diagnostics": [],
     "uri": "file:///s/plots/scripts/main.zeff"
+  }
+}
+--> {
+  "jsonrpc": "2.0",
+  "method": "textDocument/didClose",
+  "params": {
+    "textDocument": {
+      "uri": "file:///s/tests/scripts/main.zeff"
+    }
+  }
+}
+<-- {
+  "jsonrpc": "2.0",
+  "method": "textDocument/publishDiagnostics",
+  "params": {
+    "diagnostics": [],
+    "uri": "file:///s/tests/scripts/main.zeff"
   }
 }
 --> {

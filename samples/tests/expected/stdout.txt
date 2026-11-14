@@ -1,0 +1,273 @@
+tabulate · wages · industry
+
+  industry                     N       %
+  Agriculture                535     2.9
+  Mining                     200     1.1
+  Utilities                  370     2.0
+  Construction             1,477     8.0
+  Manufacturing            2,574    14.0
+  Retail                   2,871    15.6
+  Transport                  976     5.3
+  Finance                  1,560     8.5
+  Services                 2,637    14.3
+  Education                1,693     9.2
+  Health                   2,098    11.4
+  Public administration    1,421     7.7
+  ──────────────────────────────────────
+  Total                   18,412   100.0
+tabulate · wages · female × union · row %
+
+  female       no     yes    Total
+  male      6,516   2,975    9,491
+             68.7    31.3    100.0
+  female    6,040   2,881    8,921
+             67.7    32.3    100.0
+  ────────────────────────────────
+  Total    12,556   5,856   18,412
+             68.2    31.8    100.0
+t_test · one-sample · educ
+  H0: the population mean of educ equals 13            μ = 13
+  H1: the population mean of educ differs from 13      μ ≠ 13
+
+N = 18,412   mean = 13.491   sd = 2.485
+difference (mean − 13) = 0.491   95% CI [0.455, 0.527]
+t = 26.83   df = 18,411   p < 0.001
+decision at α = 0.05: reject H0 (p < 0.001)
+t_test · Welch two-sample · lwage by female
+  H0: the population means of lwage are equal in male and female        μ(male) − μ(female) = 0
+  H1: the population means of lwage differ between male and female      μ(male) − μ(female) ≠ 0
+
+  group        N    mean      sd
+  male     9,375   3.259   0.480
+  female   8,826   3.121   0.480
+
+difference (male − female) = 0.138   95% CI [0.124, 0.152]
+t = 19.35   df = 18,130.3   p < 0.001
+Hedges' g = 0.29   95% CI [0.26, 0.32]
+decision at α = 0.05: reject H0 (p < 0.001)
+difference in log wage, Hedges' g:
+0.286923
+wilcoxon_test · rank sum · lwage by female
+  H0: the distribution of lwage is the same in male and female
+  H1: values of lwage in male tend to be larger or smaller than in female
+
+  group        N   median
+  male     9,375    3.254
+  female   8,826    3.121
+
+location shift (male − female) = 0.137   95% CI [0.123, 0.151]
+W = 47980562.50   p < 0.001
+decision at α = 0.05: reject H0 (p < 0.001)
+normal approximation with continuity correction, ties
+proportion_test · one-sample · union
+  H0: the population proportion of union equals 0.2            π = 0.2
+  H1: the population proportion of union differs from 0.2      π ≠ 0.2
+
+N = 18,412   successes = 5,856
+proportion (Wilson) = 0.318   95% CI [0.311, 0.325]
+z = 40.05   p < 0.001
+decision at α = 0.05: reject H0 (p < 0.001)
+proportion_test · two-sample · union by female
+  H0: the population proportions of union are equal in male and female        π(male) − π(female) = 0
+  H1: the population proportions of union differ between male and female      π(male) − π(female) ≠ 0
+
+  group        N   successes   proportion
+  male     9,491       2,975        0.313
+  female   8,921       2,881        0.323
+
+difference (male − female, Newcombe) = -0.009   95% CI [-0.023, 0.004]
+z = -1.38   p = 0.167
+decision at α = 0.05: fail to reject H0 (p = 0.167)
+chi2_test · independence · union × female
+  H0: union and female are independent in the population
+  H1: union and female are associated in the population
+
+  union    male   female    Total
+  no      6,516    6,040   12,556
+  yes     2,975    2,881    5,856
+  ───────────────────────────────
+  Total   9,491    8,921   18,412
+
+chi2(1) = 1.91   p = 0.167
+decision at α = 0.05: fail to reject H0 (p = 0.167)
+fisher_test · exact · union × female
+  H0: union and female are independent in the population      OR = 1
+  H1: union and female are associated in the population       OR ≠ 1
+
+  union   male   female   Total
+  no         2        2       4
+  yes        1        1       2
+  ─────────────────────────────
+  Total      3        3       6
+
+odds ratio (conditional MLE) = 1.000   95% CI [0.009, 117.332]
+p = 1.000
+decision at α = 0.05: fail to reject H0 (p = 1.000)
+exact p-value from the distribution of the first cell given the margins, 3 outcomes
+shapiro_test · lwage
+  H0: lwage was drawn from a normally distributed population
+  H1: lwage was not drawn from a normally distributed population
+
+N = 75
+W = 0.9769   p = 0.186
+decision at α = 0.05: fail to reject H0 (p = 0.186)
+p-value from Royston's (1995) normal approximation of W
+ks_test · lwage · normal family, parameters estimated
+  H0: lwage was drawn from a normal distribution with unspecified parameters
+  H1: lwage was not drawn from any normal distribution
+
+N = 75   mean = 2.914   sd = 0.465   (estimated from the data)
+D = 0.0721   p = 0.436
+decision at α = 0.05: fail to reject H0 (p = 0.436)
+p-value by Dallal and Wilkinson's (1986) approximation of Lilliefors' distribution
+anova · Welch one-way · lwage by industry
+  H0: the population means of lwage are equal in all 12 groups of industry         μ₁ = μ₂ = … = μ₁₂
+  H1: at least one group of industry has a different population mean of lwage      not all equal
+
+  group                       N    mean      sd
+  Agriculture               528   3.004   0.460
+  Mining                    199   3.190   0.410
+  Utilities                 366   3.229   0.459
+  Construction            1,457   3.244   0.478
+  Manufacturing           2,543   3.238   0.475
+  Retail                  2,836   3.151   0.479
+  Transport                 962   3.175   0.462
+  Finance                 1,544   3.279   0.503
+  Services                2,612   3.097   0.492
+  Education               1,669   3.198   0.482
+  Health                  2,077   3.197   0.497
+  Public administration   1,408   3.278   0.456
+
+F(11, 3,489.4) = 31.60   p < 0.001
+omega squared = 0.018
+decision at α = 0.05: reject H0 (p < 0.001)
+Welch's F over 12 groups, the variances not assumed equal; omega squared = (SS between − (k − 1) MS within) / (SS total + MS within)
+kruskal_test · lwage by industry
+  H0: the distribution of lwage is the same in every group of industry
+  H1: values of lwage in at least one group of industry tend to be larger or smaller than in another
+
+  group                       N   median
+  Agriculture               528    3.014
+  Mining                    199    3.177
+  Utilities                 366    3.209
+  Construction            1,457    3.236
+  Manufacturing           2,543    3.236
+  Retail                  2,836    3.157
+  Transport                 962    3.192
+  Finance                 1,544    3.274
+  Services                2,612    3.094
+  Education               1,669    3.184
+  Health                  2,077    3.201
+  Public administration   1,408    3.263
+
+H(11) = 316.05   p < 0.001
+decision at α = 0.05: reject H0 (p < 0.001)
+chi-squared approximation over 12 groups, ranks averaged over ties and the tie correction applied
+posthoc · Tukey HSD · lwage by industry
+each row tests H0: the two population means are equal, against H1: they differ
+
+  comparison                 difference   std.error   t value   p value   99% CI
+  Construction − Retail           0.093       0.016      5.93    <0.001   [0.044, 0.141]
+  Construction − Finance         -0.035       0.018     -2.00     0.186   [-0.091, 0.020]
+  Construction − Education        0.046       0.017      2.64     0.041   [-0.008, 0.100]
+  Retail − Finance               -0.128       0.015     -8.36    <0.001   [-0.176, -0.080]
+  Retail − Education             -0.047       0.015     -3.12     0.010   [-0.093, 0.000]
+  Finance − Education             0.081       0.017      4.76    <0.001   [0.028, 0.135]
+
+Tukey's HSD over 6 comparisons of 4 groups: p-values and intervals from the studentized range, family-wise
+pooled within-group variance on 7,502 degrees of freedom; N = 7,506
+Finance against Education, p:
+1.18303e-05
+posthoc · Holm · lwage by industry
+each row tests H0: the two population means are equal, against H1: they differ
+
+  comparison                 difference   std.error   t value       df   p value
+  Construction − Retail           0.093       0.015      6.01   2942.1    <0.001
+  Construction − Finance         -0.035       0.018     -1.98   2998.9     0.048
+  Construction − Education        0.046       0.017      2.67   3074.5     0.015
+  Retail − Finance               -0.128       0.016     -8.18   3035.3    <0.001
+  Retail − Education             -0.047       0.015     -3.15   3475.2     0.005
+  Finance − Education             0.081       0.017      4.67   3164.9    <0.001
+
+Holm over 6 comparisons of 4 groups: p-values adjusted family-wise; step-wise, so no intervals
+Welch's t-test of each pair, the variances not assumed equal; N = 7,506
+anova · factorial, type 2 · lwage ~ industry * category(female) + educ
+each row tests H0: the population effect of the term is zero, against H1: it is not
+
+  source                df         SS        MS         F   p value   partial omega squared from F
+  model                 24    505.438    21.060    101.47    <0.001                          0.117
+  industry              11     77.856     7.078     34.10    <0.001                          0.020
+  female                 1     88.792    88.792    427.81    <0.001                          0.023
+  educ                   1    329.462   329.462   1587.37    <0.001                          0.080
+  industry:female       11      7.137     0.649      3.13    <0.001                          0.001
+  residual          18,176   3772.468     0.208
+  ────────────────────────────────────────────────────────────────────────────────────────────────
+  total             18,200   4277.906
+
+type 2 sums of squares: each term adjusted for every other term that does not contain it
+partial omega squared from F = (F − 1) / (F + (df residual + 1) / df); N = 18,201
+interaction, F:
+3.1262
+p:
+0.00031527
+schooling, partial omega squared from F:
+0.0802642
+posthoc · unadjusted · female · lwage ~ industry * category(female) + educ
+each row tests H0: the two marginal means of the population are equal, against H1: they differ
+
+  comparison      difference   std.error   t value   p value   95% CI
+  male − female        0.124       0.009     13.27    <0.001   [0.106, 0.142]
+
+1 comparison of 2 marginal means, each on its own: p-values and intervals not adjusted for the number of comparisons
+each mean is the model's prediction for a level of female, averaged with equal weight over the levels of industry, with the numeric variables at their means (educ = 13.4875)
+residual variance of the model on 18,176 degrees of freedom; N = 18,201
+1.50026e-82
+5.33046e-129
+0.238892
+0.000338155
+4.50078e-82
+2.13218e-128
+0.238892
+0.00067631
+3.00052e-82
+2.13218e-128
+0.238892
+0.000450873
+correlation · wages · pearson
+
+          lwage     educ    exper    hours
+  lwage   1.000    0.278    0.219    0.025
+  educ    0.278    1.000   -0.324   -0.005
+  exper   0.219   -0.324    1.000    0.009
+  hours   0.025   -0.005    0.009    1.000
+
+p-values
+
+           lwage     educ    exper    hours
+  lwage            <0.001   <0.001   <0.001
+  educ    <0.001            <0.001    0.489
+  exper   <0.001   <0.001             0.233
+  hours   <0.001    0.489    0.233
+
+N per pair
+
+           lwage     educ    exper    hours
+  lwage   18,201   18,201   18,179   18,167
+  educ    18,201   18,412   18,390   18,377
+  exper   18,179   18,390   18,390   18,355
+  hours   18,167   18,377   18,355   18,377
+correlation · wages · spearman
+
+          lwage     educ    exper    hours
+  lwage   1.000    0.269    0.221    0.024
+  educ    0.269    1.000   -0.297   -0.004
+  exper   0.221   -0.297    1.000    0.009
+  hours   0.024   -0.004    0.009    1.000
+
+N per pair
+
+           lwage     educ    exper    hours
+  lwage   18,201   18,201   18,179   18,167
+  educ    18,201   18,412   18,390   18,377
+  exper   18,179   18,390   18,390   18,355
+  hours   18,167   18,377   18,355   18,377

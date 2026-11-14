@@ -1,0 +1,13 @@
+note: 211 rows with NA in lwage or female dropped (line 19)
+note: 211 rows with NA in lwage or female dropped (line 22)
+warning[W0212]: 2 of the 75 values of `lwage` tie with another; the Kolmogorov–Smirnov test assumes a continuous distribution, so its p-value is approximate (line 36)
+  = help: Lilliefors' approximation assumes distinct values, so read the p-value as a guide; for a discrete variable, `chi2_test` with `p:` compares the frequencies instead
+note: 211 rows with NA in lwage or industry dropped (line 41)
+note: 211 rows with NA in lwage or industry dropped (line 42)
+note: 95 rows with NA in lwage or industry dropped (line 44)
+note: 95 rows with NA in lwage or industry dropped (line 48)
+note: 211 rows with NA in a model variable dropped (line 52)
+note: `female` is also part of `industry:female`: its differences are averages over the levels of `industry` and may not be the same at each level (line 59)
+note: 211 rows with NA in lwage or female dropped (line 64)
+note: 35 rows with NA in hours or female dropped (line 64)
+note: 22 rows with NA in exper or female dropped (line 64)

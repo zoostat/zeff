@@ -43,3 +43,8 @@ lines 16 to 17 become:
     |let schooling = wages.plot(x: educ, y: wage).points(alpha: 0.2)
 lines 58 to 61 become:
     |by_industry.export("output/fig6_industry.png", size: slide)
+==== tests/scripts
+lines 8 to 9 become:
+    |    .label(female, [0 => "male", 1 => "female"])
+lines 73 to 76 become:
+    |wages.correlation([lwage, educ, exper, hours], method: spearman)
