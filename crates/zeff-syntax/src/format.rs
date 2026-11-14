@@ -1149,6 +1149,10 @@ impl<'a> Printer<'a> {
         self.comment_after(root.span.end);
         for step in steps {
             let (_, name_at) = place(step);
+            // A line may not end with a dot (Z0312): a step that follows the lone `.` of a
+            // formula stays on the line of that dot, as `. .name`, and the chain is split from
+            // the step after it.
+            let split = split && !self.out.ends_with('.');
             match &step.kind {
                 ExprKind::Method { name, args, .. } => {
                     if split {

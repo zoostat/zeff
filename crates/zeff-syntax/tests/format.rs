@@ -152,6 +152,32 @@ fn a_dot_never_meets_a_dot() {
     );
 }
 
+/// Found by the fuzz target on the night of 14 November 2026 (run 43578181306). A chain that
+/// starts from the lone `.` of a formula and is spread over lines had that dot written alone on
+/// its line, which no script may have (Z0312), so the formatter could not vouch for what it
+/// had written and left the script as it was. The first step stays beside the dot.
+#[test]
+fn a_chain_from_the_lone_dot_keeps_its_first_step_on_the_dots_line() {
+    assert_eq!(
+        formatted(".    .coord(type: flip)\n    .labels(x: \"\")\n"),
+        ". .coord(type: flip)\n    .labels(x: \"\")\n"
+    );
+    assert_eq!(formatted(". .a\n    .b()\n"), ". .a\n    .b()\n");
+    // Two methods split the chain even where the author wrote it on one line: the first
+    // still stays with the dot.
+    assert_eq!(
+        formatted("let m = y ~ . .a(1)\n  .b(2)\n  .c\n"),
+        "let m = y ~ . .a(1)\n    .b(2)\n    .c\n"
+    );
+    // What is written is formatted already.
+    for text in [
+        ". .a\n    .b()\n",
+        ". .coord(type: flip)\n    .labels(x: \"\")\n",
+    ] {
+        assert_eq!(formatted(text), text);
+    }
+}
+
 #[test]
 fn a_script_that_does_not_parse_is_left_alone() {
     for text in [
