@@ -449,6 +449,13 @@ jobs:
           # solver running to its cap). The floor is four minutes, which is also what a hang by
           # nature costs.
           (cargo mutants --package ${{ matrix.package }} --shard ${{ matrix.shard }}/${{ matrix.of }} --test-workspace ${{ matrix.own_tests && 'false' || 'true' }} --timeout-multiplier 5 --minimum-test-timeout 240 --output mutants -- -- --skip draws_recover_their_distribution --skip every_family_agrees_with_r_at_six_digits || true) 2>&1 | tail -40
+          # The tool's own output is cut to its last forty lines, which holds the totals and at
+          # most nineteen survivors. The lists are printed here in full, so that a shard with
+          # more can be read from its log (at 0.7.0 three shards of zeff-stats had more).
+          echo "Surviving mutants, in full:"
+          cat mutants/mutants.out/missed.txt || true
+          echo "Timeouts, in full:"
+          cat mutants/mutants.out/timeout.txt || true
           {
             echo "## Weekly: mutation testing of ${{ matrix.package }}, shard ${{ matrix.shard }} of ${{ matrix.of }}"
             echo

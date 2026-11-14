@@ -278,6 +278,10 @@ mod tests {
             assert!(narrow.lower[k] < narrow.y[k] && narrow.y[k] < narrow.upper[k]);
         }
         assert_eq!((narrow.x[0], narrow.x[PLACES - 1]), (1.0, 5.0));
+        // The last place is the largest value itself, not the sum of the steps to it, which
+        // from 0.07 to 0.93 falls short of it in the last digit.
+        let odd = line(&[0.07, 0.5, 0.93], &[1.0, 3.0, 2.0], 0.9).unwrap();
+        assert_eq!((odd.x[0], odd.x[PLACES - 1]), (0.07, 0.93));
         assert!(narrow.x.windows(2).all(|pair| pair[0] < pair[1]));
         // The band is narrowest at the mean of `x`, here 3.
         let widths: Vec<f64> = (0..PLACES)

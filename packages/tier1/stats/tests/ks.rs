@@ -525,3 +525,36 @@ fn every_form_and_every_message() {
     }
     insta::assert_snapshot!("messages", all);
 }
+
+/// From a hundred values the p-value is the asymptotic one, and the line that says so speaks
+/// of ties only where there are ties.
+#[test]
+fn the_asymptotic_line_speaks_of_ties_only_where_there_are_ties() {
+    let distinct: Vec<String> = (1..=120)
+        .map(|i| format!("{}", f64::from(i) / 121.0))
+        .collect();
+    let (exit, stdout, stderr) = go(&format!(
+        "frame(x = [{}]).ks_test(x, dist.normal(mean: 0.5, sd: 0.3))\n",
+        distinct.join(", ")
+    ));
+    assert_eq!(exit, 0, "{stderr}");
+    assert!(
+        stdout.contains("asymptotic p-value from the limiting Kolmogorov distribution\n"),
+        "{stdout}"
+    );
+    assert!(!stdout.contains("with ties present"), "{stdout}");
+    let tied: Vec<String> = (1..=120)
+        .map(|i| format!("{}", f64::from(i / 2) / 61.0))
+        .collect();
+    let (exit, stdout, stderr) = go(&format!(
+        "frame(x = [{}]).ks_test(x, dist.normal(mean: 0.5, sd: 0.3))\n",
+        tied.join(", ")
+    ));
+    assert_eq!(exit, 0, "{stderr}");
+    assert!(
+        stdout.contains(
+            "asymptotic p-value from the limiting Kolmogorov distribution, with ties present\n"
+        ),
+        "{stdout}"
+    );
+}
