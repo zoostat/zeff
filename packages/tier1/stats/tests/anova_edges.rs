@@ -161,3 +161,29 @@ fn one_residual_degree_of_freedom_is_enough() {
     );
     assert!(out.contains("  residual    1    4.500   4.500\n"), "{out}");
 }
+
+/// Covariates named by a range in the formula are held at their means for the marginal means
+/// of `posthoc`, as when they are written out one by one: the two forms print the same table.
+#[test]
+fn a_range_of_covariates_is_held_at_its_means_like_the_covariates_written_out() {
+    let data = "let d = frame(a = [\"p\", \"p\", \"p\", \"p\", \"q\", \"q\", \"q\", \"q\", \"r\", \"r\", \"r\", \"r\"], x1 = [1.0, 2.0, 4.0, 3.0, 5.0, 9.0, 2.0, 8.0, 7.0, 6.0, 3.5, 1.5], x2 = [2.0, 1.0, 3.0, 5.0, 4.0, 6.0, 8.0, 7.0, 9.0, 12.0, 10.0, 11.0], y = [1.2, 2.9, 4.1, 3.3, 5.8, 9.4, 2.2, 8.9, 7.1, 6.6, 3.9, 1.1])\n";
+    let (ranged, _) = printed(&format!(
+        "{data}d.anova(y ~ category(a) + x1..x2).posthoc(term: a)\n"
+    ));
+    let (written, _) = printed(&format!(
+        "{data}d.anova(y ~ category(a) + x1 + x2).posthoc(term: a)\n"
+    ));
+    assert!(
+        ranged.contains("with the numeric variables at their means (x1 = 4.33333, x2 = 6.5)\n"),
+        "{ranged}"
+    );
+    assert!(
+        ranged.contains(
+            "  p − q            -0.240       0.446     -0.54     0.856   [-1.554, 1.074]\n"
+        ),
+        "{ranged}"
+    );
+    // Below the first line, which repeats the formula as it was written, the two are one text.
+    let below = |text: &str| text.split_once('\n').map(|(_, rest)| rest.to_string());
+    assert_eq!(below(&ranged), below(&written));
+}

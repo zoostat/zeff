@@ -24,3 +24,36 @@ fn the_fitted_values_and_residuals_of_a_weighted_fit_are_those_of_the_rows() {
         "{out}"
     );
 }
+
+/// The standardized coefficients of `summary(standardized: true)`: each estimate times the
+/// standard deviation of its regressor over that of the outcome. In R,
+/// `coef(m)[-1] * c(sd(x), sd(z)) / sd(y)` gives 1.365209 and -0.647645.
+#[test]
+fn the_standardized_coefficients_are_those_of_the_standard_deviations() {
+    let outcome = run(
+        "let d = frame(y = [1.0, 3.0, 2.0, 5.0, 4.0, 7.0], x = [1.0, 2.0, 3.0, 4.0, 5.0, 6.0], z = [2.0, 1.0, 4.0, 3.0, 6.0, 4.0])\nlet m = d.reg(y ~ x + z)\nm.summary(standardized: true)\n",
+    );
+    assert_eq!(outcome.exit_code, 0, "{}", outcome.output.stderr);
+    let out = outcome.output.stdout.clone();
+    assert!(out.contains("  x               1.5764    1.3652 "), "{out}");
+    assert!(out.contains("  z              -0.7989   -0.6476 "), "{out}");
+}
+
+/// A report of fits names the first three causes of its failed fits, and says that there are
+/// more only when there are more than three.
+#[test]
+fn a_report_names_three_causes_of_failed_fits_and_says_when_there_are_more() {
+    let outcome = run(
+        "let d = frame(x = [1.0, 3.0, 2.0, 5.0, 4.0, 7.0], y = [2.0, 1.0, 4.0, 3.0, 6.0, 4.0])\nlet good = d.reg(y ~ x)\nlet f1 = attempt(d.where(x > 100).reg(y ~ x))\nlet f2 = attempt(d.where(x > 200).reg(y ~ x))\nlet f3 = attempt(d.where(x > 300).reg(y ~ x))\nlet f4 = attempt(d.where(x > 400).reg(y ~ x))\nreport([good, f1, f2, f3])\nreport([good, f1, f2, f3, f4])\n",
+    );
+    assert_eq!(outcome.exit_code, 0, "{}", outcome.output.stderr);
+    let notes = outcome.output.stderr.clone();
+    assert!(
+        notes.contains("warning[W0801]: 3 of 4 fits failed (Z0801 at line 3, Z0801 at line 4, Z0801 at line 5) and were skipped (line 7)\n"),
+        "{notes}"
+    );
+    assert!(
+        notes.contains("warning[W0801]: 4 of 5 fits failed (Z0801 at line 3, Z0801 at line 4, Z0801 at line 5, …) and were skipped (line 8)\n"),
+        "{notes}"
+    );
+}

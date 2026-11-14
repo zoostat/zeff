@@ -11,10 +11,10 @@ group & N & mean & sd \\
 male & 9,604 & 3.214 & 0.512 \\
 female & 8,597 & 3.061 & 0.498 \\
 \bottomrule
-\multicolumn{4}{@{}l@{}}{\footnotesize   H0: the population means of lwage are equal in male and female        μ(male) $-$ μ(female) = 0} \\
-\multicolumn{4}{@{}l@{}}{\footnotesize   H1: the population means of lwage differ between male and female      μ(male) $-$ μ(female) ≠ 0} \\
+\multicolumn{4}{@{}l@{}}{\footnotesize   H0: the population means of lwage are equal in male and female        $\mu$(male) $-$ $\mu$(female) = 0} \\
+\multicolumn{4}{@{}l@{}}{\footnotesize   H1: the population means of lwage differ between male and female      $\mu$(male) $-$ $\mu$(female) $\neq$ 0} \\
 \multicolumn{4}{@{}l@{}}{\footnotesize difference (male $-$ female) = 0.153   95\% CI [0.138, 0.168]} \\
 \multicolumn{4}{@{}l@{}}{\footnotesize t = 20.42   df = 18,074.2   p $<$ 0.001} \\
 \multicolumn{4}{@{}l@{}}{\footnotesize Hedges' g = 0.30   95\% CI [0.27, 0.33]} \\
-\multicolumn{4}{@{}l@{}}{\footnotesize decision at α = 0.05: reject H0 (p $<$ 0.001)} \\
+\multicolumn{4}{@{}l@{}}{\footnotesize decision at $\alpha$ = 0.05: reject H0 (p $<$ 0.001)} \\
 \end{tabular}

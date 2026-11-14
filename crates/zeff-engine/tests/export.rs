@@ -72,6 +72,104 @@ fn a_table_is_written_as_word_and_latex_under_the_project() {
     assert!(fs.is_file(Path::new("/p/data/wages.csv")));
 }
 
+/// A test's result written as LaTeX (release 0.7.0, step 40a). Until this step a result
+/// without a table of groups was written as a `tabular` with no column, which LaTeX refuses,
+/// and the Greek letters and the `≠` of the hypotheses were written as they are, which
+/// pdfLaTeX refuses and XeLaTeX drops; a mutant of the writer that no test caught led to
+/// both. The lines of such a result now stand in one column between two rules, every symbol
+/// is its command, and where `pdflatex` is installed the files are compiled.
+#[test]
+fn a_tests_result_is_written_as_latex_that_compiles() {
+    let (fs, project) = project();
+    let script = "let d = frame(x = [1.0, 3.0, 2.0, 5.0, 4.0, 7.0], z = [0.5, 2.0, 2.5, 3.0, 5.0, 6.0], g = [\"a\", \"a\", \"a\", \"b\", \"b\", \"b\"], u = [true, false, true, true, false, true])\n\
+                  d.t_test(x, mu: 0).export(\"one.tex\")\n\
+                  d.t_test(x, z, paired: true).export(\"paired.tex\")\n\
+                  d.t_test(x, group: g).export(\"two.tex\")\n\
+                  d.proportion_test(u, p: 0.5).export(\"share.tex\")\n\
+                  d.wilcoxon_test(x, mu: 1).export(\"rank.tex\")\n\
+                  d.t_test(x, mu: 0).export(\"one.docx\")\n";
+    let (code, stdout, stderr) = go(&fs, &project, script);
+    assert_eq!(code, 0, "{stderr}");
+    assert_eq!(stdout, "", "an export prints nothing");
+    let read = |name: &str| {
+        fs.read_to_string(Path::new(&format!("/p/output/{name}.tex")))
+            .unwrap()
+    };
+    let one = read("one");
+    assert!(
+        one.starts_with(
+            "% requires \\usepackage{booktabs}\n% t_test · one-sample · x\n\\begin{tabular}{@{}l@{}}\n\\toprule\n  H0: the population mean of x equals 0            $\\mu$ = 0 \\\\\n  H1: the population mean of x differs from 0      $\\mu$ $\\neq$ 0 \\\\\n"
+        ),
+        "{one}"
+    );
+    assert!(
+        one.contains("t = 4.16   df = 5   p = 0.009 \\\\\n"),
+        "{one}"
+    );
+    assert!(
+        one.contains("decision at $\\alpha$ = 0.05: reject H0"),
+        "{one}"
+    );
+    assert!(one.ends_with("\\bottomrule\n\\end{tabular}\n"), "{one}");
+    // A result with a table of groups keeps its grid, and its lines under it.
+    let two = read("two");
+    assert!(two.contains("\\begin{tabular}{lrrr}\n"), "{two}");
+    assert!(two.contains("$\\mu$(a) $-$ $\\mu$(b) $\\neq$ 0"), "{two}");
+    let files = [
+        ("one", one),
+        ("paired", read("paired")),
+        ("two", two),
+        ("share", read("share")),
+        ("rank", read("rank")),
+    ];
+    // Outside the comment with the title, nothing but ASCII is left for LaTeX to stumble on.
+    for (name, tex) in &files {
+        for line in tex.lines().filter(|line| !line.starts_with('%')) {
+            assert!(line.is_ascii(), "{name}: {line}");
+        }
+        assert!(!tex.contains("\\begin{tabular}{}"), "{name}: {tex}");
+    }
+    // As Word: the lines as paragraphs, and no table whose row has no cell.
+    let docx = fs.read(Path::new("/p/output/one.docx")).unwrap();
+    let inside = String::from_utf8_lossy(&docx);
+    assert!(
+        inside.contains("H0: the population mean of x equals 0"),
+        "{inside}"
+    );
+    assert!(!inside.contains("<w:tbl>"), "{inside}");
+    // Compiled, where there is a LaTeX to compile with.
+    let installed = std::process::Command::new("pdflatex")
+        .arg("--version")
+        .output()
+        .is_ok_and(|o| o.status.success());
+    if !installed {
+        return;
+    }
+    let folder = Path::new(env!("CARGO_TARGET_TMPDIR")).join("latex_of_tests");
+    std::fs::create_dir_all(&folder).unwrap();
+    for (name, tex) in &files {
+        let document = format!(
+            "\\documentclass{{article}}\n\\usepackage{{booktabs}}\n\\begin{{document}}\n{tex}\\end{{document}}\n"
+        );
+        std::fs::write(folder.join(format!("{name}.tex")), document).unwrap();
+        let run = std::process::Command::new("pdflatex")
+            .args(["-interaction=nonstopmode", "-halt-on-error"])
+            .arg(format!("{name}.tex"))
+            .current_dir(&folder)
+            .output()
+            .unwrap();
+        assert!(
+            run.status.success(),
+            "{name}.tex does not compile:\n{}",
+            String::from_utf8_lossy(&run.stdout)
+                .lines()
+                .filter(|line| line.starts_with('!'))
+                .collect::<Vec<_>>()
+                .join("\n")
+        );
+    }
+}
+
 #[test]
 fn every_message() {
     let cases: &[(&str, &str)] = &[

@@ -489,6 +489,20 @@ pub fn tex(table: &Table) -> String {
 fn table_tex(out: &mut String, table: &Table) {
     let k = table.columns.len().max(1);
     out.push_str(&format!("% {}\n", table.title.replace('\n', " ")));
+    // A result without a grid (a test with an estimate and no table of groups) is its lines
+    // alone: one column between two rules. A `tabular` without a column does not compile.
+    if table.columns.is_empty() {
+        out.push_str("\\begin{tabular}{@{}l@{}}\n\\toprule\n");
+        for line in table.before.iter().chain(&table.after) {
+            out.push_str(&format!("{} \\\\\n", escape_tex(line)));
+        }
+        out.push_str("\\bottomrule\n\\end{tabular}\n");
+        for further in &table.more {
+            out.push('\n');
+            table_tex(out, further);
+        }
+        return;
+    }
     let spec: String = table
         .columns
         .iter()
@@ -528,8 +542,9 @@ fn table_tex(out: &mut String, table: &Table) {
 }
 
 /// Text as LaTeX writes it: the special characters escaped, the comparison signs in maths mode,
-/// and the few symbols the printed tables use (`²`, `·`, `−`, `×`, `…`) as their commands, so
-/// that the file compiles under pdfLaTeX without extra packages.
+/// and the symbols the printed tables and the lines of a test use (`²`, `·`, `−`, `×`, `…`,
+/// `≠`, the Greek letters of the hypotheses) as their commands, so that the file compiles
+/// under pdfLaTeX without extra packages.
 pub fn escape_tex(text: &str) -> String {
     let mut out = String::with_capacity(text.len());
     for c in text.chars() {
@@ -551,6 +566,34 @@ pub fn escape_tex(text: &str) -> String {
             '≤' => out.push_str("$\\leq$"),
             '≥' => out.push_str("$\\geq$"),
             '…' => out.push_str("\\ldots{}"),
+            '≠' => out.push_str("$\\neq$"),
+            '≈' => out.push_str("$\\approx$"),
+            '±' => out.push_str("$\\pm$"),
+            '→' => out.push_str("$\\to$"),
+            '∞' => out.push_str("$\\infty$"),
+            '₁' => out.push_str("$_1$"),
+            '₂' => out.push_str("$_2$"),
+            'α' => out.push_str("$\\alpha$"),
+            'β' => out.push_str("$\\beta$"),
+            'γ' => out.push_str("$\\gamma$"),
+            'δ' => out.push_str("$\\delta$"),
+            'ε' => out.push_str("$\\varepsilon$"),
+            'η' => out.push_str("$\\eta$"),
+            'θ' => out.push_str("$\\theta$"),
+            'λ' => out.push_str("$\\lambda$"),
+            'μ' => out.push_str("$\\mu$"),
+            'ν' => out.push_str("$\\nu$"),
+            'π' => out.push_str("$\\pi$"),
+            'ρ' => out.push_str("$\\rho$"),
+            'σ' => out.push_str("$\\sigma$"),
+            'τ' => out.push_str("$\\tau$"),
+            'φ' => out.push_str("$\\varphi$"),
+            'χ' => out.push_str("$\\chi$"),
+            'ω' => out.push_str("$\\omega$"),
+            'Γ' => out.push_str("$\\Gamma$"),
+            'Δ' => out.push_str("$\\Delta$"),
+            'Σ' => out.push_str("$\\Sigma$"),
+            'Φ' => out.push_str("$\\Phi$"),
             other => out.push(other),
         }
     }
@@ -631,6 +674,18 @@ fn table_xml(x: &mut String, table: &Table) {
                 + 220
         })
         .collect();
+    // A result without a grid is its lines alone, as paragraphs: a table whose row has no
+    // cell is not a document Word opens.
+    if table.columns.is_empty() {
+        for line in &table.after {
+            paragraph(x, line, Style::Plain);
+        }
+        for further in &table.more {
+            paragraph(x, "", Style::Plain);
+            table_xml(x, further);
+        }
+        return;
+    }
     x.push_str(concat!(
         "<w:tbl><w:tblPr><w:tblW w:w=\"0\" w:type=\"auto\"/>",
         "<w:tblBorders>",
