@@ -170,5 +170,14 @@ mod tests {
         assert!(equal.theoretical[0] < equal.theoretical[1]);
         assert!(equal.theoretical[1] < equal.theoretical[2]);
         assert_eq!(equal.line, Some((2.0, 0.0)));
+        // A distribution whose two quartiles are one value has no line: a Poisson of mean
+        // 0.1, where `qpois(c(0.25, 0.75), 0.1)` is 0 and 0.
+        let poisson = Distribution::Family {
+            name: "poisson",
+            params: vec![("lambda", 0.1)],
+        };
+        let flat = pairs(&[0.0, 0.0, 1.0, 0.0], &poisson);
+        assert_eq!(flat.line, None);
+        assert_eq!(flat.theoretical.len(), 4);
     }
 }

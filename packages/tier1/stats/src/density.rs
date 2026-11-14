@@ -162,6 +162,15 @@ mod tests {
             (vec![3.0; 10], 1.70358483009652),
             (vec![1.0, 4.0], 0.877047209290871),
             (vec![0.0, 0.0, 0.0], 0.722467405584208),
+            // Long tails, where the quartiles rule and fall between two values.
+            (
+                vec![1.0, 2.0, 3.0, 4.0, 5.0, 6.0, 7.0, 8.0, 9.0, 100.0],
+                1.9069979441379,
+            ),
+            (
+                vec![2.5, 1.0, 7.25, 3.0, 40.0, 3.5, 4.0, 0.5, 5.0, 6.0, -30.0],
+                1.55915912858804,
+            ),
         ] {
             let found = silverman(&values).unwrap();
             assert!(
@@ -380,6 +389,18 @@ mod tests {
         assert_eq!(estimate(&[], None, 1.0, Kernel::Gaussian), None);
         assert_eq!(estimate(&b(), Some(0.0), 1.0, Kernel::Gaussian), None);
         assert_eq!(estimate(&b(), None, 0.0, Kernel::Gaussian), None);
+    }
+
+    #[test]
+    fn the_rectangular_kernel_is_zero_at_its_reach() {
+        // R's `abs(x) < a`: the one kernel that does not fall to zero by itself is 0 at
+        // its reach, and a half over the reach just inside it.
+        let bandwidth = 1.7;
+        let reach = bandwidth * sqrt(3.0);
+        assert_eq!(kernel(Kernel::Rectangular, reach, bandwidth), 0.0);
+        assert_eq!(kernel(Kernel::Rectangular, -reach, bandwidth), 0.0);
+        let inside = kernel(Kernel::Rectangular, reach * (1.0 - 1e-12), bandwidth);
+        assert_eq!(inside, 0.5 / reach);
     }
 
     #[test]
