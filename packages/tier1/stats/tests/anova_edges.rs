@@ -142,3 +142,22 @@ fn an_outcome_at_the_largest_size_is_computed() {
     ));
     assert!(message.contains("error[Z0803]"), "{message}");
 }
+
+/// One residual degree of freedom is enough: five rows in four cells. `car::Anova(lm(y ~ a *
+/// b), type = 2)` gives F = 1.9101 (p = 0.3988) for `a`, 0.1323 (0.7779) for `b` and 0.0159
+/// (0.9202) for their interaction, on a residual sum of squares of 4.5.
+#[test]
+fn one_residual_degree_of_freedom_is_enough() {
+    let (out, _) = printed(
+        "frame(a = [\"p\", \"p\", \"q\", \"q\", \"q\"], b = [\"u\", \"v\", \"u\", \"v\", \"v\"], y = [1.0, 2.0, 4.0, 3.0, 6.0]).anova(y ~ category(a) * category(b))\n",
+    );
+    assert!(
+        out.contains("  a           1    8.595   8.595   1.91     0.399                 0.656\n"),
+        "{out}"
+    );
+    assert!(
+        out.contains("  a:b         1    0.071   0.071   0.02     0.920                 0.016\n"),
+        "{out}"
+    );
+    assert!(out.contains("  residual    1    4.500   4.500\n"), "{out}");
+}
