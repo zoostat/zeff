@@ -4961,3 +4961,17 @@ error[Z0001]: no rows to take the mean of
 
 **Reason.** The checklist's step 39b; Engine and Project Specification, section 14, the row of 0.7.0.
 
+## 14 November 2026: the scheduled jobs at release 0.7.0 (step 39c)
+
+**Coverage.** The weekly report's script lists every crate it finds, so the new crates were in its table already; its totals now count them where they belong: `zeff-lsp` and `zeff-web` in the language tooling (reported for risk R5, no threshold), and `plot` among the other packages by name. The thresholds, 80% for the kernel and for the estimators, are unchanged.
+
+**Mutation.** The handbook asks for mutation testing of the estimator and variance code. The tests of this release (`t_test` to `posthoc`) are code of that kind: a wrong sign or a wrong degree of freedom gives a wrong p-value that looks right. `zeff-stats` joins the weekly job: 3,633 mutants. They are run against the package's own tests and not the workspace's. Each function of the package has its own reference test against R and its own properties, so a mutant its own tests miss is a gap in them, which is what the job is for; and the workspace's tests now take a quarter of an hour on a runner (13.5 minutes in the `test` job of this commit), against a minute or so for the package's, so that sixteen shards of some 230 mutants fit their time where the workspace's tests would need over a hundred. A mutant that only another package's tests would catch is counted as missed: the count errs on the side of reading one more. The four older packages are left as they are; their shards ran from an hour and a half to four and three-quarter hours on 2 November, under a limit of five hours forty, and the growth of the workspace's tests since then may push the longest over it. That is measured at step 40a, when the job is run by hand on the commit, and the shards are cut finer there if it is so.
+
+**Fuzzing.** Nothing to change: the job seeds every corpus from `samples/*/scripts/main.zeff`, which takes the `tests` sample and the longer `plots` script as they are, and the language server has had its target since step 34c.
+
+**Benchmarks.** The split of step 39 said that the suite would gain a test, a table and a figure. That was mine and wrong: section 6 of the Testing Handbook lists the suite's cases, and for this release adds only the browser build, which step 33e3 built with its digests and the nightly job runs. A new case would be a change to a normative table, which the freeze does not allow without a decision. The checklist's line is corrected.
+
+**The weekly run of 9 November was cancelled** (it is the last one before this commit; the record of who or what cancelled it is not in the run). The weekly job has therefore not run on the code of 0.7.0 at all. Step 40a runs it by hand.
+
+**Reason.** The checklist's step 39c; Testing Handbook, sections 1 and 6.
+

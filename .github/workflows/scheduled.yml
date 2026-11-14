@@ -323,6 +323,13 @@ jobs:
     # 364, zeff-regress 353, each running the workspace's tests, which take about seventy
     # seconds on a runner), so each crate's mutants are shared among runners in proportion,
     # about 115 a shard: a clean shard of 150 took two and three-quarter hours at 0.5.0.
+    # From 0.7.0 the tests of `zeff-stats` are in the job too (3,633 mutants at step 39c): the
+    # tests of means, counts and ranks, `anova` and `posthoc`. Each of its functions has its own
+    # reference and property tests in the package, so its mutants run against the package's own
+    # tests (`own_tests`), which take about a minute, and not the workspace's, which take a
+    # quarter of an hour at this release: sixteen shards of some 230 mutants. A mutant that only
+    # another package's tests would catch is then counted as missed, which errs on the side of
+    # reading one more.
     name: weekly (mutation testing, ${{ matrix.package }} ${{ matrix.shard }} of ${{ matrix.of }})
     if: >-
       github.event_name == 'workflow_dispatch' && (inputs.job == 'both' || inputs.job == 'weekly')
@@ -371,6 +378,22 @@ jobs:
           - { package: zeff-regress, shard: 1, of: 4 }
           - { package: zeff-regress, shard: 2, of: 4 }
           - { package: zeff-regress, shard: 3, of: 4 }
+          - { package: zeff-stats, shard: 0, of: 16, own_tests: true }
+          - { package: zeff-stats, shard: 1, of: 16, own_tests: true }
+          - { package: zeff-stats, shard: 2, of: 16, own_tests: true }
+          - { package: zeff-stats, shard: 3, of: 16, own_tests: true }
+          - { package: zeff-stats, shard: 4, of: 16, own_tests: true }
+          - { package: zeff-stats, shard: 5, of: 16, own_tests: true }
+          - { package: zeff-stats, shard: 6, of: 16, own_tests: true }
+          - { package: zeff-stats, shard: 7, of: 16, own_tests: true }
+          - { package: zeff-stats, shard: 8, of: 16, own_tests: true }
+          - { package: zeff-stats, shard: 9, of: 16, own_tests: true }
+          - { package: zeff-stats, shard: 10, of: 16, own_tests: true }
+          - { package: zeff-stats, shard: 11, of: 16, own_tests: true }
+          - { package: zeff-stats, shard: 12, of: 16, own_tests: true }
+          - { package: zeff-stats, shard: 13, of: 16, own_tests: true }
+          - { package: zeff-stats, shard: 14, of: 16, own_tests: true }
+          - { package: zeff-stats, shard: 15, of: 16, own_tests: true }
     steps:
       - name: Check out the repository
         if: env.SELECTED == 'true'
@@ -425,7 +448,7 @@ jobs:
           # left no room for a mutant that fails slowly (a property test shrinking its case, a
           # solver running to its cap). The floor is four minutes, which is also what a hang by
           # nature costs.
-          (cargo mutants --package ${{ matrix.package }} --shard ${{ matrix.shard }}/${{ matrix.of }} --test-workspace true --timeout-multiplier 5 --minimum-test-timeout 240 --output mutants -- -- --skip draws_recover_their_distribution --skip every_family_agrees_with_r_at_six_digits || true) 2>&1 | tail -40
+          (cargo mutants --package ${{ matrix.package }} --shard ${{ matrix.shard }}/${{ matrix.of }} --test-workspace ${{ matrix.own_tests && 'false' || 'true' }} --timeout-multiplier 5 --minimum-test-timeout 240 --output mutants -- -- --skip draws_recover_their_distribution --skip every_family_agrees_with_r_at_six_digits || true) 2>&1 | tail -40
           {
             echo "## Weekly: mutation testing of ${{ matrix.package }}, shard ${{ matrix.shard }} of ${{ matrix.of }}"
             echo

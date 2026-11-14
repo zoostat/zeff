@@ -6,10 +6,12 @@ Prints a table of line coverage per crate (the kernel crates first, then the est
 the language tooling, then the other packages), then the kernel's total, the estimators' total
 (the `results` and `regress` packages: the design, the estimator and variance layers and the
 regressions), the language tooling's total (`zeff-syntax`, `zeff-ir` and `zeff-engine`: the
-lexer and parser, the checker and the interpreter, reported for the risk register's R5) and the
-other packages' total (`core`, `time`, `text`, `data`, `dist`, `stats` and `datasets`: the
-language's values and operators, the dates and the text functions, the verbs and the
-distributions, reported since release 0.6.0), and exits 1 when the kernel's or the estimators'
+lexer and parser, the checker and the interpreter, reported for the risk register's R5; from
+release 0.7.0 `zeff-lsp` and `zeff-web` with them, the language server and the browser's worker)
+and the other packages' total (`core`, `time`, `text`, `data`, `dist`, `stats`, `plot` and
+`datasets`: the language's values and operators, the dates and the text functions, the verbs,
+the distributions, the tests and the plot grammar, reported since release 0.6.0), and exits 1
+when the kernel's or the estimators'
 total is below the threshold given (the testing handbook asks for 80% or more in the kernel and
 the estimators; the language tooling and the other packages have no threshold and are reported
 only). The table is Markdown, so it reads well in a job summary.
@@ -32,7 +34,13 @@ def crate_of(path):
 
 
 ESTIMATORS = ("packages/tier1/results", "packages/tier2/regress")
-LANGUAGE = ("crates/zeff-syntax", "crates/zeff-ir", "crates/zeff-engine")
+LANGUAGE = (
+    "crates/zeff-syntax",
+    "crates/zeff-ir",
+    "crates/zeff-engine",
+    "crates/zeff-lsp",
+    "crates/zeff-web",
+)
 
 
 def is_package(crate):
@@ -89,12 +97,12 @@ def main(argv):
     )
     print()
     print(
-        f"Language tooling total (syntax, ir and engine): {language_pct:.1f}% of {language_count:,} lines"
+        f"Language tooling total (syntax, ir, engine, lsp and web): {language_pct:.1f}% of {language_count:,} lines"
         " (reported for risk R5; no threshold)."
     )
     print()
     print(
-        f"Other packages total (core, time, text, data, dist, stats and datasets): {packages_pct:.1f}%"
+        f"Other packages total (core, time, text, data, dist, stats, plot and datasets): {packages_pct:.1f}%"
         f" of {packages_count:,} lines (reported; no threshold)."
     )
     short = []
