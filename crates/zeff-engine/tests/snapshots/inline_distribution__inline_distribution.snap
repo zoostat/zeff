@@ -1,0 +1,28 @@
+---
+source: crates/zeff-engine/tests/inline_distribution.rs
+expression: "format!(\"{stdout}---\\n{stderr}\")"
+---
+2.0639
+2.0639
+70.6005
+0.398942
+0.949894
+Column<Int> · 4 values
+5
+8
+3
+8
+0.67449
+27.585
+27.585
+27.585
+frame · 1 row × 2 variables
+
+          q       cut
+  1   49.13   1.28155
+---
+warning[W0201]: 26 rows with NA in wage were skipped (line 9)
+warning[W0201]: 26 rows with NA in wage were skipped (line 10)
+warning[W0201]: 26 rows with NA in wage were skipped (line 11)
+warning[W0201]: 26 rows with NA in wage were skipped (line 12)
+note: the panel declaration `worker × year` dropped: `aggregate` summarised the rows (line 12)

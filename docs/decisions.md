@@ -5576,3 +5576,15 @@ Done before parts 1 and 2 are read, because those wait for jobs that run for hou
 **Held by.** `crates/zeff-engine/tests/variable_ranges.rs`: a table of 37 calls, one for every parameter of the registry that takes variables (34 of functions written in Rust and three reached through Zeff), each run with a range and with the names it expands to and required to print the same; a test that reads the registry and fails for a parameter the table lacks; a stored snapshot of ten refusals and of a name repeated by a range.
 
 **Reason.** Language Reference, section 6, "Names inside a frame's methods"; the checklist's step 8m, a correction where the engine disagreed with the specification. The specification is unchanged.
+
+## 16 November 2026 — the home of a name is chosen by its first argument, whatever its form (release 0.8.0, step 8n)
+
+**What was wrong.** `quantile` has a home in `data` (the reducer of a frame) and one in `dist` (the quantile of a distribution). In the call form, `quantile(x, …)`, the checker chose between them by the type of `x` only when `x` was a binding; for anything else it took the first home, `data`. So `quantile(d, 0.975)` worked and `quantile(dist.t(df: 24), 0.975)` was refused with Z0401, "`quantile` cannot be called on a Distribution".
+
+**Choice.** The checker reads the type the first argument will have from what is declared, without checking the argument a second time: the type of a binding, as before; the declared result of a namespaced call (`dist.t(…)`), of a call of a name with one home or of a qualified call; and the declared result of a method on a value whose own type is found the same way, so a chain is followed. Brackets are looked through. Where the declared result depends on the arguments (`Same`, `Join`) nothing is known and the choice falls back as before. Nothing is reported and nothing recorded by this reading; the argument is checked once, afterwards, against the function chosen.
+
+**What it reaches.** Every name with several homes that are methods, not `quantile` alone: `min`, `max`, `histogram` and the like choose their home by an inline first argument as they did by a bound one. Inside a frame method the reducer of `data` still comes first when the arguments fit it, so `w.aggregate(q = quantile(wage, p: 0.9), cut = quantile(dist.normal(), 0.9))` gives each its own.
+
+**Held by.** `crates/zeff-engine/tests/inline_distribution.rs`: the seventeen ways of writing a family (each family, the two forms of the negative binomial, a truncated distribution, a mixture, the studentized range), with `pdf`, `cdf` (lower and upper), `quantile` and `draw`, in the call form and the method form, each compared with `==` against the same distribution bound to a name; and a stored snapshot of the forms, of a distribution inside another, and of a frame written inline still reaching `data`.
+
+**Reason.** Language Reference, section 4, the row "Specification"; section 3.1, "Methods" (`f(x, a)` is `x.f(a)`); the checklist's step 8n, a correction where the engine disagreed with the specification. The specification is unchanged.

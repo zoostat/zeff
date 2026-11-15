@@ -4072,6 +4072,56 @@ impl Checker<'_> {
         }
     }
 
+    /// The type an expression will have, read from what is declared and without checking the
+    /// expression (so nothing is reported and nothing recorded): the type of a binding; the
+    /// declared result of the function a call names, for a namespaced call (`dist.t(...)`), a
+    /// call of a name with one home, a qualified call, and a method on a value whose own type
+    /// is found the same way. `None` for anything else, and where the declared result depends
+    /// on the arguments (`Same`, `Join`). It chooses the home of a name by its first argument.
+    fn declared_type(&self, e: &ast::Expr) -> Option<Ty> {
+        let result_of = |f: &Registered| {
+            Ty::parse(f.spec.returns).filter(|t| !matches!(t, Ty::Unknown | Ty::Any))
+        };
+        match &e.kind {
+            ast::ExprKind::Paren(inner) => self.declared_type(inner),
+            ast::ExprKind::Name(path) if path.segments.len() == 1 => self
+                .lookup(&path.segments[0].text)
+                .map(|id| self.bindings[id].ty.clone())
+                .filter(|ty| *ty != Ty::Unknown),
+            ast::ExprKind::Method { receiver, name, .. } if name.segments.len() == 1 => {
+                let method = name.segments[0].text.as_str();
+                if let ast::ExprKind::Name(path) = &receiver.kind
+                    && path.segments.len() == 1
+                    && NAMESPACES.contains(&path.segments[0].text.as_str())
+                {
+                    let named = format!("{}.{method}", path.segments[0].text);
+                    return match self.registry.named(&named).as_slice() {
+                        [one] => result_of(one),
+                        _ => None,
+                    };
+                }
+                let on = self.declared_type(receiver)?;
+                self.registry
+                    .named(method)
+                    .into_iter()
+                    .find(|f| takes_first(&f.spec, &on))
+                    .and_then(result_of)
+            }
+            ast::ExprKind::Call { callee, .. } => match callee.segments.as_slice() {
+                [name] => match self.registry.named(&name.text).as_slice() {
+                    [one] => result_of(one),
+                    _ => None,
+                },
+                [package, name] => self
+                    .registry
+                    .function(&package.text, &name.text)
+                    .and_then(result_of),
+                _ => None,
+            },
+            _ => None,
+        }
+    }
+
     fn binary(
         &mut self,
         op: ast::BinaryOp,
@@ -5890,12 +5940,11 @@ impl Checker<'_> {
                     ast::Arg::Positional(e) => Some(e),
                     _ => None,
                 });
-                let known: Option<Ty> = match first_is.map(|e| &e.kind) {
-                    Some(ast::ExprKind::Name(path)) if path.segments.len() == 1 => self
-                        .lookup(&path.segments[0].text)
-                        .map(|id| self.bindings[id].ty.clone()),
-                    _ => None,
-                };
+                // The first argument's type is read whatever its form (release 0.8.0, step 8n): a
+                // binding, a namespaced call such as `dist.t(df: 24)`, a call, or a method
+                // chain, so that `quantile(dist.t(df: 24), 0.975)` is the quantile of a
+                // distribution as `quantile(d, 0.975)` is.
+                let known: Option<Ty> = first_is.and_then(|e| self.declared_type(e));
                 let by_first = known.filter(|ty| *ty != Ty::Unknown).and_then(|ty| {
                     homes.iter().find(|f| {
                         f.spec.method

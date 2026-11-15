@@ -135,3 +135,13 @@ Step 8b `[engine]`: the language server folds chains, blocks and functions, offe
 **Next.** Step 8n `[engine]`: a distribution written inside a call, `quantile(dist.t(df: 24), 0.975)`.
 
 **For the owner to decide.** Nothing blocks.
+
+## 16 November 2026, release 0.8.0, step 8n (a distribution written inside a call)
+
+**Done.** Step 8n `[engine]`: `quantile(dist.t(df: 24), 0.975)` now gives 2.0639, as it did only when the distribution was first given a name; before, the engine took the distribution for a frame and refused the call. The checker now reads the type of a function's first argument whatever its form. Every family gives the same bits written inline or bound, with `pdf`, `cdf`, `quantile` and `draw`.
+
+**Green.** Format, clippy with warnings denied, the tier, message and grammar checks, every test of the workspace; CI read after the push.
+
+**Next.** Step 8o `[engine]`: three messages that name a variable or a seed the user did not write (`winsorize`, `qq_plot`, `sample`).
+
+**For the owner to decide.** Nothing blocks.
