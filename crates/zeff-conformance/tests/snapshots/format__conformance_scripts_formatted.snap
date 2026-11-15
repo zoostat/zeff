@@ -235,10 +235,13 @@ let w = dataset(wages)
 w.drop_missing([wage, hours]).n_rows()
 ==== script 22
 let d = frame(q1 = [5, 4, NA, 1.5], q2 = [3, NA, NA, 2.5], q3 = [4, 4, NA, 1e12])
-d.add(m = row_mean([q1, q2, q3]), m2 = row_mean([q1..q3], min_valid: 2), s = row_sum([q1, q2, q3]))
+d.add(m = row([q1, q2, q3], stat: mean),
+      m2 = row([q1..q3], stat: mean, min_valid: 2),
+      s = row([q1, q2, q3], stat: sum))
 let w = dataset(wages)
 w
-    .add(hw = row_sum([hours, wage]), pay = row_mean([wage, educ, exper], min_valid: 3))
+    .add(hw = row([hours, wage], stat: sum),
+         pay = row([wage, educ, exper], stat: mean, min_valid: 3))
     .summary([hw, pay])
 ==== script 23
 let d = frame(x = [2, 4, 9, NA])
@@ -400,11 +403,11 @@ let d = frame(q1 = [5, 4, NA, 2],
               q3 = [4, 4, 2, NA],
               s = [1.5, 2.5, NA, 4.5],
               g = ["a", "a", "b", "b"])
-d.add(rows = n(), score = row_mean([q1, q2, q3]), total = row_sum([q1, q2, q3]))
-d.add(rows = n(), score = row_mean([q1, q2, q3], min_valid: 2), by: g)
+d.add(rows = n(), score = row([q1, q2, q3], stat: mean), total = row([q1, q2, q3], stat: sum))
+d.add(rows = n(), score = row([q1, q2, q3], stat: mean, min_valid: 2), by: g)
 d.aggregate(rows = n(), by: g)
-d.update(s = row_sum([q1, q2, q3]) / n(), where: is_missing(s))
-d.where(row_sum([q1, q2, q3]) > n())
+d.update(s = row([q1, q2, q3], stat: sum) / n(), where: is_missing(s))
+d.where(row([q1, q2, q3], stat: sum) > n())
 let w = dataset(wages)
 w.aggregate(rows = n(), mean_wage = mean(wage), by: female)
 w.add(share = wage / n()).summary([share])
@@ -743,8 +746,8 @@ frame(x = [1, 2]).add(y = lag(x))
 let s = frame(shop = ["a", "a", "b", "b", "b"],
               sales = [120, 80, NA, 150, 90],
               growth = [1.1, 0.9, 1.25, 1.0, 0.8])
-s.add(to_date = running_sum(sales), index = running_product(growth))
-s.add(so_far = running_sum(sales), by: shop)
+s.add(to_date = running(sales, stat: sum), index = running(growth, stat: product))
+s.add(so_far = running(sales, stat: sum), by: shop)
 let r = frame(name = ["Ann", "Bo", "Cy", "Di", "Ed"], score = [72.5, 90, 72.5, NA, 60])
 r.add(avg = rank(score),
       low = rank(score, ties: min),
@@ -755,7 +758,7 @@ pay.add(band = bin(wage, breaks: [-Inf, 10, 20, Inf]),
         left = bin(wage, breaks: [0, 10, 20], labels: ["low", "high"], closed: left),
         narrow = bin(wage, breaks: [10, 20]),
         fine = bin(wage, breaks: [0, 2.5, 1000, 123456, Inf]))
-frame(x = [9223372036854775800, 10]).add(s = running_sum(x))
+frame(x = [9223372036854775800, 10]).add(s = running(x, stat: sum))
 ==== script 53
 let d = frame(g = [1, 1, 1, 1, 2, 2, 2, 2], x = [5, 1, 9, 3, 7, NA, 2, 8])
 d.add(quartile = to(bin(x, n: 4), Int),

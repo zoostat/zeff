@@ -213,7 +213,7 @@ proptest! {
         let ties = present.len() - distinct.len();
         let list = values.iter().map(|v| v.map_or("NA".to_string(), |v| format!("{v}.5"))).collect::<Vec<_>>().join(", ");
         let script = format!(
-            "let d = frame(x = [{list}], u = [{ones}]).add(g = to(bin(x, n: {groups}, type: {ties_type}), Int), w = winsorize(x, at: 0.2), same = winsorize(x, at: 0))\nlet s = d.where(!is_missing(x)).sort(x).add(i = running_sum(u)).panel(unit: u, time: i)\ns.add(prev = lag(g)).where(prev > g).n_rows()\nd.where(same != x).n_rows()\nlet f = frame(value = d[\"x\"])\nd.where(x >= f.quantile(value, 0.2) && x <= f.quantile(value, 0.8) && w != x).n_rows()\nd.where(is_missing(g) != is_missing(x)).n_rows()\nlet counts = d.where(!is_missing(g)).add(one = 1).sum(one, by: g)\n",
+            "let d = frame(x = [{list}], u = [{ones}]).add(g = to(bin(x, n: {groups}, type: {ties_type}), Int), w = winsorize(x, at: 0.2), same = winsorize(x, at: 0))\nlet s = d.where(!is_missing(x)).sort(x).add(i = running(u, stat: sum)).panel(unit: u, time: i)\ns.add(prev = lag(g)).where(prev > g).n_rows()\nd.where(same != x).n_rows()\nlet f = frame(value = d[\"x\"])\nd.where(x >= f.quantile(value, 0.2) && x <= f.quantile(value, 0.8) && w != x).n_rows()\nd.where(is_missing(g) != is_missing(x)).n_rows()\nlet counts = d.where(!is_missing(g)).add(one = 1).sum(one, by: g)\n",
             ones = vec!["1"; values.len()].join(", "),
         );
         let (code, stdout, stderr) = go(&script);

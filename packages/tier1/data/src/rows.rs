@@ -1,6 +1,6 @@
-//! The row functions `row_mean` and `row_sum` (catalogue rows 136 and 137; release 0.5.0, step
-//! 17): a mean or a sum across several variables in each row, inside `add` or `update`, where
-//! the enclosing frame supplies the variables. They are Rust rather than Zeff because a body
+//! The row function `row` (catalogue row 136; `row_mean` and `row_sum` of release 0.5.0, step
+//! 17, until release 0.8.0, step 8k): a mean or a sum across several variables in each row, inside `add` or `update`, where
+//! the enclosing frame supplies the variables. It is Rust rather than Zeff because a body
 //! written in Zeff has no handle on the frame whose method encloses the call (open decision #69).
 
 use crate::verbs::resolve_vars;
@@ -36,7 +36,7 @@ fn numeric_columns<'a>(
             .in_file(ctx.script)
             .primary(ctx.callee_span, "no frame here")
             .help(format!(
-                "write it inside a definition, as in `wages.add(score = {name}([q1, q2, q3]))`"
+                "write it inside a definition, as in `wages.add(score = {name}([q1, q2, q3], stat: mean))`"
             )),
         ));
     };
@@ -95,32 +95,31 @@ fn present(columns: &[&Column], row: usize) -> Vec<f64> {
         .collect()
 }
 
-/// `row_sum(vars)`: the compensated sum of the values present in each row; `NA` where none is.
-pub fn row_sum(ctx: &mut CallContext<'_>, args: Args) -> Result<Value, Fail> {
-    let (frame, columns) = numeric_columns(ctx, "row_sum", &args)?;
-    let rows = frame.table.rows();
-    let (column, _) = Column::floats((0..rows).map(|row| {
-        let values = present(&columns, row);
-        if values.is_empty() {
-            None
-        } else {
-            Some(zeff_numeric::sum(&values))
+/// `row(vars, stat: mean | sum, min_valid: 1)` (open decision #99, question 4; release 0.8.0,
+/// step 8k, where it took the place of `row_mean` and `row_sum`): the mean or the compensated
+/// sum of the values present in each row; `NA` where fewer than `min_valid` are present, so
+/// that with the default a row with no value is `NA`. `stat:` has no default.
+pub fn row(ctx: &mut CallContext<'_>, args: Args) -> Result<Value, Fail> {
+    let mean = match args.get(1) {
+        Some(Value::Word(w)) if w == "mean" => true,
+        Some(Value::Word(w)) if w == "sum" => false,
+        _ => {
+            return Err(fail(
+                Diagnostic::error("Z0406", "`row` needs `stat:`")
+                    .in_file(ctx.script)
+                    .primary(ctx.callee_span, "`stat:` is missing")
+                    .help("usage: `row([q1, q2, q3], stat: mean)` for the mean across the variables, or `stat: sum` for their sum"),
+            ));
         }
-    }));
-    Ok(Value::Column(column))
-}
-
-/// `row_mean(vars, min_valid: 1)`: the mean of the values present in each row; `NA` where fewer
-/// than `min_valid` are present.
-pub fn row_mean(ctx: &mut CallContext<'_>, args: Args) -> Result<Value, Fail> {
-    let min_valid = match args.get(1) {
+    };
+    let min_valid = match args.get(2) {
         Some(Value::Int(k)) => *k,
         Some(Value::Na) => {
             return Err(fail(
-                Diagnostic::error("Z0401", "`min_valid:` of `row_mean` cannot be NA")
+                Diagnostic::error("Z0401", "`min_valid:` of `row` cannot be NA")
                     .in_file(ctx.script)
-                    .primary(ctx.span_of(1), "NA")
-                    .help("`min_valid:` is the number of values a row needs for a mean; 1 unless given"),
+                    .primary(ctx.span_of(2), "NA")
+                    .help("`min_valid:` is the number of values a row needs for a result; 1 unless given"),
             ));
         }
         _ => 1,
@@ -129,21 +128,23 @@ pub fn row_mean(ctx: &mut CallContext<'_>, args: Args) -> Result<Value, Fail> {
         return Err(fail(
             Diagnostic::error(
                 "Z0401",
-                format!("`min_valid:` of `row_mean` cannot be {min_valid}"),
+                format!("`min_valid:` of `row` cannot be {min_valid}"),
             )
             .in_file(ctx.script)
-            .primary(ctx.span_of(1), "fewer than one value")
-            .help("a row needs at least one value for a mean; `min_valid:` is 1 unless given"),
+            .primary(ctx.span_of(2), "fewer than one value")
+            .help("a row needs at least one value for a result; `min_valid:` is 1 unless given"),
         ));
     }
-    let (frame, columns) = numeric_columns(ctx, "row_mean", &args)?;
+    let (frame, columns) = numeric_columns(ctx, "row", &args)?;
     let rows = frame.table.rows();
     let (column, _) = Column::floats((0..rows).map(|row| {
         let values = present(&columns, row);
         if (values.len() as i64) < min_valid {
             None
-        } else {
+        } else if mean {
             zeff_numeric::mean(&values)
+        } else {
+            Some(zeff_numeric::sum(&values))
         }
     }));
     Ok(Value::Column(column))

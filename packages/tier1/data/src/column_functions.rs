@@ -1,9 +1,9 @@
-//! The column functions `running_sum`, `running_product`, `rank` and `bin` (catalogue rows 128,
-//! 129, 130 and 132; Language Reference, sections 3.7, "Numbers", 4.1 and 4.2; release 0.6.0,
+//! The column functions `running` (`running_sum` and `running_product` until release 0.8.0,
+//! step 8k), `rank` and `bin` (catalogue rows 128, 130 and 132; Language Reference, sections 3.7, "Numbers", 4.1 and 4.2; release 0.6.0,
 //! step 9). Each reads one column in its current row order, within `by:` groups when the
-//! enclosing verb splits the frame, so none needs the frame itself: `running_sum` keeps an Int
+//! enclosing verb splits the frame, so none needs the frame itself: a running sum keeps an Int
 //! column Int (Z0211 on overflow) and an `NA` makes the rest `NA`, as R's `cumsum`;
-//! `running_product` is Float, as R's `cumprod`; `rank` keeps `NA` as R's `na.last = "keep"`;
+//! a running product is Float, as R's `cumprod`; `rank` keeps `NA` as R's `na.last = "keep"`;
 //! and `bin` is R's `cut`: an ordered category whose levels are the intervals, labelled as R
 //! labels them unless `labels:` is given, a value outside every interval `NA` with W0210.
 //! From release 0.8.0, step 8h, `bin` also cuts at the sample quantiles, `bin(x, n: 4)`, which
@@ -103,10 +103,26 @@ fn float_column(
     column
 }
 
-/// `running_sum(x)`: the sum of the values so far, in the current row order; Int stays Int
-/// (Z0211 on overflow), and an `NA` makes the rest `NA`, as R's `cumsum`.
-pub fn running_sum(ctx: &mut CallContext<'_>, args: Args) -> Result<Value, Fail> {
-    let x = numeric_column(ctx, "running_sum", &args)?;
+/// `running(x, stat: sum | product)` (open decision #99, question 4; release 0.8.0, step 8k,
+/// where it took the place of `running_sum` and `running_product`): the sum or the product of
+/// the values so far, in the current row order. `stat:` has no default: the call says which.
+pub fn running(ctx: &mut CallContext<'_>, args: Args) -> Result<Value, Fail> {
+    match args.get(1) {
+        Some(Value::Word(w)) if w == "sum" => running_sum(ctx, args),
+        Some(Value::Word(w)) if w == "product" => running_product(ctx, args),
+        _ => Err(fail(
+            Diagnostic::error("Z0406", "`running` needs `stat:`")
+                .in_file(ctx.script)
+                .primary(ctx.callee_span, "`stat:` is missing")
+                .help("usage: `running(x, stat: sum)` for the running total, or `running(x, stat: product)` for the running product"),
+        )),
+    }
+}
+
+/// `running(x, stat: sum)`: the sum of the values so far, in the current row order; Int stays
+/// Int (Z0211 on overflow), and an `NA` makes the rest `NA`, as R's `cumsum`.
+fn running_sum(ctx: &mut CallContext<'_>, args: Args) -> Result<Value, Fail> {
+    let x = numeric_column(ctx, "running", &args)?;
     if x.ty() == ColumnType::Int {
         let values: Vec<Option<i64>> = x.as_ints().expect("an Int column").collect();
         let mut out = Vec::with_capacity(values.len());
@@ -137,16 +153,16 @@ pub fn running_sum(ctx: &mut CallContext<'_>, args: Args) -> Result<Value, Fail>
         .collect();
     Ok(Value::Column(float_column(
         ctx,
-        "running_sum",
+        "running",
         "Inf and -Inf together",
         out,
     )))
 }
 
-/// `running_product(x)`: the product of the values so far, a Float as R's `cumprod`; an `NA`
-/// makes the rest `NA`.
-pub fn running_product(ctx: &mut CallContext<'_>, args: Args) -> Result<Value, Fail> {
-    let x = numeric_column(ctx, "running_product", &args)?;
+/// `running(x, stat: product)`: the product of the values so far, a Float as R's `cumprod`; an
+/// `NA` makes the rest `NA`.
+fn running_product(ctx: &mut CallContext<'_>, args: Args) -> Result<Value, Fail> {
+    let x = numeric_column(ctx, "running", &args)?;
     let values: Vec<Option<f64>> = match x.ty() {
         ColumnType::Int => x
             .as_ints()
@@ -168,7 +184,7 @@ pub fn running_product(ctx: &mut CallContext<'_>, args: Args) -> Result<Value, F
         .collect();
     Ok(Value::Column(float_column(
         ctx,
-        "running_product",
+        "running",
         "0 and Inf together",
         out,
     )))

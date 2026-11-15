@@ -1,5 +1,5 @@
 # R's cumulative sums and products, ranks under the four tie rules with NA kept, and cut into
-# intervals with its default labels (release 0.6.0, step 9): running_sum, running_product, rank
+# intervals with its default labels (release 0.6.0, step 9): running with its two statistics (running_sum and running_product until release 0.8.0), rank
 # and bin. The values summed and multiplied are integers to 1e12 and dyadic fractions, whose
 # sums and products are exact in a double, so that R's long-double accumulator in cumsum (80 bits
 # on x86-64, 64 on arm64) and the engine's plain double agree bit for bit on every platform. The

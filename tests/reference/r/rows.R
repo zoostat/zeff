@@ -1,4 +1,5 @@
-# R's rowMeans() and rowSums() with na.rm = TRUE (release 0.5.0, step 17), and the min_valid rule
+# R's rowMeans() and rowSums() with na.rm = TRUE (release 0.5.0, step 17; the function is
+# row(vars, stat: mean | sum) from release 0.8.0, and the keys below keep the old names), and the min_valid rule
 # written out in base R: a row's mean when at least k values are present, NA otherwise. The
 # values are written with 17 significant digits and compared within a relative 1e-12 (R
 # accumulates row sums in long double on x86, Zeff with a compensated sum, so the last bits may

@@ -60,86 +60,9 @@ Tests, plots and the language server: 72 functions in 258 commits over 40 steps,
 
 Step 2: the help contract of 0.8.0 (#103) in section 9.1 and in the registry, with the pages of `add` and `tabulate` revised as the first two and the list of unrevised pages that must be empty at 0.10.0. Step 3: the weekly mutation job in two passes, a mutant against its own package's tests and then against the tests of the packages that use it; its second pass, read from a run, was corrected to retest exactly a shard's leftovers. Step 4 (#87): a list of one variable, `vars(firm)`, accepted where a function takes one variable, so an option record can be named once and spread. Step 5 (#147): inside a function, a parameter that holds a variable is the term it names. Step 6 (#108): a function given a column of a type it does not take is refused when the statement runs (Z0401), where it gave `NA` without a word. Steps 7a and 7b (#89, #90): a built-in written in Zeff raises the engine's own error codes and receives its lists of variables resolved, and with both `drop_missing` is written in Zeff (16 functions are). Step 8a1 (#130): the notes of a statement are those of the plot it ends with. Step 8a2 (#131): `labels(fill:, size:, shape:)` title those legends, as ggplot2's `labs` does. Each step green and pushed; nothing was left for the owner to decide.
 
-## 15 November 2026, release 0.8.0, step 8b (folding, templates and the statement ranges behind Run)
+## 15 November 2026, release 0.8.0, steps 8b to 8f (folded)
 
-**Done.** Step 8b `[engine]`: the language server folds chains, blocks and functions; offers the templates of common analyses where a statement may begin (two today; the one for instrumental variables arrives with `ivreg`, the one for a logistic regression with `glm`); and tells an interface which statement stands at a place, or which a selection touches, through a request of its own that Zemp's Run will use. The known issue on the server now names only 1.1's features.
-
-**Green.** Format, clippy with warnings denied, the tier and message checks, every test of the workspace; CI read after the push.
-
-**Next.** Step 8c `[function]`: the documentation step of #113, #120 and #122.
-
-**For the owner to decide.** Nothing blocks.
-
-## 15 November 2026, release 0.8.0, step 8c1 (the plan of releases after 1.0 in the catalogue and the three volumes)
-
-**Done.** Step 8c was split in three, being too large for one. Step 8c1 `[function]`: the catalogue's roadmap rows, the after-1.0 table of section 14, the roadmap lists of sections 8.2 and 9.2 and every release number written in the two volumes and the Zemp Specification follow the owner's 29 releases (#113), without third-party packages before 2.0.0 (#123). The merges and renames the decision lists are made (545 rows became 527, 248 of them on the roadmap). The engine's five messages that named a release of the earlier plan are corrected. The weekly job's corrected second pass was read from its run: every survivor of pass one was caught.
-
-**Green.** Format, clippy with warnings denied, the tier and message checks, every test of the workspace; CI read after the push.
-
-**Next.** Step 8c2 `[function]`: the rows of the graphics proposal (#122, #120).
-
-**For the owner to decide.** Nothing blocks. To settle when each release is planned: five methods the owner's table spells differently from their catalogue rows (`polychoric`, `meta_3level`, `alignment`, `effect_convert`, `spec.logistic`), the placement of the rows the plan does not list, and the deadlines of the open decisions written against the earlier plan (the register's status paragraph of this date lists them).
-
-## 15 November 2026, release 0.8.0, step 8c2 (the rows of the graphics proposal), and the owner's ruling on Zemp's repositories
-
-**Done.** Step 8c2 `[function]`: the capabilities of the graphics proposal that #122 places on a release are roadmap rows of the catalogue, 100 functions and 35 option rows (662 rows in all, 383 on the roadmap), with the result plots named as #120 decides; the lists of sections 8.2 and 9.2 and the table of section 14 follow. The 22 cells of the owner's table of models that wrote a plot as `plot(type: …)` are renamed in its three copies, the old copies kept beside them. Between the steps, the owner's ruling of the same day was recorded as #148 at the request of the session that created the repository: Zemp Lite public under Apache 2.0, Zemp Studio private and proprietary in a repository of its own; the Zemp Specification is amended.
-
-**Green.** Format, clippy with warnings denied, the tier and message checks, every test of the workspace; CI read after the push.
-
-**Next.** Step 8c3 `[function]`: the rows of the diagram proposal (#121, #122).
-
-**For the owner to decide.** Nothing blocks. To confirm when each release is planned: the plot names chosen in applying #120 (`docs/decisions.md` of this date lists them).
-
-## 15 November 2026, release 0.8.0, step 8c3 (the rows of the diagram proposal); step 8c complete
-
-**Done.** Step 8c3 `[function]`: the capabilities of the diagram proposal that come after 1.0 are roadmap rows at the releases of #121 (the `diagram { }` block, the sample flow and `reason:` at 1.2; the path diagrams at 1.12; CONSORT and PRISMA at 1.17), thirteen rows and three notes, 675 rows in all; `zeff graph` is in release 1.1 of section 14 and the Pipeline view in Zemp 1.1. With it the documentation step of #113, #120 and #122 is done: the catalogue, section 14 and the Zemp release table agree on every release after 1.0.
-
-**Green.** Format, clippy with warnings denied, the tier and message checks, every test of the workspace; CI read after the push.
-
-**Next.** Step 8d `[function]`: `time_between(start, end, unit:)` in the place of `days_between` and `months_between` (#96).
-
-**For the owner to decide.** Nothing blocks.
-
-## 15 November 2026, release 0.8.0, step 8d (`time_between`)
-
-**Done.** Step 8d `[function]`: `time_between(start, end, unit:)` counts whole seconds, minutes, hours, days, weeks, months or years between two dates or two times, truncated towards zero, and takes the place of `days_between` and `months_between`, which are refused with the call to write. Every value agrees with R on 356 pairs (2,192 values), and the month and year counts with `lubridate`. The page is the first written whole under the help contract of 0.8.0.
-
-**Green.** Format, clippy with warnings denied, the tier and message checks, every test of the workspace; CI read after the push.
-
-**Next.** Step 8e `[function]`: `hour`, `minute`, `second`; `datetime(x, epoch:)`; `min` and `max` on dates (#96).
-
-**For the owner to decide.** Nothing blocks. One definition was taken by the reading of #96 and is his to overturn: whole months between two times count the time of day, so 15 January 12:00 to 15 February 06:00 is 0 months, where the function of 0.6.0 gave 1 (`docs/decisions.md` of this date).
-
-## 15 November 2026, between steps 8d and 8e: the nightly fuzzing run
-
-**Done.** The nightly fuzzing run failed in four targets with no breaking input: the fuzzer's leak check found six small strings (103 bytes) that the registry made at start and never used, a defect of step 7a. They are no longer made. No page and no result changed.
-
-**Green.** Format, clippy with warnings denied, the tier and message checks, every test of the workspace; the fuzzing job started by hand on the commit.
-
-**Next.** Step 8e `[function]`: `hour`, `minute`, `second`; `datetime(x, epoch:)`; `min` and `max` on dates (#96).
-
-**For the owner to decide.** Nothing blocks.
-
-## 15 November 2026, release 0.8.0, step 8e (the time of day, Unix time, the earliest and latest)
-
-**Done.** Step 8e `[function]`: `hour`, `minute` and `second` read a time; `datetime(s, epoch: seconds | milliseconds)` reads Unix time; `min` and `max` of a frame give the earliest and latest of a variable of dates or times, by group and inside `aggregate` too, exact to the microsecond at the ends of the calendar. The checker now types `min` and `max` by the variable. Every value agrees with R.
-
-**Green.** Format, clippy with warnings denied, the tier and message checks, every test of the workspace; CI read after the push.
-
-**Next.** Step 8f `[function]`: `date(year, month, day)` and `start_of(d, unit)` (#96). Mended on the way, in a commit of its own: a definition of `aggregate` with two reducers on one variable, such as the range `max(x) - min(x)`, counted that variable's missing rows once for each reducer; the count is now the rows.
-
-**For the owner to decide.** Nothing blocks.
-
-## 15 November 2026, release 0.8.0, step 8f (`date` from numbers, `start_of`), and what CI showed
-
-**Done.** Step 8f `[function]`: `date(year, month, day)` makes a date from numbers, and `start_of(d, unit)` gives the start of the hour, day, week, month, quarter or year a date or time lies in; a date axis is drawn from a year and a month held as numbers. Every value agrees with R. Before it, two things found by reading CI were mended in commits of their own: the count of missing rows in `aggregate` (two reducers on one variable counted them twice), and the editor grammar's list of option words, which steps 8d and 8e had left stale, so that CI's grammar job failed on three pushes. The local routine now runs the grammar check. Another session added three correction steps to the checklist (8l, 8m, 8n).
-
-**Green.** Format, clippy with warnings denied, the tier, message and grammar checks, every test of the workspace; CI read after the push.
-
-**Next.** Step 8g `[function]`: `add_time(d, n, unit:)` in the place of `add_days` and `add_months` (#97).
-
-**For the owner to decide.** Nothing blocks.
-
+Step 8b `[engine]`: the language server folds chains, blocks and functions, offers templates of common analyses where a statement may begin, and tells an interface which statement stands at a place or which a selection touches. Step 8c, in three parts: the owner's plan of 29 releases after 1.0 written into the catalogue and the three volumes (#113; 545 rows became 527), the 135 rows of the graphics proposal (#122) with the plots of a result named `<kind>_plot` (#120), and the 13 rows of the diagram proposal (#121); the owner's ruling on Zemp's repositories recorded as #148 at another session's request. Step 8d `[function]`: `time_between(start, end, unit:)` in the place of `days_between` and `months_between`. Between 8d and 8e the nightly fuzzing run showed six small strings leaked since step 7a; mended. Step 8e `[function]`: `hour`, `minute`, `second`, `datetime(x, epoch:)`, and `min` and `max` of dates and times. Step 8f `[function]`: `date(year, month, day)` and `start_of(d, unit:)`; before it, a miscount of missing rows in `aggregate` and the editor grammar's stale option words (which failed CI's grammar job on three pushes) were mended, and the grammar check joined the local routine. Every value agreed with R. For the owner, recorded in docs/decisions.md and his to overturn: whole months between two times now count the time of day; the plot names chosen under #120; the releases given to rows the plan does not list.
 
 ## 15 November 2026, release 0.8.0, step 8g (`add_time`)
 
@@ -178,5 +101,17 @@ Step 2: the help contract of 0.8.0 (#103) in section 9.1 and in the registry, wi
 **Green.** Format, clippy with warnings denied, the tier, message and grammar checks, every test of the workspace; CI read after the push.
 
 **Next.** Step 8k `[function]`: `running(x, stat:)` and `row(vars, stat:, min_valid:)` in the place of four names (#99).
+
+**For the owner to decide.** Nothing blocks.
+
+## 15 November 2026, release 0.8.0, step 8k (`running` and `row`)
+
+**Done.** Step 8k `[function]`: `running(x, stat: sum | product)` in the place of `running_sum` and `running_product`, and `row(vars, stat: mean | sum, min_valid:)` in the place of `row_mean` and `row_sum`. The values are the ones the old functions gave; the old names are refused with the rewrite. `stat:` has no default, as the decision writes it. Block B3's merges (8d, 8g, 8h, 8i, 8j, 8k) are now all in.
+
+**Two faults of mine on the way, both mended.** CI's `reference` job failed on step 8j: the new R script did not look in the reference library folder for the `car` package, which the Mac has in its main library and CI does not. One line mends it (commit 3edc22e); the stored values are unchanged. That commit also carried four help-page renames of step 8k that were already staged, without the code that goes with them, so `main` does not build at that one commit and every CI job failed on it. This step's commit makes the branch whole; history is not rewritten, so anyone bisecting should skip 3edc22e.
+
+**Green.** Format, clippy with warnings denied, the tier, message and grammar checks, every test of the workspace; CI read after the push.
+
+**Next.** Step 8l `[engine]`: a comparison with `NA` refused under a code of its own.
 
 **For the owner to decide.** Nothing blocks.

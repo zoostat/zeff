@@ -61,6 +61,22 @@ pub const REPLACED: &[(&str, &str)] = &[
         "`add_months(d, n)` is `add_time(d, n, unit: month)` since release 0.8.0",
     ),
     (
+        "running_sum",
+        "`running_sum(x)` is `running(x, stat: sum)` since release 0.8.0",
+    ),
+    (
+        "running_product",
+        "`running_product(x)` is `running(x, stat: product)` since release 0.8.0",
+    ),
+    (
+        "row_mean",
+        "`row_mean(vars)` is `row(vars, stat: mean)` since release 0.8.0; `min_valid:` is as it was",
+    ),
+    (
+        "row_sum",
+        "`row_sum(vars)` is `row(vars, stat: sum)` since release 0.8.0",
+    ),
+    (
         "fill_forward",
         "`fill_forward(x)` is `fill_missing(x, method: forward)` since release 0.8.0",
     ),

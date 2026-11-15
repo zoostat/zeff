@@ -1012,37 +1012,27 @@ pub fn functions() -> Vec<Function> {
         },
         Function {
             spec: FunctionSpec {
-                name: "running_sum",
+                name: "running",
                 package: "data",
                 method: false,
-                params: vec![ParamSpec::required("x", "Column<Int> | Column<Float>")],
-                rest: None,
-                returns: "Same",
-                diagnostics: vec![
-                    DiagnosticDecl::new("Z0211", "an Int running sum beyond 64 bits"),
-                    DiagnosticDecl::new("W0205", "Inf and -Inf together, giving NA"),
+                params: vec![
+                    ParamSpec::required("x", "Column<Int> | Column<Float>"),
+                    ParamSpec::option("stat", "sum | product"),
                 ],
-                help: include_str!("../help/running_sum.md"),
-                accuracy: None,
-            },
-            body: column_functions::running_sum,
-        },
-        Function {
-            spec: FunctionSpec {
-                name: "running_product",
-                package: "data",
-                method: false,
-                params: vec![ParamSpec::required("x", "Column<Int> | Column<Float>")],
                 rest: None,
-                returns: "Column<Float>",
-                diagnostics: vec![DiagnosticDecl::new(
-                    "W0205",
-                    "0 and Inf together, giving NA",
-                )],
-                help: include_str!("../help/running_product.md"),
+                returns: "Column<Float> | Column<Int>",
+                diagnostics: vec![
+                    DiagnosticDecl::new("Z0406", "stat: missing"),
+                    DiagnosticDecl::new("Z0211", "an Int running sum beyond 64 bits"),
+                    DiagnosticDecl::new(
+                        "W0205",
+                        "Inf and -Inf together in a sum, or 0 and Inf in a product, giving NA",
+                    ),
+                ],
+                help: include_str!("../help/running.md"),
                 accuracy: None,
             },
-            body: column_functions::running_product,
+            body: column_functions::running,
         },
         Function {
             spec: FunctionSpec {
@@ -1327,40 +1317,27 @@ pub fn functions() -> Vec<Function> {
         },
         Function {
             spec: FunctionSpec {
-                name: "row_mean",
+                name: "row",
                 package: "data",
                 method: false,
                 params: vec![
                     ParamSpec::required("vars", "Vars"),
+                    ParamSpec::option("stat", "mean | sum"),
                     ParamSpec::option_with_default("min_valid", "Int", "1"),
                 ],
                 rest: None,
                 returns: "Column<Float>",
-                diagnostics: vec![DiagnosticDecl::new(
-                    "Z0401",
-                    "outside add or update, a variable that is not an Int or a Float, or min_valid: below 1",
-                )],
-                help: include_str!("../help/row_mean.md"),
+                diagnostics: vec![
+                    DiagnosticDecl::new("Z0406", "stat: missing"),
+                    DiagnosticDecl::new(
+                        "Z0401",
+                        "outside add or update, a variable that is not an Int or a Float, or min_valid: below 1",
+                    ),
+                ],
+                help: include_str!("../help/row.md"),
                 accuracy: None,
             },
-            body: rows::row_mean,
-        },
-        Function {
-            spec: FunctionSpec {
-                name: "row_sum",
-                package: "data",
-                method: false,
-                params: vec![ParamSpec::required("vars", "Vars")],
-                rest: None,
-                returns: "Column<Float>",
-                diagnostics: vec![DiagnosticDecl::new(
-                    "Z0401",
-                    "outside add or update, or a variable that is not an Int or a Float",
-                )],
-                help: include_str!("../help/row_sum.md"),
-                accuracy: None,
-            },
-            body: rows::row_sum,
+            body: rows::row,
         },
     ]
 }

@@ -5534,3 +5534,19 @@ Done before parts 1 and 2 are read, because those wait for jobs that run for hou
 **Held by.** The two comparisons with R; the property that moving or scaling the variable, or reordering a group's rows, changes no statistic and no p-value, and that the ratio the other way round is the reciprocal with the same p-value; the edge cases; snapshots of every form (the three methods, two and three groups, the parts of the result, `report` of three tests side by side, text and Bool groups, rows dropped) and of nineteen messages; the page's examples and its common mistake; the conformance case `tests/variance`.
 
 **Reason.** Open decision #97 and the owner's rule of one function with an option; the checklist's step 8j. The Fligner–Killeen test and the trimmed mean as a centre are class B of #99 and are not built here.
+
+## 15 November 2026 — `running` and `row` (release 0.8.0, step 8k)
+
+**Choice.** `running(x, stat: sum | product)` and `row(vars, stat: mean | sum, min_valid: Int = 1)`, both in `data`, in Rust, each dispatching on its word to the code that shipped: the running sum keeps an Int column Int with Z0211 on overflow, the running product is a Float, an `NA` ends either; the row mean and sum are the kernel's compensated reductions over the values present. Under question 3 of #99 the statistics are those that ship today; the running maximum and minimum and the other row statistics are words for after 1.0.
+
+**`stat:` has no default.** The decision writes both usages without one, and none is chosen here: a script says which running value or which row statistic it means. A call without `stat:` is Z0406 with the two forms in its help. A word not offered is Z0402 from the checker.
+
+**`min_valid:` with `stat: sum`.** `row_sum` had no `min_valid:` and gave `NA` for a row with no value, which is `min_valid: 1`, the default; so every earlier call gives what it gave. A larger `min_valid:` now applies to the sum as it does to the mean, since the usage of #99 writes one option for both.
+
+**The result type of `running`.** Declared as a column of Floats or of Ints, as `rank` is: the sum keeps the type of `x` and the product is a Float, and the checker cannot tell which from the word. Nothing downstream changed type in the tests.
+
+**The old names.** `running_sum`, `running_product`, `row_mean` and `row_sum` are in the registry's table of replaced names (Z0103 with the rewrite). Two pages written to the 0.8.0 contract replace the four, and the four leave the list of pages awaiting revision. The sample script of the specification and every test call the new names; the keys of the R reference files keep the old ones, which are R's own outputs and unchanged.
+
+**Held by.** Every earlier test of the four functions under the two names, the comparisons with R unchanged (`cumsum`, `cumprod`, `rowMeans`, `rowSums`); the new messages (no `stat:`, a word not offered, the four old names); the conformance report, in which every digest of printed values is unchanged and one digest of standard error changes because the refusal that ends that script quotes the line as written; the pages' examples and their common mistakes.
+
+**Reason.** Open decision #99, question 4, the owner's "Yes, merge both"; the checklist's step 8k.

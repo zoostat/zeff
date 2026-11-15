@@ -53,7 +53,7 @@ fn check_pairs(setup: &str, left: &str, right: &str, keys: &str, join: &str, cas
         }
     };
     let script = format!(
-        "{setup}let l = {left}.add(one = 1).add(li = running_sum(one)).drop(one)\nlet r = {right}.add(one = 1).add(ri = running_sum(one)).drop(one)\nlet m = l.merge(r, on: {keys}, join: {join})\nm.n_rows()\n{}{}",
+        "{setup}let l = {left}.add(one = 1).add(li = running(one, stat: sum)).drop(one)\nlet r = {right}.add(one = 1).add(ri = running(one, stat: sum)).drop(one)\nlet m = l.merge(r, on: {keys}, join: {join})\nm.n_rows()\n{}{}",
         check("li", &case["li"]),
         check("ri", &case["ri"])
     );
@@ -241,7 +241,7 @@ proptest! {
         if flags[1] == "false" {
             // The left join kept every left row in order; the inner join is its matched rows.
             let order = format!(
-                "let l = frame(k = [{lk}], li = seq(1, {ln}))\nlet r = frame(k = [{rk}], ri = seq(1, {rn}))\nlet left = l.merge(r, on: k)\nlet inner = l.merge(r, on: k, join: inner)\nleft.add(one = 1).add(pos = running_sum(one)).add(prev = lag(li)).where(prev > li).n_rows()\ninner.n_rows() - left.where(!is_missing(ri)).n_rows()\nleft.where(!is_missing(ri)).n_rows() - inner.n_rows()\n",
+                "let l = frame(k = [{lk}], li = seq(1, {ln}))\nlet r = frame(k = [{rk}], ri = seq(1, {rn}))\nlet left = l.merge(r, on: k)\nlet inner = l.merge(r, on: k, join: inner)\nleft.add(one = 1).add(pos = running(one, stat: sum)).add(prev = lag(li)).where(prev > li).n_rows()\ninner.n_rows() - left.where(!is_missing(ri)).n_rows()\nleft.where(!is_missing(ri)).n_rows() - inner.n_rows()\n",
                 lk = text(&left_keys), ln = left_keys.len(), rk = text(&right_keys), rn = right_keys.len(),
             );
             let _ = order;

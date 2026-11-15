@@ -1119,11 +1119,11 @@ fn control_cases() -> Vec<Line> {
             "drop_missing",
             "let d = frame(id = [1, 2, 3, 4], x = [1, NA, 3, 4], y = [NA, 2, 3, NA], z = [1, 1, 1, 1])\nd.drop_missing([x, y])\nd.drop_missing([x])\nd.drop_missing([z])\nd.drop_missing([id..z])\nd.where(is_missing(x)).drop_missing([x])\nlet w = dataset(wages)\nw.drop_missing([wage, hours]).n_rows()\n",
         ),
-        // `row_mean` and `row_sum` of step 17 inside `add`: a list and a range of variables,
+        // `row` (`row_mean` and `row_sum` of step 17 until release 0.8.0, step 8k) inside `add`: a list and a range of variables,
         // `min_valid:`, rows with every value missing, and a dataset's scale.
         (
             "rows",
-            "let d = frame(q1 = [5, 4, NA, 1.5], q2 = [3, NA, NA, 2.5], q3 = [4, 4, NA, 1e12])\nd.add(m = row_mean([q1, q2, q3]), m2 = row_mean([q1..q3], min_valid: 2), s = row_sum([q1, q2, q3]))\nlet w = dataset(wages)\nw.add(hw = row_sum([hours, wage]), pay = row_mean([wage, educ, exper], min_valid: 3)).summary([hw, pay])\n",
+            "let d = frame(q1 = [5, 4, NA, 1.5], q2 = [3, NA, NA, 2.5], q3 = [4, 4, NA, 1e12])\nd.add(m = row([q1, q2, q3], stat: mean), m2 = row([q1..q3], stat: mean, min_valid: 2), s = row([q1, q2, q3], stat: sum))\nlet w = dataset(wages)\nw.add(hw = row([hours, wage], stat: sum), pay = row([wage, educ, exper], stat: mean, min_valid: 3)).summary([hw, pay])\n",
         ),
         // The column functions of the data package written in Zeff (step 16): `between` on a
         // column with `NA`, `center` and `standardize` on columns, inside `add` and over a dataset.
@@ -1268,9 +1268,9 @@ const SEVERAL_TYPES_SCRIPT: &str = "fill_missing(NA, 3)\nfill_missing(to(NA, Int
 /// The script of the `map` case: the three list functions over literals and named functions.
 const MAP_SCRIPT: &str = "let k = 8\nmap(seq(1, k - 1), fn(i) i / k)\nlet offset = 10\nmap([1, 2, 3], fn(i) i * i + offset)\nfilter([3, NA, 1, 2], fn(x) !is_missing(x) && x > 1)\nprint(reduce([1, 2, 3, 4], fn(acc, x) acc + x, 0))\nprint(reduce([1.5, 2.5, 4], fn(acc, x) acc * x, 1.0))\n/// Twice.\nfn twice(x: Int) -> Int {\n    x * 2\n}\n[1, 2, 3].map(twice)\n[for m in 1..2 { map([1, 2], fn(i) i * m) }]\nmap([\"b\", \"aa\"], len)\nlet w = dataset(wages)\nmap([1, 2], fn(i) i * w.n_rows())\nlet failed = attempt([1][2])\nprint(attempt(map([1, failed], fn(i) i)).is(Failed))\nfilter([1, NA], fn(x) x > 0)\n";
 
-/// The script of the `enclosing` case: `n()`, `row_mean` and `row_sum` wherever a frame
+/// The script of the `enclosing` case: `n()` and `row` with its two statistics wherever a frame
 /// method gives them a frame, and once where none does.
-const ENCLOSING_SCRIPT: &str = "let d = frame(q1 = [5, 4, NA, 2], q2 = [3, NA, NA, 2], q3 = [4, 4, 2, NA], s = [1.5, 2.5, NA, 4.5], g = [\"a\", \"a\", \"b\", \"b\"])\nd.add(rows = n(), score = row_mean([q1, q2, q3]), total = row_sum([q1, q2, q3]))\nd.add(rows = n(), score = row_mean([q1, q2, q3], min_valid: 2), by: g)\nd.aggregate(rows = n(), by: g)\nd.update(s = row_sum([q1, q2, q3]) / n(), where: is_missing(s))\nd.where(row_sum([q1, q2, q3]) > n())\nlet w = dataset(wages)\nw.aggregate(rows = n(), mean_wage = mean(wage), by: female)\nw.add(share = wage / n()).summary([share])\n/// The row count, through a function, which sees no frame.\nfn rows() -> Int {\n    n()\n}\nd.add(k = rows())\n";
+const ENCLOSING_SCRIPT: &str = "let d = frame(q1 = [5, 4, NA, 2], q2 = [3, NA, NA, 2], q3 = [4, 4, 2, NA], s = [1.5, 2.5, NA, 4.5], g = [\"a\", \"a\", \"b\", \"b\"])\nd.add(rows = n(), score = row([q1, q2, q3], stat: mean), total = row([q1, q2, q3], stat: sum))\nd.add(rows = n(), score = row([q1, q2, q3], stat: mean, min_valid: 2), by: g)\nd.aggregate(rows = n(), by: g)\nd.update(s = row([q1, q2, q3], stat: sum) / n(), where: is_missing(s))\nd.where(row([q1, q2, q3], stat: sum) > n())\nlet w = dataset(wages)\nw.aggregate(rows = n(), mean_wage = mean(wage), by: female)\nw.add(share = wage / n()).summary([share])\n/// The row count, through a function, which sees no frame.\nfn rows() -> Int {\n    n()\n}\nd.add(k = rows())\n";
 
 /// The script of the `notes` case: the notes and coded warnings of section 5.4 from a script
 /// and from a function, one allowed by a pragma, and a variable's name written into a message.
@@ -1397,7 +1397,7 @@ fn panel_cases() -> Vec<Line> {
     let moved = run_script(&fs, &project, "scripts/main.zeff", lags);
     // The column functions (step 9): running sums and products with an `NA` and within groups,
     // the four tie rules, and bins with open ends, both closures, labels and a value outside.
-    let running = "let s = frame(shop = [\"a\", \"a\", \"b\", \"b\", \"b\"], sales = [120, 80, NA, 150, 90], growth = [1.1, 0.9, 1.25, 1.0, 0.8])\ns.add(to_date = running_sum(sales), index = running_product(growth))\ns.add(so_far = running_sum(sales), by: shop)\nlet r = frame(name = [\"Ann\", \"Bo\", \"Cy\", \"Di\", \"Ed\"], score = [72.5, 90, 72.5, NA, 60])\nr.add(avg = rank(score), low = rank(score, ties: min), high = rank(score, ties: max), first = rank(score, ties: first))\nlet pay = frame(wage = [18.08, 8.5, 20.93, 15.68, 26.39, 33.07, NA])\npay.add(band = bin(wage, breaks: [-Inf, 10, 20, Inf]), left = bin(wage, breaks: [0, 10, 20], labels: [\"low\", \"high\"], closed: left), narrow = bin(wage, breaks: [10, 20]), fine = bin(wage, breaks: [0, 2.5, 1000, 123456, Inf]))\nframe(x = [9223372036854775800, 10]).add(s = running_sum(x))\n";
+    let running = "let s = frame(shop = [\"a\", \"a\", \"b\", \"b\", \"b\"], sales = [120, 80, NA, 150, 90], growth = [1.1, 0.9, 1.25, 1.0, 0.8])\ns.add(to_date = running(sales, stat: sum), index = running(growth, stat: product))\ns.add(so_far = running(sales, stat: sum), by: shop)\nlet r = frame(name = [\"Ann\", \"Bo\", \"Cy\", \"Di\", \"Ed\"], score = [72.5, 90, 72.5, NA, 60])\nr.add(avg = rank(score), low = rank(score, ties: min), high = rank(score, ties: max), first = rank(score, ties: first))\nlet pay = frame(wage = [18.08, 8.5, 20.93, 15.68, 26.39, 33.07, NA])\npay.add(band = bin(wage, breaks: [-Inf, 10, 20, Inf]), left = bin(wage, breaks: [0, 10, 20], labels: [\"low\", \"high\"], closed: left), narrow = bin(wage, breaks: [10, 20]), fine = bin(wage, breaks: [0, 2.5, 1000, 123456, Inf]))\nframe(x = [9223372036854775800, 10]).add(s = running(x, stat: sum))\n";
     let ran = run_script(&fs, &project, "scripts/main.zeff", running);
     // The quantile groups of `bin` (`quantile_group` until release 0.8.0, step 8h; read as
     // numbers, so the digest is the one stored then) and `winsorize` (step 10): quartiles and tertiles under two definitions,

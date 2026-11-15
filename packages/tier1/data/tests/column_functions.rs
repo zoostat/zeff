@@ -1,7 +1,7 @@
-//! `running_sum`, `running_product`, `rank` and `bin` (release 0.6.0, step 9; Language Reference,
+//! `running` (`running_sum` and `running_product` until release 0.8.0, step 8k), `rank` and `bin` (release 0.6.0, step 9; Language Reference,
 //! sections 3.7, 4.1 and 4.2): against R's `cumsum`, `cumprod`, `rank` under the four tie rules
 //! with `NA` kept, and `cut` with its default labels (`tests/reference/r/running.json`),
-//! exactly; the edge cases; every message; and the properties that `running_sum` of ones is the
+//! exactly; the edge cases; every message; and the properties that the running sum of ones is the
 //! row number within its group, that `rank` under `ties: first` is a permutation, and that `bin`
 //! gives equal values one interval and respects `closed:` at the breaks.
 
@@ -86,13 +86,13 @@ fn running_sums_and_products_agree_with_r() {
     let s = &json["sums"];
     let mut script = String::new();
     for (x, r, f) in [
-        ("x", "sum", "running_sum"),
-        ("x_na", "sum_na", "running_sum"),
-        ("p", "product", "running_product"),
-        ("p_na", "product_na", "running_product"),
+        ("x", "sum", "sum"),
+        ("x_na", "sum_na", "sum"),
+        ("p", "product", "product"),
+        ("p_na", "product_na", "product"),
     ] {
         script.push_str(&format!(
-            "frame(x = {}, r = {}).add(s = {f}(x)).where(!{}).n_rows()\n",
+            "frame(x = {}, r = {}).add(s = running(x, stat: {f})).where(!{}).n_rows()\n",
             numbers(&s[x]),
             numbers(&s[r]),
             same("s", "r")
@@ -168,14 +168,14 @@ fn bins_agree_with_r_cut_and_its_labels() {
 
 #[test]
 fn edge_cases_and_columns() {
-    let script = r#"frame(x = [NA, 1, 2]).add(s = running_sum(x), p = running_product(x), r = rank(x))
-frame(x = [5]).add(s = running_sum(x), p = running_product(x), r = rank(x), b = bin(x, breaks: [0, 10]))
+    let script = r#"frame(x = [NA, 1, 2]).add(s = running(x, stat: sum), p = running(x, stat: product), r = rank(x))
+frame(x = [5]).add(s = running(x, stat: sum), p = running(x, stat: product), r = rank(x), b = bin(x, breaks: [0, 10]))
 frame(x = [2, 2, 2, 2]).add(a = rank(x), lo = rank(x, ties: min), hi = rank(x, ties: max), f = rank(x, ties: first))
 frame(x = [-1e300, 0, 1e300]).add(b = bin(x, breaks: [-Inf, Inf]), l = bin(x, breaks: [Inf, -Inf], closed: left))
-let ints = frame(x = [1, 2, 3]).add(s = running_sum(x), p = running_product(x), r = rank(x, ties: min), a = rank(x))
+let ints = frame(x = [1, 2, 3]).add(s = running(x, stat: sum), p = running(x, stat: product), r = rank(x, ties: min), a = rank(x))
 ints
 ints.variables()
-frame(g = [1, 1, 2, 2], x = [1.5, 2, 3, 4]).add(s = running_sum(x), p = running_product(x), r = rank(x, ties: min), by: g)
+frame(g = [1, 1, 2, 2], x = [1.5, 2, 3, 4]).add(s = running(x, stat: sum), p = running(x, stat: product), r = rank(x, ties: min), by: g)
 frame(d = [date("2026-03-01"), date("2025-01-01"), NA]).add(r = rank(d))
 frame(s = ["b", "a", "B"]).add(r = rank(s))
 frame(b = [true, false, true]).add(r = rank(b), f = rank(b, ties: first))
@@ -221,9 +221,15 @@ fn a_definition_under_by_keeps_its_type_when_every_row_is_na_or_there_is_no_row(
 #[test]
 fn every_message() {
     let scripts = [
-        "frame(x = [9223372036854775800, 10]).add(s = running_sum(x))\n",
-        "frame(x = [1.0, Inf, -Inf, 2]).add(s = running_sum(x))\n",
-        "frame(x = [0.0, Inf, 2]).add(p = running_product(x))\n",
+        "frame(x = [9223372036854775800, 10]).add(s = running(x, stat: sum))\n",
+        "frame(x = [1.0, Inf, -Inf, 2]).add(s = running(x, stat: sum))\n",
+        "frame(x = [0.0, Inf, 2]).add(p = running(x, stat: product))\n",
+        "frame(x = [1.0, 2]).add(s = running(x))\n",
+        "frame(x = [1.0, 2]).add(s = running(x, stat: max))\n",
+        "frame(x = [1.0, 2]).add(s = running(x, stat: \"sum\"))\n",
+        "frame(x = [\"a\", \"b\"]).add(s = running(x, stat: sum))\n",
+        "frame(x = [1.0, 2]).add(s = running_sum(x))\n",
+        "frame(x = [1.0, 2]).add(p = running_product(x))\n",
         "frame(x = [1.0, 2]).add(b = bin(x))\n",
         "frame(x = [1.0, 2]).add(b = bin(x, breaks: [1]))\n",
         "frame(x = [1.0, 2]).add(b = bin(x, breaks: [0, 1, 1, 2]))\n",
@@ -233,7 +239,7 @@ fn every_message() {
         "frame(x = [1.0, 2]).add(b = bin(x, breaks: [0, 1, 2], labels: [1, 2]))\n",
         "frame(x = [\"p\", \"q\"]).add(b = bin(x, breaks: [0, 1]))\n",
         "frame(x = [\"p\", \"q\"]).add(r = rank(category(x)))\n",
-        "running_sum(3)\n",
+        "running(3, stat: sum)\n",
         "frame(x = [8.5, 18.08, 26.39]).add(band = bin(x, breaks: [10, 20]))\n",
     ];
     let mut out = String::new();
@@ -247,7 +253,7 @@ fn every_message() {
 proptest! {
     #![proptest_config(ProptestConfig::with_cases(32))]
 
-    /// `running_sum` of ones is the row number within its group, and `rank` under `ties: first`
+    /// The running sum of ones is the row number within its group, and `rank` under `ties: first`
     /// is a permutation of 1 to the count of values present.
     #[test]
     fn running_sums_count_rows_and_first_ranks_permute(
@@ -264,7 +270,7 @@ proptest! {
         let xs: Vec<String> = values[..n].iter().map(|v| v.map_or("NA".to_string(), |v| format!("{v}.5"))).collect();
         let present = values[..n].iter().filter(|v| v.is_some()).count();
         let script = format!(
-            "frame(g = {g}, one = {one}, expect = {expect}).add(s = running_sum(one), by: g).where(s != expect).n_rows()\nlet q = frame(x = {x}, one = {one}).add(r = rank(x, ties: first))\nq.where(is_missing(r) != is_missing(x)).n_rows()\nq.where(!is_missing(r)).sort(r).add(k = running_sum(one)).where(r != k).n_rows()\nq.where(!is_missing(r)).n_rows() - {present}\n",
+            "frame(g = {g}, one = {one}, expect = {expect}).add(s = running(one, stat: sum), by: g).where(s != expect).n_rows()\nlet q = frame(x = {x}, one = {one}).add(r = rank(x, ties: first))\nq.where(is_missing(r) != is_missing(x)).n_rows()\nq.where(!is_missing(r)).sort(r).add(k = running(one, stat: sum)).where(r != k).n_rows()\nq.where(!is_missing(r)).n_rows() - {present}\n",
             g = lit(groups[..n].iter().map(|g| g.to_string()).collect()),
             one = lit(vec!["1".to_string(); n]),
             expect = lit(expect),

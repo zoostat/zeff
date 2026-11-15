@@ -119,14 +119,10 @@ data save
 data lag
 data lead
 data diff
-data running_sum
-data running_product
 data rank
 data standardize
 data center
 data between
-data row_mean
-data row_sum
 data winsorize
 data mean
 data sd

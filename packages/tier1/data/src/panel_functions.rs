@@ -2,7 +2,7 @@
 //! 127 and 56; `fill_missing` took in `fill_forward`, row 139, at release 0.8.0, step 8i; Language Reference, section 6, "Panels"; release 0.6.0, step 8), inside `add` or
 //! `update`, where the enclosing frame supplies the panel index: each unit's rows in time order,
 //! a gap in time giving `NA` as Stata's `L.` does. `diff` is Rust rather than Zeff because a
-//! body written in Zeff has no handle on the enclosing frame (open decision #69), as `row_mean`.
+//! body written in Zeff has no handle on the enclosing frame (open decision #69), as `row`.
 
 use std::sync::Arc;
 use zeff_columns::{Column, ColumnType, Groups};

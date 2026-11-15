@@ -2,17 +2,17 @@
 source: packages/tier1/data/tests/column_functions.rs
 expression: out
 ---
-frame(x = [9223372036854775800, 10]).add(s = running_sum(x))
+frame(x = [9223372036854775800, 10]).add(s = running(x, stat: sum))
 ---
 error[Z0211]: Int overflow: the running sum does not fit in 64 bits at row 2
- --> scripts/main.zeff:1:58
+ --> scripts/main.zeff:1:54
   |
-1 | frame(x = [9223372036854775800, 10]).add(s = running_sum(x))
-  |                                                          ^ the column summed
+1 | frame(x = [9223372036854775800, 10]).add(s = running(x, stat: sum))
+  |                                                      ^ the column summed
   |
   = help: Ints are 64-bit; a Float (`1.0 * x`) holds larger magnitudes with 53 bits of precision
 
-frame(x = [1.0, Inf, -Inf, 2]).add(s = running_sum(x))
+frame(x = [1.0, Inf, -Inf, 2]).add(s = running(x, stat: sum))
 ---
 frame · 4 rows × 2 variables
 
@@ -21,10 +21,10 @@ frame · 4 rows × 2 variables
   2    Inf   Inf
   3   -Inf    NA
   4      2    NA
-warning[W0205]: `running_sum`: Inf and -Inf together gave NA in 2 rows (line 1)
+warning[W0205]: `running`: Inf and -Inf together gave NA in 2 rows (line 1)
   = help: an `NA` makes the rest of the running values `NA`; filter the infinite values first
 
-frame(x = [0.0, Inf, 2]).add(p = running_product(x))
+frame(x = [0.0, Inf, 2]).add(p = running(x, stat: product))
 ---
 frame · 3 rows × 2 variables
 
@@ -32,8 +32,66 @@ frame · 3 rows × 2 variables
   1     0    0
   2   Inf   NA
   3     2   NA
-warning[W0205]: `running_product`: 0 and Inf together gave NA in 2 rows (line 1)
+warning[W0205]: `running`: 0 and Inf together gave NA in 2 rows (line 1)
   = help: an `NA` makes the rest of the running values `NA`; filter the infinite values first
+
+frame(x = [1.0, 2]).add(s = running(x))
+---
+error[Z0406]: `running` needs `stat:`
+ --> scripts/main.zeff:1:29
+  |
+1 | frame(x = [1.0, 2]).add(s = running(x))
+  |                             ^^^^^^^ `stat:` is missing
+  |
+  = help: usage: `running(x, stat: sum)` for the running total, or `running(x, stat: product)` for the running product
+
+frame(x = [1.0, 2]).add(s = running(x, stat: max))
+---
+error[Z0402]: `max` is not one of the allowed words
+ --> scripts/main.zeff:1:46
+  |
+1 | frame(x = [1.0, 2]).add(s = running(x, stat: max))
+  |                                              ^^^ expected one of sum, product
+
+frame(x = [1.0, 2]).add(s = running(x, stat: "sum"))
+---
+error[Z0403]: expected one of sum, product, found text
+ --> scripts/main.zeff:1:46
+  |
+1 | frame(x = [1.0, 2]).add(s = running(x, stat: "sum"))
+  |                                              ^^^^^ a word, not a string
+  |
+  = help: write the word without quotes: `sum`
+
+frame(x = ["a", "b"]).add(s = running(x, stat: sum))
+---
+error[Z0401]: `running` takes a column of numbers, but this is a Column<Str>
+ --> scripts/main.zeff:1:39
+  |
+1 | frame(x = ["a", "b"]).add(s = running(x, stat: sum))
+  |                                       ^ not numbers
+  |
+  = help: `to(x, Float)` converts text that holds numbers; a date is not a number
+
+frame(x = [1.0, 2]).add(s = running_sum(x))
+---
+error[Z0103]: no function is called `running_sum`
+ --> scripts/main.zeff:1:29
+  |
+1 | frame(x = [1.0, 2]).add(s = running_sum(x))
+  |                             ^^^^^^^^^^^ not a function of Zeff
+  |
+  = help: `running_sum(x)` is `running(x, stat: sum)` since release 0.8.0
+
+frame(x = [1.0, 2]).add(p = running_product(x))
+---
+error[Z0103]: no function is called `running_product`
+ --> scripts/main.zeff:1:29
+  |
+1 | frame(x = [1.0, 2]).add(p = running_product(x))
+  |                             ^^^^^^^^^^^^^^^ not a function of Zeff
+  |
+  = help: `running_product(x)` is `running(x, stat: product)` since release 0.8.0
 
 frame(x = [1.0, 2]).add(b = bin(x))
 ---
@@ -125,15 +183,15 @@ error[Z0221]: `rank` orders its values, but the levels of this category are not 
   |
   = help: `category(x, levels: [...], ordered: true)` gives the levels an order (section 4.2 of the Language Reference)
 
-running_sum(3)
+running(3, stat: sum)
 ---
-error[Z0401]: `x` of `running_sum` must be a Column<Int> or Column<Float>, but this is an Int
- --> scripts/main.zeff:1:13
+error[Z0401]: `x` of `running` must be a Column<Int> or Column<Float>, but this is an Int
+ --> scripts/main.zeff:1:9
   |
-1 | running_sum(3)
-  |             ^ an Int
+1 | running(3, stat: sum)
+  |         ^ an Int
   |
-  = help: usage: `running_sum(x)`
+  = help: usage: `running(x, stat: sum | product)`
 
 frame(x = [8.5, 18.08, 26.39]).add(band = bin(x, breaks: [10, 20]))
 ---

@@ -62,7 +62,7 @@ dd
 (method summary (frame b=slopes) [b])
 (let engage (import "data/engagement.csv"))
 (method reliability engage [(.. eng1 eng6)])
-(let engage (method add engage engagement=(row_mean [(.. eng1 eng6)] min_valid:5)))
+(let engage (method add engage engagement=(row [(.. eng1 eng6)] stat:mean min_valid:5)))
 (let g (dag (edges ability -> training -> productivity) (edges ability -> productivity) (edges training -> tenure -> productivity) (edges [age region] -> training) (latent ability)))
 (method adjustment_sets g exposure:training outcome:productivity)
 (method implied_independencies g)

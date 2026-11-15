@@ -203,7 +203,7 @@ frame(b = slopes).summary([b])                        // sampling distribution o
 
 let engage = import("data/engagement.csv")
 engage.reliability([eng1..eng6])                      // alpha and item-total statistics; omega from 1.12
-let engage = engage.add(engagement = row_mean([eng1..eng6], min_valid: 5))
+let engage = engage.add(engagement = row([eng1..eng6], stat: mean, min_valid: 5))
 
 
 // ── 13. Causal graph: check the model against its assumptions ────────

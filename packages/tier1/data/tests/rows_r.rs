@@ -1,4 +1,5 @@
-//! `row_mean` and `row_sum` against R (testing handbook, section 1.1; release 0.5.0, step 17):
+//! `row` with `stat: mean` and `stat: sum` (`row_mean` and `row_sum` until release 0.8.0, step
+//! 8k; the reference file keeps those names as its keys) against R (testing handbook, section 1.1; release 0.5.0, step 17):
 //! `rowMeans(na.rm = TRUE)`, `rowSums(na.rm = TRUE)` and the `min_valid` rule written out, on the
 //! matrices of `tests/reference/r/rows.R`, within a relative 1e-12. Where R gives 0 for a row
 //! with no value, Zeff gives `NA`; the reference carries both and the test checks Zeff's.
@@ -80,7 +81,7 @@ fn row_sum_agrees_with_rowsums_and_names_the_departure() {
         assert!(
             agrees(
                 &frame,
-                &format!("row_sum({vars})"),
+                &format!("row({vars}, stat: sum)"),
                 &strings(&case["row_sum"]),
                 largest(case)
             ),
@@ -105,7 +106,7 @@ fn row_mean_agrees_with_rowmeans_and_the_min_valid_rule() {
         assert!(
             agrees(
                 &frame,
-                &format!("row_mean({vars})"),
+                &format!("row({vars}, stat: mean)"),
                 &strings(&case["row_mean"]),
                 largest(case)
             ),
@@ -116,7 +117,7 @@ fn row_mean_agrees_with_rowmeans_and_the_min_valid_rule() {
             assert!(
                 agrees(
                     &frame,
-                    &format!("row_mean({vars}, min_valid: {k})"),
+                    &format!("row({vars}, stat: mean, min_valid: {k})"),
                     &strings(&rule["values"]),
                     largest(case)
                 ),

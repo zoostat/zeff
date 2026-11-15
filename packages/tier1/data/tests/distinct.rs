@@ -50,7 +50,7 @@ fn check_case(frame_script: &str, case: &Json) {
     // A printed column stops at twenty values, so the kept positions are checked as a set and a
     // count: none outside R's, and as many as R's.
     let script = format!(
-        "{frame_script}let numbered = d.add(one = 1).add(position = running_sum(one)).distinct({vars})\nnumbered.where(!is_in(position, [{}])).n_rows()\nnumbered.n_rows()\nd.duplicates({vars})\n",
+        "{frame_script}let numbered = d.add(one = 1).add(position = running(one, stat: sum)).distinct({vars})\nnumbered.where(!is_in(position, [{}])).n_rows()\nnumbered.n_rows()\nd.duplicates({vars})\n",
         kept.join(", ")
     );
     let (code, stdout, stderr) = go(&script);
@@ -233,7 +233,7 @@ proptest! {
         let list = keys.iter().map(|k| k.map_or("NA".to_string(), |k| k.to_string())).collect::<Vec<_>>().join(", ");
         let ones = vec!["1"; keys.len()].join(", ");
         let script = format!(
-            "let d = frame(k = [{list}], one = [{ones}]).add(position = running_sum(one))\nlet firsts = d.distinct(k)\nfirsts[\"position\"]\nfirsts.distinct(k).n_rows() - firsts.n_rows()\nfirsts.duplicates(k)\nlet a = d.sample(n: {n}, seed: {seed})\nlet b = d.sample(n: {n}, seed: {seed})\na.n_rows() - {n}\na.add(other = b[\"position\"]).where(position != other).n_rows()\na.distinct(position).n_rows() - a.n_rows()\n",
+            "let d = frame(k = [{list}], one = [{ones}]).add(position = running(one, stat: sum))\nlet firsts = d.distinct(k)\nfirsts[\"position\"]\nfirsts.distinct(k).n_rows() - firsts.n_rows()\nfirsts.duplicates(k)\nlet a = d.sample(n: {n}, seed: {seed})\nlet b = d.sample(n: {n}, seed: {seed})\na.n_rows() - {n}\na.add(other = b[\"position\"]).where(position != other).n_rows()\na.distinct(position).n_rows() - a.n_rows()\n",
         );
         let (code, stdout, stderr) = go(&script);
         prop_assert_eq!(code, 0, "{}", stderr);
