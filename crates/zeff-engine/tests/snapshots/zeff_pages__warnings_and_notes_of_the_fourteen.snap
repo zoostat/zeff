@@ -39,12 +39,6 @@ data::mad
     Z0401   the variable is not numeric
     Z0101   the variable is not in the frame
     W0205   the quantile falls between Inf and -Inf
-data::quantile_group
-    Z0401   `x` is not a column of numbers; `n:` is below 1; `type:` is not 1 to 9
-    Z0406   `n:` is not given
-    Z0203   `type:` is `NA`
-    Z0418   `n:` is above ten million
-    W0205   the quantile falls between Inf and -Inf
 data::skewness
     W0205   an operation with no value gave NA
     Z0401   the variable is not Bool, Int or Float

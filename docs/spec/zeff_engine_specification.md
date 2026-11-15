@@ -289,7 +289,7 @@ Counts are functions in 1.0 / proposed for 1.0 (none since 16 October 2026) / on
 | --- | --- | --- | --- | --- |
 | 1 | `time` | Work with dates and times | Parsing, date parts, date arithmetic | 16 / 0 / 2 |
 | 2 | `text` | Work with text | Matching, replacing, splitting, formatting numbers and dates | 13 / 0 / 0 |
-| 3 | `data` | Make any dataset ready for analysis | Frames, verbs, panels, reducers, files | 59 / 0 / 17 |
+| 3 | `data` | Make any dataset ready for analysis | Frames, verbs, panels, reducers, files | 58 / 0 / 17 |
 | 4 | `dist` | Probability distributions | Fifteen families, the studentized range, truncation and mixtures; `pdf`, `cdf`, `quantile`, `draw` | 22 / 0 / 0 |
 | 5 | `results` | Every result looks and behaves the same | Result interface, estimator interface with marginal effects, publication tables, export | 24 / 0 / 5 |
 | 6 | `stats` | Classical inference | Correlation, tests, post-hoc comparisons, power, effect sizes, smoothing | 14 / 0 / 19 |
@@ -330,7 +330,7 @@ Counts are functions in 1.0 / proposed for 1.0 (none since 16 October 2026) / on
 
 **Tier 4: extensions.** The project's own functions in `functions/` (they may call every package) and, from 2.0 at the earliest, third-party packages under rule 9.
 
-Totals: 281 functions in 1.0 (75 in tier 0, 185 in tier 1, 15 in tier 2, 6 in tier 3), of which 265 are written in Rust and 16 in Zeff; none remain proposed, and 396 are on the roadmap, 677 in all (at release 0.8.0 `time_between` took the place of `days_between` and `months_between`, and `hour`, `minute`, `second` and `start_of` were added, zeff_open_decisions.md, #96; `add_time` took the place of `add_days` and `add_months`, #97; at release 0.8.0 the merges of the plan of releases after 1.0 took eighteen roadmap rows, zeff_open_decisions.md, #113, and the graphics and diagram proposals added 148, of which 41 are further options of functions that exist, #121 and #122; eight functions joined 1.0 on 7 November 2026, five of them from the roadmap; zeff_open_decisions.md, #88; six methods of a test's result joined `results` on 9 November 2026, #94, and `design` joined `regress` at release 0.7.0, #71). Eighteen packages have no function in 1.0 (four in tier 1, six in tier 2 and every tier-3 package but `identify`): they give the roadmap its structure and stay out of menus until they ship (rule 7). Most 1.0 functions are small; what limits the schedule is the seven hard engine pieces listed in section 14.
+Totals: 280 functions in 1.0 (75 in tier 0, 184 in tier 1, 15 in tier 2, 6 in tier 3), of which 265 are written in Rust and 15 in Zeff; none remain proposed, and 396 are on the roadmap, 676 in all (at release 0.8.0 `time_between` took the place of `days_between` and `months_between`, and `hour`, `minute`, `second` and `start_of` were added, zeff_open_decisions.md, #96; `add_time` took the place of `add_days` and `add_months`, and `bin` took in `quantile_group` as its option `n:`, #97; at release 0.8.0 the merges of the plan of releases after 1.0 took eighteen roadmap rows, zeff_open_decisions.md, #113, and the graphics and diagram proposals added 148, of which 41 are further options of functions that exist, #121 and #122; eight functions joined 1.0 on 7 November 2026, five of them from the roadmap; zeff_open_decisions.md, #88; six methods of a test's result joined `results` on 9 November 2026, #94, and `design` joined `regress` at release 0.7.0, #71). Eighteen packages have no function in 1.0 (four in tier 1, six in tier 2 and every tier-3 package but `identify`): they give the roadmap its structure and stay out of menus until they ship (rule 7). Most 1.0 functions are small; what limits the schedule is the seven hard engine pieces listed in section 14.
 
 ### 8.3 Engine architecture
 
@@ -635,10 +635,10 @@ fn share_missing(data: Frame, var: Var) -> Float {
 
 - **Text:** `upper`, `lower`, `trim`, `contains`, `starts_with`, `ends_with`, `replace`, `extract`, `split`, `join`, `slice`, `pad`, `format`
 
-#### `data` (tier 1) · 59 in 1.0, 0 proposed, 17 on the roadmap
+#### `data` (tier 1) · 58 in 1.0, 0 proposed, 17 on the roadmap
 
 - **Frames:** `frame`, `import`, `n_rows`, `n_cols`, `variables`, `describe`, `head`, `tail`, `where`, `select`, `drop`, `rename`, `add`, `update`, `sort`, `distinct`, `duplicates`, `sample`, `merge`, `append`, `to_long`, `to_wide`, `aggregate`, `panel`, `drop_missing`, `label`, `recode`, `save`
-- **Column functions:** `lag`, `lead`, `diff`, `running_sum`, `running_product`, `rank`, `quantile_group`, `bin`, `standardize`, `center`, `between`, `row_mean`, `row_sum`, `winsorize`, `fill_forward`
+- **Column functions:** `lag`, `lead`, `diff`, `running_sum`, `running_product`, `rank`, `bin`, `standardize`, `center`, `between`, `row_mean`, `row_sum`, `winsorize`, `fill_forward`
 - **Reducers and summaries:** `mean`, `sd`, `variance`, `median`, `iqr`, `mad`, `quantile`, `min`, `max`, `sum`, `n`, `n_distinct`, `skewness`, `kurtosis`, `summary`, `tabulate`
 - **Roadmap, by release:** `external`, `unnest` (1.1); `moving_average`, `growth_rate`, `index_number`, `rolling`, and further options of `where`, `drop_missing`, `distinct`, `merge` (1.2); `gini`, `theil`, `atkinson`, `herfindahl`, `lorenz` (1.5); `stream` (1.8)
 

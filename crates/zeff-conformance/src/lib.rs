@@ -1214,8 +1214,10 @@ fn control_cases() -> Vec<Line> {
         // script and is what the standard error digests.
         ("column_types", COLUMN_TYPES_SCRIPT),
         // A coded error from a built-in written in Zeff (release 0.8.0, step 7a; open decision
-        // #89): `quantile_group` and `winsorize` refuse an argument under Z0401 and Z0406, each
-        // caught by `attempt`; `error` with `code:` written in a script is what ends the run.
+        // #89): `winsorize` refuses an argument under Z0401, caught by `attempt`, and beside it
+        // the quantile groups of `bin`, which were the Zeff-written `quantile_group` until step
+        // 8h and refuse the same arguments under the same codes in Rust; the last statement's
+        // refusal is what ends the run.
         ("coded_errors", CODED_ERRORS_SCRIPT),
     ];
     let mut lines = Vec::new();
@@ -1253,7 +1255,7 @@ fn control_cases() -> Vec<Line> {
 
 /// The script of the `several_types` case: `fill_missing`, written in Zeff on a parameter of
 /// several types, under every type and column form a call may take.
-const CODED_ERRORS_SCRIPT: &str = "let d = frame(x = [1.0, 2, 3, 4, 5, 6])\nprint(attempt(d.add(g = quantile_group(x, n: 0))).is(Failed))\nprint(attempt(d.add(g = quantile_group(x))).is(Failed))\nprint(attempt(d.add(g = quantile_group(x, n: 2, type: 12))).is(Failed))\nprint(attempt(d.add(w = winsorize(x, at: 0.9))).is(Failed))\nd.add(g = quantile_group(x, n: 3), w = winsorize(x, at: 0.2))\nd.add(g = quantile_group(x, n: 0))\n";
+const CODED_ERRORS_SCRIPT: &str = "let d = frame(x = [1.0, 2, 3, 4, 5, 6])\nprint(attempt(d.add(g = to(bin(x, n: 0), Int))).is(Failed))\nprint(attempt(d.add(g = to(bin(x), Int))).is(Failed))\nprint(attempt(d.add(g = to(bin(x, n: 2, type: 12), Int))).is(Failed))\nprint(attempt(d.add(w = winsorize(x, at: 0.9))).is(Failed))\nd.add(g = to(bin(x, n: 3), Int), w = winsorize(x, at: 0.2))\nd.add(g = to(bin(x, n: 0), Int))\n";
 
 const COLUMN_TYPES_SCRIPT: &str = "let d = frame(s = [\"a\", \"b\"], n = [1, 2], b = [true, false], t = [to(\"2026-01-01\", Date), to(\"2026-02-01\", Date)])\nprint(attempt(d.add(a = log(s))).is(Failed))\nprint(attempt(d.add(a = year(n))).is(Failed))\nprint(attempt(d.add(a = upper(n))).is(Failed))\nprint(attempt(d.add(a = round(b))).is(Failed))\nprint(attempt(d.add(a = abs(t))).is(Failed))\nprint(attempt(d.where(sqrt(s) > 1)).is(Failed))\nprint(attempt(d.plot(x: log(s), y: n).points()).is(Failed))\nprint(attempt(d.reg(n ~ log(s))).is(Failed))\nd.add(ok = log(n), day = year(t), up = upper(s), flag = to(b, Int))\nlet w = dataset(wages)\nw.add(x = log(industry))\n";
 
@@ -1397,9 +1399,10 @@ fn panel_cases() -> Vec<Line> {
     // the four tie rules, and bins with open ends, both closures, labels and a value outside.
     let running = "let s = frame(shop = [\"a\", \"a\", \"b\", \"b\", \"b\"], sales = [120, 80, NA, 150, 90], growth = [1.1, 0.9, 1.25, 1.0, 0.8])\ns.add(to_date = running_sum(sales), index = running_product(growth))\ns.add(so_far = running_sum(sales), by: shop)\nlet r = frame(name = [\"Ann\", \"Bo\", \"Cy\", \"Di\", \"Ed\"], score = [72.5, 90, 72.5, NA, 60])\nr.add(avg = rank(score), low = rank(score, ties: min), high = rank(score, ties: max), first = rank(score, ties: first))\nlet pay = frame(wage = [18.08, 8.5, 20.93, 15.68, 26.39, 33.07, NA])\npay.add(band = bin(wage, breaks: [-Inf, 10, 20, Inf]), left = bin(wage, breaks: [0, 10, 20], labels: [\"low\", \"high\"], closed: left), narrow = bin(wage, breaks: [10, 20]), fine = bin(wage, breaks: [0, 2.5, 1000, 123456, Inf]))\nframe(x = [9223372036854775800, 10]).add(s = running_sum(x))\n";
     let ran = run_script(&fs, &project, "scripts/main.zeff", running);
-    // `quantile_group` and `winsorize` (step 10): quartiles and tertiles under two definitions,
+    // The quantile groups of `bin` (`quantile_group` until release 0.8.0, step 8h; read as
+    // numbers, so the digest is the one stored then) and `winsorize` (step 10): quartiles and tertiles under two definitions,
     // ties at the cut points, groups within `by:`, and the capped values at two shares.
-    let grouped = "let d = frame(g = [1, 1, 1, 1, 2, 2, 2, 2], x = [5, 1, 9, 3, 7, NA, 2, 8])\nd.add(quartile = quantile_group(x, n: 4), third = quantile_group(x, n: 3, type: 1), within = quantile_group(x, n: 2), by: g)\nframe(x = [1, 1, 1, 1, 2]).add(q = quantile_group(x, n: 4))\nlet w = dataset(wages).head(12)\nw.add(decile = quantile_group(wage, n: 10), capped = winsorize(wage, at: 0.1), one = winsorize(wage)).select([worker, year, wage, decile, capped, one])\nframe(x = [1.0, 2]).add(w = winsorize(x, at: 0.6))\n";
+    let grouped = "let d = frame(g = [1, 1, 1, 1, 2, 2, 2, 2], x = [5, 1, 9, 3, 7, NA, 2, 8])\nd.add(quartile = to(bin(x, n: 4), Int), third = to(bin(x, n: 3, type: 1), Int), within = to(bin(x, n: 2), Int), by: g)\nframe(x = [1, 1, 1, 1, 2]).add(q = to(bin(x, n: 4), Int))\nlet w = dataset(wages).head(12)\nw.add(decile = to(bin(wage, n: 10), Int), capped = winsorize(wage, at: 0.1), one = winsorize(wage)).select([worker, year, wage, decile, capped, one])\nframe(x = [1.0, 2]).add(w = winsorize(x, at: 0.6))\n";
     let grouped_outcome = run_script(&fs, &project, "scripts/main.zeff", grouped);
     // `distinct` and `duplicates` (step 11): keys with repeats and `NA`, several keys, and the
     // table; `sample` under explicit seeds, without and with replacement, by count and by share.

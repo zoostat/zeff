@@ -150,3 +150,13 @@ Step 2: the help contract of 0.8.0 (#103) in section 9.1 and in the registry, wi
 **Next.** Step 8h `[function]`: `bin(x, n: | breaks:, …)` absorbing `quantile_group` (#97).
 
 **For the owner to decide.** Nothing blocks.
+
+## 15 November 2026, release 0.8.0, step 8h (`bin` takes in `quantile_group`)
+
+**Done.** Step 8h `[function]`: `bin(x, n: 4)` gives the quantile groups that `quantile_group(x, n: 4)` gave, as an ordered category with levels `1` to `4`; `to(bin(x, n: 4), Int)` gives the same numbers as before, value for value. `labels:` and `closed:` now apply to quantile groups too. The old name is refused with the rewrite. Every value agrees with R, closed on either side.
+
+**Green.** Format, clippy with warnings denied, the tier, message and grammar checks, every test of the workspace; CI read after the push.
+
+**Next.** Step 8i `[function]`: `fill_missing(x, value | method:)` taking in `fill_forward` (#97).
+
+**For the owner to decide.** Nothing blocks. Two things to know: a call of `bin` with neither `n:` nor `breaks:` is refused under Z0406 (an argument missing), not Z0410 as the decision's parenthesis reads; and `bin(x, [0, 10])` without the word `breaks:` is no longer accepted.

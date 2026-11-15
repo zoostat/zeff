@@ -2,7 +2,7 @@
 source: crates/zeff-cli/tests/cli.rs
 expression: out(&o)
 ---
-data · tier 1 · 59 of 59 functions in this release
+data · tier 1 · 58 of 58 functions in this release
 
   frame             Create a frame from named lists of values
   import            Read a data file into a frame
@@ -41,7 +41,7 @@ data · tier 1 · 59 of 59 functions in this release
   running_sum       Cumulative sum down the rows; an NA makes the rest NA
   running_product   Cumulative product down the rows; an NA makes the rest NA
   rank              Rank of each value, smallest first; NA stays NA
-  bin               Category from numeric intervals, (a, b] by default as in R
+  bin               Ordered category from a number, by quantile groups or by intervals
   distinct          Rows with distinct values of the variables, the first occurrence kept
   duplicates        Table of repeated key values
   sample            Random sample of rows; the seed is recorded
@@ -62,6 +62,5 @@ data · tier 1 · 59 of 59 functions in this release
   skewness          Sample skewness
   kurtosis          Sample kurtosis
   winsorize         Cap values below the at quantile and above the 1 − at quantile
-  quantile_group    Group 1 to n by cutting at sample quantiles; tied values share a group
 
 the rest arrive with later releases; `zeff help <name>` says when

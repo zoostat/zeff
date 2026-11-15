@@ -1061,19 +1061,29 @@ pub fn functions() -> Vec<Function> {
                 method: false,
                 params: vec![
                     ParamSpec::required("x", "Column<Int> | Column<Float>"),
+                    ParamSpec::option("n", "Int"),
                     ParamSpec::option("breaks", "List<Float>"),
                     ParamSpec::option("labels", "List<Str>"),
                     ParamSpec::option_with_default("closed", "right | left", "right"),
+                    ParamSpec::option_with_default("type", "Int", "7"),
                 ],
                 rest: None,
                 returns: "Column<Category>",
                 diagnostics: vec![
-                    DiagnosticDecl::new("Z0406", "breaks: missing"),
+                    DiagnosticDecl::new("Z0406", "neither `n:` nor `breaks:` is given"),
+                    DiagnosticDecl::new(
+                        "Z0410",
+                        "`n:` and `breaks:` are both given, or `type:` beside `breaks:`",
+                    ),
                     DiagnosticDecl::new(
                         "Z0401",
-                        "fewer than two breaks, a break repeated or NA, labels of the wrong number or repeated",
+                        "`n:` below 1, `type:` outside 1 to 9, fewer than two breaks, a break repeated or NA, labels of the wrong number or repeated",
                     ),
                     DiagnosticDecl::new("W0210", "values outside every interval, which are NA"),
+                    DiagnosticDecl::new(
+                        "W0205",
+                        "a cut point of `n:` falls between Inf and -Inf, so every group is NA",
+                    ),
                 ],
                 help: include_str!("../help/bin.md"),
                 accuracy: None,
@@ -1702,69 +1712,6 @@ pub fn zeff_sources() -> Vec<zeff_registry::ZeffSource> {
                     "Z0401",
                     "`x` is not a column of numbers; `at:` is below 0 or above 0.5",
                 ),
-            ],
-        },
-        zeff_registry::ZeffSource {
-            package: "data",
-            name: "quantile_group",
-            file: "data/functions/quantile_group.zeff",
-            text: include_str!("../functions/quantile_group.zeff"),
-            cannot: &[
-                (
-                    "Z0001",
-                    "every error the body raises carries one of the engine's codes",
-                ),
-                (
-                    "Z0220",
-                    "the lists given to `map` and `reduce` are made by the body, and hold no failed value",
-                ),
-                ("Z0418", "said below in the function's own words"),
-                (
-                    "W0203",
-                    "the body converts a Bool to an Int, which always has a value",
-                ),
-                (
-                    "W0202",
-                    "the body converts a Bool to an Int, which has no fraction",
-                ),
-                (
-                    "Z0409",
-                    "the body converts to an Int, which takes no format",
-                ),
-                (
-                    "W0702",
-                    "the body converts to an Int, not to a date and time",
-                ),
-                (
-                    "Z0214",
-                    "the body gives `frame` columns of numbers of one length",
-                ),
-                (
-                    "Z0217",
-                    "the body gives `frame` columns of numbers of one length",
-                ),
-                (
-                    "Z0219",
-                    "the body gives `frame` columns of numbers of one length",
-                ),
-                (
-                    "W0201",
-                    "allowed inside the body: the cut points are taken over the values present, as the page says",
-                ),
-                ("", "the body gives `quantile` no weights"),
-                (
-                    "Z0101",
-                    "the body names the variables of its own frame alone",
-                ),
-            ],
-            also: &[
-                ("Z0203", "`type:` is `NA`"),
-                (
-                    "Z0401",
-                    "`x` is not a column of numbers; `n:` is below 1; `type:` is not 1 to 9",
-                ),
-                ("Z0406", "`n:` is not given"),
-                ("Z0418", "`n:` is above ten million"),
             ],
         },
     ]

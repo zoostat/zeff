@@ -14,7 +14,7 @@ use zeff_engine::registry::{registry, zeff_bodies};
 use zeff_engine::run::run_script;
 
 /// A function, a code of its page, and a script that raises the code through the function.
-const SHOWN: [(&str, &str, &str); 46] = [
+const SHOWN: [(&str, &str, &str); 41] = [
     (
         "drop_missing",
         "Z0101",
@@ -88,31 +88,6 @@ const SHOWN: [(&str, &str, &str); 46] = [
         "winsorize",
         "W0205",
         "frame(x = [-Inf, Inf]).add(c = winsorize(x, at: 0.5))",
-    ),
-    (
-        "quantile_group",
-        "Z0406",
-        "frame(x = [1.0, 2, 3]).add(g = quantile_group(x))",
-    ),
-    (
-        "quantile_group",
-        "Z0203",
-        "frame(x = [1.0, 2, 3]).add(g = quantile_group(x, n: 2, type: NA))",
-    ),
-    (
-        "quantile_group",
-        "Z0401",
-        "frame(x = [\"a\", \"b\"]).add(g = quantile_group(x, n: 2))",
-    ),
-    (
-        "quantile_group",
-        "Z0418",
-        "frame(x = [1.0, 2, 3]).add(g = quantile_group(x, n: 20000000))",
-    ),
-    (
-        "quantile_group",
-        "W0205",
-        "frame(x = [-Inf, Inf]).add(g = quantile_group(x, n: 2))",
     ),
     ("iqr", "Z0401", "frame(x = [1.0, 2, 3]).iqr(x, type: 12)"),
     ("iqr", "Z0101", "frame(x = [1.0, 2, 3]).iqr(nope)"),
@@ -262,8 +237,9 @@ fn the_pages_of_the_fourteen() {
     let registry = registry().unwrap_or_else(|e| panic!("{e:?}"));
     let mut names: Vec<&(String, String)> = zeff_bodies().keys().collect();
     names.sort();
-    // Fourteen until release 0.8.0, step 7b, where `drop_missing` returned to Zeff.
-    assert_eq!(names.len(), 15);
+    // Fourteen until release 0.8.0, step 7b, where `drop_missing` returned to Zeff; fourteen
+    // again from step 8h, where `quantile_group` became the option `n:` of `bin`, in Rust.
+    assert_eq!(names.len(), 14);
     let mut all = String::new();
     for (package, name) in names {
         all.push_str(&format!("{package}::{name}\n"));

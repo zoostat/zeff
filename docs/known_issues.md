@@ -216,7 +216,8 @@ is never listed here as accepted: it is fixed or the function is withdrawn.
   `vif` stays in Rust too though `design()` exists (open decision #136, not before 1.0).
   `drop_missing` returned to Zeff at step 7b of 0.8.0, once a body could raise the engine's
   codes and see a list of variables resolved against the frame (open decisions #89 and #90). `fill_missing` and
-  `quantile_group` returned to Zeff at steps 4.1 and 4.4 of 0.7.0. Of the functions of 0.7.0
+  `quantile_group` returned to Zeff at steps 4.1 and 4.4 of 0.7.0; `quantile_group` became
+  the option `n:` of `bin`, in Rust, at step 8h of 0.8.0 (open decision #97). Of the functions of 0.7.0
   that were planned in Zeff, `t_test`, `proportion_test`, `chi2_test`, `kruskal_test` and
   `p_adjust` are in Rust, since a body has no way to build a test's result (open decision #92,
   decided at 0.8.0: the tests stay in Rust), and so is `coef_plot`. Nothing a script sees differs, and section 8.2's totals follow
@@ -249,8 +250,7 @@ is never listed here as accepted: it is fixed or the function is withdrawn.
   under `attempt` is read in a loop that steps over the failed ones. (Since 0.5.0; by design,
   section 3.7.)
 - **A message raised inside a built-in written in Zeff may name what the body used, not what the
-  script wrote**: an inner function (`seq` would make 19,999,999 values, from
-  `quantile_group(x, n: 20000000)`; `median` needs a Bool, Int or Float, from `mad`) or the body's
+  script wrote**: an inner function (`median` needs a Bool, Int or Float, from `mad`) or the body's
   own column (`value`, from `standardize`; `deviation`, from `mad`). The message is placed at the
   script's call and its code is on the function's page. (Since 0.5.0; the warning of `skewness`
   and `kurtosis` for too few values carries W0205 from step 4.3 of 0.7.0.)

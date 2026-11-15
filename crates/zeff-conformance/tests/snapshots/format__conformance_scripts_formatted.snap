@@ -510,12 +510,12 @@ let w = dataset(wages)
 w.add(x = log(industry))
 ==== script 39
 let d = frame(x = [1.0, 2, 3, 4, 5, 6])
-print(attempt(d.add(g = quantile_group(x, n: 0))).is(Failed))
-print(attempt(d.add(g = quantile_group(x))).is(Failed))
-print(attempt(d.add(g = quantile_group(x, n: 2, type: 12))).is(Failed))
+print(attempt(d.add(g = to(bin(x, n: 0), Int))).is(Failed))
+print(attempt(d.add(g = to(bin(x), Int))).is(Failed))
+print(attempt(d.add(g = to(bin(x, n: 2, type: 12), Int))).is(Failed))
 print(attempt(d.add(w = winsorize(x, at: 0.9))).is(Failed))
-d.add(g = quantile_group(x, n: 3), w = winsorize(x, at: 0.2))
-d.add(g = quantile_group(x, n: 0))
+d.add(g = to(bin(x, n: 3), Int), w = winsorize(x, at: 0.2))
+d.add(g = to(bin(x, n: 0), Int))
 ==== script 40
 date("2026-10-16")
 date("16/10/2026", format: "%d/%m/%Y")
@@ -758,14 +758,14 @@ pay.add(band = bin(wage, breaks: [-Inf, 10, 20, Inf]),
 frame(x = [9223372036854775800, 10]).add(s = running_sum(x))
 ==== script 53
 let d = frame(g = [1, 1, 1, 1, 2, 2, 2, 2], x = [5, 1, 9, 3, 7, NA, 2, 8])
-d.add(quartile = quantile_group(x, n: 4),
-      third = quantile_group(x, n: 3, type: 1),
-      within = quantile_group(x, n: 2),
+d.add(quartile = to(bin(x, n: 4), Int),
+      third = to(bin(x, n: 3, type: 1), Int),
+      within = to(bin(x, n: 2), Int),
       by: g)
-frame(x = [1, 1, 1, 1, 2]).add(q = quantile_group(x, n: 4))
+frame(x = [1, 1, 1, 1, 2]).add(q = to(bin(x, n: 4), Int))
 let w = dataset(wages).head(12)
 w
-    .add(decile = quantile_group(wage, n: 10),
+    .add(decile = to(bin(wage, n: 10), Int),
          capped = winsorize(wage, at: 0.1),
          one = winsorize(wage))
     .select([worker, year, wage, decile, capped, one])

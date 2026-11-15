@@ -17,7 +17,7 @@
 /// details: Closed form: the two quantiles come from `quantile` under definition 7 and each value is then `min(max(x, low), high)`, exactly R's `pmin(pmax(x, quantile(x, at)), quantile(x, 1 - at))`; nothing else is computed.
 /// reference: Hyndman, R. J. and Fan, Y. (1996) Sample quantiles in statistical packages, The American Statistician 50(4), 361–365.
 /// reference: Signorell, A., the `Winsorize` function of the DescTools package; Stata's `winsor2` command.
-/// see also: clamp, quantile, quantile_group, bin
+/// see also: clamp, quantile, bin
 /// > let d = frame(x = [1, 2, 3, 4, 5, 6, 7, 8, 9, 100])
 /// > d.add(w = winsorize(x, at: 0.1))
 /// frame · 10 rows × 2 variables

@@ -190,7 +190,7 @@ pub fn groups(
             )
             .in_file(ctx.script)
             .primary(ctx.span_of(slot), "not a grouping variable")
-            .help("a group is a value shared by its rows; `bin` or `quantile_group` makes groups from a number"),
+            .help("a group is a value shared by its rows; `bin` makes groups from a number, by breaks or by quantiles"),
         )
     };
     if matches!(

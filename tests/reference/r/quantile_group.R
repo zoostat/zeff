@@ -1,4 +1,5 @@
-# R's quantile groups and winsorised values (release 0.6.0, step 10): quantile_group(x, n:, type:)
+# R's quantile groups and winsorised values (release 0.6.0, step 10; from release 0.8.0, step 8h,
+# the function is bin(x, n:, type:), which absorbed quantile_group): bin(x, n:, type:)
 # is the group 1 to n whose cut points are the sample quantiles at i/n under the nine definitions,
 # a value equal to a cut point falling in the group below it (right-closed, as R's cut with
 # include.lowest = TRUE), which base R's findInterval(x, cuts, left.open = TRUE) + 1 computes for
@@ -6,7 +7,9 @@
 # the cut points are distinct; the script checks the two agree wherever cut applies. When two cut
 # points coincide (fewer distinct values than groups) the groups between them are empty and the
 # numbering is kept, as Stata's xtile keeps it. winsorize(x, at:) is pmin(pmax(x, q(at)), q(1 - at))
-# with the quantile of type 7. The values are written with 17 significant digits and the engine
+# with the quantile of type 7. Under closed: left a value equal to a cut point falls in the group
+# above it: findInterval(x, cuts) + 1, which is as.integer(cut(x, breaks, right = FALSE,
+# include.lowest = TRUE)) when the cut points are distinct; the script checks that too. The values are written with 17 significant digits and the engine
 # is held to them exactly. Run with `Rscript tests/reference/r/quantile_group.R`.
 source(file.path(dirname(sub("^--file=", "", commandArgs(FALSE)[grepl("^--file=", commandArgs(FALSE))])), "common.R"))
 
@@ -37,11 +40,24 @@ groups_of <- function(x, n, type) {
   g
 }
 
+groups_left_of <- function(x, n, type) {
+  present <- x[!is.na(x)]
+  if (length(present) == 0) return(rep(NA, length(x)))
+  cuts <- if (n > 1) quantile(present, probs = (1:(n - 1)) / n, type = type, names = FALSE) else numeric(0)
+  g <- findInterval(x, cuts) + 1
+  if (n > 1 && !anyDuplicated(c(min(present), cuts, max(present)))) {
+    by_cut <- as.integer(cut(x, c(min(present), cuts, max(present)), right = FALSE, include.lowest = TRUE))
+    stopifnot(identical(as.integer(g[!is.na(x)]), by_cut[!is.na(x)]))
+  }
+  g
+}
+
 group_case <- function(x) {
   out <- list()
   for (n in c(1L, 2L, 3L, 4L, 5L, 10L)) {
     for (type in 1:9) {
-      out[[length(out) + 1]] <- list(n = n, type = type, groups = as.list(int_or_na(groups_of(x, n, type))))
+      out[[length(out) + 1]] <- list(n = n, type = type, groups = as.list(int_or_na(groups_of(x, n, type))),
+                                   left = as.list(int_or_na(groups_left_of(x, n, type))))
     }
   }
   out

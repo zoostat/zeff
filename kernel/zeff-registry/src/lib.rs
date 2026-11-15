@@ -60,6 +60,10 @@ pub const REPLACED: &[(&str, &str)] = &[
         "add_months",
         "`add_months(d, n)` is `add_time(d, n, unit: month)` since release 0.8.0",
     ),
+    (
+        "quantile_group",
+        "`quantile_group(x, n: 4)` is `bin(x, n: 4)` since release 0.8.0, and `to(bin(x, n: 4), Int)` gives the group as a number",
+    ),
 ];
 
 /// What to write in the place of a name a release took out, if `name` is one.

@@ -123,8 +123,6 @@ data diff
 data running_sum
 data running_product
 data rank
-data quantile_group
-data bin
 data standardize
 data center
 data between

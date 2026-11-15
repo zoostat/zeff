@@ -1,6 +1,5 @@
 ---
 source: packages/tier1/data/tests/column_functions.rs
-assertion_line: 207
 expression: out
 ---
 frame(x = [9223372036854775800, 10]).add(s = running_sum(x))
@@ -38,13 +37,13 @@ warning[W0205]: `running_product`: 0 and Inf together gave NA in 2 rows (line 1)
 
 frame(x = [1.0, 2]).add(b = bin(x))
 ---
-error[Z0406]: `bin` needs `breaks:`
+error[Z0406]: `bin` needs `n:` or `breaks:`
  --> scripts/main.zeff:1:29
   |
 1 | frame(x = [1.0, 2]).add(b = bin(x))
-  |                             ^^^ `breaks:` is missing
+  |                             ^^^ neither is given
   |
-  = help: usage: `bin(x, breaks: [-Inf, 0, 10, Inf])`
+  = help: usage: `bin(x, n: 4)` for the quartile groups, or `bin(x, breaks: [-Inf, 0, 10, Inf])` for intervals
 
 frame(x = [1.0, 2]).add(b = bin(x, breaks: [1]))
 ---
@@ -94,7 +93,7 @@ error[Z0401]: `labels:` of `bin` repeats "a"; a category's levels are distinct
 1 | frame(x = [1.0, 2]).add(b = bin(x, breaks: [0, 1, 2], labels: ["a", "a"]))
   |                                                               ^^^^^^^^^^ a label repeated
   |
-  = help: give each interval its own label
+  = help: give each level its own label
 
 frame(x = [1.0, 2]).add(b = bin(x, breaks: [0, 1, 2], labels: [1, 2]))
 ---
@@ -104,7 +103,7 @@ error[Z0401]: `labels` of `bin` must be a List<Str>, but this is a List<Int>
 1 | frame(x = [1.0, 2]).add(b = bin(x, breaks: [0, 1, 2], labels: [1, 2]))
   |                                                               ^^^^^^ a List<Int>
   |
-  = help: usage: `bin(x, breaks: List<Float>, labels: List<Str>, closed: right | left = right)`
+  = help: usage: `bin(x, n: Int, breaks: List<Float>, labels: List<Str>, closed: right | left = right, type: Int = 7)`
 
 frame(x = ["p", "q"]).add(b = bin(x, breaks: [0, 1]))
 ---

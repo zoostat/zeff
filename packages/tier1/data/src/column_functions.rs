@@ -6,8 +6,9 @@
 //! `running_product` is Float, as R's `cumprod`; `rank` keeps `NA` as R's `na.last = "keep"`;
 //! and `bin` is R's `cut`: an ordered category whose levels are the intervals, labelled as R
 //! labels them unless `labels:` is given, a value outside every interval `NA` with W0210.
-//! `quantile_group` (row 131) was here until step 4.4 of release 0.7.0 and is now written in
-//! Zeff, its probabilities i/n built by `map` (open decision #79).
+//! From release 0.8.0, step 8h, `bin` also cuts at the sample quantiles, `bin(x, n: 4)`, which
+//! was `quantile_group` (row 131, in Zeff from step 4.4 of release 0.7.0): one function with an
+//! option (open decision #97), its cut points the kernel's quantiles at the probabilities i/n.
 
 use zeff_columns::{Column, ColumnError, ColumnType, Key, sort_rows};
 use zeff_core::display::format_float;
@@ -278,11 +279,11 @@ fn breaks_arg(ctx: &CallContext<'_>, args: &Args) -> Result<Vec<f64>, Fail> {
         fail(
             Diagnostic::error("Z0401", message)
                 .in_file(ctx.script)
-                .primary(ctx.span_of(1), label)
+                .primary(ctx.span_of(2), label)
                 .help("usage: `bin(x, breaks: [-Inf, 0, 10, Inf])`, the breaks in any order; `-Inf` and `Inf` are open ends"),
         )
     };
-    let items = match args.get(1) {
+    let items = match args.get(2) {
         Some(Value::List(items)) => items,
         Some(other) => {
             return Err(refuse(
@@ -293,14 +294,7 @@ fn breaks_arg(ctx: &CallContext<'_>, args: &Args) -> Result<Vec<f64>, Fail> {
                 "not a list",
             ));
         }
-        None => {
-            return Err(fail(
-                Diagnostic::error("Z0406", "`bin` needs `breaks:`")
-                    .in_file(ctx.script)
-                    .primary(ctx.callee_span, "`breaks:` is missing")
-                    .help("usage: `bin(x, breaks: [-Inf, 0, 10, Inf])`"),
-            ));
-        }
+        None => return Err(internal(ctx, "`bin` read its breaks without `breaks:`")),
     };
     let mut breaks = Vec::with_capacity(items.len());
     for item in items {
@@ -409,68 +403,271 @@ fn r_labels(breaks: &[f64], closed_left: bool) -> Vec<String> {
     }
 }
 
-/// `bin(x, breaks:, labels:, closed:)`: each value's interval among the sorted breaks, `(a, b]`
-/// by default as R's `cut` and `[a, b)` under `closed: left`, as an ordered category; a value
-/// outside every interval is `NA` with W0210.
-pub fn bin(ctx: &mut CallContext<'_>, args: Args) -> Result<Value, Fail> {
-    let x = numeric_column(ctx, "bin", &args)?;
-    let breaks = breaks_arg(ctx, &args)?;
-    let closed_left = matches!(args.get(3), Some(Value::Word(w)) if w == "left");
-    let intervals = breaks.len() - 1;
-    let levels: Vec<String> = match args.get(2) {
-        Some(Value::List(items)) => {
-            let labels: Vec<String> = items
-                .iter()
-                .map(|item| match item {
-                    Value::Str(s) => Ok(s.clone()),
-                    other => Err(fail(
-                        Diagnostic::error(
-                            "Z0401",
-                            format!(
-                                "`labels:` of `bin` is a list of texts, but it holds {}",
-                                other.type_word()
-                            ),
-                        )
-                        .in_file(ctx.script)
-                        .primary(ctx.span_of(2), "not text")
-                        .help("usage: `bin(x, breaks: [0, 10, 100], labels: [\"low\", \"high\"])`"),
-                    )),
-                })
-                .collect::<Result<_, _>>()?;
-            if labels.len() != intervals {
-                return Err(fail(
-                    Diagnostic::error(
-                        "Z0401",
-                        format!(
-                            "`labels:` of `bin` names one label per interval: {} breaks make {}, but {} given",
-                            breaks.len(),
-                            match intervals {
-                                1 => "1 interval".to_string(),
-                                n => format!("{n} intervals"),
-                            },
-                            match labels.len() {
-                                1 => "1 label was".to_string(),
-                                n => format!("{n} labels were"),
-                            }
-                        ),
-                    )
-                    .in_file(ctx.script)
-                    .primary(ctx.span_of(2), "the wrong number of labels")
-                    .help("leave `labels:` out for R's `(a,b]` labels"),
-                ));
-            }
-            labels
-        }
-        _ => r_labels(&breaks, closed_left),
+/// `labels:` of `bin`, one text per level; `None` when it is left out. `made` says what made
+/// the levels, for the message when the count is wrong: "4 breaks make 3 intervals".
+fn labels_arg(
+    ctx: &CallContext<'_>,
+    args: &Args,
+    levels: usize,
+    made: &str,
+    usage: &str,
+) -> Result<Option<Vec<String>>, Fail> {
+    let Some(Value::List(items)) = args.get(3) else {
+        return Ok(None);
     };
-    let values: Vec<Option<f64>> = match x.ty() {
+    let labels: Vec<String> = items
+        .iter()
+        .map(|item| match item {
+            Value::Str(s) => Ok(s.clone()),
+            other => Err(fail(
+                Diagnostic::error(
+                    "Z0401",
+                    format!(
+                        "`labels:` of `bin` is a list of texts, but it holds {}",
+                        other.type_word()
+                    ),
+                )
+                .in_file(ctx.script)
+                .primary(ctx.span_of(3), "not text")
+                .help(format!("usage: `{usage}`")),
+            )),
+        })
+        .collect::<Result<_, _>>()?;
+    if labels.len() != levels {
+        return Err(fail(
+            Diagnostic::error(
+                "Z0401",
+                format!(
+                    "`labels:` of `bin` names one label per {made}, but {} given",
+                    match labels.len() {
+                        1 => "1 label was".to_string(),
+                        n => format!("{n} labels were"),
+                    }
+                ),
+            )
+            .in_file(ctx.script)
+            .primary(ctx.span_of(3), "the wrong number of labels")
+            .help(if usage.contains("breaks") {
+                "leave `labels:` out for R's `(a,b]` labels"
+            } else {
+                "leave `labels:` out for the labels `1` to `n`"
+            }),
+        ));
+    }
+    Ok(Some(labels))
+}
+
+/// The values of a column of Ints or Floats as doubles, `None` where it is `NA`.
+fn doubles(x: &Column) -> Vec<Option<f64>> {
+    match x.ty() {
         ColumnType::Int => x
             .as_ints()
             .expect("an Int column")
             .map(|v| v.map(|v| v as f64))
             .collect(),
         _ => x.as_floats().expect("a Float column").collect(),
+    }
+}
+
+/// The ordered category `bin` gives: the levels in order and each row's level.
+fn binned(
+    ctx: &CallContext<'_>,
+    levels: Vec<String>,
+    codes: Vec<Option<i32>>,
+) -> Result<Value, Fail> {
+    let column = Column::categories(levels, codes).map_err(|e| match e {
+        ColumnError::DuplicateLevel(label) => fail(
+            Diagnostic::error(
+                "Z0401",
+                format!("`labels:` of `bin` repeats \"{label}\"; a category's levels are distinct"),
+            )
+            .in_file(ctx.script)
+            .primary(ctx.span_of(3), "a label repeated")
+            .help("give each level its own label"),
+        ),
+        other => internal(ctx, format!("{other:?}")),
+    })?;
+    Ok(Value::Column(column.with_ordered(true)))
+}
+
+/// The most groups `n:` of `bin` may ask for: the most values a list holds (`seq` has the same
+/// limit), so that the levels of the category can always be listed.
+const MOST_GROUPS: i64 = 10_000_000;
+
+/// `bin(x, n:, type:)`: the quantile groups. The cut points are the kernel's sample quantiles
+/// of the values present, the same bits as `quantile` gives, at the probabilities i/n each
+/// computed as the one division; a row's group is one more than the number of cut points below
+/// its value (`closed: right`, so a value equal to a cut point falls in the group below it and
+/// tied values share a group), or at or below it under `closed: left`. When two cut points
+/// coincide the groups between them are empty and the numbering is kept.
+fn quantile_groups(
+    ctx: &mut CallContext<'_>,
+    args: &Args,
+    x: &Column,
+    closed_left: bool,
+) -> Result<Value, Fail> {
+    let n = match args.get(1) {
+        Some(Value::Int(n)) if (1..=MOST_GROUPS).contains(n) => *n,
+        Some(other) => {
+            return Err(fail(
+                Diagnostic::error(
+                    "Z0401",
+                    format!(
+                        "`n:` of `bin` is a count of groups, a whole number from 1 to {}, but this is {}",
+                        count(MOST_GROUPS as u64),
+                        match other {
+                            Value::Int(n) => n.to_string(),
+                            Value::Na => "NA".to_string(),
+                            other => other.type_word(),
+                        }
+                    ),
+                )
+                .in_file(ctx.script)
+                .primary(ctx.span_of(1), "not a count of groups")
+                .help("`bin(x, n: 4)` gives the quartile groups 1 to 4, and `n: 10` the deciles"),
+            ));
+        }
+        None => return Err(internal(ctx, "`bin` read its groups without `n:`")),
     };
+    let kind = match args.get(5) {
+        None => 7u8,
+        Some(Value::Int(t)) if (1..=9).contains(t) => *t as u8,
+        Some(other) => {
+            return Err(fail(
+                Diagnostic::error(
+                    "Z0401",
+                    format!(
+                        "`type:` of `bin` must be one of the nine definitions, 1 to 9, but this is {}",
+                        match other {
+                            Value::Int(t) => t.to_string(),
+                            Value::Na => "NA".to_string(),
+                            other => other.type_word(),
+                        }
+                    ),
+                )
+                .in_file(ctx.script)
+                .primary(ctx.span_of(5), "not a quantile definition")
+                .help("`type: 7` is R's default; Hyndman and Fan (1996) number the nine definitions"),
+            ));
+        }
+    };
+    let groups = n as usize;
+    let levels = match labels_arg(
+        ctx,
+        args,
+        groups,
+        &format!(
+            "group: `n: {n}` makes {}",
+            match groups {
+                1 => "1 group".to_string(),
+                g => format!("{} groups", count(g as u64)),
+            }
+        ),
+        "bin(x, n: 2, labels: [\"low\", \"high\"])",
+    )? {
+        Some(labels) => labels,
+        None => (1..=n).map(|i| i.to_string()).collect(),
+    };
+    let values = doubles(x);
+    let mut present: Vec<f64> = values.iter().flatten().copied().collect();
+    present.sort_by(f64::total_cmp);
+    let mut cuts: Vec<f64> = if present.is_empty() {
+        Vec::new()
+    } else {
+        (1..n)
+            .map(|i| {
+                zeff_numeric::order::quantile(&present, i as f64 / n as f64, kind)
+                    .expect("a quantile of values present")
+            })
+            .collect()
+    };
+    if cuts.iter().any(|c| c.is_nan()) {
+        // A cut point between -Inf and Inf has no value, so no row has a group.
+        ctx.message(
+            Diagnostic::warning(
+                "W0205",
+                "`bin`: a cut point falls between Inf and -Inf, so every group is NA",
+            )
+            .help("the sample quantile there is the mean of `-Inf` and `Inf`, which is undefined; `breaks:` cuts at numbers you give"),
+        );
+        return binned(ctx, levels, vec![None; values.len()]);
+    }
+    // Sorted, so that the count of cut points below a value is found by halving; the count is
+    // the same in any order.
+    cuts.sort_by(f64::total_cmp);
+    let codes: Vec<Option<i32>> = values
+        .iter()
+        .map(|v| {
+            v.map(|v| {
+                let below = if closed_left {
+                    cuts.partition_point(|c| *c <= v)
+                } else {
+                    cuts.partition_point(|c| *c < v)
+                };
+                below as i32
+            })
+        })
+        .collect();
+    binned(ctx, levels, codes)
+}
+
+/// `bin(x, n: | breaks:, labels:, closed:, type:)`: a number cut into an ordered category.
+/// With `breaks:`, each value's interval among the sorted breaks, `(a, b]` by default as R's
+/// `cut` and `[a, b)` under `closed: left`, a value outside every interval `NA` with W0210.
+/// With `n:`, the quantile groups 1 to `n` (`quantile_group` until release 0.8.0). Exactly one
+/// of the two is given.
+pub fn bin(ctx: &mut CallContext<'_>, args: Args) -> Result<Value, Fail> {
+    let x = numeric_column(ctx, "bin", &args)?;
+    let given = |at: usize| ctx.arg_spans.get(at).copied().flatten().is_some();
+    let closed_left = matches!(args.get(4), Some(Value::Word(w)) if w == "left");
+    match (args.get(1).is_some(), args.get(2).is_some()) {
+        (true, true) => {
+            return Err(fail(
+                Diagnostic::error("Z0410", "`bin` takes `n:` or `breaks:`, not both")
+                    .in_file(ctx.script)
+                    .primary(ctx.span_of(2), "given beside `n:`")
+                    .help("`n:` cuts at the sample quantiles into that many groups; `breaks:` cuts at the numbers listed"),
+            ));
+        }
+        (false, false) => {
+            return Err(fail(
+                Diagnostic::error("Z0406", "`bin` needs `n:` or `breaks:`")
+                    .in_file(ctx.script)
+                    .primary(ctx.callee_span, "neither is given")
+                    .help("usage: `bin(x, n: 4)` for the quartile groups, or `bin(x, breaks: [-Inf, 0, 10, Inf])` for intervals"),
+            ));
+        }
+        (true, false) => return quantile_groups(ctx, &args, &x, closed_left),
+        (false, true) => {}
+    }
+    if given(5) {
+        return Err(fail(
+            Diagnostic::error("Z0410", "`type:` of `bin` goes with `n:`, not with `breaks:`")
+                .in_file(ctx.script)
+                .primary(ctx.span_of(5), "a quantile definition, which `breaks:` does not use")
+                .help("`type:` chooses how the sample quantiles of `n:` are computed; leave it out with `breaks:`"),
+        ));
+    }
+    let breaks = breaks_arg(ctx, &args)?;
+    let intervals = breaks.len() - 1;
+    let levels = match labels_arg(
+        ctx,
+        &args,
+        intervals,
+        &format!(
+            "interval: {} breaks make {}",
+            breaks.len(),
+            match intervals {
+                1 => "1 interval".to_string(),
+                n => format!("{n} intervals"),
+            }
+        ),
+        "bin(x, breaks: [0, 10, 100], labels: [\"low\", \"high\"])",
+    )? {
+        Some(labels) => labels,
+        None => r_labels(&breaks, closed_left),
+    };
+    let values = doubles(&x);
     let mut outside = 0usize;
     let codes: Vec<Option<i32>> = values
         .iter()
@@ -506,19 +703,7 @@ pub fn bin(ctx: &mut CallContext<'_>, args: Args) -> Result<Value, Fail> {
             )),
         );
     }
-    let column = Column::categories(levels, codes).map_err(|e| match e {
-        ColumnError::DuplicateLevel(label) => fail(
-            Diagnostic::error(
-                "Z0401",
-                format!("`labels:` of `bin` repeats \"{label}\"; a category's levels are distinct"),
-            )
-            .in_file(ctx.script)
-            .primary(ctx.span_of(2), "a label repeated")
-            .help("give each interval its own label"),
-        ),
-        other => internal(ctx, format!("{other:?}")),
-    })?;
-    Ok(Value::Column(column.with_ordered(true)))
+    binned(ctx, levels, codes)
 }
 
 #[cfg(test)]

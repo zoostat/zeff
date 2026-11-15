@@ -49,7 +49,7 @@ error[Z0401]: `group:` of `anova` must be a Bool, Int, Str or Category variable,
 1 | frame(x = [1, 2, 3], d = [date("2024-01-01"), date("2024-01-02"), date("2024-01-01")]).anova(x, group: d)
   |                                                                                                        ^ not a grouping variable
   |
-  = help: a group is a value shared by its rows; `bin` or `quantile_group` makes groups from a number
+  = help: a group is a value shared by its rows; `bin` makes groups from a number, by breaks or by quantiles
 
 error[Z0401]: Welch's `anova` needs at least two values of `x` in every group, but g=3 has one
  --> scripts/main.zeff:1:65
