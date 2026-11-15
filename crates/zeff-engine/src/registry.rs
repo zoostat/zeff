@@ -185,10 +185,20 @@ pub fn build(
         let key = (source.package.to_string(), source.name.to_string());
         let mut own_codes: Vec<DiagnosticDecl> = Vec::new();
         let mut unknown: Vec<String> = Vec::new();
+        // A code the body raises is said in the function's own words where its source has a
+        // line for it, and by the title of the code's page otherwise. Only the second is text
+        // made here, and it is made only where it is kept: a string held for the engine's
+        // life that nothing holds is a leak, which the fuzzer's leak check reports (the
+        // nightly run of 15 November 2026, after step 7a of release 0.8.0).
+        let own_decl =
+            |code: &str, title: String| match source.also.iter().find(|(c, _)| *c == code) {
+                Some((c, when)) => DiagnosticDecl::new(c, when),
+                None => DiagnosticDecl::new(leak(code.to_string()), leak(title)),
+            };
         for code in &checked.codes {
             match crate::explain::explain(code) {
                 Ok(page) if code.starts_with('W') => {
-                    own_codes.push(DiagnosticDecl::new(leak(code.clone()), leak(page.title)));
+                    own_codes.push(own_decl(code, page.title));
                 }
                 _ => unknown.push(format!(
                     "`{}` of `{}` gives `warn` or `note` the code `{code}`, which no warning of the engine has; `code:` takes a warning's code",
@@ -202,7 +212,7 @@ pub fn build(
         for code in &checked.error_codes {
             match crate::explain::explain(code) {
                 Ok(page) if code.starts_with('Z') && !code.starts_with("Z9") => {
-                    own_codes.push(DiagnosticDecl::new(leak(code.clone()), leak(page.title)));
+                    own_codes.push(own_decl(code, page.title));
                 }
                 _ => unknown.push(format!(
                     "`{}` of `{}` gives `error` the code `{code}`, which no error of the engine has; `code:` takes an error's code with an explained page",
@@ -274,17 +284,11 @@ pub fn build(
         let mut changed = false;
         for key in &keys {
             let mut generated: Vec<DiagnosticDecl> = own_of[key].clone();
-            // A code the body gives `warn`, `note` or `error` is said in the function's own
-            // words where the source has a line for it, and by the title of the code's page
-            // otherwise; then the source's other lines.
+            // The codes the body gives `warn`, `note` or `error`, each already in the function's
+            // own words or under the title of its page; then the source's other lines.
             for decl in &codes_of[key] {
                 if !generated.iter().any(|g| g.code == decl.code) {
-                    let own = lists_of[key]
-                        .also
-                        .iter()
-                        .find(|(code, _)| *code == decl.code)
-                        .map(|(code, when)| DiagnosticDecl::new(code, when));
-                    generated.push(own.unwrap_or_else(|| decl.clone()));
+                    generated.push(decl.clone());
                 }
             }
             for (code, when) in lists_of[key].also {

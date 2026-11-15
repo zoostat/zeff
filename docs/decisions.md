@@ -5412,3 +5412,13 @@ Done before parts 1 and 2 are read, because those wait for jobs that run for hou
 
 **Reason.** Open decision #96, as amended on 9 November 2026 and decided on 11 November; the checklist's step 8d.
 
+## 15 November 2026: the nightly fuzzing run after step 7a, and the six strings the registry leaked
+
+**What the run showed.** The nightly run of 15 November (on the commit of step 8b) failed in four of its eight fuzz targets: the checker, the distributions, the formulas and the language server, the four that build the engine's registry. None had found an input that breaks anything: each ran its ten minutes, and at the end the fuzzer's leak check reported 103 bytes in six allocations that nothing pointed to. They were mine, of step 7a. Text of a help page that is made while the engine starts is given the engine's whole life, as a page written in Rust has. For a code that a built-in written in Zeff raises with `error(code:)`, the registry made such a text from the title of the code's page, and then, where the function's source words the code itself, put the source's line on the page and let the made text go. Three codes are worded so (`quantile_group` and `winsorize`), a code and a title each. No page and no result was wrong; the engine held a few bytes it could never use or free.
+
+**Choice.** The text is made only where it is kept: the registry looks for the source's own line first and makes the title's text when there is none. The pages are the same, which the stored pages of the built-ins written in Zeff hold.
+
+**Checked.** On this machine the system's leak tool, run on `zeff help winsorize`, reports 6 leaks with the registry as it was and none with the change. The fuzzing job is started by hand on the commit, since it is the check that found it; its result is recorded when it ends.
+
+**Reason.** The testing handbook's rule that a failing nightly job is read the day it fails; found when CI was read after the push of step 8d.
+

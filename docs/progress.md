@@ -110,3 +110,13 @@ Step 2: the help contract of 0.8.0 (#103) in section 9.1 and in the registry, wi
 
 **For the owner to decide.** Nothing blocks. One definition was taken by the reading of #96 and is his to overturn: whole months between two times count the time of day, so 15 January 12:00 to 15 February 06:00 is 0 months, where the function of 0.6.0 gave 1 (`docs/decisions.md` of this date).
 
+## 15 November 2026, between steps 8d and 8e: the nightly fuzzing run
+
+**Done.** The nightly fuzzing run failed in four targets with no breaking input: the fuzzer's leak check found six small strings (103 bytes) that the registry made at start and never used, a defect of step 7a. They are no longer made. No page and no result changed.
+
+**Green.** Format, clippy with warnings denied, the tier and message checks, every test of the workspace; the fuzzing job started by hand on the commit.
+
+**Next.** Step 8e `[function]`: `hour`, `minute`, `second`; `datetime(x, epoch:)`; `min` and `max` on dates (#96).
+
+**For the owner to decide.** Nothing blocks.
+
