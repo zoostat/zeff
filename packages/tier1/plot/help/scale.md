@@ -81,11 +81,11 @@ Shapes. The names are those a string given to `shape:` takes: `circle`, `triangl
 note. A row with `NA` keeps the asterisk.
 
 Before or after the layers. `scale` may be written before the layer that maps the variable,
-and then waits for it, or after it. The notes are raised call by call, so a note of a layer
-written before `scale` is printed though `scale` may undo its cause: the categories beyond
-the eight colours, to which `scale` then gives colours of their own, or the rows with a size
-below 0, which two sizes then draw. Write `scale` before the layers and the notes are those
-of the plot as it ends.
+and then waits for it, or after it. The notes of a statement are those of the plot it ends
+with, whatever the order of its calls: a layer written before `scale` leaves no note of what
+`scale` then mends, the categories beyond the eight colours, to which `scale` gives colours
+of their own, or the rows with a size below 0, which two sizes then draw. A note that an
+earlier statement has printed stays printed.
 
 ## See also
 scale_x, scale_y, plot, points, bars

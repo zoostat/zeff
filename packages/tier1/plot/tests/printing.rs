@@ -2936,6 +2936,80 @@ fn the_scales_of_colour_size_and_shape_read_sensibly_as_text() {
 }
 
 #[test]
+fn the_notes_of_a_statement_are_those_of_the_plot_it_ends_with() {
+    // Open decision #130, option B (release 0.8.0, step 8a1): a call that makes an earlier
+    // note of the same statement untrue withdraws it; the layer alone keeps its notes; a note
+    // an earlier statement printed stays; the order of `scale` and the layer changes nothing.
+    let notes = |script: &str| -> Vec<String> {
+        let outcome = run(script);
+        assert_eq!(outcome.exit_code, 0, "{}", outcome.output.stderr);
+        assert!(
+            !outcome.output.stderr.contains('\u{0}'),
+            "a mark was printed"
+        );
+        outcome.output.stderr.lines().map(str::to_string).collect()
+    };
+    let head = "let w = dataset(wages).add(gap = wage - 20)\n";
+    let repeat = "note: `industry` has 12 categories and the palette 8 colours, so the colours repeat from the ninth category";
+    let na = "note: 211 rows with NA in educ or wage dropped";
+    // The layer, then the scale that mends it: no stale note.
+    assert_eq!(
+        notes(&format!(
+            "{head}let p = w.plot(x: educ, y: wage, color: industry).points().scale(color: viridis)\n"
+        )),
+        [format!("{na} (line 2)")]
+    );
+    // The scale first gives the same notes.
+    assert_eq!(
+        notes(&format!(
+            "{head}let p = w.plot(x: educ, y: wage, color: industry).scale(color: viridis).points()\n"
+        )),
+        [format!("{na} (line 2)")]
+    );
+    // The layer alone keeps its note.
+    assert_eq!(
+        notes(&format!(
+            "{head}let p = w.plot(x: educ, y: wage, color: industry).points()\n"
+        )),
+        [format!("{na} (line 2)"), format!("{repeat} (line 2)")]
+    );
+    // A scale in a later statement leaves the printed note printed and adds nothing.
+    assert_eq!(
+        notes(&format!(
+            "{head}let p = w.plot(x: educ, y: wage, color: industry).points()\nlet q = p.scale(color: viridis)\n"
+        )),
+        [format!("{na} (line 2)"), format!("{repeat} (line 2)")]
+    );
+    // Sizes: two sizes draw the rows below zero and of zero, so their notes go.
+    let sized = notes(&format!(
+        "{head}let p = w.plot(x: educ, y: wage, size: gap).points().scale(size: [2, 12])\n"
+    ));
+    assert_eq!(
+        sized,
+        ["note: 211 rows with NA in educ, wage or gap dropped (line 2)"]
+    );
+    let unsized_ = notes(&format!(
+        "{head}let p = w.plot(x: educ, y: wage, size: gap).points()\n"
+    ));
+    assert_eq!(unsized_.len(), 3, "{unsized_:?}");
+    // Inside a loop and inside a function the statement that ends with the plot is the one
+    // whose notes are kept.
+    assert_eq!(
+        notes(&format!(
+            "{head}for i in [1, 2] {{\n    let p = w.plot(x: educ, y: wage, color: industry).points().scale(color: viridis)\n}}\n"
+        )),
+        [format!("{na} (line 2)"), format!("{na} (line 2)")],
+        "the note of the rows dropped at each pass, and no other"
+    );
+    assert_eq!(
+        notes(&format!(
+            "{head}/// A plot by industry.\nfn drawn(data: Frame) -> Plot {{\n    data.plot(x: educ, y: wage, color: industry).points().scale(color: viridis)\n}}\nlet q = w.drawn()\n"
+        )),
+        [format!("{na} (line 6)")]
+    );
+}
+
+#[test]
 fn every_message_of_scale() {
     let mut all = String::new();
     for (name, script) in [

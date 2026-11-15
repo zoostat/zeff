@@ -228,6 +228,32 @@ impl CallContext<'_> {
     pub fn message(&mut self, diagnostic: Diagnostic) {
         self.messages.push(diagnostic);
     }
+
+    /// Withdraw a note that an earlier call of the same statement raised and that this call has
+    /// made untrue (open decision #130, option B: the notes of a statement are those of the
+    /// value it ends with). Nothing is removed here, since the interpreter holds positions in the
+    /// statement's messages while it runs: a mark is left, and the interpreter takes the note
+    /// and the mark out together when the statement ends. A note of an earlier statement has
+    /// been printed and stays.
+    pub fn withdraw(&mut self, note: &str) {
+        self.messages
+            .push(Diagnostic::plain_note(format!("{WITHDRAWN}{note}")));
+    }
+}
+
+/// How the mark [`CallContext::withdraw`] leaves begins: a note without a code whose words
+/// start with this, which no message of the engine does (it holds a character no message
+/// prints). The interpreter resolves every mark at the end of the statement that holds it, so
+/// none is ever printed.
+pub const WITHDRAWN: &str = "\u{0}withdrawn\u{0}";
+
+/// The note a mark of [`CallContext::withdraw`] withdraws, or `None` for any other message.
+pub fn withdrawn(message: &Diagnostic) -> Option<&str> {
+    if message.code.is_empty() {
+        message.message.strip_prefix(WITHDRAWN)
+    } else {
+        None
+    }
 }
 
 /// The evaluated arguments of a call, in parameter order.

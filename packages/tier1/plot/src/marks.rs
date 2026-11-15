@@ -2505,10 +2505,16 @@ pub(crate) fn finish(
 }
 
 /// The notes of a plot as a call leaves it, told against those it had before the call: a
-/// note that is new is raised. A note an earlier call of the same statement raised stays,
-/// though a later call may have made it untrue (open decision #130): `scale` written before
-/// the layers avoids it.
+/// note that is new is raised, and a note the plot had and has no more is withdrawn, so that
+/// the notes of a statement are those of the plot it ends with, whatever the order of its
+/// calls (open decision #130, option B). A note that an earlier statement printed stays
+/// printed.
 pub(crate) fn announce(ctx: &mut CallContext<'_>, before: &[String], after: &[String]) {
+    for note in before {
+        if !after.contains(note) {
+            ctx.withdraw(note);
+        }
+    }
     for note in after {
         if !before.contains(note) {
             ctx.message(Diagnostic::plain_note(note.clone()));

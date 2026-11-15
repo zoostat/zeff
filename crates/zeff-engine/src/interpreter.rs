@@ -447,11 +447,14 @@ impl<'a> Interpreter<'a> {
         self
     }
 
-    /// Take out of `messages`, from position `from` on, every warning that a pragma on the
-    /// statement beginning at `start` in the file being run allows, and record it. A pragma
+    /// As a statement ends: the notes a later call of the statement withdrew are taken out with
+    /// their marks (open decision #130), and then, out of `messages` from position `from` on,
+    /// every warning that a pragma on the
+    /// statement beginning at `start` in the file being run allows is taken and recorded. A pragma
     /// covers whatever its statement runs, so this is called as each statement ends, at every
     /// depth, on the messages raised since it began.
     fn silence(&mut self, start: usize, from: usize, messages: &mut Vec<Diagnostic>) {
+        withdraw_notes(from, messages);
         let Some(allows) = self.allows else {
             return;
         };
@@ -4560,6 +4563,35 @@ fn named_after(mut d: Diagnostic, name: &str) -> Diagnostic {
         )];
     }
     d
+}
+
+/// The withdrawals of a statement, resolved as it ends (open decision #130, option B): each mark
+/// a call left (`CallContext::withdraw`) takes out the last note of the same words raised
+/// before it since the statement began, and goes itself. Done here and not when the mark is
+/// left, because the interpreter holds positions in the list while the statement runs; a mark
+/// whose note an earlier statement printed finds nothing and goes alone.
+fn withdraw_notes(from: usize, messages: &mut Vec<Diagnostic>) {
+    use zeff_core::runtime::withdrawn;
+    if from >= messages.len() || !messages[from..].iter().any(|m| withdrawn(m).is_some()) {
+        return;
+    }
+    let raised = messages.split_off(from);
+    let mut kept: Vec<Diagnostic> = Vec::with_capacity(raised.len());
+    for message in raised {
+        match withdrawn(&message) {
+            Some(note) => {
+                if let Some(at) = kept.iter().rposition(|k| {
+                    k.code.is_empty()
+                        && k.severity == zeff_diagnostics::Severity::Note
+                        && k.message == note
+                }) {
+                    kept.remove(at);
+                }
+            }
+            None => kept.push(message),
+        }
+    }
+    messages.extend(kept);
 }
 
 /// A message raised inside the body of a built-in written in Zeff, placed at the call in the

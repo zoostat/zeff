@@ -125,3 +125,13 @@ Tests, plots and the language server: 72 functions in 258 commits over 40 steps,
 **Next.** Step 8a `[engine]`: the notes of a plot chain, and the legend titles of `labels` (#130 B, #131 B).
 
 **For the owner to decide.** Nothing blocks.
+
+## 15 November 2026, release 0.8.0, step 8a1 (the notes of a plot chain) and the weekly job's second pass
+
+**Done.** Step 8a1 `[engine]`: the notes of a statement are those of the plot it ends with, so a layer followed by the `scale` that mends it prints no stale note; a plot function leaves a mark and the interpreter resolves it when the statement ends, without shifting any position it holds. Step 8a was split in two; 8a2 is the legend titles of `labels`. The weekly job's second pass, read from the run started by hand, tested the wrong mutants (the tool cuts its shards afresh after skipping the caught ones); it is corrected to retest exactly the shard's leftovers, with the conformance suite among the tests of every package, and tried on this machine.
+
+**Green.** Format, clippy with warnings denied, the tier and message checks, every test of the workspace; CI read after the push.
+
+**Next.** Step 8a2 `[function]`: `labels(size:, shape:, fill:)`.
+
+**For the owner to decide.** Nothing blocks.
