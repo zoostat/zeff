@@ -107,13 +107,36 @@ fn every_function_of_time_and_text_refuses_a_numeric_column() {
         }
     }
     insta::assert_snapshot!("time_and_text_on_a_numeric_column", report);
+    // A column of dates passes every function that takes a date; the parts of the clock
+    // (`hour`, `minute`, `second`, release 0.8.0, step 8e) take a time alone, so a column of
+    // dates is refused there in the same words, and a column of times passes.
+    let of_the_clock = functions_taking("time", &["DateTime"]);
+    assert_eq!(of_the_clock, ["hour", "minute", "second"]);
     for name in &time {
         let outcome = run(&format!("{FRAME}d.add(y = {name}(t))\n"));
-        assert!(
-            !outcome.output.stderr.contains("but this is a column of"),
-            "{name}(t):\n{}",
-            outcome.output.stderr
-        );
+        if of_the_clock.contains(name) {
+            assert!(
+                outcome.output.stderr.contains(&format!(
+                    "`dt` of `{name}` must be a DateTime, but this is a column of Date"
+                )),
+                "{name}(t):\n{}",
+                outcome.output.stderr
+            );
+            let outcome = run(&format!(
+                "{FRAME}d.add(u = to(t, DateTime)).add(y = {name}(u))\n"
+            ));
+            assert_eq!(
+                outcome.exit_code, 0,
+                "{name}(u):\n{}",
+                outcome.output.stderr
+            );
+        } else {
+            assert!(
+                !outcome.output.stderr.contains("but this is a column of"),
+                "{name}(t):\n{}",
+                outcome.output.stderr
+            );
+        }
     }
     // Text passes, and so does a category, whose rows are its labels.
     for name in &text {

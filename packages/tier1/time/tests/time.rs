@@ -383,6 +383,136 @@ fn time_between_agrees_with_r_in_every_unit() {
 }
 
 #[test]
+fn the_time_of_day_and_unix_time_agree_with_r() {
+    let json = reference("time");
+    // The hour, the minute and the whole second of each of the sixteen times.
+    let cases = json["clock"].as_array().unwrap();
+    assert_eq!(cases.len(), 16);
+    let expressions: Vec<String> = cases
+        .iter()
+        .flat_map(|c| {
+            let t = c["t"].as_str().unwrap();
+            ["hour", "minute", "second"]
+                .iter()
+                .map(move |f| format!("{f}(datetime(\"{t}\"))"))
+        })
+        .collect();
+    let (lines, stderr) = printed(&expressions);
+    assert_eq!(stderr, "");
+    for (i, c) in cases.iter().enumerate() {
+        for (k, part) in ["hour", "minute", "second"].iter().enumerate() {
+            assert_eq!(
+                lines[3 * i + k],
+                c[*part].to_string(),
+                "{part} of {}",
+                c["t"]
+            );
+        }
+    }
+    // Unix time, in seconds and in milliseconds, whole and with a fraction, as R's
+    // `as.POSIXct(origin =)` reads it.
+    for (unit, key) in [("seconds", "seconds"), ("milliseconds", "milliseconds")] {
+        let cases = json["epoch"][key].as_array().unwrap();
+        let expressions: Vec<String> = cases
+            .iter()
+            .map(|c| format!("datetime({}, epoch: {unit})", c["x"].as_str().unwrap()))
+            .collect();
+        let (lines, stderr) = printed(&expressions);
+        assert_eq!(stderr, "", "{unit}");
+        for (i, c) in cases.iter().enumerate() {
+            assert_eq!(lines[i], c["text"].as_str().unwrap(), "{unit} {}", c["x"]);
+        }
+    }
+    // What a double of seconds cannot hold, an Int reads exactly: the last millisecond and the
+    // first second of the calendar.
+    let (lines, stderr) = printed(&[
+        "datetime(253402300799999, epoch: milliseconds)".to_string(),
+        "datetime(-62135596800, epoch: seconds)".to_string(),
+        "hour(datetime(-62135596800, epoch: seconds))".to_string(),
+    ]);
+    assert_eq!(stderr, "");
+    assert_eq!(
+        lines,
+        ["9999-12-31T23:59:59.999000", "0001-01-01T00:00:00", "0"]
+    );
+}
+
+#[test]
+fn the_earliest_and_latest_of_dates_and_times_agree_with_r() {
+    let json = reference("time");
+    let x = &json["extremes"];
+    let quoted = |key: &str, make: &str| -> String {
+        strings(&x[key])
+            .iter()
+            .map(|v| {
+                if v == "NA" {
+                    "NA".to_string()
+                } else {
+                    format!("{make}(\"{v}\")")
+                }
+            })
+            .collect::<Vec<_>>()
+            .join(", ")
+    };
+    let groups = strings(&x["group"])
+        .iter()
+        .map(|g| format!("\"{g}\""))
+        .collect::<Vec<_>>()
+        .join(", ");
+    let frame = format!(
+        "let v = frame(g = [{groups}], d = [{}], t = [{}])\n",
+        quoted("dates", "date"),
+        quoted("times", "datetime")
+    );
+    // The whole frame: `min` and `max` of the dates and of the times, `NA` left out.
+    let mut script = frame.clone();
+    script.push_str("print(v.min(d))\nprint(v.max(d))\nprint(v.min(t))\nprint(v.max(t))\n");
+    let by_group = x["by_group"].as_array().unwrap();
+    // Each group, as `where` cuts it, and as `aggregate` gives it in one frame.
+    for g in by_group {
+        let name = g["group"].as_str().unwrap();
+        script.push_str(&format!(
+            "let w_{name} = v.where(g == \"{name}\")\nprint(w_{name}.min(d))\nprint(w_{name}.max(d))\nprint(w_{name}.min(t))\nprint(w_{name}.max(t))\n"
+        ));
+    }
+    script.push_str("v.aggregate(d0 = min(d), d1 = max(d), t0 = min(t), t1 = max(t), by: g)\n");
+    let (code, stdout, stderr) = go(&script);
+    assert_eq!(code, 0, "{stderr}");
+    let lines: Vec<&str> = stdout.lines().collect();
+    let expected = |of: &Json| -> Vec<String> {
+        ["min_date", "max_date", "min_time", "max_time"]
+            .iter()
+            .map(|k| of[*k].as_str().unwrap().to_string())
+            .collect()
+    };
+    assert_eq!(lines[..4], expected(x));
+    for (i, g) in by_group.iter().enumerate() {
+        assert_eq!(
+            lines[4 + 4 * i..8 + 4 * i],
+            expected(g),
+            "group {}",
+            g["group"]
+        );
+    }
+    // The frame `aggregate` prints: one row per group, the four values in their columns.
+    let table: Vec<&str> = lines[4 + 4 * by_group.len()..].to_vec();
+    for (i, g) in by_group.iter().enumerate() {
+        let row: Vec<&str> = table[3 + i].split_whitespace().collect();
+        let mut wanted = vec![
+            (i + 1).to_string(),
+            g["group"].as_str().unwrap().to_string(),
+        ];
+        wanted.extend(expected(g));
+        assert_eq!(row, wanted, "{table:?}");
+    }
+    // Only the rows with `NA` are spoken of.
+    assert!(
+        stderr.lines().all(|l| l.starts_with("warning[W0201]")),
+        "{stderr}"
+    );
+}
+
+#[test]
 fn today_and_now_read_the_run_clock_and_note_it() {
     let outcome = run_clocked(
         "today()\nnow()\nlet t = today()\ntime_between(t, date(\"2027-01-01\"))\nyear(now())\nto(now(), Date) == today()\n",
@@ -463,6 +593,35 @@ time_between(datetime("2026-10-16T09:30:00.5"), datetime("2026-10-16T09:30:01.49
 time_between(NA, date("2026-10-16"))
 time_between(datetime("2026-10-16T09:30"), NA, unit: hour)
 date("2026-01-31").time_between(date("2026-03-01"), unit: week)
+[hour(datetime("2026-10-16T00:00:00")), minute(datetime("2026-10-16T00:00:00")), second(datetime("2026-10-16T00:00:00"))]
+[hour(datetime("2026-10-16T23:59:59.999999")), minute(datetime("2026-10-16T23:59:59.999999")), second(datetime("2026-10-16T23:59:59.999999"))]
+hour(datetime("2026-10-16"))
+hour(NA)
+datetime("2026-10-16T09:30:07").second()
+hour(datetime("2026-10-16T09:30:00+02:00"))
+datetime(NA, epoch: seconds)
+datetime(253402300800, epoch: seconds)
+datetime(-62135596801, epoch: seconds)
+datetime(1e300, epoch: seconds)
+datetime(0.0000004, epoch: seconds)
+datetime(0.0000005, epoch: seconds)
+let raw = frame(ts = [1763200800, 0, NA, 999999999999999], ms = [1763200800250.0, 1.5, NA, 0.0])
+raw.add(t = datetime(ts, epoch: seconds), u = datetime(ms, epoch: milliseconds)).add(h = hour(t), m = minute(u), s = second(u))
+let v = frame(clinic = ["a", "a", "b", "b", "b"], arrived = [datetime("2026-03-02T09:15"), datetime("2026-03-02T17:40"), NA, datetime("2026-03-03T08:00"), datetime("2026-03-01T23:59:59")], opened = [date("2026-03-02"), date("2026-03-02"), date("2026-03-04"), NA, date("2026-03-01")], w = [1, 0, 1, 1, 0])
+v.min(opened)
+v.max(arrived)
+v.max(arrived, by: clinic)
+v.min(opened, by: clinic)
+v.max(opened, weights: w)
+v.min(arrived, weights: w, weight_type: frequency)
+year(v.min(opened))
+time_between(v.min(arrived), v.max(arrived), unit: hour)
+v.aggregate(start = min(arrived), finish = max(arrived), since = min(opened), by: clinic)
+v.add(day_of_study = time_between(min(opened), opened))
+v.where(arrived == max(arrived))
+frame(d = [date("2026-03-02"), NA]).where(is_missing(d)).min(d)
+frame(t = [datetime("9999-12-31T23:59:59.999999"), datetime("9999-12-31T23:59:59.999998"), datetime("0001-01-01T00:00:00.000001")]).max(t)
+frame(t = [datetime("9999-12-31T23:59:59.999999"), datetime("0001-01-01T00:00:00.000001"), datetime("0001-01-01T00:00:00.000002")]).min(t)
 let u = frame(a = [datetime("2026-01-15T12:00"), NA, datetime("2026-03-01T00:00")], b = [datetime("2026-02-15T06:00"), datetime("2026-02-15T06:00"), datetime("2026-01-01T00:00")])
 u.add(s = time_between(a, b, unit: second), h = time_between(a, b, unit: hour), d = time_between(a, b), mo = time_between(a, b, unit: month))
 u.add(h = time_between(a, b, unit: hour)).aggregate(longest = max(h), known = n())
@@ -506,6 +665,26 @@ fn every_message() {
         "let f = frame(a = [date(\"2026-10-16\")], b = [date(\"2026-10-17\")])\nf.add(s = time_between(a, b, unit: second))\n",
         "time_between(date(\"2026-10-16\"), date(\"2026-10-17\"), unit: days)\n",
         "time_between(date(\"2026-10-16\"), date(\"2026-10-17\"), unit: \"day\")\n",
+        // The time of day and Unix time (step 8e): a date where a time is needed; text with
+        // `epoch:` and a number without it; both options at once; a word that is no unit.
+        "hour(date(\"2026-10-16\"))\n",
+        "let f = frame(d = [date(\"2026-10-16\")])\nf.add(m = minute(d))\n",
+        "second(\"09:30:07\")\n",
+        "datetime(\"2026-10-16\", epoch: seconds)\n",
+        "datetime(20261016)\n",
+        "datetime(20261016.5)\n",
+        "let f = frame(n = [20261016, 20261017])\nf.add(t = datetime(n))\n",
+        "let f = frame(s = [\"1763200800\"])\nf.add(t = datetime(s, epoch: seconds))\n",
+        "datetime(1763200800, format: \"%Y-%m-%d\", epoch: seconds)\n",
+        "datetime(1763200800, epoch: minutes)\n",
+        "datetime(true, epoch: seconds)\n",
+        // `min` and `max` of a frame on a variable that is neither a number nor a date; the
+        // other statistics on a date; and a date's arithmetic refused where it is checked, which
+        // shows that the checker knows the result is a date.
+        "let f = frame(n = [\"a\", \"b\"], d = [date(\"2026-10-16\"), NA])\nf.min(n)\n",
+        "let f = frame(d = [date(\"2026-10-16\"), NA])\nf.mean(d)\n",
+        "let f = frame(d = [date(\"2026-10-16\"), NA])\nf.max(d) + 1\n",
+        "let f = frame(t = [datetime(\"2026-10-16T09:30\")])\nupper(f.min(t))\n",
         "days_between(date(\"2026-10-16\"), date(\"2026-10-17\"))\n",
         "months_between(date(\"2026-10-16\"), date(\"2026-11-17\"))\n",
         "let f = frame(a = [date(\"2026-10-16\")])\nf.add(g = days_between(a, date(\"2026-11-01\")))\n",

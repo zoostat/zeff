@@ -713,7 +713,7 @@ pub fn functions() -> Vec<Function> {
                     ),
                     DiagnosticDecl::new(
                         "Z0401",
-                        "the variable is not numeric, or the weights are negative, infinite or not whole numbers under frequency weights",
+                        "the variable is neither numeric nor a date or a time, or the weights are negative, infinite or not whole numbers under frequency weights",
                     ),
                 ],
                 help: include_str!("../help/min.md"),
@@ -751,7 +751,7 @@ pub fn functions() -> Vec<Function> {
                     ),
                     DiagnosticDecl::new(
                         "Z0401",
-                        "the variable is not numeric, or the weights are negative, infinite or not whole numbers under frequency weights",
+                        "the variable is neither numeric nor a date or a time, or the weights are negative, infinite or not whole numbers under frequency weights",
                     ),
                 ],
                 help: include_str!("../help/max.md"),

@@ -1301,6 +1301,12 @@ fn time_cases() -> Vec<Line> {
     };
     let script = "date(\"2026-10-16\")\ndate(\"16/10/2026\", format: \"%d/%m/%Y\")\ndate(\"Oct 16, 2026\", format: \"%b %d, %Y\")\ndate(\"2026-02-30\")\ndatetime(\"2026-10-16T09:30:00.25\")\ndatetime(\"2026-10-16T09:30:00+02:00\")\ndatetime(\"2026-10-16\")\nlet d = date(\"2021-01-03\")\n[year(d), month(d), day(d), weekday(d), quarter(d), week(d)]\nlet t = datetime(\"1999-12-31T23:59:59\")\n[year(t), month(t), day(t), weekday(t), quarter(t), week(t)]\nlet f = frame(s = [\"2026-01-01\", \"2024-12-30\", \"0001-01-01\", \"9999-12-31\", \"no\"])\nf.add(d = date(s)).add(y = year(d), m = month(d), dd = day(d), wd = weekday(d), q = quarter(d), w = week(d))\n";
     let outcome = run_script(&fs, &project, "scripts/main.zeff", script);
+    // The time of day, Unix time and the earliest and latest (release 0.8.0, step 8e): `hour`,
+    // `minute` and `second` on values and on a column; `datetime` with `epoch:` on whole numbers
+    // and on numbers with a fraction, at the ends of the calendar and past them; `min` and `max`
+    // of a variable of dates and of times, alone, by group and inside `aggregate`.
+    let clock = "let t = datetime(\"2026-10-16T09:30:07.9\")\n[hour(t), minute(t), second(t)]\n[hour(datetime(\"2026-10-16\")), hour(datetime(\"1999-12-31T23:59:59\")), second(datetime(\"1999-12-31T23:59:59\"))]\ndatetime(1763200800, epoch: seconds)\ndatetime(1763200800250, epoch: milliseconds)\ndatetime(-1.5, epoch: seconds)\ndatetime(253402300799999, epoch: milliseconds)\ndatetime(253402300800, epoch: seconds)\nlet raw = frame(ts = [1763200800, 0, NA, -62135596800])\nraw.add(t = datetime(ts, epoch: seconds)).add(h = hour(t), m = minute(t), s = second(t), y = year(t))\nlet v = frame(clinic = [\"a\", \"a\", \"b\", \"b\", \"b\"], arrived = [datetime(\"2026-03-02T09:15\"), datetime(\"2026-03-02T17:40\"), NA, datetime(\"2026-03-03T08:00\"), datetime(\"2026-03-01T23:59:59\")], opened = [date(\"2026-03-02\"), date(\"2026-03-02\"), date(\"2026-03-04\"), NA, date(\"2026-03-01\")])\n[v.min(opened), v.max(opened)]\n[v.min(arrived), v.max(arrived)]\nv.max(arrived, by: clinic)\nv.aggregate(start = min(arrived), finish = max(arrived), since = min(opened), by: clinic)\nv.add(day_of_study = time_between(min(opened), opened))\nhour(v.max(arrived))\n";
+    let clocked = run_script(&fs, &project, "scripts/main.zeff", clock);
     let arithmetic = "let d = date(\"2026-01-31\")\nadd_days(d, 30)\nadd_days(d, -31)\nadd_months(d, 1)\nadd_months(date(\"2024-01-31\"), 1)\nadd_months(d, -11)\nadd_months(date(\"9999-12-31\"), 1)\ntime_between(d, date(\"2026-03-01\"))\ntime_between(datetime(\"2026-01-31T23:00\"), datetime(\"2026-02-02T22:59\"))\ntime_between(d, date(\"2026-02-28\"), unit: month)\ntime_between(date(\"2026-03-31\"), d, unit: month)\nadd_days(datetime(\"2026-01-31T09:30\"), 1)\nlet f = frame(d = [d, date(\"2024-02-29\"), date(\"0001-01-01\")])\nf.add(later = add_months(d, 12), gap = time_between(d, date(\"2026-11-01\")), back = add_days(d, -1))\ntoday()\nnow()\ntime_between(today(), date(\"2027-01-01\"))\n";
     let moved = run_script(&fs, &project, "scripts/main.zeff", arithmetic);
     // `time_between` (release 0.8.0, step 8d): every unit on two dates and on two times, both
@@ -1337,6 +1343,8 @@ fn time_cases() -> Vec<Line> {
     vec![
         text("time/parts/stdout", &outcome.output.stdout),
         text("time/parts/stderr", &outcome.output.stderr),
+        text("time/clock/stdout", &clocked.output.stdout),
+        text("time/clock/stderr", &clocked.output.stderr),
         text("time/arithmetic/stdout", &moved.output.stdout),
         text("time/arithmetic/stderr", &moved.output.stderr),
         text("time/between/stdout", &counted.output.stdout),

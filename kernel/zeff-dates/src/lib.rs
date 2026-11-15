@@ -167,6 +167,60 @@ pub fn whole_days_between(start: i64, end: i64) -> i64 {
     (end - start) / MICROS_PER_DAY
 }
 
+/// The hour (0 to 23), the minute and the whole second (0 to 59 each) of a timestamp's time of
+/// day; a fraction of a second is dropped.
+pub fn clock_of_micros(micros: i64) -> (u32, u32, u32) {
+    let seconds = split_micros(micros).1 / MICROS_PER_SECOND;
+    (
+        (seconds / 3_600) as u32,
+        (seconds / 60 % 60) as u32,
+        (seconds % 60) as u32,
+    )
+}
+
+/// Whether a timestamp lies in the calendar, years 1 to 9999.
+fn in_the_calendar(micros: i64) -> bool {
+    (micros_of_days(MIN_DAYS)..micros_of_days(MAX_DAYS) + MICROS_PER_DAY).contains(&micros)
+}
+
+/// What a number of Unix time counts.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum EpochUnit {
+    Seconds,
+    Milliseconds,
+}
+
+impl EpochUnit {
+    fn micros(self) -> i64 {
+        match self {
+            EpochUnit::Seconds => MICROS_PER_SECOND,
+            EpochUnit::Milliseconds => 1_000,
+        }
+    }
+}
+
+/// The timestamp a whole number of Unix time names: seconds or milliseconds since
+/// 1970-01-01 00:00:00 UTC, negative before it; `None` outside the calendar.
+pub fn micros_of_epoch(value: i64, unit: EpochUnit) -> Option<i64> {
+    value
+        .checked_mul(unit.micros())
+        .filter(|m| in_the_calendar(*m))
+}
+
+/// The timestamp a number of Unix time with a fraction names, to the nearest microsecond, a
+/// half away from zero; `None` for a number that is not finite or lies outside the calendar.
+pub fn micros_of_epoch_float(value: f64, unit: EpochUnit) -> Option<i64> {
+    if !value.is_finite() {
+        return None;
+    }
+    let micros = (value * unit.micros() as f64).round();
+    // Beyond the calendar's microseconds no conversion is made: the largest is under 2.6e17.
+    if micros.abs() > 3.0e17 {
+        return None;
+    }
+    Some(micros as i64).filter(|m| in_the_calendar(*m))
+}
+
 /// A unit of elapsed time with a fixed length: what a difference of two timestamps is counted
 /// in when it is not counted in months or years, whose length depends on the calendar.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -844,6 +898,79 @@ mod tests {
         assert_eq!(whole_days_between(0, MICROS_PER_DAY * 2 - 1), 1);
         assert_eq!(whole_days_between(MICROS_PER_DAY * 2 - 1, 0), -1);
         assert_eq!(whole_days_between(0, -MICROS_PER_DAY), -1);
+    }
+
+    #[test]
+    fn the_time_of_day_and_unix_time() {
+        let d = |y, m, dd| days_from_civil(y, m, dd).unwrap();
+        let noon = micros_of_days(d(2026, 10, 16)) + (9 * 3_600 + 30 * 60 + 7) * MICROS_PER_SECOND;
+        assert_eq!(clock_of_micros(noon), (9, 30, 7));
+        assert_eq!(
+            clock_of_micros(noon + 999_999),
+            (9, 30, 7),
+            "the fraction is dropped"
+        );
+        assert_eq!(clock_of_micros(micros_of_days(d(2026, 10, 16))), (0, 0, 0));
+        assert_eq!(
+            clock_of_micros(micros_of_days(d(2026, 10, 17)) - 1),
+            (23, 59, 59)
+        );
+        // Before 1970 the time of day is still counted from midnight.
+        assert_eq!(clock_of_micros(-MICROS_PER_SECOND), (23, 59, 59));
+        assert_eq!(clock_of_micros(micros_of_days(MIN_DAYS)), (0, 0, 0));
+        assert_eq!(micros_of_epoch(0, EpochUnit::Seconds), Some(0));
+        assert_eq!(
+            micros_of_epoch(1_763_200_800, EpochUnit::Seconds),
+            Some(1_763_200_800 * MICROS_PER_SECOND)
+        );
+        assert_eq!(
+            micros_of_epoch(1_763_200_800_250, EpochUnit::Milliseconds),
+            Some(1_763_200_800_250_000)
+        );
+        assert_eq!(
+            micros_of_epoch(-1, EpochUnit::Seconds),
+            Some(-MICROS_PER_SECOND)
+        );
+        // The ends of the calendar, and one step past each.
+        let first = i64::from(MIN_DAYS) * 86_400;
+        let last = i64::from(MAX_DAYS) * 86_400 + 86_399;
+        assert!(micros_of_epoch(first, EpochUnit::Seconds).is_some());
+        assert!(micros_of_epoch(last, EpochUnit::Seconds).is_some());
+        assert_eq!(micros_of_epoch(first - 1, EpochUnit::Seconds), None);
+        assert_eq!(micros_of_epoch(last + 1, EpochUnit::Seconds), None);
+        assert_eq!(micros_of_epoch(i64::MAX, EpochUnit::Seconds), None);
+        assert_eq!(micros_of_epoch(i64::MIN, EpochUnit::Milliseconds), None);
+        // With a fraction: to the nearest microsecond, a half away from zero.
+        assert_eq!(
+            micros_of_epoch_float(1_763_200_800.25, EpochUnit::Seconds),
+            Some(1_763_200_800_250_000)
+        );
+        assert_eq!(
+            micros_of_epoch_float(0.1, EpochUnit::Seconds),
+            Some(100_000)
+        );
+        assert_eq!(
+            micros_of_epoch_float(0.000_000_5, EpochUnit::Seconds),
+            Some(1)
+        );
+        assert_eq!(
+            micros_of_epoch_float(-0.000_000_5, EpochUnit::Seconds),
+            Some(-1)
+        );
+        assert_eq!(
+            micros_of_epoch_float(1.5, EpochUnit::Milliseconds),
+            Some(1_500)
+        );
+        assert_eq!(micros_of_epoch_float(f64::NAN, EpochUnit::Seconds), None);
+        assert_eq!(
+            micros_of_epoch_float(f64::INFINITY, EpochUnit::Seconds),
+            None
+        );
+        assert_eq!(micros_of_epoch_float(1e300, EpochUnit::Seconds), None);
+        assert_eq!(
+            micros_of_epoch_float(last as f64 + 2.0, EpochUnit::Seconds),
+            None
+        );
     }
 
     #[test]

@@ -120,3 +120,13 @@ Step 2: the help contract of 0.8.0 (#103) in section 9.1 and in the registry, wi
 
 **For the owner to decide.** Nothing blocks.
 
+## 15 November 2026, release 0.8.0, step 8e (the time of day, Unix time, the earliest and latest)
+
+**Done.** Step 8e `[function]`: `hour`, `minute` and `second` read a time; `datetime(s, epoch: seconds | milliseconds)` reads Unix time; `min` and `max` of a frame give the earliest and latest of a variable of dates or times, by group and inside `aggregate` too, exact to the microsecond at the ends of the calendar. The checker now types `min` and `max` by the variable. Every value agrees with R.
+
+**Green.** Format, clippy with warnings denied, the tier and message checks, every test of the workspace; CI read after the push.
+
+**Next.** A fix found on the way: two reducers on one variable in one definition of `aggregate` count its missing rows twice. Then step 8f `[function]`: `date(year, month, day)` and `start_of(d, unit)` (#96).
+
+**For the owner to decide.** Nothing blocks.
+

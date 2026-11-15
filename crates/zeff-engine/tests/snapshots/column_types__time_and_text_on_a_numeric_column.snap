@@ -4,8 +4,11 @@ expression: report
 ---
 --- time on `n`
 day: error[Z0401]: `d` of `day` must be a Date or a DateTime, but this is a column of Int
+hour: error[Z0401]: `dt` of `hour` must be a DateTime, but this is a column of Int
+minute: error[Z0401]: `dt` of `minute` must be a DateTime, but this is a column of Int
 month: error[Z0401]: `d` of `month` must be a Date or a DateTime, but this is a column of Int
 quarter: error[Z0401]: `d` of `quarter` must be a Date or a DateTime, but this is a column of Int
+second: error[Z0401]: `dt` of `second` must be a DateTime, but this is a column of Int
 week: error[Z0401]: `d` of `week` must be a Date or a DateTime, but this is a column of Int
 weekday: error[Z0401]: `d` of `weekday` must be a Date or a DateTime, but this is a column of Int
 year: error[Z0401]: `d` of `year` must be a Date or a DateTime, but this is a column of Int

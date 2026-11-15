@@ -9,11 +9,12 @@ fn the_compiled_catalogue_reads_in_full() {
     // 527 until step 8c2, which added the 135 rows of the graphics proposal (#122).
     // 662 until step 8c3, which added the 13 rows of the diagram proposal (#121).
     // 675 until step 8d, where `time_between` took the place of two rows (#96).
-    assert_eq!(catalogue.rows().len(), 674);
+    // 674 until step 8e, which added `hour`, `minute` and `second` (#96).
+    assert_eq!(catalogue.rows().len(), 677);
     let mut ids: Vec<u32> = catalogue.rows().iter().map(|r| r.id).collect();
     ids.sort_unstable();
     ids.dedup();
-    assert_eq!(ids.len(), 674, "ids are distinct");
+    assert_eq!(ids.len(), 677, "ids are distinct");
 }
 
 #[test]

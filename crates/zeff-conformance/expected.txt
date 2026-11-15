@@ -186,6 +186,8 @@ control/pragma_denied/stdout 0ed6d42d1957e735
 control/pragma_denied/stderr 4cd8ad2c725305c0
 time/parts/stdout 9d8407bf30ba8484
 time/parts/stderr cb2442f2589bec96
+time/clock/stdout 4ff655d44e488478
+time/clock/stderr 11ae083e3b74119a
 time/arithmetic/stdout 8e2948fe3d0e9221
 time/arithmetic/stderr 6a11d8fbcfd0c419
 time/between/stdout 861fd9a776e031f0

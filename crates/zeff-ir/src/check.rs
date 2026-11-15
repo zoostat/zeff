@@ -251,6 +251,10 @@ struct Checker<'a> {
     /// How many frame-method arguments that take columns enclose the expression being checked:
     /// inside one, a bare name is a column of the receiver before it is a binding.
     frame_scope: usize,
+    /// The schema of the frame each enclosing definition is written on (`data.aggregate(m =
+    /// max(day))`), innermost last, `None` where the checker does not know it: what a reducer
+    /// inside the definition is asked of.
+    definition_schemas: Vec<Option<Rc<FrameSchema>>>,
     /// The definitions of the enclosing `aggregate` checked so far, each one value per group:
     /// a later definition names an earlier one as that value, not as a column (section 3.7,
     /// "Definitions in one call").
@@ -343,6 +347,7 @@ impl<'a> Checker<'a> {
             bindings: Vec::new(),
             scope: Vec::new(),
             frame_scope: 0,
+            definition_schemas: Vec::new(),
             scalar_definitions: Vec::new(),
             formula_depth: 0,
             term_depth: 0,
@@ -6118,10 +6123,16 @@ impl Checker<'_> {
                             // group for `aggregate`, whose reducers take the frame implicitly.
                             if frame_method {
                                 self.frame_scope += 1;
+                                let around = slots
+                                    .first()
+                                    .and_then(|s| s.as_ref())
+                                    .and_then(|r| self.schema_of(r));
+                                self.definition_schemas.push(around);
                             }
                             let lowered = self.argument(value, &ty, frame_method, plot_method);
                             if frame_method {
                                 self.frame_scope -= 1;
+                                self.definition_schemas.pop();
                             }
                             let lowered = self.no_nothing(lowered, "defined");
                             if definitions.iter().any(|(n, _)| *n == def_name.text) {
@@ -6580,6 +6591,14 @@ impl Checker<'_> {
                 },
                 None => Ty::List(Box::new(items)),
             }
+        } else if spec.package == "data"
+            && matches!(spec.name, "min" | "max")
+            && let Some(extreme) = self.extreme_type(&spec, &slots)
+        {
+            // The smallest and the largest of a variable have the variable's type (open
+            // decision #96): a date or a time for one of dates or times, an Int for Ints, a
+            // Float for the rest; where the checker does not know the variable, the run says.
+            extreme
         } else if spec.returns == "Number" || spec.returns == "NumberList" {
             let numbers = slots
                 .iter()
@@ -6732,6 +6751,36 @@ impl Checker<'_> {
             return self.finish_iterate(lowered);
         }
         lowered
+    }
+
+    /// The type `min` or `max` of a frame gives for the variable it is asked of: the variable's
+    /// own for a `Date`, a `DateTime` or an Int, a Float for any other number, and unknown where
+    /// the checker knows neither the variable's type nor the frame's schema, which is then the
+    /// run's to say. The frame is the one the call is written on, or, for a reducer inside a
+    /// definition, the one the definition is written on. `None` where no variable is named.
+    fn extreme_type(
+        &self,
+        spec: &zeff_registry::FunctionSpec,
+        slots: &[Option<Expr>],
+    ) -> Option<Ty> {
+        let at = spec.params.iter().position(|p| p.name == "var")?;
+        let var = slots.get(at)?.as_ref()?;
+        let known: Option<Ty> = match (&var.ty, &var.kind) {
+            (Ty::Column(inner), _) if **inner != Ty::Unknown => Some(inner.as_ref().clone()),
+            (_, ExprKind::Var(name)) => {
+                let schema = match slots.first().and_then(|s| s.as_ref()) {
+                    Some(frame) => self.schema_of(frame),
+                    None => self.definition_schemas.last().cloned().flatten(),
+                };
+                schema.and_then(|s| s.column(name).cloned())
+            }
+            _ => None,
+        };
+        Some(match known {
+            Some(ty @ (Ty::Date | Ty::DateTime | Ty::Int)) => ty,
+            Some(Ty::Float | Ty::Bool) => Ty::Float,
+            _ => Ty::Unknown,
+        })
     }
 
     // ----- the schema pass (section 11, "Checking before running"; step 20) -----

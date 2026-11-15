@@ -47,7 +47,12 @@ fn numeric_column<'a>(
             &name,
             var,
             other.name(),
-            "a Bool, Int or Float",
+            // `min` and `max` take a variable of dates or times too, by their own path.
+            if matches!(function, "min" | "max") {
+                "a Bool, Int, Float, Date or DateTime"
+            } else {
+                "a Bool, Int or Float"
+            },
         ))),
     }
 }
@@ -518,6 +523,16 @@ fn statistic_method(
     };
     let frame = frame.clone();
     let var = var.clone();
+    // The earliest and the latest of a column of dates or times (open decision #96): `min` and
+    // `max` alone among the statistics take one, and give a value of its type.
+    if matches!(statistic, Statistic::Min | Statistic::Max)
+        && matches!(
+            frame.table.column(&var).map(Column::ty),
+            Some(ColumnType::Date | ColumnType::DateTime)
+        )
+    {
+        return extreme_of_times(ctx, args, &frame, &var, statistic, slots);
+    }
     let column = numeric_column(ctx, name, &frame, &var, 1)?.clone();
     let weights = weights_of(ctx, &frame, args, slots)?;
     let grouped = groups_for(ctx, &frame, args, slots.by)?;
@@ -578,6 +593,99 @@ fn statistic_method(
             for m in messages {
                 ctx.message(m);
             }
+            let mut columns: Vec<(String, Align)> =
+                keys.iter().map(|k| (k.clone(), Align::Left)).collect();
+            columns.push((name.to_string(), Align::Right));
+            Ok(Value::Table(Table {
+                title: format!("{name} · {var} by {}", keys.join(", ")),
+                columns,
+                rows: rows_out,
+                more: Vec::new(),
+                rules: Vec::new(),
+                before: Vec::new(),
+                after: Vec::new(),
+            }))
+        }
+    }
+}
+
+/// `min` or `max` of a `Date` or `DateTime` column: the earliest or the latest of the rows that
+/// count, as a value of the column's type, or a table with one row per group. Exact: the days
+/// or the microseconds are compared as integers and never pass through a Float. Rows with `NA`
+/// are skipped and counted as for a number, and `weights:` only decides which rows count.
+fn extreme_of_times(
+    ctx: &mut CallContext<'_>,
+    args: &Args,
+    frame: &Frame,
+    var: &str,
+    statistic: Statistic,
+    slots: Slots,
+) -> Result<Value, Fail> {
+    let name = statistic.name();
+    let Some(column) = frame.table.column(var).cloned() else {
+        return Err(internal(ctx, "a variable that is not in the frame"));
+    };
+    let weights = weights_of(ctx, frame, args, slots)?;
+    let grouped = groups_for(ctx, frame, args, slots.by)?;
+    let latest = statistic == Statistic::Max;
+    let dates = column.ty() == ColumnType::Date;
+    // The extreme of a set of rows, with the rows that had `NA` and the rows that counted.
+    let of = |rows: &[usize]| -> (Option<i64>, usize, usize) {
+        let (mut best, mut missing, mut counted) = (None::<i64>, 0usize, 0usize);
+        for &row in rows {
+            if weights.as_ref().is_some_and(|w| !w.counts(row)) {
+                continue;
+            }
+            counted += 1;
+            let value = match column.get(row) {
+                Some(zeff_columns::Value::Date(days)) => i64::from(days),
+                Some(zeff_columns::Value::DateTime(micros)) => micros,
+                _ => {
+                    missing += 1;
+                    continue;
+                }
+            };
+            best = Some(match best {
+                Some(b) if latest => b.max(value),
+                Some(b) => b.min(value),
+                None => value,
+            });
+        }
+        (best, missing, counted)
+    };
+    match grouped {
+        None => {
+            let rows: Vec<usize> = (0..frame.table.rows()).collect();
+            let (best, missing, counted) = of(&rows);
+            skipped(ctx, var, missing, counted);
+            Ok(match best {
+                Some(days) if dates => Value::Date(days as i32),
+                Some(micros) => Value::DateTime(micros),
+                None => Value::Na,
+            })
+        }
+        Some((keys, groups)) => {
+            let mut rows_out: Vec<Vec<String>> = Vec::with_capacity(groups.len());
+            let (mut missing, mut counted) = (0usize, 0usize);
+            let key_columns: Vec<&Column> =
+                keys.iter().filter_map(|k| frame.table.column(k)).collect();
+            for g in 0..groups.len() {
+                let (best, m, c) = of(groups.rows(g));
+                missing += m;
+                counted += c;
+                let first = groups.rows(g)[0];
+                let mut row: Vec<String> = key_columns
+                    .iter()
+                    .map(|c| labelled_cell(c, first))
+                    .collect();
+                row.push(match best {
+                    Some(days) if dates => zeff_dates::format_iso_date(days as i32),
+                    Some(micros) => zeff_dates::format_iso_datetime(micros),
+                    None => "NA".to_string(),
+                });
+                rows_out.push(row);
+            }
+            skipped(ctx, var, missing, counted);
             let mut columns: Vec<(String, Align)> =
                 keys.iter().map(|k| (k.clone(), Align::Left)).collect();
             columns.push((name.to_string(), Align::Right));

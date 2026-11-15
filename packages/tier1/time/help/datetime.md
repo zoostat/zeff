@@ -16,9 +16,18 @@ Text that does not read, or an impossible date or time, becomes `NA` with a warn
 warning. R's `as.POSIXct` reads the same forms in the session's zone; Zeff reads every value as
 UTC and never shifts it afterwards.
 
+With `epoch:` the first argument is a number of Unix time instead of text: `seconds` or
+`milliseconds` since 1970-01-01 00:00:00 UTC, negative before it, as logs and web data carry
+it. A whole number is exact; a number with a fraction is read to the nearest microsecond. A
+number outside years 1 to 9999 becomes `NA` with a warning (W0203). Text is refused with
+`epoch:`, and a number without it, so that a number such as 20261016 is never taken for a count
+of seconds. Like R's `as.POSIXct(x, origin = "1970-01-01", tz = "UTC")`.
+
 ## Arguments
-- s: The text, or a column of text.
+- s: The text, or a column of text; with `epoch:`, a number or a column of numbers.
 - format: The format the text is written in, when it is not ISO 8601.
+- epoch: What a number in `s` counts since 1970-01-01 00:00:00 UTC: `seconds` or `milliseconds`.
+  Not given with `format:`.
 
 ## Value
 A `DateTime`; a column of them when `s` is a column.
@@ -48,3 +57,9 @@ warning[W0702]: a time-zone offset was applied to reach UTC (line 5)
 NA
 warning[W0203]: text that is not a date and time in ISO 8601 became NA (line 6)
   = help: `to(s, Date)` and `to(s, DateTime)` name the failing values; a format is written as `strftime` writes it, `format: "%d/%m/%Y"`
+> datetime(1763200800, epoch: seconds)
+2025-11-15T10:00:00
+> datetime(1763200800250, epoch: milliseconds)
+2025-11-15T10:00:00.250000
+> datetime(-1.5, epoch: seconds)
+1969-12-31T23:59:58.500000

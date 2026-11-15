@@ -134,8 +134,55 @@ for (i in seq_along(tb)) for (j in seq_along(tb)) {
     month = steps_between(tb[i], tb[j], 1L), year = steps_between(tb[i], tb[j], 12L))
 }
 
+# The time of day, Unix time and the earliest and latest (release 0.8.0, step 8e). The hour, the
+# minute and the whole second of each of the sixteen times, as `format` writes them; numbers of
+# seconds and of milliseconds since 1970-01-01 00:00:00 UTC read with `as.POSIXct(origin =)`, the
+# fractions chosen exact in binary so that R's own printing of them is exact; and `min` and `max`
+# of dates and of times with missing values left out.
+clock_out <- lapply(seq_along(tb), function(i) list(t = tb_texts[i],
+  hour = as.integer(format(tb[i], "%H", tz = "UTC")),
+  minute = as.integer(format(tb[i], "%M", tz = "UTC")),
+  second = as.integer(format(tb[i], "%S", tz = "UTC"))))
+iso6 <- function(t) {
+  whole <- format(t, "%Y-%m-%dT%H:%M:%S", tz = "UTC")
+  frac <- round((as.numeric(t) - floor(as.numeric(t))) * 1e6)
+  ifelse(frac == 0, whole, sprintf("%s.%06d", whole, as.integer(frac)))
+}
+epoch_seconds <- c(0, 1763200800, -1, 951782400, 253402300799, 1763200800.25, -1.5, 0.125, 86399.5)
+# The last millisecond of the calendar, 253402300799999, is left out: a double of seconds cannot
+# hold it (R prints .998993), and the engine reads an Int of milliseconds exactly, which its own
+# test holds.
+epoch_millis <- c(0, 1763200800250, -1, 1500, 951782400000, 0.5, 253402300799000)
+epoch_out <- list(
+  seconds = lapply(epoch_seconds, function(x) list(x = num(x), text = iso6(as.POSIXct(x, origin = "1970-01-01", tz = "UTC")))),
+  milliseconds = lapply(epoch_millis, function(x) list(x = num(x), text = iso6(as.POSIXct(x / 1000, origin = "1970-01-01", tz = "UTC"))))
+)
+ex_dates <- as.Date(c("2026-03-02", NA, "2024-02-29", "2026-03-04", "1999-12-31", "2026-03-04"), format = "%Y-%m-%d")
+ex_times <- as.POSIXct(c("2026-03-02T09:15:00", "2026-03-02T17:40:00", NA, "2026-03-03T08:00:00", "2026-03-01T23:59:59", "2026-03-03T08:00:00"),
+                       format = "%Y-%m-%dT%H:%M:%S", tz = "UTC")
+ex_group <- c("a", "a", "b", "b", "b", "a")
+extremes_out <- list(
+  dates = as.list(ifelse(is.na(ex_dates), "NA", format(ex_dates, "%Y-%m-%d"))),
+  times = as.list(ifelse(is.na(ex_times), "NA", format(ex_times, "%Y-%m-%dT%H:%M:%S", tz = "UTC"))),
+  group = as.list(ex_group),
+  min_date = format(min(ex_dates, na.rm = TRUE), "%Y-%m-%d"),
+  max_date = format(max(ex_dates, na.rm = TRUE), "%Y-%m-%d"),
+  min_time = format(min(ex_times, na.rm = TRUE), "%Y-%m-%dT%H:%M:%S", tz = "UTC"),
+  max_time = format(max(ex_times, na.rm = TRUE), "%Y-%m-%dT%H:%M:%S", tz = "UTC"),
+  by_group = lapply(sort(unique(ex_group)), function(g) {
+    d <- ex_dates[ex_group == g]; t <- ex_times[ex_group == g]
+    list(group = g,
+         min_date = format(min(d, na.rm = TRUE), "%Y-%m-%d"), max_date = format(max(d, na.rm = TRUE), "%Y-%m-%d"),
+         min_time = format(min(t, na.rm = TRUE), "%Y-%m-%dT%H:%M:%S", tz = "UTC"),
+         max_time = format(max(t, na.rm = TRUE), "%Y-%m-%dT%H:%M:%S", tz = "UTC"))
+  })
+)
+
 out <- list(
   reference = reference_block(),
+  clock = clock_out,
+  epoch = epoch_out,
+  extremes = extremes_out,
   time_between = time_between_out,
   add_days = add_days_out,
   add_months = add_months_out,

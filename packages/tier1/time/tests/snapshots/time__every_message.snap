@@ -243,6 +243,161 @@ error[Z0403]: expected one of second, minute, hour, day, week, month, year, foun
   |
   = help: write the word without quotes: `day`
 
+hour(date("2026-10-16"))
+---
+error[Z0401]: `dt` of `hour` must be a DateTime, but this is a Date
+ --> scripts/main.zeff:1:6
+  |
+1 | hour(date("2026-10-16"))
+  |      ^^^^^^^^^^^^^^^^^^ a Date
+  |
+  = help: usage: `hour(dt)`
+
+let f = frame(d = [date("2026-10-16")])
+f.add(m = minute(d))
+---
+error[Z0401]: `dt` of `minute` must be a DateTime, but this is a column of Date
+ --> scripts/main.zeff:2:18
+  |
+2 | f.add(m = minute(d))
+  |                  ^ a column of Date
+  |
+  = help: a function given a column applies to every row, and the rows must be of a type it takes; `year`, `month` and the other functions of `time` read a date's parts as numbers
+
+second("09:30:07")
+---
+error[Z0401]: `dt` of `second` must be a DateTime, but this is a Str
+ --> scripts/main.zeff:1:8
+  |
+1 | second("09:30:07")
+  |        ^^^^^^^^^^ a Str
+  |
+  = help: usage: `second(dt)`
+
+datetime("2026-10-16", epoch: seconds)
+---
+error[Z0401]: `epoch:` reads a number of Unix time, but `s` is text
+ --> scripts/main.zeff:1:10
+  |
+1 | datetime("2026-10-16", epoch: seconds)
+  |          ^^^^^^^^^^^^ text
+  |
+  = help: leave `epoch:` out to read text as a date and time, or make the text a number first with `to(s, Int)`
+
+datetime(20261016)
+---
+error[Z0401]: `datetime` reads text, but `s` is an Int
+ --> scripts/main.zeff:1:10
+  |
+1 | datetime(20261016)
+  |          ^^^^^^^^ a number
+  |
+  = help: a number is Unix time only when the call says so: `epoch: seconds` or `epoch: milliseconds`
+
+datetime(20261016.5)
+---
+error[Z0401]: `datetime` reads text, but `s` is a Float
+ --> scripts/main.zeff:1:10
+  |
+1 | datetime(20261016.5)
+  |          ^^^^^^^^^^ a number
+  |
+  = help: a number is Unix time only when the call says so: `epoch: seconds` or `epoch: milliseconds`
+
+let f = frame(n = [20261016, 20261017])
+f.add(t = datetime(n))
+---
+error[Z0401]: `datetime` reads text, but `s` is an Int (row 1)
+ --> scripts/main.zeff:2:20
+  |
+2 | f.add(t = datetime(n))
+  |                    ^ a number
+  |
+  = help: a number is Unix time only when the call says so: `epoch: seconds` or `epoch: milliseconds`
+
+let f = frame(s = ["1763200800"])
+f.add(t = datetime(s, epoch: seconds))
+---
+error[Z0401]: `epoch:` reads a number of Unix time, but `s` is text (row 1)
+ --> scripts/main.zeff:2:20
+  |
+2 | f.add(t = datetime(s, epoch: seconds))
+  |                    ^ text
+  |
+  = help: leave `epoch:` out to read text as a date and time, or make the text a number first with `to(s, Int)`
+
+datetime(1763200800, format: "%Y-%m-%d", epoch: seconds)
+---
+error[Z0410]: `datetime` takes `format:` or `epoch:`, not both
+ --> scripts/main.zeff:1:49
+  |
+1 | datetime(1763200800, format: "%Y-%m-%d", epoch: seconds)
+  |                                                 ^^^^^^^ `epoch:` beside `format:`
+  |
+  = help: `format:` says how text is written and `epoch:` what a number counts; keep the one that fits `s`
+
+datetime(1763200800, epoch: minutes)
+---
+error[Z0402]: `minutes` is not one of the allowed words
+ --> scripts/main.zeff:1:29
+  |
+1 | datetime(1763200800, epoch: minutes)
+  |                             ^^^^^^^ expected one of seconds, milliseconds
+
+datetime(true, epoch: seconds)
+---
+error[Z0401]: `s` of `datetime` must be a Str, Int or Float, but this is a Bool
+ --> scripts/main.zeff:1:10
+  |
+1 | datetime(true, epoch: seconds)
+  |          ^^^^ a Bool
+  |
+  = help: usage: `datetime(s, format: Str, epoch: seconds | milliseconds)`
+
+let f = frame(n = ["a", "b"], d = [date("2026-10-16"), NA])
+f.min(n)
+---
+error[Z0401]: `min` needs a Bool, Int, Float, Date or DateTime, but `n` is Str
+ --> scripts/main.zeff:2:7
+  |
+2 | f.min(n)
+  |       ^ a Str variable of f
+  |
+  = help: choose a Bool, Int, Float, Date or DateTime variable; `f.describe()` lists the types
+
+let f = frame(d = [date("2026-10-16"), NA])
+f.mean(d)
+---
+error[Z0401]: `mean` needs a Bool, Int or Float, but `d` is Date
+ --> scripts/main.zeff:2:8
+  |
+2 | f.mean(d)
+  |        ^ a Date variable of f
+  |
+  = help: choose a Bool, Int or Float variable; `f.describe()` lists the types
+
+let f = frame(d = [date("2026-10-16"), NA])
+f.max(d) + 1
+---
+error[Z0221]: `+` does not apply to a Date and a number
+ --> scripts/main.zeff:2:1
+  |
+2 | f.max(d) + 1
+  | ^^^^^^^^^^^^ a date beside a number
+  |
+  = help: `add_days(d, n)` moves a date by n days and `add_months(d, n)` by n months; `Date - Date` gives the days between two dates
+
+let f = frame(t = [datetime("2026-10-16T09:30")])
+upper(f.min(t))
+---
+error[Z0401]: `s` of `upper` must be a Str, but this is a DateTime
+ --> scripts/main.zeff:2:7
+  |
+2 | upper(f.min(t))
+  |       ^^^^^^^^ a DateTime
+  |
+  = help: usage: `upper(s)`
+
 days_between(date("2026-10-16"), date("2026-10-17"))
 ---
 error[Z0103]: no function is called `days_between`

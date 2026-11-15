@@ -11,8 +11,9 @@
 use zeff_core::runtime::{Args, CallContext, Fail, Function, fail};
 use zeff_core::value::Value;
 use zeff_dates::{
-    DateFormat, FixedUnit, civil_from_days, days_of_micros, format_iso_date, format_iso_datetime,
-    iso_week, micros_of_days, parse_iso_date, parse_iso_datetime, quarter_of, weekday_of,
+    DateFormat, EpochUnit, FixedUnit, civil_from_days, days_of_micros, format_iso_date,
+    format_iso_datetime, iso_week, micros_of_days, parse_iso_date, parse_iso_datetime, quarter_of,
+    weekday_of,
 };
 use zeff_diagnostics::Diagnostic;
 use zeff_registry::{DiagnosticDecl, FunctionSpec, ParamSpec};
@@ -101,9 +102,66 @@ fn date(ctx: &mut CallContext<'_>, args: Args) -> Result<Value, Fail> {
 /// or the format given, `Z` or an offset applied to reach UTC.
 fn datetime(ctx: &mut CallContext<'_>, args: Args) -> Result<Value, Fail> {
     let format = format_of(ctx, &args, "datetime")?;
+    // `epoch:` reads a number as Unix time (open decision #96): seconds or milliseconds since
+    // 1970-01-01 00:00:00 UTC. Text is read without it, and a number only with it, so that a
+    // number such as 20261016 is never taken for a count of seconds by mistake.
+    let epoch = match args.get(2) {
+        Some(Value::Word(w)) if w == "seconds" => Some(EpochUnit::Seconds),
+        Some(Value::Word(w)) if w == "milliseconds" => Some(EpochUnit::Milliseconds),
+        _ => None,
+    };
+    if let Some(unit) = epoch {
+        if format.is_some() {
+            return Err(fail(
+                Diagnostic::error("Z0410", "`datetime` takes `format:` or `epoch:`, not both")
+                    .in_file(ctx.script)
+                    .primary(ctx.span_of(2), "`epoch:` beside `format:`")
+                    .help("`format:` says how text is written and `epoch:` what a number counts; keep the one that fits `s`"),
+            ));
+        }
+        let micros = match args.get(0) {
+            None | Some(Value::Na) => return Ok(Value::Na),
+            Some(Value::Int(n)) => zeff_dates::micros_of_epoch(*n, unit),
+            Some(Value::Float(x)) if x.is_nan() => return Ok(Value::Na),
+            Some(Value::Float(x)) => zeff_dates::micros_of_epoch_float(*x, unit),
+            Some(Value::Str(_)) => {
+                return Err(fail(
+                    Diagnostic::error(
+                        "Z0401",
+                        "`epoch:` reads a number of Unix time, but `s` is text",
+                    )
+                    .in_file(ctx.script)
+                    .primary(ctx.span_of(0), "text")
+                    .help("leave `epoch:` out to read text as a date and time, or make the text a number first with `to(s, Int)`"),
+                ));
+            }
+            Some(_) => return Err(internal(ctx, "a value that is not a number")),
+        };
+        return Ok(match micros {
+            Some(micros) => Value::DateTime(micros),
+            None => {
+                outside_the_calendar(ctx);
+                Value::Na
+            }
+        });
+    }
     let text = match args.get(0) {
         None | Some(Value::Na) => return Ok(Value::Na),
         Some(Value::Str(s)) => s.trim(),
+        Some(number @ (Value::Int(_) | Value::Float(_))) => {
+            return Err(fail(
+                Diagnostic::error(
+                    "Z0401",
+                    format!(
+                        "`datetime` reads text, but `s` is {}",
+                        number.type_word()
+                    ),
+                )
+                .in_file(ctx.script)
+                .primary(ctx.span_of(0), "a number")
+                .help("a number is Unix time only when the call says so: `epoch: seconds` or `epoch: milliseconds`"),
+            ));
+        }
         Some(_) => return Err(internal(ctx, "a value that is not text")),
     };
     if let Some(f) = &format {
@@ -168,6 +226,36 @@ fn quarter(ctx: &mut CallContext<'_>, args: Args) -> Result<Value, Fail> {
 
 fn week(ctx: &mut CallContext<'_>, args: Args) -> Result<Value, Fail> {
     part(ctx, &args, |days| i64::from(iso_week(days).1))
+}
+
+/// A part of the time of day of a `DateTime`, as an Int; `NA` for `NA`.
+fn clock_part(
+    ctx: &CallContext<'_>,
+    args: &Args,
+    f: fn((u32, u32, u32)) -> u32,
+) -> Result<Value, Fail> {
+    match args.get(0) {
+        None | Some(Value::Na) => Ok(Value::Na),
+        Some(Value::DateTime(micros)) => Ok(Value::Int(i64::from(f(zeff_dates::clock_of_micros(
+            *micros,
+        ))))),
+        Some(_) => Err(internal(ctx, "a value that is not a date and time")),
+    }
+}
+
+/// `hour(dt)`: the hour of the day, 0 to 23.
+fn hour(ctx: &mut CallContext<'_>, args: Args) -> Result<Value, Fail> {
+    clock_part(ctx, &args, |(h, _, _)| h)
+}
+
+/// `minute(dt)`: the minute of the hour, 0 to 59.
+fn minute(ctx: &mut CallContext<'_>, args: Args) -> Result<Value, Fail> {
+    clock_part(ctx, &args, |(_, m, _)| m)
+}
+
+/// `second(dt)`: the whole second of the minute, 0 to 59, a fraction dropped.
+fn second(ctx: &mut CallContext<'_>, args: Args) -> Result<Value, Fail> {
+    clock_part(ctx, &args, |(_, _, s)| s)
 }
 
 /// W0203 for a date moved outside the calendar.
@@ -471,6 +559,25 @@ fn date_part(name: &'static str, help: &'static str, body: zeff_core::runtime::B
     }
 }
 
+/// A part of the time of day: `hour`, `minute`, `second`. They take a `DateTime` only, since a
+/// `Date` has no time of day and midnight would be a guess.
+fn time_part(name: &'static str, help: &'static str, body: zeff_core::runtime::Body) -> Function {
+    Function {
+        spec: FunctionSpec {
+            name,
+            package: "time",
+            method: false,
+            params: vec![ParamSpec::required("dt", "DateTime")],
+            rest: None,
+            returns: "Int",
+            diagnostics: vec![],
+            help,
+            accuracy: None,
+        },
+        body,
+    }
+}
+
 /// The functions of `time` in this release.
 pub fn functions() -> Vec<Function> {
     vec![
@@ -503,21 +610,24 @@ pub fn functions() -> Vec<Function> {
                 package: "time",
                 method: false,
                 params: vec![
-                    ParamSpec::required("s", "Str"),
+                    ParamSpec::required("s", "Str | Int | Float"),
                     ParamSpec::option("format", "Str"),
+                    ParamSpec::option("epoch", "seconds | milliseconds"),
                 ],
                 rest: None,
                 returns: "DateTime",
                 diagnostics: vec![
                     DiagnosticDecl::new(
                         "W0203",
-                        "the text is not a date and time in ISO 8601 or in the format, so the value is NA",
+                        "the text is not a date and time in ISO 8601 or in the format, or with epoch: the number lies outside years 1 to 9999, so the value is NA",
                     ),
                     DiagnosticDecl::new(
                         "W0702",
                         "the text carried a zone offset, which was applied to reach UTC",
                     ),
                     DiagnosticDecl::new("Z0409", "format: is not a date format"),
+                    DiagnosticDecl::new("Z0401", "s is a number without epoch:, or text with it"),
+                    DiagnosticDecl::new("Z0410", "format: and epoch: are both given"),
                 ],
                 help: include_str!("../help/datetime.md"),
                 accuracy: None,
@@ -530,6 +640,9 @@ pub fn functions() -> Vec<Function> {
         date_part("weekday", include_str!("../help/weekday.md"), weekday),
         date_part("quarter", include_str!("../help/quarter.md"), quarter),
         date_part("week", include_str!("../help/week.md"), week),
+        time_part("hour", include_str!("../help/hour.md"), hour),
+        time_part("minute", include_str!("../help/minute.md"), minute),
+        time_part("second", include_str!("../help/second.md"), second),
         moved("add_days", include_str!("../help/add_days.md"), add_days),
         moved(
             "add_months",

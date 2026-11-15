@@ -11,12 +11,18 @@ group; with `weights:` the rows with a zero weight are left out, as section 4.1 
 Reference says, and the weights change nothing else. The max of two or more values row by row is
 the `core` function of the same name.
 
+A variable of dates, or of dates and times, gives its latest value, a `Date` or a `DateTime`:
+the first and the last day of a file, or of each group with `by:`, and inside `aggregate` the
+latest of each group as a variable of that type. The values are compared exactly, as days or
+as microseconds.
+
 ## Arguments
 - data: The frame.
-- var: The variable, which must be Bool, Int or Float.
+- var: The variable, which must be Bool, Int or Float, or a Date or a DateTime.
 
 ## Value
-An `Int` for an Int variable, a `Float` otherwise; a `Table` with `by:`.
+An `Int` for an Int variable, a `Date` or a `DateTime` for a variable of dates or times, a
+`Float` otherwise; a `Table` with `by:`.
 
 ## Details
 Exact.
@@ -35,3 +41,7 @@ note: data/wages.csv read as CSV: 3 rows × 3 variables, types guessed; CSV carr
 > wages.max(hours)
 40
 warning[W0201]: 1 row with NA in hours was skipped (line 3)
+> let visits = frame(day = [date("2026-03-02"), date("2026-03-04"), NA])
+> visits.max(day)
+2026-03-04
+warning[W0201]: 1 row with NA in day was skipped (line 5)
