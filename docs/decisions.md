@@ -5418,7 +5418,7 @@ Done before parts 1 and 2 are read, because those wait for jobs that run for hou
 
 **Choice.** The text is made only where it is kept: the registry looks for the source's own line first and makes the title's text when there is none. The pages are the same, which the stored pages of the built-ins written in Zeff hold.
 
-**Checked.** On this machine the system's leak tool, run on `zeff help winsorize`, reports 6 leaks with the registry as it was and none with the change. The fuzzing job is started by hand on the commit, since it is the check that found it; its result is recorded when it ends.
+**Checked.** On this machine the system's leak tool, run on `zeff help winsorize`, reports 6 leaks with the registry as it was and none with the change. The fuzzing job, started by hand on the commit of the change (run 43712259080), ended green in all eight targets.
 
 **Reason.** The testing handbook's rule that a failing nightly job is read the day it fails; found when CI was read after the push of step 8d.
 
@@ -5437,4 +5437,16 @@ Done before parts 1 and 2 are read, because those wait for jobs that run for hou
 **Held by.** `the_time_of_day_and_unix_time_agree_with_r`, `the_earliest_and_latest_of_dates_and_times_agree_with_r`, the edge cases and every message, stored; the kernel's tests; the examples of the five pages and the common mistakes of the three new ones; the conformance case `time/clock`.
 
 **Reason.** Open decision #96; the checklist's step 8e.
+
+## 15 November 2026: the rows two reducers of one definition skip are counted once
+
+**What was wrong.** `aggregate` reports the rows with `NA` in a variable once for the statement, the ruling of release 0.6.0, step 12. Within a definition it added the counts of every reducer: `f.aggregate(r = max(x) - min(x))` on a variable with two missing rows said "4 rows with NA in x were skipped". The values were right; the count printed was double, and for a definition of three statistics triple. Found at step 8e of release 0.8.0, when a span was written as `time_between(min(t), max(t))`; it was as true of numbers, since 0.6.0.
+
+**Choice.** The reducers of one evaluation of a definition see the same rows (the whole frame, or one group), so their warnings about one variable are one warning. Where weights make two reducers count different rows of it, the larger count is said. The counts are then added over the groups of the definition and the largest over the definitions is kept, as before. `add` and `update` under `by:` count in the same way. No value changes.
+
+**A stored output that held the wrong count.** The edge cases of `winsorize` under `by:` said "2 rows with NA in value were skipped" for a variable with one missing row, since the function asks two quantiles of it; the stored output now says 1 row.
+
+**Held by.** `two_reducers_on_one_variable_count_its_missing_rows_once` in the tests of `aggregate`: the range alone, beside another definition, by group, with five statistics of one variable, with two variables, with weights, and under `add`.
+
+**Reason.** Principle 6: a count the engine prints is a count of rows. A defect found while building a step is mended with a test before the next step.
 

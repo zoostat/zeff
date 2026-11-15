@@ -126,7 +126,7 @@ Step 2: the help contract of 0.8.0 (#103) in section 9.1 and in the registry, wi
 
 **Green.** Format, clippy with warnings denied, the tier and message checks, every test of the workspace; CI read after the push.
 
-**Next.** A fix found on the way: two reducers on one variable in one definition of `aggregate` count its missing rows twice. Then step 8f `[function]`: `date(year, month, day)` and `start_of(d, unit)` (#96).
+**Next.** Step 8f `[function]`: `date(year, month, day)` and `start_of(d, unit)` (#96). Mended on the way, in a commit of its own: a definition of `aggregate` with two reducers on one variable, such as the range `max(x) - min(x)`, counted that variable's missing rows once for each reducer; the count is now the rows.
 
 **For the owner to decide.** Nothing blocks.
 

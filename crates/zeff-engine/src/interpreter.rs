@@ -3121,7 +3121,7 @@ impl<'a> Interpreter<'a> {
             }
             let mut these: Vec<Diagnostic> = Vec::new();
             let value = self.eval(expr, printed, &mut these)?;
-            for message in these {
+            for message in once_per_variable(these) {
                 if !group_messages
                     .iter()
                     .any(|m| m.code == message.code && m.message == message.message)
@@ -3411,7 +3411,12 @@ impl<'a> Interpreter<'a> {
                             messages,
                             raw,
                         ),
-                        (_, _, Some(raw)) => self.eval(&call.definitions[*i].1, printed, raw),
+                        (_, _, Some(raw)) => {
+                            let value = self.eval(&call.definitions[*i].1, printed, raw);
+                            // One evaluation on every row: its reducers saw the same rows.
+                            *raw = once_per_variable(std::mem::take(raw));
+                            value
+                        }
                         _ => self.eval(&call.definitions[*i].1, printed, messages),
                     };
                     if pushed && let Some(receiver) = self.receivers.last_mut() {
@@ -4478,6 +4483,34 @@ fn na_warning(var: &str, n: u64, all: bool) -> Diagnostic {
             )
         },
     )
+}
+
+/// The messages of one evaluation of a definition, with the rows that had `NA` in a variable
+/// counted once: two reducers on one variable, as in `max(x) - min(x)`, skip the same rows of
+/// the same group, so their two warnings are one, with the larger count where weights made
+/// them differ. Every other message is kept as it came, and the order of first appearance holds.
+fn once_per_variable(messages: Vec<Diagnostic>) -> Vec<Diagnostic> {
+    let mut out: Vec<Diagnostic> = Vec::with_capacity(messages.len());
+    // Where each variable's warning stands in `out`, with what it says.
+    let mut seen: Vec<(String, usize, u64)> = Vec::new();
+    for message in messages {
+        match na_warning_parts(&message) {
+            Some((var, n, all)) => match seen.iter_mut().find(|(v, _, _)| *v == var) {
+                Some((_, at, largest)) => {
+                    if n > *largest {
+                        *largest = n;
+                        out[*at] = na_warning(&var, n, all);
+                    }
+                }
+                None => {
+                    seen.push((var, out.len(), n));
+                    out.push(message);
+                }
+            },
+            None => out.push(message),
+        }
+    }
+    out
 }
 
 /// The reducers' warnings of an `aggregate`, one definition's messages per inner list: within a

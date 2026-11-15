@@ -224,3 +224,80 @@ proptest! {
         prop_assert_eq!(stdout, "0\n0\n0\n", "{}", stderr);
     }
 }
+
+/// The warnings a script prints, each without its line number.
+fn warnings(script: &str) -> Vec<String> {
+    let (code, _, stderr) = go(script);
+    assert_eq!(code, 0, "{stderr}");
+    stderr
+        .lines()
+        .filter(|l| l.starts_with("warning["))
+        .map(|l| match l.rsplit_once(" (line ") {
+            Some((text, _)) => text.to_string(),
+            None => l.to_string(),
+        })
+        .collect()
+}
+
+#[test]
+fn two_reducers_on_one_variable_count_its_missing_rows_once() {
+    // Two rows of `x` are missing, one in each group; one row of `y`. A definition that asks two
+    // statistics of `x`, the range, skipped those two rows and no more: until release 0.8.0 it
+    // said four, one count for each reducer.
+    let frame = "let f = frame(g = [\"a\", \"a\", \"b\", \"b\"], x = [1.0, NA, 3.0, NA], y = [NA, 2.0, 3.0, 4.0])\n";
+    let x_twice = "warning[W0201]: 2 rows with NA in x were skipped".to_string();
+    let y_once = "warning[W0201]: 1 row with NA in y was skipped".to_string();
+    for definitions in [
+        "r = max(x) - min(x)",
+        "lo = min(x), r = max(x) - min(x)",
+        "r = max(x) - min(x), by: g",
+        "m = mean(x), r = (max(x) - min(x)) / mean(x), by: g",
+        "r = max(x) - min(x) + mean(x) + median(x) + sum(x)",
+    ] {
+        assert_eq!(
+            warnings(&format!("{frame}f.aggregate({definitions})\n")),
+            std::slice::from_ref(&x_twice),
+            "{definitions}"
+        );
+    }
+    // Two variables in one definition each keep their own count, in the order met.
+    assert_eq!(
+        warnings(&format!(
+            "{frame}f.aggregate(r = max(x) - min(y) + mean(x), by: g)\n"
+        )),
+        [x_twice.clone(), y_once.clone()]
+    );
+    assert_eq!(
+        warnings(&format!(
+            "{frame}f.aggregate(r = min(y) + max(y), s = mean(x) - min(x))\n"
+        )),
+        [y_once, x_twice.clone()]
+    );
+    // Where weights make two reducers count different rows of a variable, the larger count is
+    // the one said: with `w` the first reducer leaves its missing row of group `a` out.
+    let weighted = "let f = frame(x = [1.0, NA, 3.0, NA], w = [1, 0, 1, 1])\n";
+    assert_eq!(
+        warnings(&format!(
+            "{weighted}f.aggregate(r = mean(x, weights: w) - mean(x))\n"
+        ))
+        .iter()
+        .filter(|w| w.contains("NA in x"))
+        .collect::<Vec<_>>(),
+        [&x_twice]
+    );
+    // The values are untouched: the range of each group.
+    let (_, stdout, _) = go(&format!(
+        "{frame}f.aggregate(r = max(x) - min(x), n = n(), by: g)\n"
+    ));
+    let rows: Vec<Vec<&str>> = stdout
+        .lines()
+        .skip(3)
+        .map(|l| l.split_whitespace().collect())
+        .collect();
+    assert_eq!(rows, [["1", "a", "0", "2"], ["2", "b", "0", "2"]]);
+    // Under `by:`, `add` counts in the same way.
+    assert_eq!(
+        warnings(&format!("{frame}f.add(r = max(x) - min(x), by: g)\n")),
+        [x_twice]
+    );
+}
