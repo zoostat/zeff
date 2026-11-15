@@ -2208,6 +2208,19 @@ impl<'a> Interpreter<'a> {
                     .map(|term| self.term_value(term, expr))
                     .collect::<Result<Vec<_>, _>>()?,
             ),
+            ExprKind::Instruments(instruments) => {
+                let side = |terms: &[Term]| {
+                    terms
+                        .iter()
+                        .map(|term| self.term_value(term, expr))
+                        .collect::<Result<Vec<_>, _>>()
+                };
+                Value::Instruments {
+                    endogenous: side(&instruments.endogenous)?,
+                    excluded: side(&instruments.excluded)?,
+                    included: side(&instruments.included)?,
+                }
+            }
             ExprKind::FrameName {
                 name,
                 binding,

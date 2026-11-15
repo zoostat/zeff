@@ -95,6 +95,15 @@ fn inline(value: &Value) -> String {
         Value::Distribution(d) => distribution_text(d),
         Value::Formula(formula) => formula.to_string(),
         Value::Terms(terms) => crate::value::terms_text(terms),
+        Value::Instruments {
+            endogenous,
+            excluded,
+            ..
+        } => format!(
+            "{} ~ {}",
+            crate::value::terms_text(endogenous),
+            crate::value::terms_text(excluded)
+        ),
         Value::Fit(fit) => format!("{} · {}", fit.kind, fit.summary.title),
         Value::TestResult(result) => format!("TestResult · {}", result.title),
         Value::Plot(plot) => plot.summary.title.clone(),

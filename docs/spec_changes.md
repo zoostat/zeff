@@ -744,3 +744,7 @@ Found while coding step 8l of release 0.8.0. The row "Testing" of section 4.1 sa
 ## 16 November 2026 — zeff_functions.csv (row 59, the usage and description of `print`)
 
 Open decision #95 (decided 9 November 2026, option A), applied as step 8p of release 0.8.0. The usage of `print` is `print(x, ..., sep: Str = " ")` and its description says that plain values given side by side share one line, `sep:` between them. A breaking change, for the release notes: `print(a, b)` with two plain values prints one line, `a b`, where it printed two; a script that wants two lines writes two `print` statements. A single value, and any value that is not plain (a frame, a list, a record, a column, a result, a table, a plot), prints as before. The Language Reference says nothing of how several values of `print` are laid out, and is unchanged.
+
+## 16 November 2026 — zeff_language_reference.md, section 11 (the codes Z0504, Z0505 and Z0804)
+
+Found while coding step 9 of release 0.8.0. Section 7.1 names three codes for the mistakes of `instruments:`, Z0504 (an instrumented variable missing from the formula, with its example in section 11), Z0505 (a variable on both sides) and Z0804 (under-identification), and the table of codes in section 11 had a row for none of them. The three rows are added, in the words of section 7.1. Nothing in the rule changes.

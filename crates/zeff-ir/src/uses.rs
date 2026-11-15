@@ -190,6 +190,16 @@ pub fn expr_uses(expr: &Expr, used: &mut Vec<BindingId>) {
                 term_uses(term, used);
             }
         }
+        ExprKind::Instruments(instruments) => {
+            for term in instruments
+                .endogenous
+                .iter()
+                .chain(&instruments.excluded)
+                .chain(&instruments.included)
+            {
+                term_uses(term, used);
+            }
+        }
         ExprKind::FormulaSteps { formula, steps } => {
             expr_uses(formula, used);
             for step in steps {

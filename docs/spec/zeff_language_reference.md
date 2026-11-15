@@ -1322,6 +1322,9 @@ Zeff reports problems the way Rust does: a code, the location, a marker under th
 | Z0414 | A term name given to a result method that the result does not have; the message lists the fit's terms, and a test's result has none |
 | Z0415 | A restriction given to `test` that is not an equality linear in the coefficients, or restrictions that repeat one another |
 | Z0416 | A `compare` of two regressions on different rows, with the same terms, or not nested |
+| Z0504 | A variable on the left of `~` in `instruments:` that is not a regressor of the formula: an instrumented regressor appears in the formula like any other (section 7.1); the help writes the formula with it added |
+| Z0505 | A variable on both sides of `~` in `instruments:`, which would instrument itself (section 7.1) |
+| Z0804 | Fewer excluded instruments than instrumented regressors, counted after an instrument that is also a regressor of the formula is moved to the included instruments: the model is under-identified (section 7.1) |
 | Z0507 | `event` given a `ref:` that is not a relative period of the data; the message lists the periods present |
 | W0701 | A data root's file has changed since the last run: its hash differs from the one the last run recorded, and both modification times are given (section 2 of the Engine and Project Specification, "Data roots") |
 | Z0417 | A definition given to `derive` that it cannot differentiate |

@@ -404,7 +404,13 @@ fn engine_usage(f: &Registered) -> (String, Vec<InUsage>, Option<(usize, usize)>
 /// Whether a bare name given for a parameter of this type is a variable of the frame.
 fn names_variables(ty: &Ty) -> bool {
     match ty {
-        Ty::Var | Ty::Vars | Ty::Terms | Ty::Formula | Ty::Expr | Ty::Column(_) => true,
+        Ty::Var
+        | Ty::Vars
+        | Ty::Terms
+        | Ty::Instruments
+        | Ty::Formula
+        | Ty::Expr
+        | Ty::Column(_) => true,
         Ty::Union(options) => options.iter().any(names_variables),
         Ty::List(inner) => names_variables(inner),
         _ => false,

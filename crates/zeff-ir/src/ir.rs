@@ -340,6 +340,9 @@ pub enum ExprKind {
     /// Fixed-effect terms given to a parameter of type `Terms` (section 7.1, `fe:`): variables
     /// and interactions of variables joined by `+`, in the order written.
     Terms(Vec<Term>),
+    /// `instruments: endog ~ instr` (section 7.1): how the endogenous regressors of the
+    /// formula of the same call are instrumented.
+    Instruments(Instruments),
     /// An expression that could not be lowered; its error has been reported.
     Error,
 }
@@ -350,6 +353,17 @@ pub enum ExprKind {
 pub struct Formula {
     pub outcome: Option<Term>,
     pub steps: Vec<TermStep>,
+}
+
+/// What `instruments:` says (section 7.1; release 0.8.0, step 9): the instrumented regressors,
+/// which are regressors of the formula; the excluded instruments, which are not; and the
+/// instruments the script wrote that are regressors of the formula already, which the checker
+/// moves here, to the included instruments, for the function to say so in a note.
+#[derive(Debug, Clone, PartialEq)]
+pub struct Instruments {
+    pub endogenous: Vec<Term>,
+    pub excluded: Vec<Term>,
+    pub included: Vec<Term>,
 }
 
 /// One step of a formula's right side, in the order written: a term added, a term removed

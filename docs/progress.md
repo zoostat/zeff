@@ -165,3 +165,13 @@ Step 8b `[engine]`: the language server folds chains, blocks and functions, offe
 **Next.** Step 9 `[engine]`: the first of the instrumental-variables steps.
 
 **For the owner to decide.** Open decision #149 (a warning repeated in the passes of a loop), raised at step 8o; nothing blocks.
+
+## 16 November 2026, release 0.8.0, step 9 (`instruments:` in the checker)
+
+**Done.** Step 9 `[engine]`: the checker reads `instruments: educ ~ nearc4` and refuses the mistakes the Language Reference names, before anything runs: an instrumented variable that is not in the formula (Z0504), a variable on both sides (Z0505), fewer instruments than instrumented regressors (Z0804), the outcome used as an instrument. An instrument that is already a regressor is set aside as an included instrument. The function `ivreg` itself arrives at step 13; two of this step's tests that need it moved there.
+
+**Green.** Format, clippy with warnings denied, the tier, message and grammar checks, every test of the workspace; CI read after the push.
+
+**Next.** Step 10 `[engine]`: two-stage least squares, the estimator itself.
+
+**For the owner to decide.** Open decision #149 (a warning repeated in the passes of a loop); nothing blocks.

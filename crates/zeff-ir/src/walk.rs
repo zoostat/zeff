@@ -258,6 +258,16 @@ fn expr_walk<'p>(expr: &'p Expr, tell: &mut dyn FnMut(Found<'p>)) {
                 term_walk(term, tell);
             }
         }
+        ExprKind::Instruments(instruments) => {
+            for term in instruments
+                .endogenous
+                .iter()
+                .chain(&instruments.excluded)
+                .chain(&instruments.included)
+            {
+                term_walk(term, tell);
+            }
+        }
         ExprKind::FormulaSteps { formula, steps } => {
             expr_walk(formula, tell);
             steps_walk(steps, tell);

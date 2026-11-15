@@ -1400,6 +1400,14 @@ pub enum Value {
     /// Fixed-effect terms given to a parameter of type `Terms` (section 7.1, `fe:`): the right
     /// side of a formula without `~`, admitting `+` and `:` only.
     Terms(Vec<Term>),
+    /// What `instruments:` says (section 7.1; release 0.8.0): the instrumented regressors, the
+    /// excluded instruments, and the instruments written that are regressors of the formula
+    /// already, each as terms.
+    Instruments {
+        endogenous: Vec<Term>,
+        excluded: Vec<Term>,
+        included: Vec<Term>,
+    },
     /// A fitted model, shared rather than copied.
     Fit(Rc<Fit>),
     /// A test's result, shared rather than copied.
@@ -1467,6 +1475,7 @@ impl Value {
             Value::Distribution(_) => "Distribution",
             Value::Formula(_) => "Formula",
             Value::Terms(_) => "Terms",
+            Value::Instruments { .. } => "Instruments",
             Value::Fit(fit) => fit.kind,
             Value::TestResult(_) => "TestResult",
             Value::Plot(_) => "Plot",

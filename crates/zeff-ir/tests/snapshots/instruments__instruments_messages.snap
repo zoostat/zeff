@@ -1,0 +1,133 @@
+---
+source: crates/zeff-ir/tests/instruments.rs
+expression: all
+---
+== missing_from_the_formula
+error[Z0504]: `educ` is instrumented but is not a regressor
+ --> scripts/main.zeff:2:40
+  |
+2 | card.ivreg(lwage ~ exper, instruments: educ ~ nearc4)
+  |                                        ^^^^ instrumented here, missing from the formula
+  |
+  = help: add it to the regressors: `lwage ~ exper + educ`
+
+
+== one_of_two_missing
+error[Z0504]: `tenure` is instrumented but is not a regressor
+ --> scripts/main.zeff:2:54
+  |
+2 | card.ivreg(lwage ~ exper + educ, instruments: educ + tenure ~ nearc4 + nearc2)
+  |                                                      ^^^^^^ instrumented here, missing from the formula
+  |
+  = help: add it to the regressors: `lwage ~ exper + educ + tenure`
+
+
+== on_both_sides
+error[Z0505]: `educ` is on both sides of `~` in `instruments:`
+ --> scripts/main.zeff:2:63
+  |
+2 | card.ivreg(lwage ~ exper + educ, instruments: educ ~ nearc4 + educ)
+  |                                                               ^^^^ an instrument for itself
+  |
+  = help: the left of `~` holds the regressors that are instrumented and the right the variables that instrument them; `educ` belongs on one side
+
+
+== under_identified
+error[Z0804]: the model is under-identified: 1 excluded instrument for 2 instrumented regressors
+ --> scripts/main.zeff:2:47
+  |
+2 | card.ivreg(lwage ~ exper + educ, instruments: educ + exper ~ nearc4)
+  |                                               ^^^^^^^^^^^^^^^^^^^^^ fewer instruments than instrumented regressors
+  |
+  = help: each instrumented regressor needs at least one instrument that is not a regressor of the formula
+
+
+== under_identified_once_an_instrument_is_included
+error[Z0804]: the model is under-identified: 0 excluded instruments for 1 instrumented regressor
+ --> scripts/main.zeff:2:47
+  |
+2 | card.ivreg(lwage ~ exper + educ, instruments: educ ~ exper)
+  |                                               ^^^^^^^^^^^^ fewer instruments than instrumented regressors
+  |
+  = help: each instrumented regressor needs at least one instrument that is not a regressor of the formula
+  = help: `exper` is already in the formula, so it is an included instrument and identifies nothing
+
+
+== the_outcome_as_an_instrument
+error[Z0401]: `lwage` is the outcome of the formula and cannot be an instrument
+ --> scripts/main.zeff:2:54
+  |
+2 | card.ivreg(lwage ~ exper + educ, instruments: educ ~ lwage)
+  |                                                      ^^^^^ the outcome
+  |
+  = help: `instruments:` names regressors of the formula on the left of `~` and variables outside it on the right; the outcome is neither
+
+
+== the_outcome_instrumented
+error[Z0401]: `lwage` is the outcome of the formula and cannot be instrumented
+ --> scripts/main.zeff:2:47
+  |
+2 | card.ivreg(lwage ~ exper + educ, instruments: lwage ~ nearc4)
+  |                                               ^^^^^ the outcome
+  |
+  = help: `instruments:` names regressors of the formula on the left of `~` and variables outside it on the right; the outcome is neither
+
+
+== no_tilde
+error[Z0401]: `instruments:` takes the instrumented regressors, `~`, and their instruments, and this has no `~`
+ --> scripts/main.zeff:2:47
+  |
+2 | card.ivreg(lwage ~ exper + educ, instruments: nearc4)
+  |                                               ^^^^^^ not `endog ~ instr`
+  |
+  = help: write `instruments: educ ~ nearc4`; several of either are joined with `+`: `instruments: educ + exper ~ nearc4 + nearc2 + age2`
+
+
+== nothing_on_the_left
+error[Z0401]: `instruments:` takes the instrumented regressors, `~`, and their instruments, and nothing stands on the left of `~`
+ --> scripts/main.zeff:2:47
+  |
+2 | card.ivreg(lwage ~ exper + educ, instruments: ~ nearc4)
+  |                                               ^^^^^^^^ no instrumented regressor
+  |
+  = help: write `instruments: educ ~ nearc4`; several of either are joined with `+`: `instruments: educ + exper ~ nearc4 + nearc2 + age2`
+
+
+== a_term_removed
+error[Z0401]: `instruments:` takes the instrumented regressors, `~`, and their instruments, and `- nearc2` removes nothing from them
+ --> scripts/main.zeff:2:63
+  |
+2 | card.ivreg(lwage ~ exper + educ, instruments: educ ~ nearc4 - nearc2)
+  |                                                               ^^^^^^ a term removed
+  |
+  = help: write `instruments: educ ~ nearc4`; several of either are joined with `+`: `instruments: educ + exper ~ nearc4 + nearc2 + age2`
+
+
+== an_intercept
+error[Z0401]: `instruments:` takes the instrumented regressors, `~`, and their instruments, and `1` is neither: the intercept is its own instrument
+ --> scripts/main.zeff:2:47
+  |
+2 | card.ivreg(lwage ~ exper + educ, instruments: educ ~ nearc4 + 1)
+  |                                               ^^^^^^^^^^^^^^^^^ an intercept
+  |
+  = help: write `instruments: educ ~ nearc4`; several of either are joined with `+`: `instruments: educ + exper ~ nearc4 + nearc2 + age2`
+
+
+== a_product_instrumented
+error[Z0401]: `instruments:` takes the instrumented regressors, `~`, and their instruments, and `educ * black` is several terms at once
+ --> scripts/main.zeff:2:55
+  |
+2 | card.ivreg(lwage ~ exper + educ * black, instruments: educ * black ~ nearc4)
+  |                                                       ^^^^^^^^^^^^ name each instrumented term: `a + b + a:b`
+  |
+  = help: write `instruments: educ ~ nearc4`; several of either are joined with `+`: `instruments: educ + exper ~ nearc4 + nearc2 + age2`
+
+
+== a_text
+error[Z0401]: `instruments:` takes the instrumented regressors, `~`, and their instruments, and this has no `~`
+ --> scripts/main.zeff:2:47
+  |
+2 | card.ivreg(lwage ~ exper + educ, instruments: "nearc4")
+  |                                               ^^^^^^^^ not `endog ~ instr`
+  |
+  = help: write `instruments: educ ~ nearc4`; several of either are joined with `+`: `instruments: educ + exper ~ nearc4 + nearc2 + age2`

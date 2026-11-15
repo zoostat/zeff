@@ -7,8 +7,8 @@
 
 use crate::ir::{
     Arm, Binding, BindingId, BindingKind, Block, Call, CallSignature, Expr, ExprKind, FnId,
-    Formula, Function, FunctionValue, Param, Program, RecordField, Slot, Spread, Statement, Term,
-    TermKind, TermStep,
+    Formula, Function, FunctionValue, Instruments, Param, Program, RecordField, Slot, Spread,
+    Statement, Term, TermKind, TermStep,
 };
 use crate::schema::{FrameSchema, ImportRequest, SchemaLookup, Schemas, statement_hash};
 use crate::ty::{ResultKind, Ty};
@@ -2909,6 +2909,9 @@ impl Checker<'_> {
         if *ty == Ty::Terms {
             return self.terms_argument(value);
         }
+        if *ty == Ty::Instruments {
+            return self.instruments_argument(value);
+        }
         // An expression over the frame where a variable or an expression is taken (section 7.6:
         // `y: log(wage)`). A bare name stays a variable and a bare `NA` stays "not given"; any
         // other expression is lowered with the frame's columns in scope, as a column argument
@@ -3053,6 +3056,284 @@ impl Checker<'_> {
             span,
             kind: ExprKind::Terms(terms),
         }
+    }
+
+    /// `instruments: endog ~ instr` (section 7.1; release 0.8.0, step 9): the instrumented
+    /// regressors on the left of `~` and their instruments on the right, each side terms joined
+    /// by `+`, with ranges as in a formula. A variable on both sides is Z0505. What the two
+    /// sides owe the formula of the same call is checked once that is lowered too.
+    fn instruments_argument(&mut self, value: &ast::Expr) -> Expr {
+        let span = value.span;
+        let usage = "write `instruments: educ ~ nearc4`; several of either are joined with `+`: `instruments: educ + exper ~ nearc4 + nearc2 + age2`";
+        fn bare(e: &ast::Expr) -> &ast::Expr {
+            match &e.kind {
+                ast::ExprKind::Paren(inner) => bare(inner),
+                _ => e,
+            }
+        }
+        let refuse = |this: &mut Self, at: Span, what: &str, label: &str| {
+            this.report(
+                Diagnostic::error(
+                    "Z0401",
+                    format!(
+                        "`instruments:` takes the instrumented regressors, `~`, and their instruments, and {what}"
+                    ),
+                )
+                .primary(at, label)
+                .help(usage),
+            );
+            Expr::error(span)
+        };
+        let (lhs, rhs) = match &bare(value).kind {
+            ast::ExprKind::Formula {
+                op: ast::FormulaOp::Tilde,
+                lhs: Some(lhs),
+                rhs,
+            } => (lhs.as_ref(), rhs.as_ref()),
+            ast::ExprKind::Formula {
+                op: ast::FormulaOp::Tilde,
+                lhs: None,
+                ..
+            } => {
+                return refuse(
+                    self,
+                    span,
+                    "nothing stands on the left of `~`",
+                    "no instrumented regressor",
+                );
+            }
+            _ => return refuse(self, span, "this has no `~`", "not `endog ~ instr`"),
+        };
+        self.formula_depth += 1;
+        let (mut left, mut right) = (Vec::new(), Vec::new());
+        self.terms_into(lhs, true, &mut left);
+        self.terms_into(rhs, true, &mut right);
+        self.formula_depth -= 1;
+        // Each side is terms added: nothing is removed from it and it has no intercept.
+        let mut sides: [Vec<Term>; 2] = [Vec::new(), Vec::new()];
+        for (side, steps) in [left, right].into_iter().enumerate() {
+            for step in steps {
+                match step {
+                    TermStep::Add(term) => sides[side].push(term),
+                    TermStep::Remove(term) => {
+                        return refuse(
+                            self,
+                            term.span,
+                            &format!("`- {}` removes nothing from them", term.text),
+                            "a term removed",
+                        );
+                    }
+                    TermStep::Intercept(_) => {
+                        return refuse(
+                            self,
+                            span,
+                            "`1` is neither: the intercept is its own instrument",
+                            "an intercept",
+                        );
+                    }
+                }
+            }
+        }
+        let [endogenous, excluded] = sides;
+        if let Some(product) = endogenous
+            .iter()
+            .find(|t| matches!(t.kind, TermKind::Product(_)))
+        {
+            let (at, what) = (
+                product.span,
+                format!("`{}` is several terms at once", product.text),
+            );
+            return refuse(
+                self,
+                at,
+                &what,
+                "name each instrumented term: `a + b + a:b`",
+            );
+        }
+        // A variable on both sides of `~` would be an instrument for itself (Z0505).
+        if let Some(both) = excluded
+            .iter()
+            .find(|t| endogenous.iter().any(|e| e.text == t.text))
+        {
+            self.report(
+                Diagnostic::error(
+                    "Z0505",
+                    format!("`{}` is on both sides of `~` in `instruments:`", both.text),
+                )
+                .primary(both.span, "an instrument for itself")
+                .help(format!(
+                    "the left of `~` holds the regressors that are instrumented and the right the variables that instrument them; `{}` belongs on one side",
+                    both.text
+                )),
+            );
+            return Expr::error(span);
+        }
+        Expr {
+            ty: Ty::Instruments,
+            span,
+            kind: ExprKind::Instruments(Instruments {
+                endogenous,
+                excluded,
+                included: Vec::new(),
+            }),
+        }
+    }
+
+    /// What `instruments:` owes the formula of the same call (section 7.1): an instrumented
+    /// regressor that is not a regressor of the formula is Z0504, in the words of section 11;
+    /// the outcome is no instrument and is not instrumented (Z0401); an instrument that is a
+    /// regressor of the formula already is an included instrument, moved there for the function
+    /// to say so in a note; and fewer excluded instruments than instrumented regressors is
+    /// under-identification (Z0804). A formula held in a binding, and a side with a range or a
+    /// loop variable, are known only when the statement runs, and are checked then.
+    fn instruments_against_formula(
+        &mut self,
+        slots: &mut [Option<Expr>],
+        formula_at: usize,
+        instruments_at: usize,
+    ) {
+        let Some(Expr {
+            kind: ExprKind::Formula(formula),
+            ..
+        }) = &slots[formula_at]
+        else {
+            return;
+        };
+        let Some(Expr {
+            kind: ExprKind::Instruments(instruments),
+            span,
+            ..
+        }) = &slots[instruments_at]
+        else {
+            return;
+        };
+        let span = *span;
+        // The regressors as the formula's steps leave them, by their text.
+        let mut regressors: Vec<&Term> = Vec::new();
+        for step in &formula.steps {
+            match step {
+                TermStep::Add(term) => regressors.push(term),
+                TermStep::Remove(term) => regressors.retain(|r| r.text != term.text),
+                TermStep::Intercept(_) => {}
+            }
+        }
+        let open = |t: &Term| {
+            matches!(
+                t.kind,
+                TermKind::Range(..) | TermKind::Bound(_) | TermKind::Product(_)
+            )
+        };
+        let formula_open = regressors.iter().any(|r| open(r));
+        let is_regressor = |t: &Term| regressors.iter().any(|r| r.text == t.text);
+        let outcome = formula.outcome.as_ref().map(|o| o.text.clone());
+        let mut errors: Vec<Diagnostic> = Vec::new();
+        for (term, role) in instruments
+            .endogenous
+            .iter()
+            .map(|t| (t, "instrumented"))
+            .chain(instruments.excluded.iter().map(|t| (t, "an instrument")))
+        {
+            if outcome.as_deref() == Some(term.text.as_str()) {
+                errors.push(
+                    Diagnostic::error(
+                        "Z0401",
+                        format!(
+                            "`{}` is the outcome of the formula and cannot be {role}",
+                            term.text
+                        ),
+                    )
+                    .primary(term.span, "the outcome")
+                    .help("`instruments:` names regressors of the formula on the left of `~` and variables outside it on the right; the outcome is neither"),
+                );
+            }
+        }
+        if errors.is_empty() && !formula_open {
+            let adds: Vec<String> = regressors.iter().map(|r| r.text.clone()).collect();
+            for term in instruments.endogenous.iter().filter(|t| !open(t)) {
+                if !is_regressor(term) {
+                    let mut with = adds.clone();
+                    with.push(term.text.clone());
+                    errors.push(
+                        Diagnostic::error(
+                            "Z0504",
+                            format!("`{}` is instrumented but is not a regressor", term.text),
+                        )
+                        .primary(term.span, "instrumented here, missing from the formula")
+                        .help(format!(
+                            "add it to the regressors: `{} ~ {}`",
+                            outcome.as_deref().unwrap_or("y"),
+                            with.join(" + ")
+                        )),
+                    );
+                }
+            }
+        }
+        if !errors.is_empty() {
+            for error in errors {
+                self.report(error);
+            }
+            slots[instruments_at] = Some(Expr::error(span));
+            return;
+        }
+        // An instrument that is a regressor of the formula is included already.
+        let (included, excluded): (Vec<Term>, Vec<Term>) = instruments
+            .excluded
+            .iter()
+            .cloned()
+            .partition(|t| !formula_open && is_regressor(t));
+        let endogenous = instruments.endogenous.clone();
+        let countable = !formula_open && !endogenous.iter().chain(&excluded).any(open);
+        if countable && excluded.len() < endogenous.len() {
+            let count = |n: usize, one: &str, many: &str| {
+                if n == 1 {
+                    format!("1 {one}")
+                } else {
+                    format!("{n} {many}")
+                }
+            };
+            let mut d = Diagnostic::error(
+                "Z0804",
+                format!(
+                    "the model is under-identified: {} for {}",
+                    count(excluded.len(), "excluded instrument", "excluded instruments"),
+                    count(
+                        endogenous.len(),
+                        "instrumented regressor",
+                        "instrumented regressors"
+                    )
+                ),
+            )
+            .primary(span, "fewer instruments than instrumented regressors")
+            .help("each instrumented regressor needs at least one instrument that is not a regressor of the formula");
+            if !included.is_empty() {
+                d = d.help(format!(
+                    "{} already in the formula, so {} an included instrument and identifies nothing",
+                    match included.as_slice() {
+                        [one] => format!("`{}` is", one.text),
+                        many => format!(
+                            "{} are",
+                            many.iter()
+                                .map(|t| format!("`{}`", t.text))
+                                .collect::<Vec<_>>()
+                                .join(", ")
+                        ),
+                    },
+                    if included.len() == 1 { "it is" } else { "each is" }
+                ));
+            }
+            self.report(d);
+            slots[instruments_at] = Some(Expr::error(span));
+            return;
+        }
+        slots[instruments_at] = Some(Expr {
+            ty: Ty::Instruments,
+            span,
+            kind: ExprKind::Instruments(Instruments {
+                endogenous,
+                excluded,
+                included,
+            }),
+        });
     }
 
     /// A bare name: what it means depends on the parameter's type (section 3.7, "Resolution by
@@ -6445,6 +6726,14 @@ impl Checker<'_> {
                 || (spec.method
                     && params.first().is_some_and(|(_, ty, _)| *ty != Ty::Frame)
                     && Ty::parse(spec.returns).is_some_and(|t| scalar_type(&t))));
+        // `instruments:` against the formula of the same call (section 7.1): the instrumented
+        // regressors must be regressors, an instrument that is a regressor already is an
+        // included one, and what is left must identify the model.
+        if let Some(at) = params.iter().position(|(_, ty, _)| *ty == Ty::Instruments)
+            && let Some(formula_at) = params.iter().position(|(_, ty, _)| *ty == Ty::Formula)
+        {
+            self.instruments_against_formula(&mut slots, formula_at, at);
+        }
         let lifts = |ty: &Ty, given: &Ty| -> bool {
             liftable && scalar_type(ty) && matches!(given, Ty::Column(inner) if ty.accepts(inner))
         };
@@ -7642,7 +7931,7 @@ impl Checker<'_> {
         position: usize,
     ) {
         let takes_names = match ty {
-            Ty::Var | Ty::Vars | Ty::Terms | Ty::Formula => true,
+            Ty::Var | Ty::Vars | Ty::Terms | Ty::Instruments | Ty::Formula => true,
             Ty::Union(options) => options
                 .iter()
                 .any(|o| matches!(o, Ty::Var | Ty::Vars | Ty::Terms | Ty::Formula)),
@@ -7661,6 +7950,16 @@ impl Checker<'_> {
             }
             ExprKind::Terms(terms) => {
                 for term in terms {
+                    self.check_term(term, schema, shown);
+                }
+            }
+            ExprKind::Instruments(instruments) => {
+                for term in instruments
+                    .endogenous
+                    .iter()
+                    .chain(&instruments.excluded)
+                    .chain(&instruments.included)
+                {
                     self.check_term(term, schema, shown);
                 }
             }
@@ -7737,6 +8036,16 @@ impl Checker<'_> {
             }
             ExprKind::Terms(terms) => {
                 for term in terms {
+                    terms_of(term, out, self);
+                }
+            }
+            ExprKind::Instruments(instruments) => {
+                for term in instruments
+                    .endogenous
+                    .iter()
+                    .chain(&instruments.excluded)
+                    .chain(&instruments.included)
+                {
                     terms_of(term, out, self);
                 }
             }
@@ -8485,6 +8794,7 @@ fn is_compound(ty: &Ty) -> bool {
             | Ty::Plot
             | Ty::Formula
             | Ty::Terms
+            | Ty::Instruments
             | Ty::Result(_)
     )
 }

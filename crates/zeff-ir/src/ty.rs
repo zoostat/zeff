@@ -50,6 +50,9 @@ pub enum Ty {
     Formula,
     /// The right side of a formula without `~`, as `fe:` takes it at 0.6.0; nothing takes it yet.
     Terms,
+    /// `endog ~ instr`, as `instruments:` takes it (section 7.1; release 0.8.0): the
+    /// instrumented regressors on the left of `~` and their instruments on the right.
+    Instruments,
     /// A result (section 4): the interface `Result`, which every fitted model and test
     /// implements, or one of its kinds. A method registered on `Result` applies to every kind and
     /// one registered on a kind to that kind alone (Engine and Project Specification, section
@@ -242,6 +245,7 @@ impl Ty {
             "Distribution" => Ty::Distribution,
             "Formula" => Ty::Formula,
             "Terms" => Ty::Terms,
+            "Instruments" => Ty::Instruments,
             "Result" => Ty::Result(None),
             "Term" => Ty::Term,
             "Nothing" => Ty::Nothing,
@@ -383,6 +387,7 @@ impl fmt::Display for Ty {
             Ty::Distribution => write!(f, "Distribution"),
             Ty::Formula => write!(f, "Formula"),
             Ty::Terms => write!(f, "Terms"),
+            Ty::Instruments => write!(f, "Instruments"),
             Ty::Result(None) => write!(f, "Result"),
             Ty::Result(Some(kind)) => write!(f, "{}", kind.name()),
             Ty::Term => write!(f, "Term"),
