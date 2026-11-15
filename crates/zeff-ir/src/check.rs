@@ -4377,13 +4377,13 @@ impl Checker<'_> {
                             span,
                             format!("`{symbol}` does not apply to {} and a number", dated.with_article()),
                             "a date beside a number".to_string(),
-                            "`add_days(d, n)` moves a date by n days and `add_months(d, n)` by n months; `Date - Date` gives the days between two dates",
+                            "`add_time(d, n)` moves a date by n days, and by weeks, months or years with `unit:`; `Date - Date` gives the days between two dates",
                         ),
                         _ => self.wrong_operands(
                             span,
                             format!("`{symbol}` needs numbers, but one side is {}", dated.with_article()),
                             dated.with_article(),
-                            "the arithmetic of dates is `Date - Date`, which gives days, `add_days` and `add_months`",
+                            "the arithmetic of dates is `Date - Date`, which gives days, `add_time` and `time_between`",
                         ),
                     };
                 }

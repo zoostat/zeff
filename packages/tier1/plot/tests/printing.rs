@@ -2596,10 +2596,10 @@ fn a_mapping_calls_the_functions_of_time_and_text() {
         "{FIRMS}f.plot(x: year(founded), y: size).points(alpha: 0.4)\n\
          f.add(y = year(founded)).plot(x: y, y: size).points(alpha: 0.4)\n\
          f.plot(x: upper(industry), y: size).points()\n\
-         f.plot(x: add_days(founded, 365), y: size).points()\n\
+         f.plot(x: add_time(founded, 365), y: size).points()\n\
          f.plot(x: quarter(founded)).bars()\n\
          f.plot(x: size, y: slice(industry, 1, 3)).points()\n\
-         f.plot(x: founded, y: size).points().points(x: add_months(founded, 6))\n\
+         f.plot(x: founded, y: size).points().points(x: add_time(founded, 6, unit: month))\n\
          f.plot(x: size, y: contains(industry, \"a\")).points()\n\
          f.plot(x: category(size), y: size).points()\n\
          f.plot(x: \"all\", y: size).points()\n\
@@ -2613,9 +2613,9 @@ fn a_mapping_calls_the_functions_of_time_and_text() {
         "  x      year(founded)               linear   1947.05 to 2011.95   1950, 1960, 1970, 1980, 1990, 2000, 2010\n",
         "  x      y                           linear   1947.05 to 2011.95   1950, 1960, 1970, 1980, 1990, 2000, 2010\n",
         "  x      upper(industry)             category   0.4 to 12.6\n",
-        "  x      add_days(founded, 365)      date     1948-01-17 to 2013-11-23   1950, 1960, 1970, 1980, 1990, 2000, 2010\n",
+        "  x      add_time(founded, 365)      date     1948-01-17 to 2013-11-23   1950, 1960, 1970, 1980, 1990, 2000, 2010\n",
         "  y      slice(industry, 1, 3)       category   0.4 to 12.6      Agr, Con, Edu, Fin, Hea and 7 more\n",
-        "      2   points   f        400   x add_months(founded, 6), size 4.5, alpha 1\n",
+        "      2   points   f        400   x add_time(founded, 6, unit: month), size 4.5, alpha 1\n",
         "  y      contains(industry, \"a\")     linear   -0.05 to 1.05    0, 0.2, 0.4, 0.6, 0.8, 1\n",
         "  x      \"all\"                       category   0.4 to 1.6       all\n",
         "  x      upper(u)   category   0.4 to 3.6   A, B, C\n",
@@ -2649,7 +2649,7 @@ fn every_message_of_a_widened_mapping() {
         ),
         (
             "bars_up_to_dates",
-            "f.plot(x: size).bars(y: add_days(founded, 1))\n",
+            "f.plot(x: size).bars(y: add_time(founded, 1))\n",
         ),
         // The layers share the axis.
         (

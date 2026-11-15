@@ -1,9 +1,9 @@
 //! Package `time` (tier 1): dates and times (Engine and Project Specification, section 8.2;
 //! Language Reference, section 3.8, "Time"). At this release the parsing functions `date` and
 //! `datetime` and the date parts `year`, `month`, `day`, `weekday`, `quarter` and `week`
-//! (release 0.6.0, step 3); the arithmetic `add_days` and `add_months` and the clock's `today`
-//! and `now` (step 4); `time_between`, which took the place of `days_between` and
-//! `months_between` (release 0.8.0, step 8d). Every function is a scalar
+//! (release 0.6.0, step 3); the clock's `today` and `now` (step 4); `time_between`, which took
+//! the place of `days_between` and `months_between` (release 0.8.0, step 8d), and `add_time`,
+//! which took the place of `add_days` and `add_months` (step 8g). Every function is a scalar
 //! function that applies row by row to a column (section 3.7, "Columns and scalars"), and every
 //! one computes in the dates kernel, in integer arithmetic; the clock is the run's, given by the
 //! command line or fixed by a test, never read by the engine itself.
@@ -379,50 +379,37 @@ fn start_of(ctx: &mut CallContext<'_>, args: Args) -> Result<Value, Fail> {
     })
 }
 
-/// `add_days(d, n)`: the date or time `n` days later (earlier for a negative `n`), `NA` outside
-/// the calendar.
-fn add_days(ctx: &mut CallContext<'_>, args: Args) -> Result<Value, Fail> {
+/// `add_time(d, n, unit:)`: the date or time `n` days, weeks, months or years later, earlier
+/// for a negative `n` (open decision #97; it took the place of `add_days` and `add_months`). A
+/// week is seven days; a month keeps the day of the month and, where the target month is too
+/// short, takes its last day (section 3.8, "Month arithmetic"), and a year is twelve such
+/// months. A time keeps its time of day. `NA` outside the calendar, with a warning.
+fn add_time(ctx: &mut CallContext<'_>, args: Args) -> Result<Value, Fail> {
     let Some(n) = int_at(ctx, &args, 1)? else {
         return Ok(Value::Na);
     };
-    Ok(match args.get(0) {
-        None | Some(Value::Na) => Value::Na,
-        Some(Value::Date(days)) => match zeff_dates::add_days(*days, n) {
-            Some(moved) => Value::Date(moved),
-            None => {
-                outside_the_calendar(ctx);
-                Value::Na
-            }
-        },
-        Some(Value::DateTime(micros)) => match zeff_dates::add_days(days_of_micros(*micros), n) {
-            Some(day) => Value::DateTime(
-                micros_of_days(day) + (micros - micros_of_days(days_of_micros(*micros))),
-            ),
-            None => {
-                outside_the_calendar(ctx);
-                Value::Na
-            }
-        },
-        Some(_) => return Err(internal(ctx, "a value that is not a date or a time")),
-    })
-}
-
-/// `add_months(d, n)`: the date or time `n` months later, the day clamped to the last day of
-/// the target month (section 3.8, "Month arithmetic"), `NA` outside the calendar.
-fn add_months(ctx: &mut CallContext<'_>, args: Args) -> Result<Value, Fail> {
-    let Some(n) = int_at(ctx, &args, 1)? else {
-        return Ok(Value::Na);
+    // The move of a day: by days, or by months with the clamping.
+    let by_months =
+        |day: i32, months: Option<i64>| months.and_then(|m| zeff_dates::add_months(day, m));
+    let by_days = |day: i32, days: Option<i64>| days.and_then(|k| zeff_dates::add_days(day, k));
+    let moved = |day: i32| -> Option<i32> {
+        match args.get(2) {
+            Some(Value::Word(w)) if w == "week" => by_days(day, n.checked_mul(7)),
+            Some(Value::Word(w)) if w == "month" => by_months(day, Some(n)),
+            Some(Value::Word(w)) if w == "year" => by_months(day, n.checked_mul(12)),
+            _ => by_days(day, Some(n)),
+        }
     };
     Ok(match args.get(0) {
         None | Some(Value::Na) => Value::Na,
-        Some(Value::Date(days)) => match zeff_dates::add_months(*days, n) {
-            Some(moved) => Value::Date(moved),
+        Some(Value::Date(days)) => match moved(*days) {
+            Some(day) => Value::Date(day),
             None => {
                 outside_the_calendar(ctx);
                 Value::Na
             }
         },
-        Some(Value::DateTime(micros)) => match zeff_dates::add_months(days_of_micros(*micros), n) {
+        Some(Value::DateTime(micros)) => match moved(days_of_micros(*micros)) {
             Some(day) => Value::DateTime(
                 micros_of_days(day) + (micros - micros_of_days(days_of_micros(*micros))),
             ),
@@ -595,30 +582,6 @@ fn now(ctx: &mut CallContext<'_>, _args: Args) -> Result<Value, Fail> {
     Ok(Value::DateTime(micros))
 }
 
-/// A move of a date: a Date or a DateTime and an Int, giving the type of the first.
-fn moved(name: &'static str, help: &'static str, body: zeff_core::runtime::Body) -> Function {
-    Function {
-        spec: FunctionSpec {
-            name,
-            package: "time",
-            method: false,
-            params: vec![
-                ParamSpec::required("d", "Date | DateTime"),
-                ParamSpec::required("n", "Int"),
-            ],
-            rest: None,
-            returns: "Same",
-            diagnostics: vec![DiagnosticDecl::new(
-                "W0203",
-                "the result lies outside years 1 to 9999, so it is NA",
-            )],
-            help,
-            accuracy: None,
-        },
-        body,
-    }
-}
-
 /// A reading of the clock: no parameter, a value noted at each use.
 fn clock_reading(
     name: &'static str,
@@ -786,12 +749,27 @@ pub fn functions() -> Vec<Function> {
             },
             body: start_of,
         },
-        moved("add_days", include_str!("../help/add_days.md"), add_days),
-        moved(
-            "add_months",
-            include_str!("../help/add_months.md"),
-            add_months,
-        ),
+        Function {
+            spec: FunctionSpec {
+                name: "add_time",
+                package: "time",
+                method: false,
+                params: vec![
+                    ParamSpec::required("d", "Date | DateTime"),
+                    ParamSpec::required("n", "Int"),
+                    ParamSpec::option_with_default("unit", "day | week | month | year", "day"),
+                ],
+                rest: None,
+                returns: "Same",
+                diagnostics: vec![DiagnosticDecl::new(
+                    "W0203",
+                    "the result lies outside years 1 to 9999, so it is NA",
+                )],
+                help: include_str!("../help/add_time.md"),
+                accuracy: None,
+            },
+            body: add_time,
+        },
         Function {
             spec: FunctionSpec {
                 name: "time_between",

@@ -129,20 +129,20 @@ frame · 2 rows × 2 variables
 warning[W0203]: text that does not match the format `%d/%m/%Y` became NA in 1 row (line 2)
   = help: `to(s, Date)` and `to(s, DateTime)` name the failing values; a format is written as `strftime` writes it, `format: "%d/%m/%Y"`
 
-add_days(date("9999-12-31"), 1)
+add_time(date("9999-12-31"), 1)
 ---
 NA
 warning[W0203]: a date outside years 1 to 9999 became NA (line 1)
   = help: the calendar runs from 0001-01-01 to 9999-12-31 (section 3.8 of the Language Reference)
 
-add_months(date("0001-01-31"), -1)
+add_time(date("0001-01-31"), -1, unit: month)
 ---
 NA
 warning[W0203]: a date outside years 1 to 9999 became NA (line 1)
   = help: the calendar runs from 0001-01-01 to 9999-12-31 (section 3.8 of the Language Reference)
 
 let f = frame(d = [date("9999-12-31"), date("2026-10-16")])
-f.add(e = add_days(d, 1))
+f.add(e = add_time(d, 1))
 ---
 frame · 2 rows × 2 variables
 
@@ -152,25 +152,92 @@ frame · 2 rows × 2 variables
 warning[W0203]: a date outside years 1 to 9999 became NA in 1 row (line 2)
   = help: the calendar runs from 0001-01-01 to 9999-12-31 (section 3.8 of the Language Reference)
 
-add_days(date("2026-10-16"), 1.5)
+add_time(date("2026-10-16"), 1.5)
 ---
-error[Z0401]: `n` of `add_days` must be an Int, but this is a Float
+error[Z0401]: `n` of `add_time` must be an Int, but this is a Float
  --> scripts/main.zeff:1:30
   |
-1 | add_days(date("2026-10-16"), 1.5)
+1 | add_time(date("2026-10-16"), 1.5)
   |                              ^^^ a Float
   |
-  = help: usage: `add_days(d, n)`
+  = help: usage: `add_time(d, n, unit: day | week | month | year = day)`
 
-add_days("2026-10-16", 1)
+add_time("2026-10-16", 1)
 ---
-error[Z0401]: `d` of `add_days` must be a Date or DateTime, but this is a Str
+error[Z0401]: `d` of `add_time` must be a Date or DateTime, but this is a Str
  --> scripts/main.zeff:1:10
   |
-1 | add_days("2026-10-16", 1)
+1 | add_time("2026-10-16", 1)
   |          ^^^^^^^^^^^^ a Str
   |
-  = help: usage: `add_days(d, n)`
+  = help: usage: `add_time(d, n, unit: day | week | month | year = day)`
+
+add_time(date("2026-10-16"), 1, unit: fortnight)
+---
+error[Z0402]: `fortnight` is not one of the allowed words
+ --> scripts/main.zeff:1:39
+  |
+1 | add_time(date("2026-10-16"), 1, unit: fortnight)
+  |                                       ^^^^^^^^^ expected one of day, week, month, year
+
+add_time(date("2026-10-16"), 1, unit: "week")
+---
+error[Z0403]: expected one of day, week, month, year, found text
+ --> scripts/main.zeff:1:39
+  |
+1 | add_time(date("2026-10-16"), 1, unit: "week")
+  |                                       ^^^^^^ a word, not a string
+  |
+  = help: write the word without quotes: `week`
+
+add_time(date("2026-10-16"), 9223372036854775807, unit: week)
+---
+NA
+warning[W0203]: a date outside years 1 to 9999 became NA (line 1)
+  = help: the calendar runs from 0001-01-01 to 9999-12-31 (section 3.8 of the Language Reference)
+
+add_time(date("2026-10-16"), 9223372036854775807, unit: year)
+---
+NA
+warning[W0203]: a date outside years 1 to 9999 became NA (line 1)
+  = help: the calendar runs from 0001-01-01 to 9999-12-31 (section 3.8 of the Language Reference)
+
+add_time(date("9999-12-31"), 1, unit: year)
+---
+NA
+warning[W0203]: a date outside years 1 to 9999 became NA (line 1)
+  = help: the calendar runs from 0001-01-01 to 9999-12-31 (section 3.8 of the Language Reference)
+
+add_days(date("2026-10-16"), 1)
+---
+error[Z0103]: no function is called `add_days`
+ --> scripts/main.zeff:1:1
+  |
+1 | add_days(date("2026-10-16"), 1)
+  | ^^^^^^^^ not a function of Zeff
+  |
+  = help: `add_days(d, n)` is `add_time(d, n)` since release 0.8.0
+
+add_months(date("2026-10-16"), 1)
+---
+error[Z0103]: no function is called `add_months`
+ --> scripts/main.zeff:1:1
+  |
+1 | add_months(date("2026-10-16"), 1)
+  | ^^^^^^^^^^ not a function of Zeff
+  |
+  = help: `add_months(d, n)` is `add_time(d, n, unit: month)` since release 0.8.0
+
+let f = frame(d = [date("2026-10-16")])
+f.add(e = add_months(d, 1))
+---
+error[Z0103]: no function is called `add_months`
+ --> scripts/main.zeff:2:11
+  |
+2 | f.add(e = add_months(d, 1))
+  |           ^^^^^^^^^^ not a function of Zeff
+  |
+  = help: `add_months(d, n)` is `add_time(d, n, unit: month)` since release 0.8.0
 
 time_between(date("2026-10-16"), datetime("2026-10-16T09:30"))
 ---
@@ -385,7 +452,7 @@ error[Z0221]: `+` does not apply to a Date and a number
 2 | f.max(d) + 1
   | ^^^^^^^^^^^^ a date beside a number
   |
-  = help: `add_days(d, n)` moves a date by n days and `add_months(d, n)` by n months; `Date - Date` gives the days between two dates
+  = help: `add_time(d, n)` moves a date by n days, and by weeks, months or years with `unit:`; `Date - Date` gives the days between two dates
 
 let f = frame(t = [datetime("2026-10-16T09:30")])
 upper(f.min(t))
@@ -580,7 +647,7 @@ error[Z0221]: `+` does not apply to a Date and a number
 1 | date("2026-10-16") + 7
   | ^^^^^^^^^^^^^^^^^^^^^^ a date beside a number
   |
-  = help: `add_days(d, n)` moves a date by n days and `add_months(d, n)` by n months; `Date - Date` gives the days between two dates
+  = help: `add_time(d, n)` moves a date by n days, and by weeks, months or years with `unit:`; `Date - Date` gives the days between two dates
 
 today(1)
 ---

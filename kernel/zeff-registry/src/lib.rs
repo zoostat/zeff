@@ -52,6 +52,14 @@ pub const REPLACED: &[(&str, &str)] = &[
         "months_between",
         "`months_between(start, end)` is `time_between(start, end, unit: month)` since release 0.8.0",
     ),
+    (
+        "add_days",
+        "`add_days(d, n)` is `add_time(d, n)` since release 0.8.0",
+    ),
+    (
+        "add_months",
+        "`add_months(d, n)` is `add_time(d, n, unit: month)` since release 0.8.0",
+    ),
 ];
 
 /// What to write in the place of a name a release took out, if `name` is one.

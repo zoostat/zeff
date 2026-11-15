@@ -211,7 +211,7 @@ from the variables of the frame, numbers, text, the operators and the functions 
 axis shows its values and the frame is not changed. What the expression gives decides the
 axis: numbers a linear scale, text an axis of categories, dates a scale of dates. So
 `x: category(educ)` stands the years of schooling side by side as categories, and
-`x: add_months(hired, 6)` is an axis of dates. One text alone, as in `x: "all"`, puts every
+`x: add_time(hired, 6, unit: month)` is an axis of dates. One text alone, as in `x: "all"`, puts every
 row at one place. Where a layer has a frame of its own, the expression must come to the same
 kind of value there. `logit`, `inv_logit`, `clamp` and `fill_missing` are computed as well,
 so `y: logit(share)` draws the log odds and `y: fill_missing(region, "none")` gives the rows

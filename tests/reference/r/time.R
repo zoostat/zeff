@@ -38,7 +38,7 @@ dt_parts <- list(
   week = as.list(as.integer(format(dt, "%V", tz = "UTC")))
 )
 
-# Date arithmetic (step 4): days added, months added with the clamping of section 3.8 (`%m+%` of
+# Date arithmetic (step 4; one function `add_time` from release 0.8.0): days added, months added with the clamping of section 3.8 (`%m+%` of
 # lubridate, written out in base R as the same day of the target month or its last day),
 # differences in days, and whole months between with the same clamping; from release 0.8.0,
 # step 8d, whole weeks and whole years between as well, for `time_between`.
@@ -67,6 +67,21 @@ for (i in seq_along(arith)) {
   for (n in month_steps) {
     moved <- tryCatch(clamp_month(arith[i], n), error = function(e) as.Date(NA))
     add_months_out[[length(add_months_out) + 1]] <- list(d = arith_texts[i], n = n, out = days(moved))
+  }
+}
+# Weeks and years added (release 0.8.0, step 8g, for `add_time`): a week is seven days, a year
+# twelve months with the same clamping.
+week_steps <- c(1L, -1L, 52L, -53L, 1000L)
+year_steps <- c(1L, -1L, 4L, -100L, 8000L)
+add_weeks_out <- list()
+add_years_out <- list()
+for (i in seq_along(arith)) {
+  for (n in week_steps) {
+    add_weeks_out[[length(add_weeks_out) + 1]] <- list(d = arith_texts[i], n = n, out = days(arith[i] + 7L * n))
+  }
+  for (n in year_steps) {
+    moved <- tryCatch(clamp_month(arith[i], 12L * n), error = function(e) as.Date(NA))
+    add_years_out[[length(add_years_out) + 1]] <- list(d = arith_texts[i], n = n, out = days(moved))
   }
 }
 between_out <- list()
@@ -225,6 +240,8 @@ out <- list(
   time_between = time_between_out,
   add_days = add_days_out,
   add_months = add_months_out,
+  add_weeks = add_weeks_out,
+  add_years = add_years_out,
   between = between_out,
   time_days = time_days,
   grid_texts = as.list(grid_texts),

@@ -11,11 +11,12 @@ fn the_compiled_catalogue_reads_in_full() {
     // 675 until step 8d, where `time_between` took the place of two rows (#96).
     // 674 until step 8e, which added `hour`, `minute` and `second` (#96).
     // 677 until step 8f, which added `start_of` (#96).
-    assert_eq!(catalogue.rows().len(), 678);
+    // 678 until step 8g, where `add_time` took the place of two rows (#97).
+    assert_eq!(catalogue.rows().len(), 677);
     let mut ids: Vec<u32> = catalogue.rows().iter().map(|r| r.id).collect();
     ids.sort_unstable();
     ids.dedup();
-    assert_eq!(ids.len(), 678, "ids are distinct");
+    assert_eq!(ids.len(), 677, "ids are distinct");
 }
 
 #[test]

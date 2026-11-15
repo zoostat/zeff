@@ -40,6 +40,12 @@ frame · 4 rows × 4 variables
 2026-01-28
 2026-02-28T09:30:00.500000
 2026-10-17T23:59:59
+2026-10-30
+2025-02-28
+2028-02-29
+2023-02-28T23:59:59.999999
+NA
+NA
 0
 0
 119987
@@ -179,43 +185,43 @@ warning[W0203]: text that is not a date in ISO 8601 became NA in 2 rows (line 20
   = help: `to(s, Date)` and `to(s, DateTime)` name the failing values; a format is written as `strftime` writes it, `format: "%d/%m/%Y"`
 warning[W0203]: text that is not a date and time in ISO 8601 became NA in 2 rows (line 22)
   = help: `to(s, Date)` and `to(s, DateTime)` name the failing values; a format is written as `strftime` writes it, `format: "%d/%m/%Y"`
-warning[W0702]: a time-zone offset was applied to reach UTC (line 46)
+warning[W0702]: a time-zone offset was applied to reach UTC (line 52)
   = help: a DateTime has no zone in 1.0; the instant is kept, written in UTC
-warning[W0203]: a date outside years 1 to 9999 became NA (line 48)
+warning[W0203]: a date outside years 1 to 9999 became NA (line 54)
   = help: the calendar runs from 0001-01-01 to 9999-12-31 (section 3.8 of the Language Reference)
-warning[W0203]: a date outside years 1 to 9999 became NA (line 49)
+warning[W0203]: a date outside years 1 to 9999 became NA (line 55)
   = help: the calendar runs from 0001-01-01 to 9999-12-31 (section 3.8 of the Language Reference)
-warning[W0203]: a date outside years 1 to 9999 became NA (line 50)
+warning[W0203]: a date outside years 1 to 9999 became NA (line 56)
   = help: the calendar runs from 0001-01-01 to 9999-12-31 (section 3.8 of the Language Reference)
-warning[W0203]: a date outside years 1 to 9999 became NA in 1 row (line 54)
+warning[W0203]: a date outside years 1 to 9999 became NA in 1 row (line 60)
   = help: the calendar runs from 0001-01-01 to 9999-12-31 (section 3.8 of the Language Reference)
-warning[W0203]: a year, a month and a day that name no date became NA (line 59)
+warning[W0203]: a year, a month and a day that name no date became NA (line 65)
   = help: a month runs from 1 to 12 and a day to the length of its month; the calendar runs from year 1 to 9999
-warning[W0203]: a year, a month and a day that name no date became NA (line 60)
+warning[W0203]: a year, a month and a day that name no date became NA (line 66)
   = help: a month runs from 1 to 12 and a day to the length of its month; the calendar runs from year 1 to 9999
-warning[W0203]: a year, a month and a day that name no date became NA (line 61)
+warning[W0203]: a year, a month and a day that name no date became NA (line 67)
   = help: a month runs from 1 to 12 and a day to the length of its month; the calendar runs from year 1 to 9999
-warning[W0203]: a year, a month and a day that name no date became NA in 1 row (line 67)
+warning[W0203]: a year, a month and a day that name no date became NA in 1 row (line 73)
   = help: a month runs from 1 to 12 and a day to the length of its month; the calendar runs from year 1 to 9999
-warning[W0203]: a year, a month and a day that name no date became NA in 2 rows (line 67)
+warning[W0203]: a year, a month and a day that name no date became NA in 2 rows (line 73)
   = help: a month runs from 1 to 12 and a day to the length of its month; the calendar runs from year 1 to 9999
-warning[W0201]: 1 row with NA in opened was skipped (line 80)
-warning[W0201]: 1 row with NA in arrived was skipped (line 81)
-warning[W0201]: 1 row with NA in arrived was skipped (line 82)
-warning[W0201]: 1 row with NA in opened was skipped (line 83)
-note: 2 rows with zero weight were left out (line 84)
-warning[W0201]: 1 row with NA in opened was skipped (line 84)
-note: 2 rows with zero weight were left out (line 85)
-warning[W0201]: 1 row with NA in arrived was skipped (line 85)
 warning[W0201]: 1 row with NA in opened was skipped (line 86)
 warning[W0201]: 1 row with NA in arrived was skipped (line 87)
-warning[W0201]: 1 row with NA in arrived was skipped (line 87)
 warning[W0201]: 1 row with NA in arrived was skipped (line 88)
-warning[W0201]: 1 row with NA in opened was skipped (line 88)
 warning[W0201]: 1 row with NA in opened was skipped (line 89)
-warning[W0201]: 1 row with NA in arrived was skipped (line 90)
-note: 1 row dropped where `arrived == max(arrived)` was NA; `v.where(is_missing(arrived))` lists them (line 90)
-warning[W0201]: all 1 rows have NA in d: the result is NA (line 91)
-warning[W0201]: 1 row with NA in h was skipped (line 96)
-warning[W0203]: a date outside years 1 to 9999 became NA (line 97)
+note: 2 rows with zero weight were left out (line 90)
+warning[W0201]: 1 row with NA in opened was skipped (line 90)
+note: 2 rows with zero weight were left out (line 91)
+warning[W0201]: 1 row with NA in arrived was skipped (line 91)
+warning[W0201]: 1 row with NA in opened was skipped (line 92)
+warning[W0201]: 1 row with NA in arrived was skipped (line 93)
+warning[W0201]: 1 row with NA in arrived was skipped (line 93)
+warning[W0201]: 1 row with NA in arrived was skipped (line 94)
+warning[W0201]: 1 row with NA in opened was skipped (line 94)
+warning[W0201]: 1 row with NA in opened was skipped (line 95)
+warning[W0201]: 1 row with NA in arrived was skipped (line 96)
+note: 1 row dropped where `arrived == max(arrived)` was NA; `v.where(is_missing(arrived))` lists them (line 96)
+warning[W0201]: all 1 rows have NA in d: the result is NA (line 97)
+warning[W0201]: 1 row with NA in h was skipped (line 102)
+warning[W0203]: a date outside years 1 to 9999 became NA (line 103)
   = help: the calendar runs from 0001-01-01 to 9999-12-31 (section 3.8 of the Language Reference)

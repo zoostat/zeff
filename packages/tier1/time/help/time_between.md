@@ -37,7 +37,7 @@ has no distance to another. Nothing is dropped.
 ### Months and years
 A month has no fixed length, so months are counted on the calendar: the count is the largest
 number of months that can be added to `start` without passing `end`. Adding a month keeps the
-day of the month and, where the month is too short, takes its last day, as `add_months` does;
+day of the month and, where the month is too short, takes its last day, as `add_time` does;
 so 31 January to 28 February is 1 month, and 31 January to 27 February is 0. A year is twelve
 such months, so 29 February 2024 to 28 February 2025 is 1 year. Counting backwards follows the
 same rule from `start`: 28 February back to 31 January is 0 months, since one month before
@@ -73,13 +73,13 @@ with `lubridate`'s, month-end clamping included. Stata's `mofd(b) - mofd(a)` cou
 months crossed instead, 31 January to 1 February being one.
 
 ## Related tasks
-- To move a date by days or months, use `add_days` or `add_months`.
+- To move a date by days, weeks, months or years, use `add_time`.
 - For the age of something on the day the script runs, give the run's date as the end, with `today`.
 - For the year, month or weekday a date falls in, use `year`, `month` or `weekday`.
 - To turn text into a date or a time first, use `date` or `datetime`.
 
 ## See also
-add_days, add_months, date, datetime, today
+add_time, date, datetime, today
 
 ## Examples
 // Days between two dates.

@@ -228,7 +228,7 @@ pub fn kinds_fit(op: Op, a: Kind, b: Kind) -> Result<(), Trouble> {
                         "`{symbol}` does not apply to {} and a number",
                         if x.is_time() { x } else { y }.with_article()
                     ),
-                    help: "`add_days(d, n)` moves a date by n days and `add_months(d, n)` by n months; `Date - Date` gives the days between two dates",
+                    help: "`add_time(d, n)` moves a date by n days, and by weeks, months or years with `unit:`; `Date - Date` gives the days between two dates",
                 })
             }
             (_, x, y) => Err(Trouble::Types {
@@ -237,7 +237,7 @@ pub fn kinds_fit(op: Op, a: Kind, b: Kind) -> Result<(), Trouble> {
                     "`{symbol}` needs numbers, but one side is {}",
                     if x.is_time() { x } else { y }.with_article()
                 ),
-                help: "the arithmetic of dates is `Date - Date`, which gives days, `add_days` and `add_months`",
+                help: "the arithmetic of dates is `Date - Date`, which gives days, `add_time` and `time_between`",
             }),
         };
     }

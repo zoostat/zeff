@@ -276,15 +276,22 @@ fn calendar_day(days: &str) -> String {
 }
 
 #[test]
-fn add_days_and_add_months_agree_with_r() {
+fn add_time_agrees_with_r_in_every_unit() {
     let json = reference("time");
-    for (key, function) in [("add_days", "add_days"), ("add_months", "add_months")] {
+    // The keys are R's: days added, months added with the clamping, and from release 0.8.0,
+    // step 8g, weeks and years.
+    for (key, unit) in [
+        ("add_days", ""),
+        ("add_months", ", unit: month"),
+        ("add_weeks", ", unit: week"),
+        ("add_years", ", unit: year"),
+    ] {
         let cases = json[key].as_array().unwrap();
         let expressions: Vec<String> = cases
             .iter()
             .map(|c| {
                 format!(
-                    "{function}(date(\"{}\"), {})",
+                    "add_time(date(\"{}\"), {}{unit})",
                     c["d"].as_str().unwrap(),
                     c["n"]
                 )
@@ -295,7 +302,7 @@ fn add_days_and_add_months_agree_with_r() {
             assert_eq!(
                 lines[i],
                 calendar_day(c["out"].as_str().unwrap()),
-                "{function}({}, {})",
+                "add_time({}, {}{unit})",
                 c["d"],
                 c["n"]
             );
@@ -655,15 +662,21 @@ let f = frame(s = ["2026-01-05", "no", "2024-12-30", "2026-02-30"])
 let g = f.add(d = date(s))
 g.add(y = year(d), m = month(d), dd = day(d), wd = weekday(d), q = quarter(d), w = week(d))
 f.add(t = datetime(s)).add(y = year(t), w = week(t))
-add_days(date("2026-10-16"), 0)
-add_months(date("2026-01-31"), 1)
-add_months(date("2026-02-28"), -1)
-add_months(datetime("2026-01-31T09:30:00.5"), 1)
-add_days(datetime("2026-10-16T23:59:59"), 1)
+add_time(date("2026-10-16"), 0)
+add_time(date("2026-01-31"), 1, unit: month)
+add_time(date("2026-02-28"), -1, unit: month)
+add_time(datetime("2026-01-31T09:30:00.5"), 1, unit: month)
+add_time(datetime("2026-10-16T23:59:59"), 1)
+add_time(date("2026-10-16"), 2, unit: week)
+add_time(date("2024-02-29"), 1, unit: year)
+add_time(date("2024-02-29"), 4, unit: year)
+add_time(datetime("2024-02-29T23:59:59.999999"), -1, unit: year)
+add_time(date("2026-10-16"), NA, unit: week)
+add_time(NA, 1, unit: year)
 time_between(datetime("2026-01-01T00:00"), datetime("2026-01-01T23:59:59"))
 time_between(date("2026-01-31"), date("2026-01-31"), unit: month)
 time_between(date("0001-01-01"), date("9999-12-31"), unit: month)
-g.add(next = add_days(d, 1), later = add_months(d, 1), gap = time_between(d, date("2026-11-01")), m = time_between(date("2020-01-01"), d, unit: month))
+g.add(next = add_time(d, 1), later = add_time(d, 1, unit: month), gap = time_between(d, date("2026-11-01")), m = time_between(date("2020-01-01"), d, unit: month))
 let t0 = datetime("2026-10-16T09:30:00")
 [time_between(t0, t0, unit: second), time_between(t0, t0), time_between(t0, t0, unit: year)]
 time_between(datetime("0001-01-01T00:00:00"), datetime("9999-12-31T23:59:59"), unit: second)
@@ -729,7 +742,7 @@ frame(t = [datetime("9999-12-31T23:59:59.999999"), datetime("0001-01-01T00:00:00
 let u = frame(a = [datetime("2026-01-15T12:00"), NA, datetime("2026-03-01T00:00")], b = [datetime("2026-02-15T06:00"), datetime("2026-02-15T06:00"), datetime("2026-01-01T00:00")])
 u.add(s = time_between(a, b, unit: second), h = time_between(a, b, unit: hour), d = time_between(a, b), mo = time_between(a, b, unit: month))
 u.add(h = time_between(a, b, unit: hour)).aggregate(longest = max(h), known = n())
-add_days(date("0001-01-01"), -1)
+add_time(date("0001-01-01"), -1)
 "#;
     let (code, stdout, stderr) = go(script);
     assert_eq!(code, 0, "{stderr}");
@@ -755,11 +768,19 @@ fn every_message() {
         "let f = frame(s = [\"16/10/2026\", \"no\"])\nf.add(d = date(s, format: \"%d/%m/%Y\"))\n",
         // The arithmetic (step 4): outside the calendar, the wrong types, and mixed dates and
         // times.
-        "add_days(date(\"9999-12-31\"), 1)\n",
-        "add_months(date(\"0001-01-31\"), -1)\n",
-        "let f = frame(d = [date(\"9999-12-31\"), date(\"2026-10-16\")])\nf.add(e = add_days(d, 1))\n",
-        "add_days(date(\"2026-10-16\"), 1.5)\n",
-        "add_days(\"2026-10-16\", 1)\n",
+        "add_time(date(\"9999-12-31\"), 1)\n",
+        "add_time(date(\"0001-01-31\"), -1, unit: month)\n",
+        "let f = frame(d = [date(\"9999-12-31\"), date(\"2026-10-16\")])\nf.add(e = add_time(d, 1))\n",
+        "add_time(date(\"2026-10-16\"), 1.5)\n",
+        "add_time(\"2026-10-16\", 1)\n",
+        "add_time(date(\"2026-10-16\"), 1, unit: fortnight)\n",
+        "add_time(date(\"2026-10-16\"), 1, unit: \"week\")\n",
+        "add_time(date(\"2026-10-16\"), 9223372036854775807, unit: week)\n",
+        "add_time(date(\"2026-10-16\"), 9223372036854775807, unit: year)\n",
+        "add_time(date(\"9999-12-31\"), 1, unit: year)\n",
+        "add_days(date(\"2026-10-16\"), 1)\n",
+        "add_months(date(\"2026-10-16\"), 1)\n",
+        "let f = frame(d = [date(\"2026-10-16\")])\nf.add(e = add_months(d, 1))\n",
         "time_between(date(\"2026-10-16\"), datetime(\"2026-10-16T09:30\"))\n",
         "time_between(datetime(\"2026-10-16T09:30\"), date(\"2026-10-16\"), unit: minute)\n",
         "time_between(date(\"2026-10-16\"), 7)\n",
@@ -864,7 +885,7 @@ proptest! {
     ) {
         let text = format_iso_date(days);
         let script = format!(
-            "let d = date(\"{text}\")\nprint(time_between(d, add_days(d, {n})))\nprint(add_days(add_days(d, {n}), -({n})) == d)\nprint(time_between(d, add_months(d, {m}), unit: month))\nprint(add_months(add_months(d, {m}), -({m})) <= d)\nprint(day(add_months(d, {m})) <= day(d))\n"
+            "let d = date(\"{text}\")\nprint(time_between(d, add_time(d, {n})))\nprint(add_time(add_time(d, {n}), -({n})) == d)\nprint(time_between(d, add_time(d, {m}, unit: month), unit: month))\nprint(add_time(add_time(d, {m}, unit: month), -({m}), unit: month) <= d)\nprint(day(add_time(d, {m}, unit: month)) <= day(d))\n"
         );
         let (code, stdout, stderr) = go(&script);
         prop_assert_eq!(code, 0, "{}", stderr);

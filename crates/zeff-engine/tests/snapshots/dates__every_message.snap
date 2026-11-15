@@ -31,7 +31,7 @@ error[Z0221]: `+` does not apply to a Date and a number
 1 | to("2026-10-16", Date) + 1
   | ^^^^^^^^^^^^^^^^^^^^^^^^^^ a date beside a number
   |
-  = help: `add_days(d, n)` moves a date by n days and `add_months(d, n)` by n months; `Date - Date` gives the days between two dates
+  = help: `add_time(d, n)` moves a date by n days, and by weeks, months or years with `unit:`; `Date - Date` gives the days between two dates
 
 1 - to("2026-10-16", Date)
 ---
@@ -41,7 +41,7 @@ error[Z0221]: `-` does not apply to a Date and a number
 1 | 1 - to("2026-10-16", Date)
   | ^^^^^^^^^^^^^^^^^^^^^^^^^^ a date beside a number
   |
-  = help: `add_days(d, n)` moves a date by n days and `add_months(d, n)` by n months; `Date - Date` gives the days between two dates
+  = help: `add_time(d, n)` moves a date by n days, and by weeks, months or years with `unit:`; `Date - Date` gives the days between two dates
 
 to("2026-10-16", Date) * 2
 ---
@@ -51,7 +51,7 @@ error[Z0221]: `*` needs numbers, but one side is a Date
 1 | to("2026-10-16", Date) * 2
   | ^^^^^^^^^^^^^^^^^^^^^^^^^^ a Date
   |
-  = help: the arithmetic of dates is `Date - Date`, which gives days, `add_days` and `add_months`
+  = help: the arithmetic of dates is `Date - Date`, which gives days, `add_time` and `time_between`
 
 to("2026-10-16T09:30", DateTime) - to("2026-10-16T08:30", DateTime)
 ---
@@ -92,7 +92,7 @@ error[Z0221]: `+` needs numbers, but one side is a Date
 1 | to("2026-10-16", Date) + to("2026-10-16", Date)
   | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ a Date
   |
-  = help: the arithmetic of dates is `Date - Date`, which gives days, `add_days` and `add_months`
+  = help: the arithmetic of dates is `Date - Date`, which gives days, `add_time` and `time_between`
 
 to("2026-10-16", Date) - to("2026-10-16T09:30", DateTime)
 ---
@@ -102,7 +102,7 @@ error[Z0221]: `-` needs numbers, but one side is a Date
 1 | to("2026-10-16", Date) - to("2026-10-16T09:30", DateTime)
   | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ a Date
   |
-  = help: the arithmetic of dates is `Date - Date`, which gives days, `add_days` and `add_months`
+  = help: the arithmetic of dates is `Date - Date`, which gives days, `add_time` and `time_between`
 
 let f = frame(d = [to("2026-10-16", Date)])
 f.add(e = d + 7)
@@ -113,7 +113,7 @@ error[Z0221]: `+` does not apply to a Date and a number
 2 | f.add(e = d + 7)
   |           ^^^^^ the operation, row by row
   |
-  = help: `add_days(d, n)` moves a date by n days and `add_months(d, n)` by n months; `Date - Date` gives the days between two dates
+  = help: `add_time(d, n)` moves a date by n days, and by weeks, months or years with `unit:`; `Date - Date` gives the days between two dates
 
 [1, to("2026-10-16", Date)]
 ---

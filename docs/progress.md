@@ -140,3 +140,13 @@ Step 2: the help contract of 0.8.0 (#103) in section 9.1 and in the registry, wi
 
 **For the owner to decide.** Nothing blocks.
 
+
+## 15 November 2026, release 0.8.0, step 8g (`add_time`)
+
+**Done.** Step 8g `[function]`: `add_time(d, n, unit: day | week | month | year = day)` moves a date or a time by days, weeks, months or years, in the place of `add_days` and `add_months`, which are now refused with the rewrite to use. Months and years clamp to the last day of a shorter month as before. Every value agrees with R.
+
+**Green.** Format, clippy with warnings denied, the tier, message and grammar checks, every test of the workspace; CI read after the push.
+
+**Next.** Step 8h `[function]`: `bin(x, n: | breaks:, …)` absorbing `quantile_group` (#97).
+
+**For the owner to decide.** Nothing blocks.

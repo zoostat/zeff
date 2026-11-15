@@ -5470,3 +5470,15 @@ Done before parts 1 and 2 are read, because those wait for jobs that run for hou
 
 **Reason.** Open decision #96; the checklist's step 8f.
 
+
+## 15 November 2026 — `add_time` in the place of `add_days` and `add_months` (release 0.8.0, step 8g)
+
+**Choice.** One function in `time`, in Rust: `add_time(d, n, unit: day | week | month | year = day)`. A day and a week are counted in days (a week is seven); a month and a year are counted in months (a year is twelve) with the clamping `add_months` had, so the kernel's two routines serve all four units and nothing numerical is new. A `DateTime` keeps its time of day. A count too large to multiply (`n` weeks as `7n` days, `n` years as `12n` months) is a date outside the calendar: `NA` with W0203, never an overflow. The clock's units (`hour`, `minute`, `second`) are not units of `add_time`: #97 lists four, and nothing is added before 1.0 that the decision does not ask for.
+
+**The old names.** `add_days` and `add_months` are not kept as aliases. Each is in the registry's table of replaced names, so a call is refused with Z0103 and the rewrite (`add_days(d, n)` is `add_time(d, n)`; `add_months(d, n)` is `add_time(d, n, unit: month)`), and `zeff help add_days` says the same. Their two help pages are removed and one page written to the 0.8.0 contract. The help line of Z0221 (`Date + 30`) names the new function.
+
+**Against R.** `tests/reference/r/time.R` gains weeks and years added (ten dates by five counts each, written out in base R with the same clamping); the values of days and months added are unchanged in the stored file. All 215 values agree. They were compared once with `lubridate` 1.9.5 (`+ days()`, `+ weeks()`, `%m+% months()`, `%m+% years()`): none differ inside the calendar.
+
+**Held by.** `add_time_agrees_with_r_in_every_unit`; the edge cases (a leap day and one or four years, a `DateTime` at the last microsecond of a leap day, `NA` in either place) and every message (a unit that is not one of the four, the unit in quotes, a count that overflows, the two old names refused, inside `add` too), stored; the page's examples; the conformance report, in which one digest changes because a plot's summary prints the function's name. The editor grammar's option words were written again and its check run.
+
+**Reason.** Open decision #97 and the owner's rule of one function with an option; the checklist's step 8g.
