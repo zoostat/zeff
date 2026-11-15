@@ -643,3 +643,7 @@ Found at step 40c of release 0.7.0, where the counts of section 8.2 are held to 
 
 Found at step 40a of release 0.7.0 by a mutant the tests did not catch. The row gave Z0803 to a regression's outcome too large to square, and the factorial `anova` already raised it for its outcome and its terms. `t_test`, the one-way `anova` and Pearson's `correlation` did not: on a variable with a value above 1e150 in size they printed a standard deviation of `Inf` with t = 0 and p = 1, an F of `Inf`, and a coefficient of 0, which are wrong results and not limits of a method. They now refuse the variable, and the row says so in one more sentence. The code keeps its meaning: a value too large for the arithmetic to square.
 
+## 15 November 2026 — zeff_risk_register.md, summary table and a new review section; zeff_open_decisions.md, summary table
+
+The register's review at the close of 0.7.0, as the register itself and the standing release procedure require: the likelihood of R8 lowered from Medium to Low after its first test (the figures' bytes agreed on every target through the release) and that of R9 raised from Low to Medium (the weekly and nightly jobs met the runners' time limits); the review section records each risk's figures. In the open-decisions register, the summary table gained the rows of fifteen decisions of this release that had entries and no row (#127 to #133, #136 to #140, #143, #145 and #147). Neither change touches the normative text of the language or of the engine.
+
