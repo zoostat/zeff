@@ -21,7 +21,7 @@ A value of the type of `d`; a column when `d` is a column.
 Exact: integer arithmetic on the day count.
 
 ## See also
-add_months, days_between, date
+add_months, time_between, date
 
 ## Examples
 > add_days(date("2026-10-16"), 30)

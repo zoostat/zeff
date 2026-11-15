@@ -23,7 +23,7 @@ Exact: the year and month are moved in integer arithmetic and the day clamped; t
 not reversible at a clamped day, since 28 February less one month is 28 January.
 
 ## See also
-add_days, months_between, date
+add_days, time_between, date
 
 ## Examples
 > add_months(date("2026-01-31"), 1)

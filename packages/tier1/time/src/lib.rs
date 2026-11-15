@@ -1,8 +1,9 @@
 //! Package `time` (tier 1): dates and times (Engine and Project Specification, section 8.2;
 //! Language Reference, section 3.8, "Time"). At this release the parsing functions `date` and
 //! `datetime` and the date parts `year`, `month`, `day`, `weekday`, `quarter` and `week`
-//! (release 0.6.0, step 3); the arithmetic `add_days`, `add_months`, `days_between` and
-//! `months_between` and the clock's `today` and `now` (step 4). Every function is a scalar
+//! (release 0.6.0, step 3); the arithmetic `add_days` and `add_months` and the clock's `today`
+//! and `now` (step 4); `time_between`, which took the place of `days_between` and
+//! `months_between` (release 0.8.0, step 8d). Every function is a scalar
 //! function that applies row by row to a column (section 3.7, "Columns and scalars"), and every
 //! one computes in the dates kernel, in integer arithmetic; the clock is the run's, given by the
 //! command line or fixed by a test, never read by the engine itself.
@@ -10,8 +11,8 @@
 use zeff_core::runtime::{Args, CallContext, Fail, Function, fail};
 use zeff_core::value::Value;
 use zeff_dates::{
-    DateFormat, civil_from_days, days_of_micros, format_iso_date, format_iso_datetime, iso_week,
-    micros_of_days, parse_iso_date, parse_iso_datetime, quarter_of, weekday_of,
+    DateFormat, FixedUnit, civil_from_days, days_of_micros, format_iso_date, format_iso_datetime,
+    iso_week, micros_of_days, parse_iso_date, parse_iso_datetime, quarter_of, weekday_of,
 };
 use zeff_diagnostics::Diagnostic;
 use zeff_registry::{DiagnosticDecl, FunctionSpec, ParamSpec};
@@ -242,15 +243,89 @@ fn add_months(ctx: &mut CallContext<'_>, args: Args) -> Result<Value, Fail> {
     })
 }
 
-/// `days_between(start, end)`: Int days from `start` to `end`; on times, the whole days between
-/// the two instants, truncated towards zero (section 3.8, "Differences").
-fn days_between(ctx: &mut CallContext<'_>, args: Args) -> Result<Value, Fail> {
+/// The unit a difference is counted in: the word after `unit:`, `day` unless given.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+enum Unit {
+    Fixed(FixedUnit),
+    Month,
+    Year,
+}
+
+impl Unit {
+    fn of(word: Option<&Value>) -> Unit {
+        match word {
+            Some(Value::Word(w)) => match w.as_str() {
+                "second" => Unit::Fixed(FixedUnit::Second),
+                "minute" => Unit::Fixed(FixedUnit::Minute),
+                "hour" => Unit::Fixed(FixedUnit::Hour),
+                "week" => Unit::Fixed(FixedUnit::Week),
+                "month" => Unit::Month,
+                "year" => Unit::Year,
+                _ => Unit::Fixed(FixedUnit::Day),
+            },
+            _ => Unit::Fixed(FixedUnit::Day),
+        }
+    }
+
+    fn word(self) -> &'static str {
+        match self {
+            Unit::Fixed(FixedUnit::Second) => "second",
+            Unit::Fixed(FixedUnit::Minute) => "minute",
+            Unit::Fixed(FixedUnit::Hour) => "hour",
+            Unit::Fixed(FixedUnit::Day) => "day",
+            Unit::Fixed(FixedUnit::Week) => "week",
+            Unit::Month => "month",
+            Unit::Year => "year",
+        }
+    }
+
+    /// Whether the unit is shorter than a day, and so needs a time of day on both sides.
+    fn of_the_clock(self) -> bool {
+        matches!(
+            self,
+            Unit::Fixed(FixedUnit::Second | FixedUnit::Minute | FixedUnit::Hour)
+        )
+    }
+}
+
+/// `time_between(start, end, unit:)`: the whole units from `start` to `end`, truncated towards
+/// zero, as an Int (section 3.8, "Differences"; open decision #96). Between two dates the days
+/// are counted; between two times the instants, so 23 hours is no day and a month less an hour
+/// no month. Months and years clamp as `add_months` does, a year being twelve such months.
+fn time_between(ctx: &mut CallContext<'_>, args: Args) -> Result<Value, Fail> {
+    let unit = Unit::of(args.get(2));
     Ok(match (args.get(0), args.get(1)) {
         (None | Some(Value::Na), _) | (_, None | Some(Value::Na)) => Value::Na,
-        (Some(Value::Date(a)), Some(Value::Date(b))) => Value::Int(i64::from(*b) - i64::from(*a)),
-        (Some(Value::DateTime(a)), Some(Value::DateTime(b))) => {
-            Value::Int(zeff_dates::whole_days_between(*a, *b))
+        (Some(Value::Date(a)), Some(Value::Date(b))) => {
+            let days = i64::from(*b) - i64::from(*a);
+            match unit {
+                Unit::Fixed(FixedUnit::Day) => Value::Int(days),
+                Unit::Fixed(FixedUnit::Week) => Value::Int(days / 7),
+                Unit::Month => Value::Int(zeff_dates::months_between(*a, *b)),
+                Unit::Year => Value::Int(zeff_dates::years_between(*a, *b)),
+                Unit::Fixed(_) => {
+                    // A date has no time of day, so no count of hours: midnight would be a
+                    // guess, and a guess is never made for the reader.
+                    return Err(fail(
+                        Diagnostic::error(
+                            "Z0401",
+                            format!(
+                                "`unit: {}` counts between two times, but `start` and `end` are dates",
+                                unit.word()
+                            ),
+                        )
+                        .in_file(ctx.script)
+                        .primary(ctx.span_of(2), "a unit of the clock")
+                        .help("a Date has no time of day: count with `unit: day`, or give two DateTimes (`to(d, DateTime)` is midnight of the day)"),
+                    ));
+                }
+            }
         }
+        (Some(Value::DateTime(a)), Some(Value::DateTime(b))) => Value::Int(match unit {
+            Unit::Fixed(fixed) => zeff_dates::whole_units_between(*a, *b, fixed),
+            Unit::Month => zeff_dates::months_between_micros(*a, *b),
+            Unit::Year => zeff_dates::years_between_micros(*a, *b),
+        }),
         (
             Some(a @ (Value::Date(_) | Value::DateTime(_))),
             Some(b @ (Value::Date(_) | Value::DateTime(_))),
@@ -262,18 +337,27 @@ fn days_between(ctx: &mut CallContext<'_>, args: Args) -> Result<Value, Fail> {
             } else {
                 ("start", "end")
             };
+            let help = if unit.of_the_clock() {
+                format!(
+                    "write `to({to_time}, DateTime)` to count between the instants, midnight standing for the date"
+                )
+            } else {
+                format!(
+                    "write `to({to_date}, Date)` to count between the dates, or `to({to_time}, DateTime)` to count between the instants"
+                )
+            };
             return Err(fail(
                 Diagnostic::error(
                     "Z0401",
                     format!(
-                        "`days_between` counts between two dates or two times, but `start` is {} and `end` is {}",
+                        "`time_between` counts between two dates or two times, but `start` is {} and `end` is {}",
                         a.type_word(),
                         b.type_word()
                     ),
                 )
                 .in_file(ctx.script)
                 .primary(ctx.span_of(1), "not the type of `start`")
-                .help(format!("write `to({to_date}, Date)` to count days between the dates, or `to({to_time}, DateTime)` to count between the instants")),
+                .help(help),
             ));
         }
         _ => {
@@ -282,21 +366,6 @@ fn days_between(ctx: &mut CallContext<'_>, args: Args) -> Result<Value, Fail> {
                 "two values that are not both dates or both times",
             ));
         }
-    })
-}
-
-/// `months_between(start, end)`: whole months from `start` to `end` under the clamping of
-/// `add_months`; on times, between their days.
-fn months_between(ctx: &mut CallContext<'_>, args: Args) -> Result<Value, Fail> {
-    let day = |v: Option<&Value>| match v {
-        None | Some(Value::Na) => Ok(None),
-        Some(Value::Date(d)) => Ok(Some(*d)),
-        Some(Value::DateTime(t)) => Ok(Some(days_of_micros(*t))),
-        Some(_) => Err(internal(ctx, "a value that is not a date or a time")),
-    };
-    Ok(match (day(args.get(0))?, day(args.get(1))?) {
-        (Some(a), Some(b)) => Value::Int(zeff_dates::months_between(a, b)),
-        _ => Value::Na,
     })
 }
 
@@ -351,32 +420,6 @@ fn moved(name: &'static str, help: &'static str, body: zeff_core::runtime::Body)
                 "W0203",
                 "the result lies outside years 1 to 9999, so it is NA",
             )],
-            help,
-            accuracy: None,
-        },
-        body,
-    }
-}
-
-/// A difference of two dates or two times, as an Int.
-fn between(
-    name: &'static str,
-    help: &'static str,
-    body: zeff_core::runtime::Body,
-    diagnostics: Vec<DiagnosticDecl>,
-) -> Function {
-    Function {
-        spec: FunctionSpec {
-            name,
-            package: "time",
-            method: false,
-            params: vec![
-                ParamSpec::required("start", "Date | DateTime"),
-                ParamSpec::required("end", "Date | DateTime"),
-            ],
-            rest: None,
-            returns: "Int",
-            diagnostics,
             help,
             accuracy: None,
         },
@@ -493,21 +536,31 @@ pub fn functions() -> Vec<Function> {
             include_str!("../help/add_months.md"),
             add_months,
         ),
-        between(
-            "days_between",
-            include_str!("../help/days_between.md"),
-            days_between,
-            vec![DiagnosticDecl::new(
-                "Z0401",
-                "start and end are a date and a time, not two of one kind",
-            )],
-        ),
-        between(
-            "months_between",
-            include_str!("../help/months_between.md"),
-            months_between,
-            vec![],
-        ),
+        Function {
+            spec: FunctionSpec {
+                name: "time_between",
+                package: "time",
+                method: false,
+                params: vec![
+                    ParamSpec::required("start", "Date | DateTime"),
+                    ParamSpec::required("end", "Date | DateTime"),
+                    ParamSpec::option_with_default(
+                        "unit",
+                        "second | minute | hour | day | week | month | year",
+                        "day",
+                    ),
+                ],
+                rest: None,
+                returns: "Int",
+                diagnostics: vec![DiagnosticDecl::new(
+                    "Z0401",
+                    "start and end are a date and a time, not two of one kind; or unit: is second, minute or hour and they are dates",
+                )],
+                help: include_str!("../help/time_between.md"),
+                accuracy: None,
+            },
+            body: time_between,
+        },
         clock_reading("today", "Date", include_str!("../help/today.md"), today),
         clock_reading("now", "DateTime", include_str!("../help/now.md"), now),
     ]

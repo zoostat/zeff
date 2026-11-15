@@ -167,6 +167,74 @@ pub fn whole_days_between(start: i64, end: i64) -> i64 {
     (end - start) / MICROS_PER_DAY
 }
 
+/// A unit of elapsed time with a fixed length: what a difference of two timestamps is counted
+/// in when it is not counted in months or years, whose length depends on the calendar.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum FixedUnit {
+    Second,
+    Minute,
+    Hour,
+    Day,
+    Week,
+}
+
+impl FixedUnit {
+    /// The length of the unit in microseconds.
+    pub fn micros(self) -> i64 {
+        match self {
+            FixedUnit::Second => MICROS_PER_SECOND,
+            FixedUnit::Minute => 60 * MICROS_PER_SECOND,
+            FixedUnit::Hour => 3_600 * MICROS_PER_SECOND,
+            FixedUnit::Day => MICROS_PER_DAY,
+            FixedUnit::Week => 7 * MICROS_PER_DAY,
+        }
+    }
+}
+
+/// Whole units from one timestamp to another, truncated towards zero: 90 seconds is one minute
+/// and 23 hours no day, in either direction (Language Reference, section 3.8, "Differences").
+pub fn whole_units_between(start: i64, end: i64, unit: FixedUnit) -> i64 {
+    (end - start) / unit.micros()
+}
+
+/// The timestamp `n` months after `micros`, the day clamped as `add_months` clamps it and the
+/// time of day kept, or `None` outside the calendar.
+pub fn add_months_to_micros(micros: i64, n: i64) -> Option<i64> {
+    let (day, within) = split_micros(micros);
+    Some(micros_of_days(add_months(day, n)?) + within)
+}
+
+/// Whole months from one timestamp to another under the clamping of `add_months`, the time of
+/// day counted: the largest `m` such that `start` moved by `m` months is at or before `end`
+/// when `end` is later, and the negative of the largest `m` such that `start` moved back by `m`
+/// months is at or after `end` when it is earlier. A month less an hour is no month.
+pub fn months_between_micros(start: i64, end: i64) -> i64 {
+    let (start_day, start_within) = split_micros(start);
+    let (end_day, end_within) = split_micros(end);
+    let m = months_between(start_day, end_day);
+    // The count by days is right unless the last month ends on the very day of `end` and the
+    // time of day falls short of it.
+    if m > 0 && add_months(start_day, m) == Some(end_day) && start_within > end_within {
+        m - 1
+    } else if m < 0 && add_months(start_day, m) == Some(end_day) && start_within < end_within {
+        m + 1
+    } else {
+        m
+    }
+}
+
+/// Whole years from one day to another: twelve whole months each, so 29 February to 28 February
+/// of the next year is one year, as it is twelve months.
+pub fn years_between(start: i32, end: i32) -> i64 {
+    months_between(start, end) / 12
+}
+
+/// Whole years from one timestamp to another, the time of day counted as `months_between_micros`
+/// counts it.
+pub fn years_between_micros(start: i64, end: i64) -> i64 {
+    months_between_micros(start, end) / 12
+}
+
 const WEEKDAYS: [&str; 7] = [
     "Monday",
     "Tuesday",
@@ -776,6 +844,114 @@ mod tests {
         assert_eq!(whole_days_between(0, MICROS_PER_DAY * 2 - 1), 1);
         assert_eq!(whole_days_between(MICROS_PER_DAY * 2 - 1, 0), -1);
         assert_eq!(whole_days_between(0, -MICROS_PER_DAY), -1);
+    }
+
+    #[test]
+    fn whole_units_months_and_years_between_two_instants() {
+        let d = |y, m, dd| days_from_civil(y, m, dd).unwrap();
+        let at = |y, m, dd, h: i64, min: i64, sec: i64| {
+            micros_of_days(d(y, m, dd)) + (h * 3_600 + min * 60 + sec) * MICROS_PER_SECOND
+        };
+        let a = at(2026, 1, 1, 0, 0, 0);
+        // Truncated towards zero, in both directions.
+        assert_eq!(
+            whole_units_between(a, a + 90 * MICROS_PER_SECOND, FixedUnit::Minute),
+            1
+        );
+        assert_eq!(
+            whole_units_between(a + 90 * MICROS_PER_SECOND, a, FixedUnit::Minute),
+            -1
+        );
+        assert_eq!(
+            whole_units_between(a, a + 23 * 3_600 * MICROS_PER_SECOND, FixedUnit::Day),
+            0
+        );
+        assert_eq!(
+            whole_units_between(a, a + 3_599 * MICROS_PER_SECOND, FixedUnit::Hour),
+            0
+        );
+        assert_eq!(
+            whole_units_between(a, a + 3_600 * MICROS_PER_SECOND, FixedUnit::Hour),
+            1
+        );
+        assert_eq!(whole_units_between(a, a + 1, FixedUnit::Second), 0);
+        assert_eq!(
+            whole_units_between(a, a + 13 * MICROS_PER_DAY, FixedUnit::Week),
+            1
+        );
+        assert_eq!(
+            whole_units_between(a, a + 14 * MICROS_PER_DAY, FixedUnit::Week),
+            2
+        );
+        assert_eq!(
+            whole_units_between(a + 14 * MICROS_PER_DAY - 1, a, FixedUnit::Week),
+            -1
+        );
+        // The whole calendar in seconds fits.
+        assert_eq!(
+            whole_units_between(
+                micros_of_days(MIN_DAYS),
+                micros_of_days(MAX_DAYS),
+                FixedUnit::Second
+            ),
+            (i64::from(MAX_DAYS) - i64::from(MIN_DAYS)) * 86_400
+        );
+        // Months between instants: the time of day counts on the last day only.
+        let noon = at(2026, 1, 15, 12, 0, 0);
+        assert_eq!(months_between_micros(noon, at(2026, 2, 15, 6, 0, 0)), 0);
+        assert_eq!(months_between_micros(noon, at(2026, 2, 15, 12, 0, 0)), 1);
+        assert_eq!(months_between_micros(noon, at(2026, 2, 16, 0, 0, 0)), 1);
+        assert_eq!(months_between_micros(at(2026, 2, 15, 6, 0, 0), noon), 0);
+        assert_eq!(months_between_micros(at(2026, 2, 15, 12, 0, 0), noon), -1);
+        assert_eq!(months_between_micros(at(2026, 2, 15, 18, 0, 0), noon), -1);
+        assert_eq!(
+            months_between_micros(at(2026, 2, 15, 12, 0, 0), at(2026, 1, 15, 18, 0, 0)),
+            0
+        );
+        // The clamping of the days is kept: 31 January to 28 February is a month at the same
+        // time of day, and not before it.
+        assert_eq!(
+            months_between_micros(at(2026, 1, 31, 9, 0, 0), at(2026, 2, 28, 9, 0, 0)),
+            1
+        );
+        assert_eq!(
+            months_between_micros(at(2026, 1, 31, 9, 0, 0), at(2026, 2, 28, 8, 59, 59)),
+            0
+        );
+        assert_eq!(months_between_micros(noon, noon), 0);
+        // At midnight on both sides it is the count by days.
+        for (s, e) in [
+            (d(2026, 1, 31), d(2026, 2, 28)),
+            (d(2026, 3, 31), d(2026, 1, 31)),
+            (d(2020, 2, 29), d(2026, 2, 28)),
+            (d(1, 1, 1), d(9999, 12, 31)),
+        ] {
+            assert_eq!(
+                months_between_micros(micros_of_days(s), micros_of_days(e)),
+                months_between(s, e)
+            );
+        }
+        assert_eq!(
+            add_months_to_micros(at(2026, 1, 31, 9, 30, 0), 1),
+            Some(at(2026, 2, 28, 9, 30, 0))
+        );
+        assert_eq!(add_months_to_micros(at(9999, 12, 31, 9, 30, 0), 1), None);
+        // A year is twelve whole months.
+        assert_eq!(years_between(d(2024, 2, 29), d(2025, 2, 28)), 1);
+        assert_eq!(years_between(d(2024, 2, 29), d(2028, 2, 28)), 3);
+        assert_eq!(years_between(d(2024, 2, 29), d(2028, 2, 29)), 4);
+        assert_eq!(years_between(d(2025, 2, 28), d(2024, 2, 29)), 0);
+        assert_eq!(years_between(d(2026, 10, 16), d(2025, 10, 16)), -1);
+        assert_eq!(years_between(d(2026, 10, 16), d(2025, 10, 17)), 0);
+        assert_eq!(years_between(d(1, 1, 1), d(9999, 12, 31)), 9998);
+        assert_eq!(
+            years_between_micros(at(2024, 2, 29, 0, 0, 0), at(2028, 2, 28, 23, 59, 59)),
+            3
+        );
+        assert_eq!(
+            years_between_micros(at(2020, 6, 1, 12, 0, 0), at(2026, 6, 1, 11, 59, 59)),
+            5
+        );
     }
 
     #[test]

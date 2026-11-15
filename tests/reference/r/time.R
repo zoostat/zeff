@@ -40,7 +40,8 @@ dt_parts <- list(
 
 # Date arithmetic (step 4): days added, months added with the clamping of section 3.8 (`%m+%` of
 # lubridate, written out in base R as the same day of the target month or its last day),
-# differences in days, and whole months between with the same clamping.
+# differences in days, and whole months between with the same clamping; from release 0.8.0,
+# step 8d, whole weeks and whole years between as well, for `time_between`.
 arith_texts <- c("2026-01-31", "2024-01-31", "2026-10-16", "2026-02-28", "2024-02-29", "1999-12-31",
                  "2026-03-31", "2026-12-31", "0001-01-01", "9999-12-31")
 arith <- as.Date(arith_texts, format = "%Y-%m-%d")
@@ -78,8 +79,18 @@ for (i in seq_along(arith)) for (j in seq_along(arith)) {
     while (isTRUE(safe_clamp(arith[i], -(m + 1L)) >= arith[j])) m <- m + 1L
     m <- -m
   }
+  # Whole years, counted as months are, twelve at a step (release 0.8.0, step 8d), and whole
+  # weeks, the days in sevens, truncated towards zero.
+  y <- 0L
+  if (arith[j] >= arith[i]) {
+    while (isTRUE(safe_clamp(arith[i], 12L * (y + 1L)) <= arith[j])) y <- y + 1L
+  } else {
+    while (isTRUE(safe_clamp(arith[i], -12L * (y + 1L)) >= arith[j])) y <- y + 1L
+    y <- -y
+  }
+  gap <- as.integer(arith[j] - arith[i])
   between_out[[length(between_out) + 1]] <- list(a = arith_texts[i], b = arith_texts[j],
-    days = as.integer(arith[j] - arith[i]), months = m)
+    days = gap, months = m, weeks = as.integer(sign(gap) * (abs(gap) %/% 7L)), years = y)
 }
 # Whole days between two times, truncated towards zero (difftime in days, truncated).
 time_pairs <- list(c("2026-01-31T23:00:00", "2026-02-02T22:59:59"), c("2026-01-31T23:00:00", "2026-02-02T23:00:00"),
@@ -90,8 +101,42 @@ time_days <- lapply(time_pairs, function(p) {
   list(a = p[1], b = p[2], days = as.integer(trunc(as.numeric(difftime(b, a, units = "days")))))
 })
 
+# `time_between` on two times (release 0.8.0, step 8d): the seconds are R's difftime, exact on
+# whole seconds; minutes, hours, days and weeks are those seconds in whole units, truncated
+# towards zero; months and years are counted as on dates, the moved time keeping its time of day,
+# so that a month less a second is no month (as lubridate's `interval(a, b) %/% months(1)` has it).
+tb_texts <- c("2026-01-31T23:00:00", "2026-02-02T22:59:59", "2026-02-02T23:00:00", "2026-10-16T09:30:00",
+              "2026-01-15T12:00:00", "2026-02-15T06:00:00", "2026-02-15T12:00:00", "2024-02-29T00:00:00",
+              "2028-02-28T23:59:59", "2020-06-01T12:00:00", "2026-06-01T11:59:59", "1999-12-31T23:59:59",
+              "2000-01-01T00:00:00", "2026-01-31T09:00:00", "2026-02-28T08:59:59", "2026-02-28T09:00:00")
+tb <- as.POSIXct(tb_texts, format = "%Y-%m-%dT%H:%M:%S", tz = "UTC")
+towards_zero <- function(s, k) as.integer(sign(s) * (abs(s) %/% k))
+move_time <- function(t, n) {
+  d <- as.Date(t, tz = "UTC")
+  as.POSIXct(clamp_month(d, n), tz = "UTC") + (as.numeric(t) - as.numeric(as.POSIXct(d, tz = "UTC")))
+}
+steps_between <- function(a, b, by) {
+  k <- 0L
+  if (b >= a) {
+    while (isTRUE(move_time(a, by * (k + 1L)) <= b)) k <- k + 1L
+    k
+  } else {
+    while (isTRUE(move_time(a, -by * (k + 1L)) >= b)) k <- k + 1L
+    -k
+  }
+}
+time_between_out <- list()
+for (i in seq_along(tb)) for (j in seq_along(tb)) {
+  secs <- as.integer(as.numeric(difftime(tb[j], tb[i], units = "secs")))
+  time_between_out[[length(time_between_out) + 1]] <- list(a = tb_texts[i], b = tb_texts[j],
+    second = secs, minute = towards_zero(secs, 60L), hour = towards_zero(secs, 3600L),
+    day = towards_zero(secs, 86400L), week = towards_zero(secs, 604800L),
+    month = steps_between(tb[i], tb[j], 1L), year = steps_between(tb[i], tb[j], 12L))
+}
+
 out <- list(
   reference = reference_block(),
+  time_between = time_between_out,
   add_days = add_days_out,
   add_months = add_months_out,
   between = between_out,

@@ -21,14 +21,14 @@ Exact: the day of the clock, read once at each call. The help pages' examples an
 cases run under a fixed clock, 2026-11-01 09:30:00, so that they print one value everywhere.
 
 ## See also
-now, date, days_between
+now, date, time_between
 
 ## Examples
 > today()
 2026-11-01
 note[W0703]: today() read the clock: 2026-11-01 (line 1)
   = help: the value depends on when the script runs; `zeff run --replay` will reuse it (release 0.11.0)
-> days_between(today(), date("2027-01-01"))
+> time_between(today(), date("2027-01-01"))
 61
 note[W0703]: today() read the clock: 2026-11-01 (line 2)
   = help: the value depends on when the script runs; `zeff run --replay` will reuse it (release 0.11.0)

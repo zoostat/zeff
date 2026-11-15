@@ -1,6 +1,5 @@
 ---
 source: packages/tier1/time/tests/time.rs
-assertion_line: 466
 expression: out
 ---
 date("2026-02-30")
@@ -173,25 +172,107 @@ error[Z0401]: `d` of `add_days` must be a Date or DateTime, but this is a Str
   |
   = help: usage: `add_days(d, n)`
 
-days_between(date("2026-10-16"), datetime("2026-10-16T09:30"))
+time_between(date("2026-10-16"), datetime("2026-10-16T09:30"))
 ---
-error[Z0401]: `days_between` counts between two dates or two times, but `start` is a Date and `end` is a DateTime
+error[Z0401]: `time_between` counts between two dates or two times, but `start` is a Date and `end` is a DateTime
  --> scripts/main.zeff:1:34
   |
-1 | days_between(date("2026-10-16"), datetime("2026-10-16T09:30"))
+1 | time_between(date("2026-10-16"), datetime("2026-10-16T09:30"))
   |                                  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^ not the type of `start`
   |
-  = help: write `to(end, Date)` to count days between the dates, or `to(start, DateTime)` to count between the instants
+  = help: write `to(end, Date)` to count between the dates, or `to(start, DateTime)` to count between the instants
 
-days_between(date("2026-10-16"), 7)
+time_between(datetime("2026-10-16T09:30"), date("2026-10-16"), unit: minute)
 ---
-error[Z0401]: `end` of `days_between` must be a Date or DateTime, but this is an Int
+error[Z0401]: `time_between` counts between two dates or two times, but `start` is a DateTime and `end` is a Date
+ --> scripts/main.zeff:1:44
+  |
+1 | time_between(datetime("2026-10-16T09:30"), date("2026-10-16"), unit: minute)
+  |                                            ^^^^^^^^^^^^^^^^^^ not the type of `start`
+  |
+  = help: write `to(end, DateTime)` to count between the instants, midnight standing for the date
+
+time_between(date("2026-10-16"), 7)
+---
+error[Z0401]: `end` of `time_between` must be a Date or DateTime, but this is an Int
  --> scripts/main.zeff:1:34
   |
-1 | days_between(date("2026-10-16"), 7)
+1 | time_between(date("2026-10-16"), 7)
   |                                  ^ an Int
   |
-  = help: usage: `days_between(start, end)`
+  = help: usage: `time_between(start, end, unit: second | minute | hour | day | week | month | year = day)`
+
+time_between(date("2026-10-16"), date("2026-10-17"), unit: hour)
+---
+error[Z0401]: `unit: hour` counts between two times, but `start` and `end` are dates
+ --> scripts/main.zeff:1:60
+  |
+1 | time_between(date("2026-10-16"), date("2026-10-17"), unit: hour)
+  |                                                            ^^^^ a unit of the clock
+  |
+  = help: a Date has no time of day: count with `unit: day`, or give two DateTimes (`to(d, DateTime)` is midnight of the day)
+
+let f = frame(a = [date("2026-10-16")], b = [date("2026-10-17")])
+f.add(s = time_between(a, b, unit: second))
+---
+error[Z0401]: `unit: second` counts between two times, but `start` and `end` are dates (row 1)
+ --> scripts/main.zeff:2:36
+  |
+2 | f.add(s = time_between(a, b, unit: second))
+  |                                    ^^^^^^ a unit of the clock
+  |
+  = help: a Date has no time of day: count with `unit: day`, or give two DateTimes (`to(d, DateTime)` is midnight of the day)
+
+time_between(date("2026-10-16"), date("2026-10-17"), unit: days)
+---
+error[Z0402]: `days` is not one of the allowed words
+ --> scripts/main.zeff:1:60
+  |
+1 | time_between(date("2026-10-16"), date("2026-10-17"), unit: days)
+  |                                                            ^^^^ expected one of second, minute, hour, day, week, month, year
+  |
+  = help: did you mean `day`?
+
+time_between(date("2026-10-16"), date("2026-10-17"), unit: "day")
+---
+error[Z0403]: expected one of second, minute, hour, day, week, month, year, found text
+ --> scripts/main.zeff:1:60
+  |
+1 | time_between(date("2026-10-16"), date("2026-10-17"), unit: "day")
+  |                                                            ^^^^^ a word, not a string
+  |
+  = help: write the word without quotes: `day`
+
+days_between(date("2026-10-16"), date("2026-10-17"))
+---
+error[Z0103]: no function is called `days_between`
+ --> scripts/main.zeff:1:1
+  |
+1 | days_between(date("2026-10-16"), date("2026-10-17"))
+  | ^^^^^^^^^^^^ not a function of Zeff
+  |
+  = help: `days_between(start, end)` is `time_between(start, end)` since release 0.8.0
+
+months_between(date("2026-10-16"), date("2026-11-17"))
+---
+error[Z0103]: no function is called `months_between`
+ --> scripts/main.zeff:1:1
+  |
+1 | months_between(date("2026-10-16"), date("2026-11-17"))
+  | ^^^^^^^^^^^^^^ not a function of Zeff
+  |
+  = help: `months_between(start, end)` is `time_between(start, end, unit: month)` since release 0.8.0
+
+let f = frame(a = [date("2026-10-16")])
+f.add(g = days_between(a, date("2026-11-01")))
+---
+error[Z0103]: no function is called `days_between`
+ --> scripts/main.zeff:2:11
+  |
+2 | f.add(g = days_between(a, date("2026-11-01")))
+  |           ^^^^^^^^^^^^ not a function of Zeff
+  |
+  = help: `days_between(start, end)` is `time_between(start, end)` since release 0.8.0
 
 date("2026-10-16") + 7
 ---

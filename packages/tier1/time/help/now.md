@@ -22,7 +22,7 @@ Exact: the clock, read once at each call, to the microsecond where the machine g
 help pages' examples and the conformance cases run under a fixed clock, 2026-11-01 09:30:00.
 
 ## See also
-today, datetime, days_between
+today, datetime, time_between
 
 ## Examples
 > now()

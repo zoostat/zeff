@@ -183,7 +183,7 @@ is never listed here as accepted: it is fixed or the function is withdrawn.
 - **Dates and times carry no time zone and no duration.** A `DateTime` is a wall-clock instant;
   text with `Z` or an offset is converted to UTC and counted (W0702). `Date - Date` is days;
   every other arithmetic on a date is refused (Z0221) with the function to use (`add_days`,
-  `add_months`, `days_between`, `months_between`). Years run from 1 to 9999, a result outside
+  `add_months`, `time_between`). Years run from 1 to 9999, a result outside
   them is `NA` (W0203); `add_months` clamps to the month's last day, so it does not undo itself
   there; `format` prints weekday and month names in English. (Since 0.6.0; by design.)
 - **`today()` and `now()` are recorded only by their note.** Each use prints W0703 with the

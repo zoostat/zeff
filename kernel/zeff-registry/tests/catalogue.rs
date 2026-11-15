@@ -8,11 +8,12 @@ fn the_compiled_catalogue_reads_in_full() {
     // 545 until step 8c1 of release 0.8.0, where the merges of open decision #113 took 18 rows;
     // 527 until step 8c2, which added the 135 rows of the graphics proposal (#122).
     // 662 until step 8c3, which added the 13 rows of the diagram proposal (#121).
-    assert_eq!(catalogue.rows().len(), 675);
+    // 675 until step 8d, where `time_between` took the place of two rows (#96).
+    assert_eq!(catalogue.rows().len(), 674);
     let mut ids: Vec<u32> = catalogue.rows().iter().map(|r| r.id).collect();
     ids.sort_unstable();
     ids.dedup();
-    assert_eq!(ids.len(), 675, "ids are distinct");
+    assert_eq!(ids.len(), 674, "ids are distinct");
 }
 
 #[test]

@@ -188,6 +188,10 @@ time/parts/stdout 9d8407bf30ba8484
 time/parts/stderr cb2442f2589bec96
 time/arithmetic/stdout 8e2948fe3d0e9221
 time/arithmetic/stderr 6a11d8fbcfd0c419
+time/between/stdout 861fd9a776e031f0
+time/between/stderr 38f896d3a52bd33c
+time/between/mixed fe9f49cf21315836
+time/between/old_name e7b27e3cd32f49fe
 text/format/stdout 66baef825ea0b37f
 text/format/stderr cbf29ce484222325
 text/basics/stdout 7f0dbf727663ed1c

@@ -217,7 +217,7 @@ pub fn kinds_fit(op: Op, a: Kind, b: Kind) -> Result<(), Trouble> {
             | (Op::Sub, Kind::Na, Kind::DateTime) => Err(Trouble::Types {
                 code: "Z0221",
                 message: "`-` between two DateTimes is not defined in 1.0".to_string(),
-                help: "`days_between(start, end)` counts the whole days between two times; a Duration type comes after 1.0",
+                help: "`time_between(start, end, unit: hour)` counts the whole hours between two times, and `unit:` takes seconds to years; a Duration type comes after 1.0",
             }),
             (Op::Add | Op::Sub, x, y)
                 if (x.is_time() && y == Kind::Number) || (y.is_time() && x == Kind::Number) =>

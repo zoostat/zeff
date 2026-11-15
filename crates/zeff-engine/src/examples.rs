@@ -171,6 +171,7 @@ pub fn run_examples_with(
                 .unwrap_or_default()
                 .into_iter()
                 .filter(|l| !is_source_excerpt(l))
+                .map(|l| help_line(&l))
                 .collect();
             if printed.is_empty() && outcome.exit_code != 0 {
                 printed = outcome
@@ -178,13 +179,13 @@ pub fn run_examples_with(
                     .stderr
                     .lines()
                     .filter(|l| !is_source_excerpt(l))
-                    .map(|l| l.trim_end().to_string())
+                    .map(|l| help_line(l.trim_end()))
                     .collect();
             }
             let expected: Vec<String> = mistake
                 .output
                 .iter()
-                .map(|l| l.trim_end().to_string())
+                .map(|l| help_line(l.trim_end()))
                 .collect();
             if printed != expected {
                 failures.push(ExampleFailure {
@@ -211,6 +212,19 @@ pub fn run_examples_with(
         }
     }
     failures
+}
+
+/// A `= help:` or `= note:` line of a diagnostic with the indentation a page writes it with,
+/// two spaces. The engine indents such a line by the width of the excerpt's gutter, which grows
+/// with the line number of the statement, and a page's common mistake must not depend on where
+/// in the examples' script it happens to stand.
+fn help_line(line: &str) -> String {
+    let trimmed = line.trim_start();
+    if trimmed.starts_with("= ") {
+        format!("  {trimmed}")
+    } else {
+        line.to_string()
+    }
 }
 
 /// Whether a line of a diagnostic is part of its source excerpt (` --> file:line:column`, the

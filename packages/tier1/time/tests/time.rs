@@ -8,7 +8,9 @@
 use proptest::prelude::*;
 use serde_json::Value as Json;
 use std::path::Path;
-use zeff_dates::{MAX_DAYS, MIN_DAYS, format_iso_date};
+use zeff_dates::{
+    MAX_DAYS, MIN_DAYS, days_of_micros, format_iso_date, format_iso_datetime, micros_of_days,
+};
 use zeff_engine::fs::MemoryFileSystem;
 use zeff_engine::project::Project;
 use zeff_engine::run::{Outcome, run_script};
@@ -302,43 +304,73 @@ fn add_days_and_add_months_agree_with_r() {
 }
 
 #[test]
-fn days_between_and_months_between_agree_with_r() {
+fn time_between_agrees_with_r_in_every_unit() {
     let json = reference("time");
+    // Two dates: days, weeks, months and years over the grid of ten dates, both directions,
+    // the ends of the calendar among them.
     let cases = json["between"].as_array().unwrap();
+    let units = [
+        ("days", ""),
+        ("weeks", ", unit: week"),
+        ("months", ", unit: month"),
+        ("years", ", unit: year"),
+    ];
     let expressions: Vec<String> = cases
         .iter()
         .flat_map(|c| {
             let (a, b) = (c["a"].as_str().unwrap(), c["b"].as_str().unwrap());
-            [
-                format!("days_between(date(\"{a}\"), date(\"{b}\"))"),
-                format!("months_between(date(\"{a}\"), date(\"{b}\"))"),
-            ]
+            units
+                .iter()
+                .map(move |(_, unit)| format!("time_between(date(\"{a}\"), date(\"{b}\"){unit})"))
+        })
+        .collect();
+    let (lines, stderr) = printed(&expressions);
+    assert_eq!(stderr, "");
+    assert_eq!(lines.len(), cases.len() * units.len());
+    for (i, c) in cases.iter().enumerate() {
+        for (k, (key, _)) in units.iter().enumerate() {
+            assert_eq!(
+                lines[units.len() * i + k],
+                c[*key].to_string(),
+                "{key} {} to {}",
+                c["a"],
+                c["b"]
+            );
+        }
+    }
+    // Two times: every unit over the grid of sixteen times, both directions.
+    let cases = json["time_between"].as_array().unwrap();
+    assert_eq!(cases.len(), 256);
+    let units = ["second", "minute", "hour", "day", "week", "month", "year"];
+    let expressions: Vec<String> = cases
+        .iter()
+        .flat_map(|c| {
+            let (a, b) = (c["a"].as_str().unwrap(), c["b"].as_str().unwrap());
+            units.iter().map(move |unit| {
+                format!("time_between(datetime(\"{a}\"), datetime(\"{b}\"), unit: {unit})")
+            })
         })
         .collect();
     let (lines, stderr) = printed(&expressions);
     assert_eq!(stderr, "");
     for (i, c) in cases.iter().enumerate() {
-        assert_eq!(
-            lines[2 * i],
-            c["days"].to_string(),
-            "days {} to {}",
-            c["a"],
-            c["b"]
-        );
-        assert_eq!(
-            lines[2 * i + 1],
-            c["months"].to_string(),
-            "months {} to {}",
-            c["a"],
-            c["b"]
-        );
+        for (k, unit) in units.iter().enumerate() {
+            assert_eq!(
+                lines[units.len() * i + k],
+                c[*unit].to_string(),
+                "{unit} {} to {}",
+                c["a"],
+                c["b"]
+            );
+        }
     }
+    // The whole days between two times that the reference of 0.6.0 holds, with the unit left out.
     let pairs = json["time_days"].as_array().unwrap();
     let expressions: Vec<String> = pairs
         .iter()
         .map(|c| {
             format!(
-                "days_between(datetime(\"{}\"), datetime(\"{}\"))",
+                "time_between(datetime(\"{}\"), datetime(\"{}\"))",
                 c["a"].as_str().unwrap(),
                 c["b"].as_str().unwrap()
             )
@@ -353,7 +385,7 @@ fn days_between_and_months_between_agree_with_r() {
 #[test]
 fn today_and_now_read_the_run_clock_and_note_it() {
     let outcome = run_clocked(
-        "today()\nnow()\nlet t = today()\ndays_between(t, date(\"2027-01-01\"))\nyear(now())\nto(now(), Date) == today()\n",
+        "today()\nnow()\nlet t = today()\ntime_between(t, date(\"2027-01-01\"))\nyear(now())\nto(now(), Date) == today()\n",
     );
     assert_eq!(outcome.exit_code, 0, "{}", outcome.output.stderr);
     assert_eq!(
@@ -418,10 +450,22 @@ add_months(date("2026-01-31"), 1)
 add_months(date("2026-02-28"), -1)
 add_months(datetime("2026-01-31T09:30:00.5"), 1)
 add_days(datetime("2026-10-16T23:59:59"), 1)
-days_between(datetime("2026-01-01T00:00"), datetime("2026-01-01T23:59:59"))
-months_between(date("2026-01-31"), date("2026-01-31"))
-months_between(date("0001-01-01"), date("9999-12-31"))
-g.add(next = add_days(d, 1), later = add_months(d, 1), gap = days_between(d, date("2026-11-01")), m = months_between(date("2020-01-01"), d))
+time_between(datetime("2026-01-01T00:00"), datetime("2026-01-01T23:59:59"))
+time_between(date("2026-01-31"), date("2026-01-31"), unit: month)
+time_between(date("0001-01-01"), date("9999-12-31"), unit: month)
+g.add(next = add_days(d, 1), later = add_months(d, 1), gap = time_between(d, date("2026-11-01")), m = time_between(date("2020-01-01"), d, unit: month))
+let t0 = datetime("2026-10-16T09:30:00")
+[time_between(t0, t0, unit: second), time_between(t0, t0), time_between(t0, t0, unit: year)]
+time_between(datetime("0001-01-01T00:00:00"), datetime("9999-12-31T23:59:59"), unit: second)
+time_between(datetime("9999-12-31T23:59:59"), datetime("0001-01-01T00:00:00"), unit: year)
+time_between(datetime("2026-10-16T09:30:00"), datetime("2026-10-16T09:30:00.999999"), unit: second)
+time_between(datetime("2026-10-16T09:30:00.5"), datetime("2026-10-16T09:30:01.499999"), unit: second)
+time_between(NA, date("2026-10-16"))
+time_between(datetime("2026-10-16T09:30"), NA, unit: hour)
+date("2026-01-31").time_between(date("2026-03-01"), unit: week)
+let u = frame(a = [datetime("2026-01-15T12:00"), NA, datetime("2026-03-01T00:00")], b = [datetime("2026-02-15T06:00"), datetime("2026-02-15T06:00"), datetime("2026-01-01T00:00")])
+u.add(s = time_between(a, b, unit: second), h = time_between(a, b, unit: hour), d = time_between(a, b), mo = time_between(a, b, unit: month))
+u.add(h = time_between(a, b, unit: hour)).aggregate(longest = max(h), known = n())
 add_days(date("0001-01-01"), -1)
 "#;
     let (code, stdout, stderr) = go(script);
@@ -453,8 +497,18 @@ fn every_message() {
         "let f = frame(d = [date(\"9999-12-31\"), date(\"2026-10-16\")])\nf.add(e = add_days(d, 1))\n",
         "add_days(date(\"2026-10-16\"), 1.5)\n",
         "add_days(\"2026-10-16\", 1)\n",
-        "days_between(date(\"2026-10-16\"), datetime(\"2026-10-16T09:30\"))\n",
-        "days_between(date(\"2026-10-16\"), 7)\n",
+        "time_between(date(\"2026-10-16\"), datetime(\"2026-10-16T09:30\"))\n",
+        "time_between(datetime(\"2026-10-16T09:30\"), date(\"2026-10-16\"), unit: minute)\n",
+        "time_between(date(\"2026-10-16\"), 7)\n",
+        // `time_between` (release 0.8.0, step 8d): a unit of the clock on two dates, on values
+        // and on columns; a word that is no unit; and the two names it took the place of.
+        "time_between(date(\"2026-10-16\"), date(\"2026-10-17\"), unit: hour)\n",
+        "let f = frame(a = [date(\"2026-10-16\")], b = [date(\"2026-10-17\")])\nf.add(s = time_between(a, b, unit: second))\n",
+        "time_between(date(\"2026-10-16\"), date(\"2026-10-17\"), unit: days)\n",
+        "time_between(date(\"2026-10-16\"), date(\"2026-10-17\"), unit: \"day\")\n",
+        "days_between(date(\"2026-10-16\"), date(\"2026-10-17\"))\n",
+        "months_between(date(\"2026-10-16\"), date(\"2026-11-17\"))\n",
+        "let f = frame(a = [date(\"2026-10-16\")])\nf.add(g = days_between(a, date(\"2026-11-01\")))\n",
         "date(\"2026-10-16\") + 7\n",
         "today(1)\n",
     ];
@@ -510,7 +564,7 @@ proptest! {
     ) {
         let text = format_iso_date(days);
         let script = format!(
-            "let d = date(\"{text}\")\nprint(days_between(d, add_days(d, {n})))\nprint(add_days(add_days(d, {n}), -({n})) == d)\nprint(months_between(d, add_months(d, {m})))\nprint(add_months(add_months(d, {m}), -({m})) <= d)\nprint(day(add_months(d, {m})) <= day(d))\n"
+            "let d = date(\"{text}\")\nprint(time_between(d, add_days(d, {n})))\nprint(add_days(add_days(d, {n}), -({n})) == d)\nprint(time_between(d, add_months(d, {m}), unit: month))\nprint(add_months(add_months(d, {m}), -({m})) <= d)\nprint(day(add_months(d, {m})) <= day(d))\n"
         );
         let (code, stdout, stderr) = go(&script);
         prop_assert_eq!(code, 0, "{}", stderr);
@@ -521,5 +575,56 @@ proptest! {
         prop_assert_eq!(lines[2], m.to_string());
         prop_assert_eq!(lines[3], "true");
         prop_assert_eq!(lines[4], "true");
+    }
+
+    /// With the arguments swapped the count changes sign: exactly for the units of fixed length,
+    /// which truncate towards zero on both sides; for months and years, whose clamping is counted
+    /// from `start`, the two counts never have the same sign and differ in size by at most one.
+    #[test]
+    fn the_sign_reverses_with_the_arguments(
+        a in micros_of_days(MIN_DAYS + 400)..micros_of_days(MAX_DAYS - 400),
+        gap in -30_000_000_000_000i64..30_000_000_000_000,
+    ) {
+        let b = a + gap;
+        let (ta, tb) = (format_iso_datetime(a), format_iso_datetime(b));
+        let (da, db) = (format_iso_date(days_of_micros(a)), format_iso_date(days_of_micros(b)));
+        let units = ["second", "minute", "hour", "day", "week", "month", "year"];
+        let mut script = format!(
+            "let a = datetime(\"{ta}\")\nlet b = datetime(\"{tb}\")\nlet c = date(\"{da}\")\nlet d = date(\"{db}\")\n"
+        );
+        for unit in units {
+            script.push_str(&format!(
+                "print(time_between(a, b, unit: {unit}))\nprint(time_between(b, a, unit: {unit}))\n"
+            ));
+        }
+        for unit in &units[3..] {
+            script.push_str(&format!(
+                "print(time_between(c, d, unit: {unit}))\nprint(time_between(d, c, unit: {unit}))\n"
+            ));
+        }
+        let (code, stdout, stderr) = go(&script);
+        prop_assert_eq!(code, 0, "{}", stderr);
+        prop_assert_eq!(stderr, "");
+        let counts: Vec<i64> = stdout.lines().map(|l| l.parse().unwrap()).collect();
+        prop_assert_eq!(counts.len(), 2 * (units.len() + 4));
+        for (i, pair) in counts.chunks(2).enumerate() {
+            let (forward, back) = (pair[0], pair[1]);
+            // Pairs 0 to 4 are the fixed units on times, 5 and 6 months and years on times;
+            // 7 and 8 days and weeks on dates, 9 and 10 months and years on dates.
+            if i < 5 || i == 7 || i == 8 {
+                prop_assert_eq!(forward, -back, "pair {}", i);
+            } else {
+                prop_assert!(forward.signum() * back.signum() <= 0, "pair {}", i);
+                prop_assert!((forward.abs() - back.abs()).abs() <= 1, "pair {}", i);
+            }
+            // Never further from zero than the gap allows.
+            prop_assert!(forward.signum() == 0 || forward.signum() == gap.signum(), "pair {}", i);
+        }
+        // The units nest: whole minutes are the whole seconds in sixties, and so on up to weeks.
+        prop_assert_eq!(counts[2], counts[0] / 60);
+        prop_assert_eq!(counts[4], counts[0] / 3_600);
+        prop_assert_eq!(counts[6], counts[0] / 86_400);
+        prop_assert_eq!(counts[8], counts[0] / 604_800);
+        prop_assert_eq!(counts[12], counts[10] / 12, "a year is twelve whole months");
     }
 }

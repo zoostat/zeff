@@ -79,8 +79,6 @@ time quarter
 time week
 time add_days
 time add_months
-time days_between
-time months_between
 text upper
 text lower
 text trim

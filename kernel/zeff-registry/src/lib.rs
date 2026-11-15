@@ -39,6 +39,29 @@ pub fn unrevised_pages() -> Vec<(&'static str, &'static str)> {
         .collect()
 }
 
+/// The names a release before 1.0 took out of the language, each with the call that takes its
+/// place: a script that still uses one is refused with this line (Z0103), and `zeff help` gives
+/// it too, so that a breaking change of a minor release (Engine and Project Specification,
+/// section 14) always says what to write instead.
+pub const REPLACED: &[(&str, &str)] = &[
+    (
+        "days_between",
+        "`days_between(start, end)` is `time_between(start, end)` since release 0.8.0",
+    ),
+    (
+        "months_between",
+        "`months_between(start, end)` is `time_between(start, end, unit: month)` since release 0.8.0",
+    ),
+];
+
+/// What to write in the place of a name a release took out, if `name` is one.
+pub fn replaced(name: &str) -> Option<&'static str> {
+    REPLACED
+        .iter()
+        .find(|(old, _)| *old == name)
+        .map(|(_, rewrite)| *rewrite)
+}
+
 /// Whether a release, `0.8.0`, is 0.8.0 or later.
 fn from_0_8_0(release: &str) -> bool {
     let mut parts = release.split('.').map(|p| p.parse::<u32>().unwrap_or(0));

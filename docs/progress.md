@@ -100,3 +100,13 @@ Step 2: the help contract of 0.8.0 (#103) in section 9.1 and in the registry, wi
 
 **For the owner to decide.** Nothing blocks.
 
+## 15 November 2026, release 0.8.0, step 8d (`time_between`)
+
+**Done.** Step 8d `[function]`: `time_between(start, end, unit:)` counts whole seconds, minutes, hours, days, weeks, months or years between two dates or two times, truncated towards zero, and takes the place of `days_between` and `months_between`, which are refused with the call to write. Every value agrees with R on 356 pairs (2,192 values), and the month and year counts with `lubridate`. The page is the first written whole under the help contract of 0.8.0.
+
+**Green.** Format, clippy with warnings denied, the tier and message checks, every test of the workspace; CI read after the push.
+
+**Next.** Step 8e `[function]`: `hour`, `minute`, `second`; `datetime(x, epoch:)`; `min` and `max` on dates (#96).
+
+**For the owner to decide.** Nothing blocks. One definition was taken by the reading of #96 and is his to overturn: whole months between two times count the time of day, so 15 January 12:00 to 15 February 06:00 is 0 months, where the function of 0.6.0 gave 1 (`docs/decisions.md` of this date).
+

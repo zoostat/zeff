@@ -104,6 +104,11 @@ pub fn help_text(registry: &Registry, name: &str) -> Result<String, String> {
         });
     }
 
+    // A name a release took out: what to write in its place.
+    if let Some(rewrite) = zeff_registry::replaced(name) {
+        return Ok(format!("{rewrite}\n"));
+    }
+
     let mut candidates: Vec<&str> = catalogue.rows().iter().map(|r| r.name.as_str()).collect();
     candidates.extend(packages.iter().copied());
     let mut message = format!("no function or package is called `{name}`");

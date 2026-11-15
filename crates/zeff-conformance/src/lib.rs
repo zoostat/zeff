@@ -1301,8 +1301,25 @@ fn time_cases() -> Vec<Line> {
     };
     let script = "date(\"2026-10-16\")\ndate(\"16/10/2026\", format: \"%d/%m/%Y\")\ndate(\"Oct 16, 2026\", format: \"%b %d, %Y\")\ndate(\"2026-02-30\")\ndatetime(\"2026-10-16T09:30:00.25\")\ndatetime(\"2026-10-16T09:30:00+02:00\")\ndatetime(\"2026-10-16\")\nlet d = date(\"2021-01-03\")\n[year(d), month(d), day(d), weekday(d), quarter(d), week(d)]\nlet t = datetime(\"1999-12-31T23:59:59\")\n[year(t), month(t), day(t), weekday(t), quarter(t), week(t)]\nlet f = frame(s = [\"2026-01-01\", \"2024-12-30\", \"0001-01-01\", \"9999-12-31\", \"no\"])\nf.add(d = date(s)).add(y = year(d), m = month(d), dd = day(d), wd = weekday(d), q = quarter(d), w = week(d))\n";
     let outcome = run_script(&fs, &project, "scripts/main.zeff", script);
-    let arithmetic = "let d = date(\"2026-01-31\")\nadd_days(d, 30)\nadd_days(d, -31)\nadd_months(d, 1)\nadd_months(date(\"2024-01-31\"), 1)\nadd_months(d, -11)\nadd_months(date(\"9999-12-31\"), 1)\ndays_between(d, date(\"2026-03-01\"))\ndays_between(datetime(\"2026-01-31T23:00\"), datetime(\"2026-02-02T22:59\"))\nmonths_between(d, date(\"2026-02-28\"))\nmonths_between(date(\"2026-03-31\"), d)\nadd_days(datetime(\"2026-01-31T09:30\"), 1)\nlet f = frame(d = [d, date(\"2024-02-29\"), date(\"0001-01-01\")])\nf.add(later = add_months(d, 12), gap = days_between(d, date(\"2026-11-01\")), back = add_days(d, -1))\ntoday()\nnow()\ndays_between(today(), date(\"2027-01-01\"))\n";
+    let arithmetic = "let d = date(\"2026-01-31\")\nadd_days(d, 30)\nadd_days(d, -31)\nadd_months(d, 1)\nadd_months(date(\"2024-01-31\"), 1)\nadd_months(d, -11)\nadd_months(date(\"9999-12-31\"), 1)\ntime_between(d, date(\"2026-03-01\"))\ntime_between(datetime(\"2026-01-31T23:00\"), datetime(\"2026-02-02T22:59\"))\ntime_between(d, date(\"2026-02-28\"), unit: month)\ntime_between(date(\"2026-03-31\"), d, unit: month)\nadd_days(datetime(\"2026-01-31T09:30\"), 1)\nlet f = frame(d = [d, date(\"2024-02-29\"), date(\"0001-01-01\")])\nf.add(later = add_months(d, 12), gap = time_between(d, date(\"2026-11-01\")), back = add_days(d, -1))\ntoday()\nnow()\ntime_between(today(), date(\"2027-01-01\"))\n";
     let moved = run_script(&fs, &project, "scripts/main.zeff", arithmetic);
+    // `time_between` (release 0.8.0, step 8d): every unit on two dates and on two times, both
+    // directions, the month-end clamping, a time of day that falls short of a whole month, `NA`,
+    // columns, and the two refusals: a unit of the clock on dates, and a date beside a time.
+    let between = "let a = date(\"2026-01-31\")\nlet b = date(\"2026-03-01\")\ntime_between(a, b)\ntime_between(b, a)\ntime_between(a, b, unit: week)\ntime_between(a, date(\"2026-02-28\"), unit: month)\ntime_between(a, date(\"2026-02-27\"), unit: month)\ntime_between(date(\"2026-02-28\"), a, unit: month)\ntime_between(date(\"2020-02-29\"), date(\"2026-02-28\"), unit: year)\ntime_between(date(\"2026-02-28\"), date(\"2020-02-29\"), unit: year)\nlet s = datetime(\"2026-03-02T09:15:00\")\nlet e = datetime(\"2026-03-03T08:45:30\")\n[time_between(s, e, unit: second), time_between(s, e, unit: minute), time_between(s, e, unit: hour), time_between(s, e), time_between(s, e, unit: week)]\n[time_between(e, s, unit: second), time_between(e, s, unit: minute), time_between(e, s, unit: hour), time_between(e, s, unit: day)]\ntime_between(datetime(\"2026-01-15T12:00\"), datetime(\"2026-02-15T06:00\"), unit: month)\ntime_between(datetime(\"2026-01-15T12:00\"), datetime(\"2026-02-15T12:00\"), unit: month)\ntime_between(datetime(\"2020-06-01T12:00\"), datetime(\"2026-06-01T11:59:59\"), unit: year)\ntime_between(a, NA)\nlet v = frame(arrived = [datetime(\"2026-03-02T09:15\"), datetime(\"2026-03-02T10:02\"), NA], served = [datetime(\"2026-03-02T09:41\"), datetime(\"2026-03-02T11:30\"), datetime(\"2026-03-02T12:00\")])\nv.add(wait = time_between(arrived, served, unit: minute), hours = time_between(arrived, served, unit: hour))\nv.where(time_between(arrived, served, unit: minute) > 30)\ntime_between(a, b, unit: hour)\n";
+    let counted = run_script(&fs, &project, "scripts/main.zeff", between);
+    let mixed = run_script(
+        &fs,
+        &project,
+        "scripts/main.zeff",
+        "time_between(date(\"2026-01-31\"), datetime(\"2026-02-02T09:00\"), unit: hour)\n",
+    );
+    let old_name = run_script(
+        &fs,
+        &project,
+        "scripts/main.zeff",
+        "days_between(date(\"2026-01-31\"), date(\"2026-03-01\"))\n",
+    );
     // `format` of the `text` package (step 5): decimals, separators, the plain form of a large
     // number, dates by a pattern, on values and on columns.
     let formatted = "format(1234567.891, digits: 2)\nformat(1234567.891, digits: 2, big_mark: \",\")\nformat(-0.0001, digits: 2)\nformat(2.675, digits: 2)\nformat(1e16, digits: 1)\nformat(1 / 3)\nformat(123456789, big_mark: \" \")\nformat(42, digits: 3)\nformat(date(\"2026-10-16\"), pattern: \"%A %d %B %Y, day %j\")\nformat(datetime(\"2026-10-16T09:05:07.5\"), pattern: \"%y%m%d %H:%M:%S\")\nformat(date(\"0001-01-01\"))\nlet f = frame(x = [1250.5, 980, -3.14159], d = [date(\"2026-01-05\"), date(\"2024-02-29\"), date(\"9999-12-31\")])\nf.add(t = format(x, digits: 2, big_mark: \",\"), m = format(d, pattern: \"%b %Y\"), p = format(x))\n";
@@ -1322,6 +1339,10 @@ fn time_cases() -> Vec<Line> {
         text("time/parts/stderr", &outcome.output.stderr),
         text("time/arithmetic/stdout", &moved.output.stdout),
         text("time/arithmetic/stderr", &moved.output.stderr),
+        text("time/between/stdout", &counted.output.stdout),
+        text("time/between/stderr", &counted.output.stderr),
+        text("time/between/mixed", &mixed.output.stderr),
+        text("time/between/old_name", &old_name.output.stderr),
         text("text/format/stdout", &printed.output.stdout),
         text("text/format/stderr", &printed.output.stderr),
         text("text/basics/stdout", &texts.output.stdout),

@@ -2089,6 +2089,12 @@ impl Checker<'_> {
     /// public functions of the modules it has not brought in; a public function of such a module
     /// under this very name is answered with the `use` line that brings it in.
     fn near_function(&self, name: &str) -> Option<String> {
+        // A name a release took out: the call that takes its place, before any near name.
+        if let Some(rewrite) = zeff_registry::replaced(name)
+            && !self.signatures.iter().any(|s| s.name == name)
+        {
+            return Some(rewrite.to_string());
+        }
         let here = |s: &Signature| match &self.current_module {
             Some(module) => {
                 s.module.is_some() && (s.module.as_deref() == Some(module.as_str()) || s.public)
@@ -4360,7 +4366,7 @@ impl Checker<'_> {
                             span,
                             "`-` between two DateTimes is not defined in 1.0".to_string(),
                             "two DateTimes".to_string(),
-                            "`days_between(start, end)` counts the whole days between two times; a Duration type comes after 1.0",
+                            "`time_between(start, end, unit: hour)` counts the whole hours between two times, and `unit:` takes seconds to years; a Duration type comes after 1.0",
                         ),
                         (B::Add | B::Sub, _, o) if is_number(o) && *o != Ty::Na => self.wrong_operands(
                             span,
