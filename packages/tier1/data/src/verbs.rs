@@ -5,7 +5,7 @@
 //! carries opaque columns through untouched (section 4.3).
 
 use std::rc::Rc;
-use zeff_columns::{Column, ColumnType, GroupError, Value as Cell, sort_rows};
+use zeff_columns::{Column, ColumnType, GroupError, sort_rows};
 use zeff_core::lift::broadcast;
 use zeff_core::runtime::{Args, CallContext, Fail, fail};
 use zeff_core::value::{Frame, Value};
@@ -94,14 +94,26 @@ pub fn resolve_vars(
     names: &[String],
     at: usize,
 ) -> Result<Vec<usize>, Fail> {
-    let span = ctx.span_of(at);
+    resolve_names(ctx.script, ctx.span_of(at), frame, names)
+}
+
+/// [`resolve_vars`] without a call's context: the script the names are written in and where.
+/// The interpreter resolves a list of variables given to a built-in written in Zeff with it,
+/// before the body sees the list, so that a range and a misspelt name are refused in the words
+/// the verbs written in Rust use (open decision #90).
+pub fn resolve_names(
+    script: &str,
+    span: zeff_diagnostics::Span,
+    frame: &Frame,
+    names: &[String],
+) -> Result<Vec<usize>, Fail> {
     let shown = frame.shown_name();
     let columns: Vec<&str> = frame.table.names().iter().map(String::as_str).collect();
     let position = |name: &str| -> Result<usize, Fail> {
         frame
             .table
             .position(name)
-            .ok_or_else(|| fail(no_variable(ctx.script, span, &shown, name, &columns)))
+            .ok_or_else(|| fail(no_variable(script, span, &shown, name, &columns)))
     };
     let mut positions: Vec<usize> = Vec::new();
     let mut push = |p: usize| {
@@ -119,7 +131,7 @@ pub fn resolve_vars(
                             "Z0401",
                             format!("the range `{name}` runs backwards: `{last}` comes before `{first}` in {shown}"),
                         )
-                        .in_file(ctx.script)
+                        .in_file(script)
                         .primary(span, "a range runs from an earlier variable to a later one")
                         .help(format!("the variables of {shown}, in order: {}", columns.join(", "))),
                     ));
@@ -289,50 +301,6 @@ pub fn where_(ctx: &mut CallContext<'_>, args: Args) -> Result<Value, Fail> {
             "{} dropped where `{condition}` was NA{listing}",
             rows(dropped)
         )));
-    }
-    if kept.is_empty() {
-        ctx.message(Diagnostic::plain_note("no row kept: the result is empty"));
-    }
-    Ok(derived(frame.table.select_rows(kept, frame.table.token())))
-}
-
-/// `data.drop_missing(vars)` (catalogue row 121; release 0.5.0, step 18): the rows with no
-/// `NA` in any of the variables named, in their order, with one note giving the rows dropped and
-/// the variables (the owner's form, question 3 (c) of the release: `228 rows with NA in educ or
-/// exper dropped`; `no row had NA in educ` when nothing is dropped). Metadata and the frame's
-/// declaration travel with the table, as in every frame verb.
-pub fn drop_missing(ctx: &mut CallContext<'_>, args: Args) -> Result<Value, Fail> {
-    let frame = the_frame(ctx, "drop_missing", &args)?;
-    let positions = resolve_vars(ctx, frame, &vars_of(&args, 1), 1)?;
-    let columns: Vec<&Column> = positions
-        .iter()
-        .filter_map(|&p| frame.table.column_at(p))
-        .collect();
-    let names: Vec<&str> = positions
-        .iter()
-        .map(|&p| frame.table.names()[p].as_str())
-        .collect();
-    let total = frame.table.rows();
-    let kept: Vec<usize> = (0..total)
-        .filter(|&row| {
-            columns
-                .iter()
-                .all(|c| !matches!(c.get(row), None | Some(Cell::Na)))
-        })
-        .collect();
-    let dropped = total - kept.len();
-    let listed = match names.len() {
-        0 => String::new(),
-        1 => names[0].to_string(),
-        n => format!("{} or {}", names[..n - 1].join(", "), names[n - 1]),
-    };
-    if dropped > 0 {
-        ctx.message(Diagnostic::plain_note(format!(
-            "{} with NA in {listed} dropped",
-            rows(dropped)
-        )));
-    } else {
-        ctx.message(Diagnostic::plain_note(format!("no row had NA in {listed}")));
     }
     if kept.is_empty() {
         ctx.message(Diagnostic::plain_note("no row kept: the result is empty"));

@@ -205,15 +205,15 @@ is never listed here as accepted: it is fixed or the function is withdrawn.
   a share outside 0 to 0.5 is refused by the body's `assert` (Z0001). A body can raise a coded
   warning since 0.7.0 (open decision #70), but it cannot yet name the script's variable behind
   a column it was given, so the body is as it was. (Since 0.6.0.)
-- **Six functions planned in Zeff are written in Rust**, each with the reason in its catalogue
+- **Five functions planned in Zeff are written in Rust**, each with the reason in its catalogue
   row: `row_mean` and `row_sum` (the kernel's compensated row reduction, which `+` over columns
   does not reproduce), `diff` (its `lag` reads the panel of the frame around the call, which a
   body does not pass on), `n_missing` (a list holding failed values reaches it), `summary` (its
   table's formatting and combined warning need `format` and `join` of `text`, its title the
   frame's name, and it takes `weights:`) and `duplicates` (its pieces came later in 0.6.0);
-  `drop_missing` stays too until a body can resolve a variable range (open decision #90,
-  step 7b of 0.8.0; a body raises the errors its page declares since step 7a), and `vif` stays
-  in Rust though `design()` exists (open decision #136, not before 1.0). `fill_missing` and
+  `vif` stays in Rust too though `design()` exists (open decision #136, not before 1.0).
+  `drop_missing` returned to Zeff at step 7b of 0.8.0, once a body could raise the engine's
+  codes and see a list of variables resolved against the frame (open decisions #89 and #90). `fill_missing` and
   `quantile_group` returned to Zeff at steps 4.1 and 4.4 of 0.7.0. Of the functions of 0.7.0
   that were planned in Zeff, `t_test`, `proportion_test`, `chi2_test`, `kruskal_test` and
   `p_adjust` are in Rust, since a body has no way to build a test's result (open decision #92,

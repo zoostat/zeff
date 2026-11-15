@@ -17,6 +17,10 @@ data::center
     Z0401   `x` is not a column of numbers
     W0201   missing values skipped, with the count; all missing, or no rows at all, gives NA
     W0204   Inf and -Inf both present, so the result is NA
+data::drop_missing
+    Note   the rows dropped and the variables, or that no row had NA in them; no row kept
+    Z0101   a variable the frame does not have
+    Z0401   a range of variables that runs backwards
 data::iqr
     W0201   rows with `NA` in the variable were skipped
     Z0401   `type:` is not 1 to 9, or the variable is not numeric

@@ -14,7 +14,17 @@ use zeff_engine::registry::{registry, zeff_bodies};
 use zeff_engine::run::run_script;
 
 /// A function, a code of its page, and a script that raises the code through the function.
-const SHOWN: [(&str, &str, &str); 44] = [
+const SHOWN: [(&str, &str, &str); 46] = [
+    (
+        "drop_missing",
+        "Z0101",
+        "frame(x = [1.0, NA]).drop_missing([nope])",
+    ),
+    (
+        "drop_missing",
+        "Z0401",
+        "frame(a = [1.0, NA], b = [2.0, 3]).drop_missing([b..a])",
+    ),
     ("assert", "Z0001", "assert(1 == 2, \"one is not two\")"),
     ("assert", "Z0203", "assert(NA, \"no condition\")"),
     (
@@ -252,7 +262,8 @@ fn the_pages_of_the_fourteen() {
     let registry = registry().unwrap_or_else(|e| panic!("{e:?}"));
     let mut names: Vec<&(String, String)> = zeff_bodies().keys().collect();
     names.sort();
-    assert_eq!(names.len(), 14);
+    // Fourteen until release 0.8.0, step 7b, where `drop_missing` returned to Zeff.
+    assert_eq!(names.len(), 15);
     let mut all = String::new();
     for (package, name) in names {
         all.push_str(&format!("{package}::{name}\n"));

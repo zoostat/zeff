@@ -1835,6 +1835,32 @@ impl<'a> Interpreter<'a> {
         } else {
             (values, Cow::Borrowed(call.args.as_slice()))
         };
+        // A list of variables given to the body (open decision #90): resolved against the
+        // frame the function works on, its first argument or the enclosing frame, before the
+        // parameter is bound, so that the body sees plain names: a range expanded by position,
+        // each name once, a name the frame lacks refused (Z0101) and a range that runs backwards
+        // (Z0401), in the words of the verbs written in Rust.
+        let mut values = values;
+        if let Some(Some(Value::Frame(frame))) = values.first().cloned() {
+            for (i, param) in f.params.iter().enumerate().skip(1) {
+                if param.ty != zeff_ir::Ty::Vars {
+                    continue;
+                }
+                let Some(Some(Value::Vars(names))) = values.get(i) else {
+                    continue;
+                };
+                let span = args
+                    .get(i)
+                    .and_then(|a| a.as_ref())
+                    .map_or(call.callee_span, |e| e.span);
+                let positions = zeff_data::verbs::resolve_names(self.script, span, &frame, names)?;
+                let resolved: Vec<String> = positions
+                    .iter()
+                    .map(|&p| frame.table.names()[p].clone())
+                    .collect();
+                values[i] = Some(Value::Vars(resolved));
+            }
+        }
         let saved_program = std::mem::replace(&mut self.program, &form.program);
         let saved_env = std::mem::take(&mut self.env);
         let saved_receivers = std::mem::take(&mut self.receivers);

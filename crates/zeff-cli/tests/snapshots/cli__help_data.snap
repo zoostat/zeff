@@ -34,7 +34,6 @@ data · tier 1 · 59 of 59 functions in this release
   n_distinct        Number of distinct values
   summary           Table of N, missing, mean, SD, min and max
   tabulate          Frequencies and percentages, one- or two-way
-  drop_missing      Remove rows with NA in the variables and report how many
   lag               Previous values in the panel's time order
   lead              Next values
   diff              x − lag(x, n), so it respects the panel's time order and gaps
@@ -54,6 +53,7 @@ data · tier 1 · 59 of 59 functions in this release
   save              Save as CSV or TSV, chosen by the extension
   row_mean          Mean across variables in each row
   row_sum           Sum across variables in each row
+  drop_missing      Remove rows with NA in the variables and report how many
   between           True where low <= x <= high
   center            Subtract the mean
   standardize       z-scores

@@ -908,29 +908,6 @@ pub fn functions() -> Vec<Function> {
         },
         Function {
             spec: FunctionSpec {
-                name: "drop_missing",
-                package: "data",
-                method: true,
-                params: vec![
-                    ParamSpec::required("data", "Frame"),
-                    ParamSpec::required("vars", "Vars"),
-                ],
-                rest: None,
-                returns: "Frame",
-                diagnostics: vec![
-                    DiagnosticDecl::note(
-                        "the rows dropped and the variables, or that no row had NA in them; no row kept",
-                    ),
-                    DiagnosticDecl::new("Z0101", "a variable the frame does not have"),
-                    DiagnosticDecl::new("Z0401", "a range of variables that runs backwards"),
-                ],
-                help: include_str!("../help/drop_missing.md"),
-                accuracy: None,
-            },
-            body: verbs::drop_missing,
-        },
-        Function {
-            spec: FunctionSpec {
                 name: "lag",
                 package: "data",
                 method: false,
@@ -1371,6 +1348,79 @@ pub fn functions() -> Vec<Function> {
 /// `summary` follows at step 22.
 pub fn zeff_sources() -> Vec<zeff_registry::ZeffSource> {
     vec![
+        zeff_registry::ZeffSource {
+            package: "data",
+            name: "drop_missing",
+            file: "data/functions/drop_missing.zeff",
+            text: include_str!("../functions/drop_missing.zeff"),
+            cannot: &[
+                ("", "said below in the function's own words"),
+                ("Z0101", "said below in the function's own words"),
+                ("Z0401", "said below in the function's own words"),
+                (
+                    "W0102",
+                    "the condition given to `where` is the body's own binding, which comes before any variable of the frame",
+                ),
+                (
+                    "Z0203",
+                    "the body's conditions compare counts, and the condition it gives `where` is a column of Bools with no `NA`",
+                ),
+                (
+                    "Z0217",
+                    "the condition is computed from the frame's own columns, and `frame` is given one column",
+                ),
+                (
+                    "W0201",
+                    "the body sums a column of Ints it has made, which has no `NA`, and only when the frame has a row",
+                ),
+                (
+                    "W0205",
+                    "the body sums a column of Ints it has made, which holds no infinity",
+                ),
+                ("Z0211", "the sum is a count of rows, which fits in 64 bits"),
+                ("Z0214", "the body gives `frame` one column of Ints"),
+                ("Z0219", "the body gives `frame` one column of Ints"),
+                ("Z0406", "the body gives `frame` one column of Ints"),
+                (
+                    "W0203",
+                    "the body converts a Bool to an Int, which always has a value",
+                ),
+                (
+                    "W0202",
+                    "the body converts a Bool to an Int, which has no fraction",
+                ),
+                (
+                    "Z0409",
+                    "the body converts to an Int and formats an Int, neither of which takes a date format",
+                ),
+                (
+                    "W0702",
+                    "the body converts to an Int, not to a date and time",
+                ),
+                ("Z0410", "the body gives `format` a big mark alone"),
+                (
+                    "Z0220",
+                    "the lists given to `map` and `reduce` are made by the body, and hold no failed value",
+                ),
+                (
+                    "Z0418",
+                    "the body counts from 1 to one less than the number of variables, which is at least 1",
+                ),
+                (
+                    "W0801",
+                    "the list whose length is taken is made by the body, and holds no failed value",
+                ),
+                ("Z0206", "the body binds nothing that `note` gives"),
+            ],
+            also: &[
+                (
+                    "",
+                    "the rows dropped and the variables, or that no row had NA in them; no row kept",
+                ),
+                ("Z0101", "a variable the frame does not have"),
+                ("Z0401", "a range of variables that runs backwards"),
+            ],
+        },
         zeff_registry::ZeffSource {
             package: "data",
             name: "between",

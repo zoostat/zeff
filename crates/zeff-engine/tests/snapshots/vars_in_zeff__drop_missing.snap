@@ -1,0 +1,38 @@
+---
+source: crates/zeff-engine/tests/vars_in_zeff.rs
+expression: "format!(\"{}--- messages\\n{}\", out.output.stdout, out.output.stderr)"
+---
+frame · 0 rows × 4 variables
+
+     id   x   y   z
+frame · 1 row × 4 variables
+
+      id   x    y   z
+  1    1   1   NA   1
+frame · 2 rows × 4 variables
+
+      id    x    y   z
+  1    1    1   NA   1
+  2    2   NA    2   1
+frame · 0 rows × 4 variables
+
+     id   x   y   z
+frame · 0 rows × 4 variables
+
+     id   x   y   z
+frame · 0 rows × 4 variables
+
+     id   x   y   z
+--- messages
+note: 2 rows with NA in x or y dropped (line 2)
+note: no row kept: the result is empty (line 2)
+note: 1 row with NA in x dropped (line 3)
+note: no row had NA in z (line 4)
+note: 2 rows with NA in id, x, y or z dropped (line 5)
+note: no row kept: the result is empty (line 5)
+note: 1 row with NA in x dropped (line 6)
+note: no row kept: the result is empty (line 6)
+note: 1 row dropped where `x > 5` was NA; `d.where(is_missing(x))` lists them (line 7)
+note: no row kept: the result is empty (line 7)
+note: no row had NA in x (line 7)
+note: no row kept: the result is empty (line 7)

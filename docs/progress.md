@@ -115,3 +115,13 @@ Tests, plots and the language server: 72 functions in 258 commits over 40 steps,
 **Next.** Step 7b `[engine]`: variable ranges in a built-in written in Zeff (#90), and `drop_missing` in Zeff if the two pieces suffice.
 
 **For the owner to decide.** Nothing blocks.
+
+## 15 November 2026, release 0.8.0, step 7b (variable ranges in a Zeff-written built-in; `drop_missing` in Zeff)
+
+**Done.** Step 7b `[engine]`: a list of variables given to a built-in written in Zeff is resolved against the frame before the body sees it, by the Rust verbs' own resolver, so a range and a misspelt name are refused in the same words. With it and step 7a, `drop_missing` is written in Zeff: every note and every digest as its Rust form gave them; an empty frame, found by its edge case, handled before the commit. Sixteen functions are written in Zeff; the catalogue and section 8.2 say so, logged.
+
+**Green.** Format, clippy with warnings denied, the tier and message checks, every test of the workspace; CI read after the push.
+
+**Next.** Step 8a `[engine]`: the notes of a plot chain, and the legend titles of `labels` (#130 B, #131 B).
+
+**For the owner to decide.** Nothing blocks.

@@ -1,0 +1,28 @@
+---
+source: crates/zeff-engine/tests/vars_in_zeff.rs
+expression: all
+---
+--- unknown
+error[Z0101]: no variable `nope` in `d`
+ --> scripts/main.zeff:2:17
+  |
+2 | d.fixture_names([x, nope])
+  |                 ^^^^^^^^^ not a variable of d
+  |
+  = help: the variables of `d` are: id, x, y, z
+--- backwards
+error[Z0401]: the range `z..id` runs backwards: `id` comes before `z` in d
+ --> scripts/main.zeff:2:17
+  |
+2 | d.fixture_names([z..id])
+  |                 ^^^^^^^ a range runs from an earlier variable to a later one
+  |
+  = help: the variables of d, in order: id, x, y, z
+--- unknown end of a range
+error[Z0101]: no variable `nope` in `d`
+ --> scripts/main.zeff:2:17
+  |
+2 | d.fixture_names([x..nope])
+  |                 ^^^^^^^^^ not a variable of d
+  |
+  = help: the variables of `d` are: id, x, y, z
