@@ -13,11 +13,11 @@ is never listed here as accepted: it is fixed or the function is withdrawn.
   function of `core` given a text or category column, `log(industry)`, gives `NA` on every row
   without a message. Nothing wrong is computed in the first case; in the second the `NA`s are
   the sign. (The first since 0.6.0, found at 0.7.0; open decision #108, for 0.8.0.)
-- **Inside a function, a parameter does not stand for a term of a fit.** `fit.coef(on)` in a
-  function with a parameter `on` asks for a term called `on`, and stops with Z0414 listing the
-  terms; `coef(name_of(on))` reads the term the parameter names. The same holds for a loop
-  variable in a script. An error, never another number. (Since 0.4.0; found at 0.7.0; open
-  decision #147, for 0.8.0.)
+- **In a script, a loop variable does not stand for a term of a fit.** `for v in vars(educ) {
+  m.coef(v) }` asks for a term called `v` and stops with Z0414 listing the terms;
+  `coef(name_of(v))` reads the term the variable names. Inside a function the parameters and
+  bindings of the function are the terms they hold, since 0.8.0 (open decision #147). An
+  error, never another number. (Since 0.4.0; found at 0.7.0.)
 - **A function written on the spot is taken only where a function is expected**, as in
   `map(xs, fn(x) x * 2)`: its body is one expression, and `let f = fn(x) ...` is refused
   (Z0205); a function with a name is written with `fn name(...)`. `filter` refuses an `NA` from

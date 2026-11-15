@@ -281,3 +281,74 @@ fn every_message_of_names_in_function_bodies() {
     }
     insta::assert_snapshot!("every_message", all);
 }
+
+#[test]
+fn a_parameter_that_holds_a_variable_is_the_term_it_names() {
+    // Open decision #147 (release 0.8.0, step 5): inside a function, `coef(on)` reads the term
+    // the parameter `on` holds, on a frame with a variable called `on` as on one without; a Str
+    // parameter is the term it spells; `name_of(on)` still works; a name the function does not
+    // bind is the term of that name, as in a script. R: coef(lm(b ~ a))[2] 1.99761904761905.
+    let columns =
+        "a = [1.0, 2, 3, 4, 5, 6, 7, 8], b = [2.1, 3.9, 6.2, 7.8, 10.1, 12.2, 13.8, 16.1]";
+    let slope = "/// A regression's slope.\nfn slope(data: Frame, outcome: Var, on: Var) -> Float {\n    data.reg(outcome ~ on).coef(on)\n}\n";
+    for frame in [
+        format!("frame({columns})"),
+        format!(
+            "frame({columns}, outcome = [3.0, 1, 4, 1, 5, 9, 2, 6], on = [2.0, 7, 1, 8, 2, 8, 1, 8])"
+        ),
+    ] {
+        let outcome = run(&format!("{slope}let d = {frame}\nd.slope(b, a)\n"));
+        assert_eq!(outcome.exit_code, 0, "{}", outcome.output.stderr);
+        assert_eq!(outcome.output.stderr, "");
+        assert_eq!(outcome.output.stdout, "1.99762\n");
+    }
+    let spelt = "/// The coefficient of a named term.\nfn of(data: Frame, outcome: Var, on: Var, term: Str) -> Float {\n    data.reg(outcome ~ on).coef(term)\n}\n";
+    let outcome = run(&format!(
+        "{spelt}let d = frame({columns})\nd.of(b, a, \"a\")\nd.of(b, a, \"(intercept)\")\n"
+    ));
+    assert_eq!(outcome.exit_code, 0, "{}", outcome.output.stderr);
+    assert_eq!(outcome.output.stdout, "1.99762\n0.0357143\n");
+    let named = "/// A regression's slope, by name_of.\nfn slope(data: Frame, outcome: Var, on: Var) -> Float {\n    data.reg(outcome ~ on).coef(name_of(on))\n}\n";
+    let outcome = run(&format!("{named}let d = frame({columns})\nd.slope(b, a)\n"));
+    assert_eq!(
+        outcome.output.stdout, "1.99762\n",
+        "{}",
+        outcome.output.stderr
+    );
+    // A name the function does not bind is a term of that name: here the data have `a`.
+    let plain = "/// The slope on a.\nfn slope_a(data: Frame, outcome: Var) -> Float {\n    data.reg(outcome ~ a).coef(a)\n}\n";
+    let outcome = run(&format!("{plain}let d = frame({columns})\nd.slope_a(b)\n"));
+    assert_eq!(
+        outcome.output.stdout, "1.99762\n",
+        "{}",
+        outcome.output.stderr
+    );
+    // A parameter that holds a variable the fit has no term for is still Z0414, naming the
+    // variable it holds.
+    let wrong = "/// The coefficient of another variable.\nfn other(data: Frame, outcome: Var, on: Var, also: Var) -> Float {\n    data.reg(outcome ~ on).coef(also)\n}\n";
+    let outcome = run(&format!(
+        "{wrong}let d = frame({columns}, c = [1.0, 0, 1, 0, 1, 0, 1, 0])\nd.other(b, a, c)\n"
+    ));
+    assert_eq!(outcome.exit_code, 1);
+    assert!(
+        outcome
+            .output
+            .stderr
+            .contains("error[Z0414]: `c` is not a term of this fit"),
+        "{}",
+        outcome.output.stderr
+    );
+    // In a script a bare name stays the term of that name: a loop variable is not read.
+    let script = format!(
+        "let d = frame({columns})\nlet m = d.reg(b ~ a)\nfor v in vars(a) {{\n    print(m.coef(v))\n}}\n"
+    );
+    let outcome = run(&script);
+    assert!(
+        outcome
+            .output
+            .stderr
+            .contains("error[Z0414]: `v` is not a term of this fit"),
+        "{}",
+        outcome.output.stderr
+    );
+}

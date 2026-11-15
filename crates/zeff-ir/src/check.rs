@@ -3156,7 +3156,25 @@ impl Checker<'_> {
             }
             // Where a term is expected, a bare name is that term, whatever else bears the name
             // (section 3.7, "Resolution by parameter type"); it is checked against the result's
-            // model matrix when the statement runs.
+            // model matrix when the statement runs. Inside the body of a function, a name the
+            // function binds that holds a variable or text is the term it names, one rule with
+            // the function's names coming first everywhere (open decision #147, with #140).
+            Some(Ty::Term)
+                if self.current_function.is_some()
+                    && let Some(id) = self.lookup(&text)
+                    && self.bindings[id].in_function
+                    && matches!(self.bindings[id].ty, Ty::Var | Ty::Str) =>
+            {
+                return Expr {
+                    ty: Ty::Term,
+                    span,
+                    kind: ExprKind::Term(Box::new(Expr {
+                        ty: self.bindings[id].ty.clone(),
+                        span,
+                        kind: ExprKind::Binding(id),
+                    })),
+                };
+            }
             Some(Ty::Term) => {
                 return Expr {
                     ty: Ty::Term,

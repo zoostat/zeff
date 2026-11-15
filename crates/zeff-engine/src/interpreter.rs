@@ -2156,6 +2156,9 @@ impl<'a> Interpreter<'a> {
             ExprKind::Word(word) => Value::Word(word.clone()),
             ExprKind::Term(inner) => match self.eval(inner, printed, messages)? {
                 Value::Str(name) => Value::Term(name),
+                // A parameter of a function that holds a variable is the term of that name
+                // (open decision #147).
+                Value::Var(name) => Value::Term(name),
                 Value::Na => Value::Na,
                 _ => return Err(self.internal(expr, "a term name that is not text")),
             },

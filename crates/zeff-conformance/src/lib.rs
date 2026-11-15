@@ -1203,6 +1203,11 @@ fn control_cases() -> Vec<Line> {
         // one variable where one is taken, directly, through a binding and through a spread, the
         // record of section 3.2 spread into two calls, and a list of two refused at the call.
         ("option_records", OPTION_RECORDS_SCRIPT),
+        // A parameter where a term of a fit is expected (release 0.8.0, step 5; open decision
+        // #147): inside a function `coef(on)` reads the term the parameter holds, on a frame
+        // with a variable of the parameter's name too; a Str parameter spells the term;
+        // `name_of` still works; a name the function does not bind is the term of that name.
+        ("term_parameters", TERM_PARAMETERS_SCRIPT),
     ];
     let mut lines = Vec::new();
     for (name, script) in scripts {
@@ -1239,6 +1244,8 @@ fn control_cases() -> Vec<Line> {
 
 /// The script of the `several_types` case: `fill_missing`, written in Zeff on a parameter of
 /// several types, under every type and column form a call may take.
+const TERM_PARAMETERS_SCRIPT: &str = "/// A regression's slope.\nfn slope(data: Frame, outcome: Var, on: Var) -> Float {\n    data.reg(outcome ~ on).coef(on)\n}\n/// The coefficient of a named term.\nfn of(data: Frame, outcome: Var, on: Var, term: Str) -> Float {\n    data.reg(outcome ~ on).coef(term)\n}\n/// The slope by name_of.\nfn slope_named(data: Frame, outcome: Var, on: Var) -> Float {\n    data.reg(outcome ~ on).coef(name_of(on))\n}\nlet w = dataset(wages)\nw.slope(wage, educ)\nlet twin = w.add(on = educ * 2, outcome = wage)\ntwin.slope(wage, educ)\nw.of(wage, educ, \"educ\")\nw.of(wage, educ, \"(intercept)\")\nw.slope_named(wage, educ)\nlet m = w.reg(wage ~ educ)\nfor v in vars(educ) {\n    print(m.coef(v))\n}\n";
+
 const OPTION_RECORDS_SCRIPT: &str = "let w = dataset(wages)\nlet opts = {se: robust, cluster: vars(worker)}\nw.reg(log(wage) ~ educ, ..opts).std_errors(educ)\nw.reg(log(wage) ~ educ + exper, ..opts).std_errors(educ)\nw.reg(log(wage) ~ educ, cluster: worker).std_errors(educ)\nw.reg(log(wage) ~ educ, cluster: vars(worker)).std_errors(educ)\nlet c = vars(worker)\nw.reg(log(wage) ~ educ, cluster: c).std_errors(educ)\nlet two = {cluster: vars(worker, year)}\nw.reg(log(wage) ~ educ, ..two)\n";
 
 const SEVERAL_TYPES_SCRIPT: &str = "fill_missing(NA, 3)\nfill_missing(to(NA, Int), 0)\nfill_missing(true, false)\nfill_missing(to(NA, Bool), true)\nfill_missing(\"a\", \"b\")\nfill_missing(to(NA, Str), \"none\")\nfill_missing(1, 2.5)\nfill_missing(2.5, 1)\nfill_missing(to(NA, Float), 1)\nfill_missing(to(NA, Int), 1.5)\nfill_missing(to(\"2026-01-01\", Date), to(\"2000-01-01\", Date))\nfill_missing(to(NA, Date), to(\"2000-01-01\", Date))\nlet d = frame(i = [1, NA, 3], f = [1.5, NA, 2], s = [\"a\", NA, \"c\"], b = [true, NA, false])\nfill_missing(d[\"i\"], 0)\nfill_missing(d[\"f\"], 0)\nfill_missing(d[\"i\"], 0.5)\nfill_missing(d[\"s\"], \"none\")\nfill_missing(d[\"b\"], false)\nfill_missing(NA, d[\"i\"])\nfill_missing(d[\"f\"], d[\"i\"])\nd.add(i2 = fill_missing(i, 0), f2 = fill_missing(f, i), s2 = fill_missing(s, \"-\"))\nlet w = dataset(wages)\nw.add(wage2 = fill_missing(wage, 0)).summary([wage2])\n";

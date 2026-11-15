@@ -5273,3 +5273,9 @@ Done before parts 1 and 2 are read, because those wait for jobs that run for hou
 **Why not a bare name in a record.** Option B of #87 would have kept `{ cluster: firm }` by deferring the check of a bare name to the spread; it was not taken because a misspelt word in a record would then be caught at the spread and not where it is written, against the rule of section 3.7 that an unknown name is refused where it stands.
 
 **Reason.** Open decision #87 (decided 15 November 2026); Language Reference, section 3.7 ("Words and types"); the checklist's step 4.
+
+## 15 November 2026: a parameter where a term of a fit is expected (release 0.8.0, step 5; open decision #147, option A)
+
+**Choice.** Inside the body of a function, a bare name where a term of a fit is expected (`coef`, `std_errors`, `ci`, `p_values`, `test`, `derive` and the other result methods) that the function binds, as a parameter, a `let` or a loop variable, and that holds a `Var` or a `Str`, is the term it names: the checker lowers it to the binding under the term (`ExprKind::Term` over `ExprKind::Binding`), and the interpreter reads a variable's name as the term. A name the function does not bind, and every name in a script, is the term of that name as before, so no script changes; `name_of(on)` still works. The rule is the table of section 3.7, logged, and the one rule with #140: inside a function the function's names come first everywhere. The known-issues entry now says what is left, that a loop variable in a script does not stand for a term, which the owner's decision kept so that scripts are unchanged.
+
+**Reason.** Open decision #147 (decided 15 November 2026); Language Reference, section 3.7 ("Resolution by parameter type"); the checklist's step 5.

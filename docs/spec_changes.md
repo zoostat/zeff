@@ -663,3 +663,7 @@ Step 2 of release 0.8.0. The document's seven pages show the contract as it stoo
 ## 15 November 2026 — zeff_language_reference.md, section 3.2 (the record literal) and section 3.7 (the row "Words and types")
 
 Open decision #87, decided 15 November 2026 (option A), applied as step 4 of release 0.8.0. The example record of section 3.2 is written `{ se: robust, cluster: vars(firm) }`, since a record literal holds no bare variable name (the correction of 6 November under #83), and the row of section 3.7 says what the engine now does: a list of exactly one variable, `vars(firm)`, is accepted wherever a parameter takes one variable, directly or through a spread, and stands for that variable; a list of two or more there is an error (Z0401). Nothing else changes.
+
+## 15 November 2026 — zeff_language_reference.md, section 3.7 (the table "Resolution by parameter type", the row of a term name)
+
+Open decision #147, decided 15 November 2026 (option A), applied as step 5 of release 0.8.0. The row says that inside the body of a function a name the function binds that holds a `Var` or a `Str` is the term it names, so `coef(on)` in a function with a parameter `on` reads the coefficient of the variable the parameter holds: one rule with the row above it and with #140, the function's names coming first everywhere. A name the function does not bind, and every name in a script, is the term of that name as before.

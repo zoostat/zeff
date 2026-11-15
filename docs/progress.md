@@ -85,3 +85,13 @@ Tests, plots and the language server: 72 functions in 258 commits over 40 steps,
 **Next.** Step 5 `[engine]`: a parameter where a term of a fit is expected (#147).
 
 **For the owner to decide.** Nothing blocks.
+
+## 15 November 2026, release 0.8.0, step 5 (a parameter where a term is expected)
+
+**Done.** Step 5 `[engine]`: inside a function, a parameter or binding that holds a variable or text is the term it names where a term of a fit is expected, so `data.reg(outcome ~ on).coef(on)` reads the coefficient of the variable the parameter holds; a name the function does not bind, and every name in a script, is the term of that name as before. The table of section 3.7 follows, logged; the page of Z0414 says so; the conformance case `control/term_parameters` holds it; the known-issues entry is reduced to what is left (a loop variable in a script).
+
+**Green.** Format, clippy with warnings denied, the tier and message checks, every test of the workspace; CI read after the push.
+
+**Next.** Step 6 `[engine]`: the type of a column checked against the parameter when the statement runs (#108).
+
+**For the owner to decide.** Nothing blocks.
