@@ -4,19 +4,19 @@ expression: out
 ---
 frame(x = [1.0, 2]).add(w = winsorize(x, at: 0.6))
 ---
-error[Z0001]: `at:` of `winsorize` is a share between 0 and 0.5; above 0.5 the cut points would cross
- --> scripts/main.zeff:1:29
+error[Z0401]: `at:` of `winsorize` is a share between 0 and 0.5; above 0.5 the cut points would cross
+ --> scripts/main.zeff:1:46
   |
 1 | frame(x = [1.0, 2]).add(w = winsorize(x, at: 0.6))
-  |                             ^^^^^^^^^ in this call
+  |                                              ^^^ this argument
 
 frame(x = [1.0, 2]).add(w = winsorize(x, at: -0.1))
 ---
-error[Z0001]: `at:` of `winsorize` is a share between 0 and 0.5; above 0.5 the cut points would cross
- --> scripts/main.zeff:1:29
+error[Z0401]: `at:` of `winsorize` is a share between 0 and 0.5; above 0.5 the cut points would cross
+ --> scripts/main.zeff:1:46
   |
 1 | frame(x = [1.0, 2]).add(w = winsorize(x, at: -0.1))
-  |                             ^^^^^^^^^ in this call
+  |                                              ^^^^ this argument
 
 frame(x = [1.0, NA, 3]).add(w = winsorize(x))
 ---
@@ -31,7 +31,7 @@ warning[W0201]: 1 row with NA in value was skipped (line 1)
 
 frame(x = [1.0, 2]).add(q = quantile_group(x))
 ---
-error[Z0001]: `quantile_group` needs `n:`; `quantile_group(x, n: 4)` gives quartile groups 1 to 4 and `n: 10` deciles
+error[Z0406]: `quantile_group` needs `n:`; `quantile_group(x, n: 4)` gives quartile groups 1 to 4 and `n: 10` deciles
  --> scripts/main.zeff:1:29
   |
 1 | frame(x = [1.0, 2]).add(q = quantile_group(x))
@@ -39,19 +39,19 @@ error[Z0001]: `quantile_group` needs `n:`; `quantile_group(x, n: 4)` gives quart
 
 frame(x = [1.0, 2]).add(q = quantile_group(x, n: 0))
 ---
-error[Z0001]: `n:` of `quantile_group` is a count of groups of at least 1
- --> scripts/main.zeff:1:29
+error[Z0401]: `n:` of `quantile_group` is a count of groups of at least 1
+ --> scripts/main.zeff:1:50
   |
 1 | frame(x = [1.0, 2]).add(q = quantile_group(x, n: 0))
-  |                             ^^^^^^^^^^^^^^ in this call
+  |                                                  ^ this argument
 
 frame(x = [1.0, 2]).add(q = quantile_group(x, n: 2, type: 10))
 ---
-error[Z0001]: `type:` of `quantile_group` must be one of the nine definitions, 1 to 9; `type: 7` is R's default
- --> scripts/main.zeff:1:29
+error[Z0401]: `type:` of `quantile_group` must be one of the nine definitions, 1 to 9; `type: 7` is R's default
+ --> scripts/main.zeff:1:59
   |
 1 | frame(x = [1.0, 2]).add(q = quantile_group(x, n: 2, type: 10))
-  |                             ^^^^^^^^^^^^^^ in this call
+  |                                                           ^^ this argument
 
 frame(x = ["a", "b"]).add(q = quantile_group(x, n: 2))
 ---

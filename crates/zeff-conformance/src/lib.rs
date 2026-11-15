@@ -1213,6 +1213,10 @@ fn control_cases() -> Vec<Line> {
         // each caught by `attempt`; the right types pass; the last statement's refusal ends the
         // script and is what the standard error digests.
         ("column_types", COLUMN_TYPES_SCRIPT),
+        // A coded error from a built-in written in Zeff (release 0.8.0, step 7a; open decision
+        // #89): `quantile_group` and `winsorize` refuse an argument under Z0401 and Z0406, each
+        // caught by `attempt`; `error` with `code:` written in a script is what ends the run.
+        ("coded_errors", CODED_ERRORS_SCRIPT),
     ];
     let mut lines = Vec::new();
     for (name, script) in scripts {
@@ -1249,6 +1253,8 @@ fn control_cases() -> Vec<Line> {
 
 /// The script of the `several_types` case: `fill_missing`, written in Zeff on a parameter of
 /// several types, under every type and column form a call may take.
+const CODED_ERRORS_SCRIPT: &str = "let d = frame(x = [1.0, 2, 3, 4, 5, 6])\nprint(attempt(d.add(g = quantile_group(x, n: 0))).is(Failed))\nprint(attempt(d.add(g = quantile_group(x))).is(Failed))\nprint(attempt(d.add(g = quantile_group(x, n: 2, type: 12))).is(Failed))\nprint(attempt(d.add(w = winsorize(x, at: 0.9))).is(Failed))\nd.add(g = quantile_group(x, n: 3), w = winsorize(x, at: 0.2))\nd.add(g = quantile_group(x, n: 0))\n";
+
 const COLUMN_TYPES_SCRIPT: &str = "let d = frame(s = [\"a\", \"b\"], n = [1, 2], b = [true, false], t = [to(\"2026-01-01\", Date), to(\"2026-02-01\", Date)])\nprint(attempt(d.add(a = log(s))).is(Failed))\nprint(attempt(d.add(a = year(n))).is(Failed))\nprint(attempt(d.add(a = upper(n))).is(Failed))\nprint(attempt(d.add(a = round(b))).is(Failed))\nprint(attempt(d.add(a = abs(t))).is(Failed))\nprint(attempt(d.where(sqrt(s) > 1)).is(Failed))\nprint(attempt(d.plot(x: log(s), y: n).points()).is(Failed))\nprint(attempt(d.reg(n ~ log(s))).is(Failed))\nd.add(ok = log(n), day = year(t), up = upper(s), flag = to(b, Int))\nlet w = dataset(wages)\nw.add(x = log(industry))\n";
 
 const TERM_PARAMETERS_SCRIPT: &str = "/// A regression's slope.\nfn slope(data: Frame, outcome: Var, on: Var) -> Float {\n    data.reg(outcome ~ on).coef(on)\n}\n/// The coefficient of a named term.\nfn of(data: Frame, outcome: Var, on: Var, term: Str) -> Float {\n    data.reg(outcome ~ on).coef(term)\n}\n/// The slope by name_of.\nfn slope_named(data: Frame, outcome: Var, on: Var) -> Float {\n    data.reg(outcome ~ on).coef(name_of(on))\n}\nlet w = dataset(wages)\nw.slope(wage, educ)\nlet twin = w.add(on = educ * 2, outcome = wage)\ntwin.slope(wage, educ)\nw.of(wage, educ, \"educ\")\nw.of(wage, educ, \"(intercept)\")\nw.slope_named(wage, educ)\nlet m = w.reg(wage ~ educ)\nfor v in vars(educ) {\n    print(m.coef(v))\n}\n";

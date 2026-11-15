@@ -36,9 +36,9 @@ data::mad
     Z0101   the variable is not in the frame
     W0205   the quantile falls between Inf and -Inf
 data::quantile_group
-    Z0001   `n:` is missing or below 1, or `type:` is not 1 to 9
+    Z0401   `x` is not a column of numbers; `n:` is below 1; `type:` is not 1 to 9
+    Z0406   `n:` is not given
     Z0203   `type:` is `NA`
-    Z0401   `x` is not a column of numbers
     Z0418   `n:` is above ten million
     W0205   the quantile falls between Inf and -Inf
 data::skewness
@@ -55,8 +55,7 @@ data::standardize
     W0204   Inf and -Inf both present, so the result is NA
     W0205   one value only, an infinite value, or squared deviations that overflow, so the result is NA
 data::winsorize
+    Z0401   `x` is not a column of numbers; `at:` is below 0 or above 0.5
     W0201   rows with `NA` in `x` were skipped
-    Z0001   `at:` is below 0 or above 0.5
     Z0203   `at:` is `NA`
-    Z0401   `x` is not a column of numbers
     W0205   the quantile falls between Inf and -Inf

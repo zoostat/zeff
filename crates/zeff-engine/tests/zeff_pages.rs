@@ -14,7 +14,7 @@ use zeff_engine::registry::{registry, zeff_bodies};
 use zeff_engine::run::run_script;
 
 /// A function, a code of its page, and a script that raises the code through the function.
-const SHOWN: [(&str, &str, &str); 45] = [
+const SHOWN: [(&str, &str, &str); 44] = [
     ("assert", "Z0001", "assert(1 == 2, \"one is not two\")"),
     ("assert", "Z0203", "assert(NA, \"no condition\")"),
     (
@@ -61,11 +61,6 @@ const SHOWN: [(&str, &str, &str); 45] = [
     ),
     (
         "winsorize",
-        "Z0001",
-        "frame(x = [1.0, 2, 3]).add(c = winsorize(x, at: 0.9))",
-    ),
-    (
-        "winsorize",
         "Z0203",
         "frame(x = [1.0, 2, 3]).add(c = winsorize(x, at: NA))",
     ),
@@ -86,8 +81,8 @@ const SHOWN: [(&str, &str, &str); 45] = [
     ),
     (
         "quantile_group",
-        "Z0001",
-        "frame(x = [1.0, 2, 3]).add(g = quantile_group(x, n: 0))",
+        "Z0406",
+        "frame(x = [1.0, 2, 3]).add(g = quantile_group(x))",
     ),
     (
         "quantile_group",

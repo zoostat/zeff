@@ -196,6 +196,20 @@ pub fn build(
                 )),
             }
         }
+        // The codes the body gives `error` (open decision #89): each an error's code of the
+        // engine with an explained page, never an internal one; they join the page's
+        // "Warnings and notes" as the codes of `warn` and `note` do.
+        for code in &checked.error_codes {
+            match crate::explain::explain(code) {
+                Ok(page) if code.starts_with('Z') && !code.starts_with("Z9") => {
+                    own_codes.push(DiagnosticDecl::new(leak(code.clone()), leak(page.title)));
+                }
+                _ => unknown.push(format!(
+                    "`{}` of `{}` gives `error` the code `{code}`, which no error of the engine has; `code:` takes an error's code with an explained page",
+                    source.name, source.package
+                )),
+            }
+        }
         if !unknown.is_empty() {
             errors.push(RegistryError::ZeffBody {
                 package: source.package.to_string(),
@@ -260,9 +274,17 @@ pub fn build(
         let mut changed = false;
         for key in &keys {
             let mut generated: Vec<DiagnosticDecl> = own_of[key].clone();
+            // A code the body gives `warn`, `note` or `error` is said in the function's own
+            // words where the source has a line for it, and by the title of the code's page
+            // otherwise; then the source's other lines.
             for decl in &codes_of[key] {
                 if !generated.iter().any(|g| g.code == decl.code) {
-                    generated.push(decl.clone());
+                    let own = lists_of[key]
+                        .also
+                        .iter()
+                        .find(|(code, _)| *code == decl.code)
+                        .map(|(code, when)| DiagnosticDecl::new(code, when));
+                    generated.push(own.unwrap_or_else(|| decl.clone()));
                 }
             }
             for (code, when) in lists_of[key].also {
@@ -342,7 +364,10 @@ pub fn build(
                     source.name
                 ));
             }
-            if from_callees(code, false) {
+            // A code the body gives `warn`, `note` or `error` itself is its own whatever its
+            // callees declare: the line says when the body raises it (open decision #89).
+            let raised_by_the_body = codes_of[key].iter().any(|d| d.code == *code);
+            if from_callees(code, false) && !raised_by_the_body {
                 problems.push(format!(
                     "`{}` lists `{code}` as a code of its own, but a function its body calls declares it already",
                     source.name

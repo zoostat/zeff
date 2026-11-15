@@ -8,7 +8,7 @@
 /// the rows with `NA` skipped (section 4.1 of the Language Reference), once for each quantile,
 /// and those rows stay `NA`. `at: 0` changes nothing, since the cut points are then the smallest
 /// and largest values; `at: 0.5` makes every value the median; a share outside 0 to 0.5 is
-/// refused (Z0001, the code of a check inside a function). Under `by:` the cut points are taken within each group. Like
+/// refused (Z0401). Under `by:` the cut points are taken within each group. Like
 /// DescTools' `Winsorize(x, probs = c(at, 1 - at))` and Stata's `winsor2 x, cuts(1 99)`.
 ///
 /// x: The column to winsorise.
@@ -46,8 +46,13 @@
 /// 9
 /// 91.81
 fn winsorize(x: Column<Float>, at: Float = 0.01) -> Column<Float> {
-    assert(at >= 0 && at <= 0.5,
-           "`at:` of `winsorize` is a share between 0 and 0.5; above 0.5 the cut points would cross")
+    if at < 0 || at > 0.5 {
+        error(
+            "`at:` of `winsorize` is a share between 0 and 0.5; above 0.5 the cut points would cross",
+            code: Z0401,
+            argument: "at",
+        )
+    }
     let f = frame(value = x)
     clamp(x, f.quantile(value, at), f.quantile(value, 1 - at))
 }

@@ -180,6 +180,8 @@ control/term_parameters/stdout 033ac071d5be5418
 control/term_parameters/stderr eca750af14e0ae39
 control/column_types/stdout e72ff1a2cefe9ce8
 control/column_types/stderr f8674ca60ee2cc93
+control/coded_errors/stdout 08065c08b7800bdf
+control/coded_errors/stderr 876631d4ce223bbc
 control/pragma_denied/stdout 0ed6d42d1957e735
 control/pragma_denied/stderr 4cd8ad2c725305c0
 time/parts/stdout 9d8407bf30ba8484
@@ -199,7 +201,7 @@ panel/lags/stderr 4ab71cb823a2f7ac
 panel/running/stdout 9dbb606b466e3fa2
 panel/running/stderr 4031acd601b33ebe
 functions/quantile_group/stdout 928a4363a0655d30
-functions/quantile_group/stderr 9fb2e66cac759893
+functions/quantile_group/stderr 6aeeaad18b2deb22
 verbs/distinct/stdout aee8eceab645ed4c
 verbs/distinct/stderr 5de4178e6e530d36
 verbs/sample/stdout 28bdb6bf1877675a

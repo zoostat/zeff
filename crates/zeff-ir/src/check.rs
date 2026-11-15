@@ -318,6 +318,8 @@ struct Checker<'a> {
     called: Vec<(String, String)>,
     /// The codes the bodies give `warn` and `note`, each once.
     raised_codes: Vec<String>,
+    /// The codes a built-in's body gives `error` (open decision #89), each once.
+    raised_error_codes: Vec<String>,
     /// While a built-in written in Zeff is checked: the form under check (which of its scalar
     /// parameters are read as columns, section 3.7, "Columns and scalars", and the type chosen
     /// for each parameter declared with several types, open decision #68).
@@ -367,6 +369,7 @@ impl<'a> Checker<'a> {
             imported: Vec::new(),
             called: Vec::new(),
             raised_codes: Vec::new(),
+            raised_error_codes: Vec::new(),
             form_under: None,
             builtin_file: false,
             record_reads: Vec::new(),
@@ -426,6 +429,9 @@ pub struct BuiltinChecked {
     /// The codes the bodies give `warn` and `note` (section 5.4), for the page's "Warnings and
     /// notes".
     pub codes: Vec<String>,
+    /// The codes the bodies give `error` (`error(message, code: Z0401)`, in a built-in's file
+    /// alone; open decision #89), for the same part of the page.
+    pub error_codes: Vec<String>,
     /// Whether the first parameter is the enclosing frame (open decision #69), which a call
     /// never gives: the interpreter supplies the frame of the frame method the call stands in.
     pub enclosing: bool,
@@ -746,6 +752,7 @@ pub fn check_builtin(
     let mut lowered: Vec<BuiltinForm> = Vec::new();
     let mut calls: Vec<(String, String)> = Vec::new();
     let mut codes: Vec<String> = Vec::new();
+    let mut error_codes: Vec<String> = Vec::new();
     let mut seen: Vec<(String, String, usize)> = Vec::new();
     for (chosen, scalar_positions) in &plan {
         for form in 0..(1usize << scalar_positions.len()) {
@@ -807,6 +814,11 @@ pub fn check_builtin(
                     codes.push(code);
                 }
             }
+            for code in checker.raised_error_codes {
+                if !error_codes.contains(&code) {
+                    error_codes.push(code);
+                }
+            }
             for d in found {
                 let key = (
                     d.code.clone(),
@@ -829,10 +841,12 @@ pub fn check_builtin(
     calls.sort();
     calls.dedup();
     codes.sort();
+    error_codes.sort();
     Ok(BuiltinChecked {
         forms: lowered,
         calls,
         codes,
+        error_codes,
         enclosing,
         allows: parsed.allows,
     })
@@ -6637,6 +6651,47 @@ impl Checker<'_> {
             && !self.raised_codes.contains(code)
         {
             self.raised_codes.push(code.clone());
+        }
+        // The code and the argument a built-in's body gives `error` (open decision #89): for
+        // the engine's own functions alone, so that a body written in Zeff refuses an argument
+        // under the code a body written in Rust gives; a script's error is Z0001 (section 5.4).
+        if package == "core" && fname == "error" {
+            let given = |name: &str| {
+                spec.params
+                    .iter()
+                    .position(|p| p.name == name)
+                    .and_then(|i| slots.get(i).and_then(Option::as_ref))
+            };
+            let mut refused: Vec<(&str, Span)> = Vec::new();
+            for name in ["code", "argument"] {
+                if let Some(expr) = given(name)
+                    && !self.builtin_file
+                {
+                    refused.push((name, expr.span));
+                }
+            }
+            let code = match given("code") {
+                Some(Expr {
+                    kind: ExprKind::Str(code),
+                    ..
+                }) if self.builtin_file => Some(code.clone()),
+                _ => None,
+            };
+            for (name, at) in refused {
+                self.report(
+                    Diagnostic::error(
+                        "Z0404",
+                        format!("`{name}:` of `error` is for the engine's own functions; a script's error is Z0001"),
+                    )
+                    .primary(at, "not taken in a script")
+                    .help("write `error(message)`; `warn(message, code: W0205)` gives a warning one of the engine's codes"),
+                );
+            }
+            if let Some(code) = code
+                && !self.raised_error_codes.contains(&code)
+            {
+                self.raised_error_codes.push(code);
+            }
         }
         let is_iterate = package == "core" && fname == "iterate";
         let lowered = Expr {

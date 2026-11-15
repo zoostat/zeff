@@ -13,6 +13,11 @@ top level stops where it fails (section 5.4 of the Language Reference). R has `s
 
 ## Arguments
 - message: The text of the error, a Str.
+- code: For the engine's own functions: in the file of a built-in written in Zeff, one of the
+  engine's error codes, `code: Z0401`, under which the error is raised. A script's error is
+  always Z0001, and `code:` written in a script is refused (Z0404).
+- argument: For the engine's own functions: the name of the parameter at fault, as text, so
+  that the error is marked on that argument of the call. Refused in a script, as `code:` is.
 
 ## Value
 Nothing: the script ends.

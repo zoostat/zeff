@@ -1619,8 +1619,10 @@ pub fn zeff_sources() -> Vec<zeff_registry::ZeffSource> {
             text: include_str!("../functions/winsorize.zeff"),
             cannot: &[
                 ("W0201", "said below in the function's own words"),
-                ("Z0001", "said below in the function's own words"),
-                ("Z0203", "said below in the function's own words"),
+                (
+                    "Z0001",
+                    "every error the body raises carries one of the engine's codes",
+                ),
                 (
                     "Z0214",
                     "the body gives `frame` columns of numbers of one length",
@@ -1637,7 +1639,6 @@ pub fn zeff_sources() -> Vec<zeff_registry::ZeffSource> {
                     "Z0406",
                     "the body gives `frame` columns of numbers of one length",
                 ),
-                ("Z0401", "said below in the function's own words"),
                 ("", "the body gives `quantile` no weights"),
                 (
                     "Z0101",
@@ -1646,9 +1647,11 @@ pub fn zeff_sources() -> Vec<zeff_registry::ZeffSource> {
             ],
             also: &[
                 ("W0201", "rows with `NA` in `x` were skipped"),
-                ("Z0001", "`at:` is below 0 or above 0.5"),
                 ("Z0203", "`at:` is `NA`"),
-                ("Z0401", "`x` is not a column of numbers"),
+                (
+                    "Z0401",
+                    "`x` is not a column of numbers; `at:` is below 0 or above 0.5",
+                ),
             ],
         },
         zeff_registry::ZeffSource {
@@ -1657,7 +1660,10 @@ pub fn zeff_sources() -> Vec<zeff_registry::ZeffSource> {
             file: "data/functions/quantile_group.zeff",
             text: include_str!("../functions/quantile_group.zeff"),
             cannot: &[
-                ("Z0001", "said below in the function's own words"),
+                (
+                    "Z0001",
+                    "every error the body raises carries one of the engine's codes",
+                ),
                 (
                     "Z0220",
                     "the lists given to `map` and `reduce` are made by the body, and hold no failed value",
@@ -1679,7 +1685,6 @@ pub fn zeff_sources() -> Vec<zeff_registry::ZeffSource> {
                     "W0702",
                     "the body converts to an Int, not to a date and time",
                 ),
-                ("Z0401", "said below in the function's own words"),
                 (
                     "Z0214",
                     "the body gives `frame` columns of numbers of one length",
@@ -1693,10 +1698,6 @@ pub fn zeff_sources() -> Vec<zeff_registry::ZeffSource> {
                     "the body gives `frame` columns of numbers of one length",
                 ),
                 (
-                    "Z0406",
-                    "the body gives `frame` columns of numbers of one length",
-                ),
-                (
                     "W0201",
                     "allowed inside the body: the cut points are taken over the values present, as the page says",
                 ),
@@ -1707,12 +1708,12 @@ pub fn zeff_sources() -> Vec<zeff_registry::ZeffSource> {
                 ),
             ],
             also: &[
-                (
-                    "Z0001",
-                    "`n:` is missing or below 1, or `type:` is not 1 to 9",
-                ),
                 ("Z0203", "`type:` is `NA`"),
-                ("Z0401", "`x` is not a column of numbers"),
+                (
+                    "Z0401",
+                    "`x` is not a column of numbers; `n:` is below 1; `type:` is not 1 to 9",
+                ),
+                ("Z0406", "`n:` is not given"),
                 ("Z0418", "`n:` is above ten million"),
             ],
         },

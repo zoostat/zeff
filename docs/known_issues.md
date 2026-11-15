@@ -211,13 +211,13 @@ is never listed here as accepted: it is fixed or the function is withdrawn.
   body does not pass on), `n_missing` (a list holding failed values reaches it), `summary` (its
   table's formatting and combined warning need `format` and `join` of `text`, its title the
   frame's name, and it takes `weights:`) and `duplicates` (its pieces came later in 0.6.0);
-  `drop_missing` stays too until a body can resolve a variable range and raise the errors
-  its page declares (open decisions #90 and #89, 0.8.0), and `vif` stays in Rust at 0.7.0
-  though `design()` now exists (open decision #136, for 0.8.0). `fill_missing` and
+  `drop_missing` stays too until a body can resolve a variable range (open decision #90,
+  step 7b of 0.8.0; a body raises the errors its page declares since step 7a), and `vif` stays
+  in Rust though `design()` exists (open decision #136, not before 1.0). `fill_missing` and
   `quantile_group` returned to Zeff at steps 4.1 and 4.4 of 0.7.0. Of the functions of 0.7.0
   that were planned in Zeff, `t_test`, `proportion_test`, `chi2_test`, `kruskal_test` and
   `p_adjust` are in Rust, since a body has no way to build a test's result (open decision #92,
-  0.8.0), and so is `coef_plot`. Nothing a script sees differs, and section 8.2's totals follow
+  decided at 0.8.0: the tests stay in Rust), and so is `coef_plot`. Nothing a script sees differs, and section 8.2's totals follow
   the catalogue. (Since 0.5.0; the list as of the close of 0.7.0.)
 - **Eight conditions carry codes numbered at this release**, the next free numbers of their
   families, each logged in `docs/spec_changes.md` and listed in section 11 of the Language

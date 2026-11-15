@@ -39,13 +39,22 @@
 ///   5   2   4
 fn quantile_group(x: Column<Float>, n: Int?, `type`: Int = 7) -> Column<Int> {
     if is_missing(n) {
-        error("`quantile_group` needs `n:`; `quantile_group(x, n: 4)` gives quartile groups 1 to 4 and `n: 10` deciles")
+        error(
+            "`quantile_group` needs `n:`; `quantile_group(x, n: 4)` gives quartile groups 1 to 4 and `n: 10` deciles",
+            code: Z0406,
+        )
     }
     if n < 1 {
-        error("`n:` of `quantile_group` is a count of groups of at least 1")
+        error("`n:` of `quantile_group` is a count of groups of at least 1",
+              code: Z0401,
+              argument: "n")
     }
     if `type` < 1 || `type` > 9 {
-        error("`type:` of `quantile_group` must be one of the nine definitions, 1 to 9; `type: 7` is R's default")
+        error(
+            "`type:` of `quantile_group` must be one of the nine definitions, 1 to 9; `type: 7` is R's default",
+            code: Z0401,
+            argument: "type",
+        )
     }
     // Each row's group is one more than the number of cut points below its value; NA stays NA.
     let below = case { is_missing(x) => NA, _ => 0 }

@@ -84,11 +84,44 @@ fn name_of(ctx: &mut CallContext<'_>, args: Args) -> Result<Value, Fail> {
     }
 }
 
+/// The start of the label by which `error(message, code:, argument: "n")` in a built-in's body
+/// names the parameter at fault: the interpreter, which places a built-in's error at the call
+/// in the script, reads the name after it and marks that argument of the call.
+pub const ARGUMENT_LABEL: &str = "argument: ";
+
+/// `error(message)` ends the script under Z0001. In the file of a built-in written in Zeff, and
+/// there only (the checker refuses the two options in a script), `code:` gives the error one of
+/// the engine's error codes and `argument:` names the parameter at fault, so that the body
+/// refuses an argument as a body written in Rust does (open decision #89).
 fn error(ctx: &mut CallContext<'_>, args: Args) -> Result<Value, Fail> {
-    Err(fail(
-        Diagnostic::error("Z0001", message(&args))
+    let code = match args.get(1) {
+        None | Some(Value::Na) => "Z0001".to_string(),
+        Some(Value::Str(code)) => code.clone(),
+        Some(other) => other.type_name().to_string(),
+    };
+    let an_errors_code = code.len() == 5
+        && code.starts_with('Z')
+        && !code.starts_with("Z9")
+        && code[1..].bytes().all(|b| b.is_ascii_digit());
+    if !an_errors_code {
+        return Err(fail(
+            Diagnostic::error(
+                "Z0401",
+                format!("`code` of `error` must be an error's code, but this is `{code}`"),
+            )
             .in_file(ctx.script)
-            .primary(ctx.callee_span, "the script stops here"),
+            .primary(ctx.span_of(1), "not an error's code")
+            .help("an error's code is `Z` and four digits, as in `code: Z0401`; `zeff help Z0401` explains a code"),
+        ));
+    }
+    let label = match args.get(2) {
+        Some(Value::Str(name)) => format!("{ARGUMENT_LABEL}{name}"),
+        _ => "the script stops here".to_string(),
+    };
+    Err(fail(
+        Diagnostic::error(&code, message(&args))
+            .in_file(ctx.script)
+            .primary(ctx.callee_span, label),
     ))
 }
 
@@ -393,7 +426,11 @@ pub fn functions() -> Vec<Function> {
                 name: "error",
                 package: "core",
                 method: false,
-                params: vec![ParamSpec::required("message", "Str")],
+                params: vec![
+                    ParamSpec::required("message", "Str"),
+                    ParamSpec::option("code", "Code"),
+                    ParamSpec::option("argument", "Str"),
+                ],
                 rest: None,
                 returns: "Nothing",
                 diagnostics: vec![DiagnosticDecl::new(

@@ -1857,11 +1857,28 @@ impl<'a> Interpreter<'a> {
         }
         result.map_err(|e| {
             if inside(&e) && !e.code.starts_with("Z9") {
-                Box::new(place_at_call(
-                    named_after(*e, &builtin.name),
-                    self.script,
-                    call.callee_span,
-                ))
+                // An error the body raised with `argument:` is marked on that argument of the
+                // call, as a body written in Rust marks it; a missing argument, and any other
+                // error, on the call (open decision #89).
+                let params = &builtin.forms[0].program.functions[builtin.forms[0].function].params;
+                let at = e
+                    .labels
+                    .first()
+                    .and_then(|l| l.text.strip_prefix(zeff_core::program::ARGUMENT_LABEL))
+                    .and_then(|name| params.iter().position(|p| p.name == name))
+                    .and_then(|i| i.checked_sub(usize::from(builtin.enclosing)))
+                    .and_then(|i| call.args.get(i))
+                    .and_then(|a| a.as_ref())
+                    .map(|a| a.span);
+                let named = named_after(*e, &builtin.name);
+                Box::new(match at {
+                    Some(span) => {
+                        let mut d = named;
+                        d.labels.clear();
+                        d.in_file(self.script).primary(span, "this argument")
+                    }
+                    None => place_at_call(named, self.script, call.callee_span),
+                })
             } else {
                 e
             }

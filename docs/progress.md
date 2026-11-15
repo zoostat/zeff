@@ -105,3 +105,13 @@ Tests, plots and the language server: 72 functions in 258 commits over 40 steps,
 **Next.** Step 7a `[engine]`: a coded error from a built-in written in Zeff (#89).
 
 **For the owner to decide.** Nothing blocks.
+
+## 15 November 2026, release 0.8.0, step 7a (a coded error from a built-in written in Zeff)
+
+**Done.** Step 7a `[engine]`: in a built-in's file `error` takes `code:` and `argument:`, so that a function written in Zeff refuses an argument under the code a function written in Rust gives, with the mark on the argument; a script's error stays Z0001 and the two options are refused there (Z0404). `quantile_group` and `winsorize` give Z0401 and Z0406 where they gave Z0001; their pages list the codes and a test raises each. The catalogue row of `error` and both volumes follow, logged; the conformance case `control/coded_errors` holds it.
+
+**Green.** Format, clippy with warnings denied, the tier and message checks, every test of the workspace; CI read after the push.
+
+**Next.** Step 7b `[engine]`: variable ranges in a built-in written in Zeff (#90), and `drop_missing` in Zeff if the two pieces suffice.
+
+**For the owner to decide.** Nothing blocks.
