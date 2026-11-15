@@ -135,3 +135,13 @@ Tests, plots and the language server: 72 functions in 258 commits over 40 steps,
 **Next.** Step 8a2 `[function]`: `labels(size:, shape:, fill:)`.
 
 **For the owner to decide.** Nothing blocks.
+
+## 15 November 2026, release 0.8.0, step 8a2 (the legend titles of `labels`)
+
+**Done.** Step 8a2 `[function]`: `labels(fill:, size:, shape:)` title the legends of those aesthetics, as ggplot2's `labs` does (the same titles on the same plot, 4.0.3); `fill:` comes before `color:` for a legend of fills; an empty text takes a title away. The catalogue row and section 7.6 follow, logged; the page has the arguments and an example; the conformance case `plots/labels` holds the printed plot and the figure's bytes; the figure was read by eye.
+
+**Green.** Format, clippy with warnings denied, the tier and message checks, every test of the workspace; CI read after the push.
+
+**Next.** Step 8b `[engine]`: folding, snippets and the statement ranges behind Run (#86).
+
+**For the owner to decide.** Nothing blocks.

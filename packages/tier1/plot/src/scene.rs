@@ -2542,11 +2542,17 @@ fn shaded(plot: &Plot, colouring: &Colouring<'_>, kept: &[Vec<usize>]) -> Shaded
         }
         _ => false,
     };
-    let title = plot
-        .labels
-        .color
-        .clone()
-        .filter(|_| coloured)
+    // The legends of fill, size and shape take the words of the script for them (open decision
+    // #131); a legend of fills with no words of its own keeps those of `color:` where the
+    // fills are the colours of the plot.
+    let own = match colouring.aesthetic {
+        Aesthetic::Fill => plot.labels.fill.clone(),
+        Aesthetic::Size => plot.labels.size.clone(),
+        Aesthetic::Shape => plot.labels.shape.clone(),
+        _ => None,
+    };
+    let title = own
+        .or_else(|| plot.labels.color.clone().filter(|_| coloured))
         .unwrap_or_else(|| axis_title(colouring.frame, colouring.mapping));
     let layers = || colouring.readers.iter().zip(kept);
     match colouring.kind {

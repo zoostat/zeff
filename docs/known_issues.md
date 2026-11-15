@@ -73,9 +73,9 @@ is never listed here as accepted: it is fixed or the function is withdrawn.
   names a variable: `mean(wage * 2)` is refused (Z0401). A reducer, a project function and
   `if` are not taken in a mapping. (Since 0.7.0.)
 - **A plot has eight colours and eight shapes for categories**, which repeat from the ninth
-  with a note; a colour scale of dates is refused; the legends of sizes and shapes cannot be
-  given a title by `labels` (open decision #131, for 0.8.0); every level of a category that has
-  no row is left out of the legend. (Since 0.7.0.)
+  with a note; a colour scale of dates is refused; every level of a category that has no row
+  is left out of the legend (an argument of `scale` to keep them is not built before 1.0, open
+  decision #109). (Since 0.7.0.)
 - **Some marks and scales refuse one another.** Bars and areas are refused on a logarithmic
   axis, and a value at or below zero there is an error that names the rows; `area` and `ribbon`
   are refused on an axis of categories; a histogram has no axis of dates; free scales are

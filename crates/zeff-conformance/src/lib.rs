@@ -1957,6 +1957,16 @@ fn plot_cases() -> Vec<Line> {
             .unwrap_or_default();
         fills.push(bytes(&format!("plot/rug/{name}"), &data));
     }
+    // The titles of the legends of fill, size and shape (release 0.8.0, step 8a2; open decision
+    // #131): `labels(size:, shape:)` on points, `fill:` on bars beside and in the place of
+    // `color:`, an empty text taking a title away; what the script prints and the first figure.
+    let script = "let w = dataset(wages).where(worker <= 60)\nlet p = w.plot(x: educ, y: wage, size: hours, shape: union).points(alpha: 0.6).labels(size: \"Hours a week\", shape: \"In a union\")\np\nlet m = w.aggregate(wage = mean(wage), by: union)\nlet q = m.plot(x: union, y: wage, fill: union).bars()\nq.labels(fill: \"Union member\")\nq.labels(color: \"By colour\", fill: \"By fill\")\np.labels(size: \"\")\np.export(\"output/labels.svg\")\n";
+    let labelled = run_script(&fs, &project, "scripts/main.zeff", script);
+    fills.push(text("plots/labels/stdout", &labelled.output.stdout));
+    fills.push(text("plots/labels/stderr", &labelled.output.stderr));
+    let data = zeff_engine::fs::FileSystem::read(&fs, Path::new("/g/output/labels.svg"))
+        .unwrap_or_default();
+    fills.push(bytes("plots/labels/labels.svg", &data));
     // An axis of categories (step 24a): the wages by industry as points, the means of the
     // industries joined, and a category on each axis; what the script prints and the first
     // figure in the three formats, with a label under each place.

@@ -115,6 +115,11 @@ pub struct PlotLabels {
     pub y: Option<String>,
     pub color: Option<String>,
     pub caption: Option<String>,
+    /// The titles of the legends of fill, size and shape (open decision #131, option B): each
+    /// in the place of the label of the variable mapped to that aesthetic.
+    pub fill: Option<String>,
+    pub size: Option<String>,
+    pub shape: Option<String>,
 }
 
 /// The facets of a plot (section 7.6, "Facets": `facet`): the variables whose values part

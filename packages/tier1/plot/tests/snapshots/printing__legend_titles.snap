@@ -1,0 +1,74 @@
+---
+source: packages/tier1/plot/tests/printing.rs
+expression: text
+---
+plot · d · change against dose
+
+  axis   title    scale    limits           breaks
+  x      dose     linear   0.85 to 4.15     1, 1.5, 2, 2.5, 3, 3.5, 4
+  y      change   linear   0.275 to 3.025   0.5, 1, 1.5, 2, 2.5, 3
+
+  aesthetic   title              scale      values    shown as
+  size        Body weight, kg    sqrt       0 to 95   by area, up to 18 across
+  shape       Arm of the trial   category   a, b      circle, triangle
+
+  layer   mark     data   marks   settings
+      1   points   d          4   size by weight, shape by arm, alpha 1
+plot · d · change against arm
+
+  axis   title    scale      limits        breaks
+  x      arm      category   0.4 to 2.6    a, b
+  y      change   linear     -0.2 to 4.2   0, 1, 2, 3, 4
+
+  aesthetic   title   scale      values   shown as
+  fill        Arm     category   a, b     orange, sky blue
+
+  layer   mark   data   marks   settings
+      1   bars   d          4   width 0.9, alpha 1
+plot · d · change against arm
+
+  axis   title    scale      limits        breaks
+  x      arm      category   0.4 to 2.6    a, b
+  y      change   linear     -0.2 to 4.2   0, 1, 2, 3, 4
+
+  aesthetic   title           scale      values   shown as
+  fill        Arm by colour   category   a, b     orange, sky blue
+
+  layer   mark   data   marks   settings
+      1   bars   d          4   width 0.9, alpha 1
+plot · d · change against arm
+
+  axis   title    scale      limits        breaks
+  x      arm      category   0.4 to 2.6    a, b
+  y      change   linear     -0.2 to 4.2   0, 1, 2, 3, 4
+
+  aesthetic   title         scale      values   shown as
+  fill        Arm by fill   category   a, b     orange, sky blue
+
+  layer   mark   data   marks   settings
+      1   bars   d          4   width 0.9, alpha 1
+plot · d · change against dose
+
+  axis   title    scale    limits           breaks
+  x      dose     linear   0.85 to 4.15     1, 1.5, 2, 2.5, 3, 3.5, 4
+  y      change   linear   0.275 to 3.025   0.5, 1, 1.5, 2, 2.5, 3
+
+  aesthetic   title   scale      values    shown as
+  size                sqrt       0 to 95   by area, up to 18 across
+  shape       arm     category   a, b      circle, triangle
+
+  layer   mark     data   marks   settings
+      1   points   d          4   size by weight, shape by arm, alpha 1
+plot · d · change against dose
+
+  axis   title    scale    limits           breaks
+  x      dose     linear   0.85 to 4.15     1, 1.5, 2, 2.5, 3, 3.5, 4
+  y      change   linear   0.275 to 3.025   0.5, 1, 1.5, 2, 2.5, 3
+
+  aesthetic   title    scale      values    shown as
+  size        Weight   sqrt       0 to 95   by area, up to 18 across
+  shape       Arm      category   a, b      circle, triangle
+
+  layer   mark     data   marks   settings
+      1   points   d          4   size by weight, shape by arm, alpha 1
+---

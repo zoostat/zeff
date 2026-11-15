@@ -6,9 +6,9 @@ The title of a plot and the titles of its axes and legend
 ## Description
 Gives a plot its words. Without `labels` a plot has no title, and each axis and each legend
 is titled by the label of its variable, or by the name of the variable where it has no label.
-`p.labels(...)` sets any of six: the `title:` of the figure and a `subtitle:` under it, the
-titles of the two axes, `x:` and `y:`, the title of the legend of colour, `color:`, and a
-`caption:` under the figure. It gives the plot back, so it is written in the chain with the
+`p.labels(...)` sets any of nine: the `title:` of the figure and a `subtitle:` under it, the
+titles of the two axes, `x:` and `y:`, the titles of the legends, `color:`, `fill:`, `size:`
+and `shape:`, and a `caption:` under the figure. It gives the plot back, so it is written in the chain with the
 marks, before or after them.
 
 A title says what the figure shows, and a subtitle what the reader should know to read it:
@@ -16,7 +16,8 @@ the unit, the sample, the year. A caption is for the source of the data or a not
 method. Many journals set the title and the caption of a figure in the text of the article
 and want none in the figure itself: then give the axes their titles and leave the rest out.
 
-In R with ggplot2 this is `labs(title =, subtitle =, x =, y =, colour =, caption =)`. In
+In R with ggplot2 this is `labs(title =, subtitle =, x =, y =, colour =, fill =, size =,
+shape =, caption =)`. In
 Stata it is `title()`, `subtitle()`, `xtitle()`, `ytitle()`, `legend(title())` and `note()`.
 
 ## Arguments
@@ -27,11 +28,14 @@ Stata it is `title()`, `subtitle()`, `xtitle()`, `ytitle()`, `legend(title())` a
 - y: The title of the `y` axis.
 - color: The title of the legend of colour.
 - caption: A line under the figure, in the type of the labels.
+- fill: The title of the legend of the fills, where a variable is mapped to `fill:`.
+- size: The title of the legend of sizes.
+- shape: The title of the legend of shapes.
 
 ## Value
 The `Plot` with its words set. The plot given is not changed. What a later `labels` says of
-one of the six takes the place of what an earlier one said of it, and leaves the other five
-as they were.
+one of the nine takes the place of what an earlier one said of it, and leaves the others as
+they were.
 
 ## Details
 Titles of axes. An axis is titled by the label of its variable, which `label` of the `data`
@@ -44,9 +48,11 @@ No title. An empty text takes a title away: `x: ""` leaves the `x` axis with its
 no title, and gives the room to the panel. `title: ""` takes back a title that an earlier
 `labels` set.
 
-The legend of colour. `color:` titles the legend of the variable mapped to `color:`. Where
-the plot maps nothing to `color:` and fills its marks by `fill:`, it titles the legend of the
-fills. A legend of sizes or of shapes by another variable keeps the label of its variable.
+The legends. `color:` titles the legend of the variable mapped to `color:`, and `fill:`,
+`size:` and `shape:` the legends of the variables mapped to those. Where the plot maps
+nothing to `color:` and fills its marks by `fill:`, `color:` titles the legend of the fills
+unless `fill:` says otherwise. A legend with no words of the script keeps the label of its
+variable.
 
 Long words. The title, the subtitle and the caption start at the left margin of the page
 and are broken between words to its width; the title of an axis is broken to the length of
@@ -95,3 +101,17 @@ plot · d · change against dose
       1   points   d          4   size 4.5, alpha 1
 
 caption: Four patients, two in each arm.
+> let w = frame(dose = [1, 2, 3, 4], change = [0.4, 1.1, 2.3, 2.9], arm = ["a", "b", "a", "b"], weight = [60, 72, 81, 95])
+> w.plot(x: dose, y: change, size: weight, shape: arm).points().labels(size: "Body weight, kg", shape: "Arm of the trial")
+plot · w · change against dose
+
+  axis   title    scale    limits           breaks
+  x      dose     linear   0.85 to 4.15     1, 1.5, 2, 2.5, 3, 3.5, 4
+  y      change   linear   0.275 to 3.025   0.5, 1, 1.5, 2, 2.5, 3
+
+  aesthetic   title              scale      values    shown as
+  size        Body weight, kg    sqrt       0 to 95   by area, up to 18 across
+  shape       Arm of the trial   category   a, b      circle, triangle
+
+  layer   mark     data   marks   settings
+      1   points   w          4   size by weight, shape by arm, alpha 1

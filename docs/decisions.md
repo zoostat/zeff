@@ -5327,3 +5327,13 @@ Done before parts 1 and 2 are read, because those wait for jobs that run for hou
 **Held by.** `the_notes_of_a_statement_are_those_of_the_plot_it_ends_with` (the layer then the scale, the scale then the layer, the layer alone, a later statement, sizes, a loop, a function, and no mark ever printed). The plot package's 116 printing tests and its snapshots pass unchanged, and the conformance report is unchanged, so no shipped sample printed a stale note. The page of `scale` says the new rule.
 
 **Reason.** Open decision #130 (option B, decided 12 November 2026 for 0.8.0); the checklist's step 8a.
+
+## 15 November 2026: `labels` titles the legends of fill, size and shape (release 0.8.0, step 8a2; open decision #131, option B)
+
+**Choice.** `labels` takes three more words, `fill:`, `size:` and `shape:`, each the title of the legend of the variable mapped to that aesthetic, in the place of the variable's label; an empty text takes the title away, as for the other six. They are written after the six in the usage line, so a call by position is unchanged. A legend of fills is titled by `fill:` where it is given, and otherwise by `color:` where the fills are the colours of the plot, as before; a legend with no words keeps its variable's label. The scene sets the title where it set the colour legend's (`shaded`, `packages/tier1/plot/src/scene.rs`); the catalogue row and section 7.6 follow (logged); the page has the three arguments and an example; the known-issues line is resolved.
+
+**Against R.** ggplot2 4.0.3 on the same four rows: `labs(size = "Body weight, kg", shape = "Arm of the trial")` titles the two legends with the same words (`ggplot_build(p)$plot$labels`). The figure of the conformance case was read by eye: "Hours a week" stands over the sizes and "In a union" over the shapes.
+
+**Held by.** `labels_titles_the_legends_of_fill_size_and_shape` with its snapshot, the page's example in the conformance suite's help case, and the conformance case `plots/labels` (what the script prints and the bytes of the figure).
+
+**Reason.** Open decision #131 (option B); the checklist's step 8a2.

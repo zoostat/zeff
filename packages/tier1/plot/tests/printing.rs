@@ -2936,6 +2936,39 @@ fn the_scales_of_colour_size_and_shape_read_sensibly_as_text() {
 }
 
 #[test]
+fn labels_titles_the_legends_of_fill_size_and_shape() {
+    // Open decision #131, option B (release 0.8.0, step 8a2): `size:`, `shape:` and `fill:`
+    // title the legends of those aesthetics, as ggplot2's `labs(size =, shape =, fill =)`
+    // (4.0.3: the same two titles on the same plot); `fill:` comes before `color:` for a legend
+    // of fills; an empty text takes a title away; a legend with no words keeps its variable's.
+    let head = "let d = frame(dose = [1, 2, 3, 4], change = [0.4, 1.1, 2.3, 2.9], arm = [\"a\", \"b\", \"a\", \"b\"], weight = [60, 72, 81, 95])\nlet p = d.plot(x: dose, y: change, size: weight, shape: arm).points()\nlet q = d.plot(x: arm, y: change, fill: arm).bars()\n";
+    let text = printed(&format!(
+        "{head}p.labels(size: \"Body weight, kg\", shape: \"Arm of the trial\")\nq.labels(fill: \"Arm\")\nq.labels(color: \"Arm by colour\")\nq.labels(color: \"Arm by colour\", fill: \"Arm by fill\")\np.labels(size: \"\")\np.labels(shape: \"Arm\").labels(size: \"Weight\")\n"
+    ));
+    for line in [
+        "  size        Body weight, kg    sqrt       0 to 95   by area, up to 18 across\n",
+        "  shape       Arm of the trial   category   a, b      circle, triangle\n",
+        "  fill        Arm     category   a, b     orange, sky blue\n",
+        "  fill        Arm by colour   category   a, b     orange, sky blue\n",
+        "  fill        Arm by fill   category   a, b     orange, sky blue\n",
+        "  size                sqrt       0 to 95   by area, up to 18 across\n",
+        "  shape       arm     category   a, b      circle, triangle\n",
+        "  size        Weight   sqrt       0 to 95   by area, up to 18 across\n",
+        "  shape       Arm      category   a, b      circle, triangle\n",
+    ] {
+        assert!(text.contains(line), "{line}\n{text}");
+    }
+    insta::assert_snapshot!("legend_titles", text);
+    // Nothing said is still refused, and the message names the nine.
+    let none = run(&format!("{head}p.labels()\n"));
+    assert!(
+        none.output.stderr.contains("error[Z0406]: `labels` needs `title`, `subtitle`, `x`, `y`, `color`, `fill`, `size`, `shape` or `caption`"),
+        "{}",
+        none.output.stderr
+    );
+}
+
+#[test]
 fn the_notes_of_a_statement_are_those_of_the_plot_it_ends_with() {
     // Open decision #130, option B (release 0.8.0, step 8a1): a call that makes an earlier
     // note of the same statement untrue withdraws it; the layer alone keeps its notes; a note
@@ -3174,7 +3207,8 @@ fn every_message_of_labels() {
         ("nothing_said", "p.labels()\n"),
         ("a_title_that_is_a_number", "p.labels(title: 3)\n"),
         ("a_title_that_is_a_variable", "p.labels(x: dose)\n"),
-        ("a_label_it_does_not_take", "p.labels(size: \"Hours\")\n"),
+        // `size:` is taken since 0.8.0 (open decision #131); a legend of line types has no title.
+        ("a_label_it_does_not_take", "p.labels(linetype: \"Kind\")\n"),
         ("labels_of_a_frame", "d.labels(title: \"A frame\")\n"),
         (
             "a_title_that_leaves_no_room",

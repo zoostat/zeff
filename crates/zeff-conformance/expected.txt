@@ -293,6 +293,9 @@ plot/rug/stderr 72a23d109d8971c1
 plot/rug/rug.svg 1070d339b95c406a
 plot/rug/rug.pdf 8ee75404e856e04d
 plot/rug/rug.png 719c754e4b71575e
+plots/labels/stdout e48b17e26d9f4eaa
+plots/labels/stderr cd5c0fd7d48a43b2
+plots/labels/labels.svg f96eb92fc4b7190d
 plot/categories/stdout 37e887b8208eb9e1
 plot/categories/stderr c4acf2bd34822a80
 plot/categories/categories.svg 50aa051869d10d08

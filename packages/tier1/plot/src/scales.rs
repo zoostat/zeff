@@ -715,9 +715,13 @@ const T_X: usize = 3;
 const T_Y: usize = 4;
 const T_COLOR: usize = 5;
 const T_CAPTION: usize = 6;
+const T_FILL: usize = 7;
+const T_SIZE: usize = 8;
+const T_SHAPE: usize = 9;
 
-/// `p.labels(title: Str, subtitle: Str, x: Str, y: Str, color: Str, caption: Str)`: the
-/// words of the script for the plot, its two axes and its legend of colour.
+/// `p.labels(title: Str, subtitle: Str, x: Str, y: Str, color: Str, caption: Str, fill: Str,
+/// size: Str, shape: Str)`: the words of the script for the plot, its two axes and its legends
+/// of colour, fill, size and shape (the last three by open decision #131).
 pub fn labels(ctx: &mut CallContext<'_>, args: Args) -> Result<Value, Fail> {
     let Some(Value::Plot(plot)) = args.get(P) else {
         return Err(internal(ctx, "labels reached its body without a plot"));
@@ -733,10 +737,13 @@ pub fn labels(ctx: &mut CallContext<'_>, args: Args) -> Result<Value, Fail> {
             (T_Y, &mut own.y),
             (T_COLOR, &mut own.color),
             (T_CAPTION, &mut own.caption),
+            (T_FILL, &mut own.fill),
+            (T_SIZE, &mut own.size),
+            (T_SHAPE, &mut own.shape),
         ] {
             match args.get(slot) {
                 None | Some(Value::Na) => {}
-                // What is said of one of the six takes the place of what was said of it,
+                // What is said of one of the nine takes the place of what was said of it,
                 // and leaves the others; an empty text takes a title away.
                 Some(Value::Str(text)) => {
                     *place = Some(text.to_string());
@@ -750,7 +757,7 @@ pub fn labels(ctx: &mut CallContext<'_>, args: Args) -> Result<Value, Fail> {
         return Err(fail(
             Diagnostic::error(
                 "Z0406",
-                "`labels` needs `title`, `subtitle`, `x`, `y`, `color` or `caption`",
+                "`labels` needs `title`, `subtitle`, `x`, `y`, `color`, `fill`, `size`, `shape` or `caption`",
             )
             .in_file(ctx.script)
             .primary(ctx.callee_span, "nothing is said")

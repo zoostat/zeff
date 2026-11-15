@@ -3,7 +3,7 @@ source: packages/tier1/plot/tests/printing.rs
 expression: all
 ---
 == nothing_said
-error[Z0406]: `labels` needs `title`, `subtitle`, `x`, `y`, `color` or `caption`
+error[Z0406]: `labels` needs `title`, `subtitle`, `x`, `y`, `color`, `fill`, `size`, `shape` or `caption`
  --> scripts/main.zeff:3:3
   |
 3 | p.labels()
@@ -18,7 +18,7 @@ error[Z0401]: `title` of `labels` must be a Str, but this is an Int
 3 | p.labels(title: 3)
   |                 ^ an Int
   |
-  = help: usage: `p.labels(title: Str, subtitle: Str, x: Str, y: Str, color: Str, caption: Str)`
+  = help: usage: `p.labels(title: Str, subtitle: Str, x: Str, y: Str, color: Str, caption: Str, fill: Str, size: Str, shape: Str)`
 
 == a_title_that_is_a_variable
 error[Z0101]: nothing is called `dose` here
@@ -28,13 +28,13 @@ error[Z0101]: nothing is called `dose` here
   |             ^^^^ not a binding
 
 == a_label_it_does_not_take
-error[Z0404]: `labels` has no argument called `size`
+error[Z0404]: `labels` has no argument called `linetype`
  --> scripts/main.zeff:3:10
   |
-3 | p.labels(size: "Hours")
-  |          ^^^^ unknown argument
+3 | p.labels(linetype: "Kind")
+  |          ^^^^^^^^ unknown argument
   |
-  = help: usage: `p.labels(title: Str, subtitle: Str, x: Str, y: Str, color: Str, caption: Str)`
+  = help: usage: `p.labels(title: Str, subtitle: Str, x: Str, y: Str, color: Str, caption: Str, fill: Str, size: Str, shape: Str)`
 
 == labels_of_a_frame
 error[Z0401]: `labels` cannot be called on a Frame
