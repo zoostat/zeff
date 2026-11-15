@@ -158,6 +158,8 @@ fn initialize_says_what_the_server_does() {
                     "hoverProvider": true,
                     "documentFormattingProvider": true,
                     "documentRangeFormattingProvider": true,
+                    "foldingRangeProvider": true,
+                    "experimental": {"zeffStatementRange": true},
                 },
                 "serverInfo": {"name": "zeff", "version": VERSION},
             },
@@ -1091,4 +1093,255 @@ fn hover_and_formatting_need_what_they_are_about() {
     let answers = early
         .send(&json!({"jsonrpc": "2.0", "id": 1, "method": "textDocument/hover", "params": {}}));
     assert_eq!(error_code(&answers[0]), -32002);
+}
+
+/// A script with a chain, a loop and one-line statements (release 0.8.0, step 8b).
+const OUTLINED: &str = "let w = dataset(wages)
+let m = w
+    .where(year >= 2018)
+    .reg(wage ~ educ)
+
+// The means.
+for v in vars(wage, hours) {
+    print(w.mean(v))
+}
+m
+";
+
+#[test]
+fn folding_is_answered_with_the_first_and_last_line_of_each_part() {
+    let mut session = Session::started();
+    session.open(MAIN, OUTLINED);
+    let answers = session.send(&json!({
+        "jsonrpc": "2.0", "id": 3, "method": "textDocument/foldingRange",
+        "params": {"textDocument": {"uri": MAIN}},
+    }));
+    assert_eq!(
+        answers,
+        [json!({
+            "jsonrpc": "2.0",
+            "id": 3,
+            "result": [
+                {"startLine": 1, "endLine": 3},
+                {"startLine": 6, "endLine": 8},
+            ],
+        })]
+    );
+    // The file as it is on the disk, for a document that is not open (a function folds whole,
+    // with its page, and by its body); an empty list for one that is not there.
+    for (uri, folds) in [
+        (CLEAN, 2),
+        (MAIN, 2),
+        ("file:///work/demo/scripts/none.zeff", 0),
+    ] {
+        if uri == MAIN {
+            session.close(MAIN);
+            session
+                .fs
+                .add_file("/work/demo/scripts/main.zeff", OUTLINED);
+        }
+        let answers = session.send(&json!({
+            "jsonrpc": "2.0", "id": 3, "method": "textDocument/foldingRange",
+            "params": {"textDocument": {"uri": uri}},
+        }));
+        assert_eq!(
+            answers[0]["result"].as_array().map(Vec::len),
+            Some(folds),
+            "{uri}"
+        );
+    }
+}
+
+#[test]
+fn the_statement_range_is_answered_for_a_place_and_for_a_selection() {
+    let mut session = Session::started();
+    session.open(MAIN, OUTLINED);
+    let mut ask = |params: Value| -> Value {
+        let answers = session.send(&json!({
+            "jsonrpc": "2.0", "id": 5, "method": "zeff/statementRange", "params": params,
+        }));
+        assert_eq!(answers.len(), 1);
+        assert_eq!(answers[0]["id"], 5);
+        answers[0]["result"].clone()
+    };
+    let chain = json!({
+        "range": {"start": {"line": 1, "character": 0}, "end": {"line": 3, "character": 21}},
+        "kind": "statement",
+    });
+    let the_loop = json!({
+        "range": {"start": {"line": 6, "character": 0}, "end": {"line": 8, "character": 1}},
+        "kind": "statement",
+    });
+    // A place on a later line of the chain: the chain whole.
+    assert_eq!(
+        ask(json!({"textDocument": {"uri": MAIN}, "position": {"line": 2, "character": 9}})),
+        json!({"ranges": [chain]})
+    );
+    // On the blank line and on the comment: the statement that follows.
+    for line in [4, 5] {
+        assert_eq!(
+            ask(json!({"textDocument": {"uri": MAIN}, "position": {"line": line, "character": 0}})),
+            json!({"ranges": [the_loop]})
+        );
+    }
+    // After the last statement: none, and still a list.
+    assert_eq!(
+        ask(json!({"textDocument": {"uri": MAIN}, "position": {"line": 10, "character": 0}})),
+        json!({"ranges": []})
+    );
+    // A selection: every statement it touches, each one whole; a range wins over a place.
+    let selection =
+        json!({"start": {"line": 3, "character": 4}, "end": {"line": 7, "character": 2}});
+    assert_eq!(
+        ask(json!({"textDocument": {"uri": MAIN}, "range": selection})),
+        json!({"ranges": [chain, the_loop]})
+    );
+    assert_eq!(
+        ask(json!({
+            "textDocument": {"uri": MAIN},
+            "range": selection,
+            "position": {"line": 0, "character": 0},
+        })),
+        json!({"ranges": [chain, the_loop]})
+    );
+    // A function and a `use` line say what they are.
+    let result = ask(json!({
+        "textDocument": {"uri": CLEAN},
+        "position": {"line": 9, "character": 4},
+    }));
+    assert_eq!(result["ranges"][0]["kind"], "function");
+    assert_eq!(result["ranges"][0]["range"]["start"]["line"], 0);
+    drop(ask);
+    session.change(MAIN, 2, "use functions::clean\ntwice(2)\n");
+    let answers = session.send(&json!({
+        "jsonrpc": "2.0", "id": 5, "method": "zeff/statementRange",
+        "params": {"textDocument": {"uri": MAIN}, "position": {"line": 0, "character": 3}},
+    }));
+    assert_eq!(answers[0]["result"]["ranges"][0]["kind"], "use");
+}
+
+#[test]
+fn folding_and_the_statement_range_need_what_they_are_about() {
+    let mut session = Session::started();
+    let place = json!({"line": 0, "character": 0});
+    for (method, needs, wrong) in [
+        (
+            "textDocument/foldingRange",
+            "a document",
+            vec![json!(null), json!({}), json!({"textDocument": {"uri": 7}})],
+        ),
+        (
+            "zeff/statementRange",
+            "a document and a place or a range of it",
+            vec![
+                json!({}),
+                json!({"textDocument": {"uri": MAIN}}),
+                json!({"position": place}),
+                json!({"textDocument": {"uri": MAIN}, "range": {"start": place}}),
+                json!({"textDocument": {"uri": MAIN}, "position": {"line": -1, "character": 0}}),
+            ],
+        ),
+    ] {
+        for params in wrong {
+            let answers = session
+                .send(&json!({"jsonrpc": "2.0", "id": 4, "method": method, "params": params}));
+            assert_eq!(answers.len(), 1, "{method} {params}");
+            assert_eq!(error_code(&answers[0]), -32602, "{method} {params}");
+            assert_eq!(
+                answers[0]["error"]["message"],
+                format!("`{method}` names {needs}")
+            );
+        }
+    }
+    let mut early = Session::new();
+    let answers = early
+        .send(&json!({"jsonrpc": "2.0", "id": 1, "method": "zeff/statementRange", "params": {}}));
+    assert_eq!(error_code(&answers[0]), -32002);
+}
+
+/// The templates among the items of a completion: those of kind 15.
+fn templates(answer: &Value) -> Vec<Value> {
+    answer["result"]["items"]
+        .as_array()
+        .expect("a list")
+        .iter()
+        .filter(|item| item["kind"] == 15)
+        .cloned()
+        .collect()
+}
+
+#[test]
+fn the_templates_are_offered_where_a_statement_may_begin() {
+    // An editor that takes places to fill in is sent them.
+    let mut session = Session::new();
+    session.send(&json!({
+        "jsonrpc": "2.0", "id": 1, "method": "initialize",
+        "params": {"capabilities": {"textDocument": {"completion": {
+            "completionItem": {"snippetSupport": true},
+        }}}},
+    }));
+    session.notify("initialized", json!({}));
+    let text = "let w = dataset(wages)\nreg";
+    let answer = session.ask("textDocument/completion", text);
+    let found = templates(&answer);
+    let registry = zeff_engine::registry::registry().unwrap_or_else(|e| panic!("{e:?}"));
+    let offered = zeff_engine::language::outline::snippets(registry);
+    assert_eq!(
+        found
+            .iter()
+            .map(|t| t["label"].as_str().unwrap())
+            .collect::<Vec<_>>(),
+        offered.iter().map(|s| s.label).collect::<Vec<_>>()
+    );
+    let items = answer["result"]["items"].as_array().unwrap();
+    // After everything else that may stand there, in the order the editor is told to keep.
+    let first = items.len() - found.len();
+    assert!(first > 0 && items[..first].iter().all(|item| item["kind"] != 15));
+    let orders: Vec<&str> = items
+        .iter()
+        .map(|i| i["sortText"].as_str().unwrap())
+        .collect();
+    assert!(orders.is_sorted());
+    assert_eq!(
+        found[0],
+        json!({
+            "label": "regression table",
+            "kind": 15,
+            "detail": "Two nested regressions with robust errors, side by side in one table",
+            "filterText": "regression",
+            "sortText": format!("{first:05}"),
+            "insertTextFormat": 2,
+            "textEdit": {
+                // The word being typed is what the template takes the place of.
+                "range": {"start": {"line": 1, "character": 0}, "end": {"line": 1, "character": 3}},
+                "newText": "let ${1:m1} = ${2:data}.reg(${3:y} ~ ${4:x}, se: robust)\nlet ${5:m2} = ${2:data}.reg(${3:y} ~ ${4:x} + ${6:control}, se: robust)\nreport([${1:m1}, ${5:m2}]).export(\"output/${7:table1}.docx\")\n",
+            },
+        })
+    );
+    // On a line with nothing typed yet too; and not after a dot, inside a call or on a later line of a chain.
+    assert_eq!(
+        templates(&session.ask("textDocument/completion", "let w = dataset(wages)\n    ")).len(),
+        offered.len()
+    );
+    for text in [
+        "let w = dataset(wages)\nw.",
+        "let w = dataset(wages)\nw.reg(wage ~ educ, se: ",
+        "let w = dataset(wages)\nlet m = w\n    .re",
+        "let w = dataset(wages)\nlet m = re",
+    ] {
+        assert_eq!(
+            templates(&session.ask("textDocument/completion", text)),
+            [json!(null); 0],
+            "{text}"
+        );
+    }
+    // An editor that said nothing of places is sent the statements, each place by its name.
+    let mut plain = Session::started();
+    let found = templates(&plain.ask("textDocument/completion", text));
+    assert_eq!(found.len(), offered.len());
+    assert_eq!(found[0]["insertTextFormat"], 1);
+    assert_eq!(
+        found[0]["textEdit"]["newText"],
+        "let m1 = data.reg(y ~ x, se: robust)\nlet m2 = data.reg(y ~ x + control, se: robust)\nreport([m1, m2]).export(\"output/table1.docx\")\n"
+    );
 }

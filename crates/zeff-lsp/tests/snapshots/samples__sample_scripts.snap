@@ -36,6 +36,10 @@ expression: editor.told
       },
       "documentFormattingProvider": true,
       "documentRangeFormattingProvider": true,
+      "experimental": {
+        "zeffStatementRange": true
+      },
+      "foldingRangeProvider": true,
       "hoverProvider": true,
       "positionEncoding": "utf-16",
       "signatureHelpProvider": {
@@ -1299,6 +1303,229 @@ expression: editor.told
     "diagnostics": [],
     "uri": "file:///s/user_functions/scripts/main.zeff",
     "version": 10
+  }
+}
+--> {
+  "id": 22,
+  "jsonrpc": "2.0",
+  "method": "textDocument/foldingRange",
+  "params": {
+    "textDocument": {
+      "uri": "file:///s/user_functions/scripts/main.zeff"
+    }
+  }
+}
+<-- {
+  "id": 22,
+  "jsonrpc": "2.0",
+  "result": [
+    {
+      "endLine": 18,
+      "startLine": 16
+    },
+    {
+      "endLine": 25,
+      "startLine": 21
+    },
+    {
+      "endLine": 37,
+      "startLine": 35
+    },
+    {
+      "endLine": 48,
+      "startLine": 46
+    },
+    {
+      "endLine": 53,
+      "startLine": 50
+    },
+    {
+      "endLine": 63,
+      "startLine": 59
+    },
+    {
+      "endLine": 63,
+      "startLine": 60
+    },
+    {
+      "endLine": 67,
+      "startLine": 64
+    },
+    {
+      "endLine": 67,
+      "startLine": 65
+    },
+    {
+      "endLine": 73,
+      "startLine": 69
+    }
+  ]
+}
+--> {
+  "id": 23,
+  "jsonrpc": "2.0",
+  "method": "zeff/statementRange",
+  "params": {
+    "position": {
+      "character": 0,
+      "line": 0
+    },
+    "textDocument": {
+      "uri": "file:///s/user_functions/scripts/main.zeff"
+    }
+  }
+}
+<-- {
+  "id": 23,
+  "jsonrpc": "2.0",
+  "result": {
+    "ranges": [
+      {
+        "kind": "use",
+        "range": {
+          "end": {
+            "character": 28,
+            "line": 7
+          },
+          "start": {
+            "character": 0,
+            "line": 7
+          }
+        }
+      }
+    ]
+  }
+}
+--> {
+  "id": 24,
+  "jsonrpc": "2.0",
+  "method": "zeff/statementRange",
+  "params": {
+    "range": {
+      "end": {
+        "character": 4,
+        "line": 22
+      },
+      "start": {
+        "character": 0,
+        "line": 0
+      }
+    },
+    "textDocument": {
+      "uri": "file:///s/user_functions/scripts/main.zeff"
+    }
+  }
+}
+<-- {
+  "id": 24,
+  "jsonrpc": "2.0",
+  "result": {
+    "ranges": [
+      {
+        "kind": "use",
+        "range": {
+          "end": {
+            "character": 28,
+            "line": 7
+          },
+          "start": {
+            "character": 0,
+            "line": 7
+          }
+        }
+      },
+      {
+        "kind": "use",
+        "range": {
+          "end": {
+            "character": 25,
+            "line": 8
+          },
+          "start": {
+            "character": 0,
+            "line": 8
+          }
+        }
+      },
+      {
+        "kind": "statement",
+        "range": {
+          "end": {
+            "character": 67,
+            "line": 12
+          },
+          "start": {
+            "character": 0,
+            "line": 12
+          }
+        }
+      },
+      {
+        "kind": "statement",
+        "range": {
+          "end": {
+            "character": 16,
+            "line": 13
+          },
+          "start": {
+            "character": 0,
+            "line": 13
+          }
+        }
+      },
+      {
+        "kind": "statement",
+        "range": {
+          "end": {
+            "character": 1,
+            "line": 18
+          },
+          "start": {
+            "character": 0,
+            "line": 16
+          }
+        }
+      },
+      {
+        "kind": "statement",
+        "range": {
+          "end": {
+            "character": 57,
+            "line": 19
+          },
+          "start": {
+            "character": 0,
+            "line": 19
+          }
+        }
+      },
+      {
+        "kind": "statement",
+        "range": {
+          "end": {
+            "character": 50,
+            "line": 20
+          },
+          "start": {
+            "character": 0,
+            "line": 20
+          }
+        }
+      },
+      {
+        "kind": "statement",
+        "range": {
+          "end": {
+            "character": 2,
+            "line": 25
+          },
+          "start": {
+            "character": 0,
+            "line": 21
+          }
+        }
+      }
+    ]
   }
 }
 --> {

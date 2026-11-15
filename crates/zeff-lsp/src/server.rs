@@ -14,7 +14,8 @@ use std::path::{Path, PathBuf};
 use zeff_engine::fs::FileSystem;
 use zeff_engine::language::{
     Completion, CompletionKind, Documents, Finding, HoverKind, Level, NotFormatted, Position,
-    Range, SignatureHelp, completions, diagnostics, formatting, hover, offset, signature_help,
+    Range, SignatureHelp, Snippet, StatementRange, completions, diagnostics, folding_ranges,
+    formatting, hover, offset, signature_help, snippets_at, statement_range, statement_ranges,
 };
 
 /// The errors of JSON-RPC and of the protocol that this server gives.
@@ -66,6 +67,9 @@ pub struct Server {
     /// Whether the editor said, in `initialize`, that it shows Markdown in a hover; one that
     /// did not is sent plain text.
     markdown: bool,
+    /// Whether the editor said that it takes a completion with places to fill in (a snippet);
+    /// one that did not is sent a template as plain statements, each place by its name.
+    snippets: bool,
 }
 
 impl Default for Server {
@@ -129,6 +133,26 @@ fn completion_item(item: &Completion, replace: Range, order: usize) -> Value {
         json!({ "range": range(replace), "newText": item.insert }),
     );
     Value::Object(out)
+}
+
+/// A template as a completion item: kind 15, the protocol's snippet, found by its word; with
+/// places to fill in (`insertTextFormat` 2) for an editor that takes them, and as plain
+/// statements with each place by its name for one that does not.
+fn snippet_item(snippet: &Snippet, replace: Range, order: usize, places: bool) -> Value {
+    let text = if places {
+        snippet.body.to_string()
+    } else {
+        zeff_engine::language::outline::filled(snippet.body)
+    };
+    json!({
+        "label": snippet.label,
+        "kind": 15,
+        "detail": snippet.detail,
+        "filterText": snippet.word,
+        "sortText": format!("{order:05}"),
+        "insertTextFormat": if places { 2 } else { 1 },
+        "textEdit": { "range": range(replace), "newText": text },
+    })
 }
 
 /// Signature help as the protocol's `SignatureHelp`: the one usage line, each parameter by
@@ -243,6 +267,7 @@ impl Server {
             uris: BTreeMap::new(),
             told: BTreeMap::new(),
             markdown: false,
+            snippets: false,
         }
     }
 
@@ -322,6 +347,10 @@ impl Server {
                     .pointer("/capabilities/textDocument/hover/contentFormat")
                     .and_then(Value::as_array)
                     .is_some_and(|formats| formats.iter().any(|format| format == "markdown"));
+                self.snippets = params
+                    .pointer("/capabilities/textDocument/completion/completionItem/snippetSupport")
+                    .and_then(Value::as_bool)
+                    .unwrap_or(false);
                 response(
                     id,
                     json!({
@@ -348,6 +377,12 @@ impl Server {
                             // the one style of the language.
                             "documentFormattingProvider": true,
                             "documentRangeFormattingProvider": true,
+                            // Chains, blocks and functions fold.
+                            "foldingRangeProvider": true,
+                            // The statement at a place, or those a selection touches, for an
+                            // interface that runs them: the request `zeff/statementRange`,
+                            // which is this server's own.
+                            "experimental": { "zeffStatementRange": true },
                         },
                         "serverInfo": { "name": "zeff", "version": zeff_engine::VERSION },
                     }),
@@ -365,6 +400,62 @@ impl Server {
                 self.state = State::ShutDown;
                 response(id, Value::Null)
             }
+            (State::Running, "textDocument/foldingRange" | "zeff/statementRange") => {
+                let uri = params
+                    .get("textDocument")
+                    .and_then(|d| d.get("uri"))
+                    .and_then(Value::as_str);
+                let place = params.get("position").and_then(sent_position);
+                let selection = params.get("range").and_then(sent_range);
+                let asks = method == "zeff/statementRange";
+                let Some(uri) = uri.filter(|_| !asks || place.is_some() || selection.is_some())
+                else {
+                    let needs = if asks {
+                        "a document and a place or a range of it"
+                    } else {
+                        "a document"
+                    };
+                    return vec![error(
+                        id,
+                        code::INVALID_PARAMS,
+                        &format!("`{method}` names {needs}"),
+                    )];
+                };
+                let path = path_of(uri);
+                let documents = &self.documents;
+                let result = catch_unwind(AssertUnwindSafe(|| {
+                    if !asks {
+                        // The protocol's `FoldingRange`: the first and the last line.
+                        let folds: Vec<Value> = folding_ranges(fs, documents, &path)
+                            .iter()
+                            .map(|f| json!({ "startLine": f.start_line, "endLine": f.end_line }))
+                            .collect();
+                        return json!(folds);
+                    }
+                    // A range asks for every statement it touches; a place for the one it is
+                    // in, or the next. One answer for both: the statements, in order.
+                    let found: Vec<StatementRange> = match (selection, place) {
+                        (Some(selection), _) => statement_ranges(fs, documents, &path, selection),
+                        (None, Some(at)) => statement_range(fs, documents, &path, at)
+                            .into_iter()
+                            .collect(),
+                        (None, None) => Vec::new(),
+                    };
+                    let ranges: Vec<Value> = found
+                        .iter()
+                        .map(|s| json!({ "range": range(s.range), "kind": s.kind.name() }))
+                        .collect();
+                    json!({ "ranges": ranges })
+                }));
+                match result {
+                    Ok(result) => response(id, result),
+                    Err(_) => error(
+                        id,
+                        code::INTERNAL_ERROR,
+                        "internal error: this is a bug in Zeff, not in your script (Z9001)",
+                    ),
+                }
+            }
             (State::Running, "textDocument/completion" | "textDocument/signatureHelp") => {
                 // The document and the place in it, which both requests name alike.
                 let uri = params
@@ -381,15 +472,34 @@ impl Server {
                 };
                 let path = path_of(uri);
                 let documents = &self.documents;
+                let snippets = self.snippets;
                 let result = catch_unwind(AssertUnwindSafe(|| match method {
                     "textDocument/completion" => {
                         let found = completions(fs, documents, &path, at);
-                        let items: Vec<Value> = found
+                        let mut items: Vec<Value> = found
                             .items
                             .iter()
                             .enumerate()
                             .map(|(order, item)| completion_item(item, found.replace, order))
                             .collect();
+                        // The templates of common analyses, where a statement may begin,
+                        // after everything else that may stand there.
+                        if let Ok(registry) = zeff_engine::registry::registry() {
+                            let after = items.len();
+                            items.extend(
+                                snippets_at(fs, documents, &path, at, registry)
+                                    .iter()
+                                    .enumerate()
+                                    .map(|(order, snippet)| {
+                                        snippet_item(
+                                            snippet,
+                                            found.replace,
+                                            after + order,
+                                            snippets,
+                                        )
+                                    }),
+                            );
+                        }
                         // The whole list for the place: an editor narrows it as more is
                         // typed, and asks again when the place is another.
                         json!({ "isIncomplete": false, "items": items })

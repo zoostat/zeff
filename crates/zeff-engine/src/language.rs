@@ -20,11 +20,16 @@ pub(crate) mod call;
 pub mod complete;
 pub mod formatting;
 pub mod hover;
+pub mod outline;
 pub mod signature;
 
 pub use complete::{Completion, CompletionKind, Completions, VariableFacts, completions};
 pub use formatting::{NotFormatted, TextEdit, applied, formatting};
 pub use hover::{BindingFacts, Hover, HoverKind, hover};
+pub use outline::{
+    Fold, Snippet, StatementKind, StatementRange, folding_ranges, snippets_at, statement_range,
+    statement_ranges,
+};
 pub use signature::{SignatureHelp, SignatureParameter, signature_help};
 
 /// A place in a document as the Language Server Protocol counts it: the line from 0, and the

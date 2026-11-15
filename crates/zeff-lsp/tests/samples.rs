@@ -298,6 +298,29 @@ fn the_messages_exchanged_on_the_sample_scripts() {
     // The module as it was, and the script as it was: nothing is left to say.
     editor.change(module, 3, &module_text);
     editor.change(script, 10, &script_text);
+    // Where the script folds, and what an interface runs from a place in it and from a
+    // selection of its first lines (release 0.8.0, step 8b).
+    editor.send(json!({
+        "jsonrpc": "2.0",
+        "id": 22,
+        "method": "textDocument/foldingRange",
+        "params": {"textDocument": {"uri": script}},
+    }));
+    editor.send(json!({
+        "jsonrpc": "2.0",
+        "id": 23,
+        "method": "zeff/statementRange",
+        "params": {"textDocument": {"uri": script}, "position": {"line": 0, "character": 0}},
+    }));
+    editor.send(json!({
+        "jsonrpc": "2.0",
+        "id": 24,
+        "method": "zeff/statementRange",
+        "params": {
+            "textDocument": {"uri": script},
+            "range": {"start": {"line": 0, "character": 0}, "end": {"line": 22, "character": 4}},
+        },
+    }));
     for (uri, _) in &documents {
         editor.close(uri);
     }

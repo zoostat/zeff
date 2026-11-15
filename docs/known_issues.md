@@ -99,10 +99,12 @@ is never listed here as accepted: it is fixed or the function is withdrawn.
   the bytes draw what the script says was read by eye for the fifteen figures, in the PNG form
   for all and in the PDF and SVG forms for some, on one machine. (Since 0.7.0.)
 - **The language server has been driven by tests, not yet by an editor.** `zeff lsp` serves
-  diagnostics as one types, completion, signature help, hover and formatting, and answers any
-  other request as not served: quick fixes, navigation, rename and inlay hints are 1.1; folding,
-  snippets and the ranges behind Run are open decision #86, for 0.8.0. A changed document is
-  sent whole. Completion offers a frame's variables with their types; their counts of missing
+  diagnostics as one types, completion, signature help, hover, formatting, folding, the
+  templates of common analyses and the statement ranges an interface runs (since 0.8.0), and
+  answers any other request as not served: quick fixes, navigation, rename and inlay hints are
+  1.1. A template is offered by an engine that has every function it calls: the one for
+  instrumental variables arrives with `ivreg`, the one for a logistic regression with `glm`
+  at 0.9.0. A changed document is sent whole. Completion offers a frame's variables with their types; their counts of missing
   values are known for a shipped dataset or from the last run, and before a project's first run
   a file's variables show their types alone. The tree-sitter grammar has likewise been held to
   the engine's parser on 131 scripts and seen in no editor. (Since 0.7.0.)

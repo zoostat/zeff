@@ -145,3 +145,13 @@ Tests, plots and the language server: 72 functions in 258 commits over 40 steps,
 **Next.** Step 8b `[engine]`: folding, snippets and the statement ranges behind Run (#86).
 
 **For the owner to decide.** Nothing blocks.
+
+## 15 November 2026, release 0.8.0, step 8b (folding, templates and the statement ranges behind Run)
+
+**Done.** Step 8b `[engine]`: the language server folds chains, blocks and functions; offers the templates of common analyses where a statement may begin (two today; the one for instrumental variables arrives with `ivreg`, the one for a logistic regression with `glm`); and tells an interface which statement stands at a place, or which a selection touches, through a request of its own that Zemp's Run will use. The known issue on the server now names only 1.1's features.
+
+**Green.** Format, clippy with warnings denied, the tier and message checks, every test of the workspace; CI read after the push.
+
+**Next.** Step 8c `[function]`: the documentation step of #113, #120 and #122.
+
+**For the owner to decide.** Nothing blocks.
