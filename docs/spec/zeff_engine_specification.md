@@ -281,7 +281,7 @@ Counts are functions in 1.0 / proposed for 1.0 (none since 16 October 2026) / on
 
 | Package | Objective | Focus | 1.0 / proposed / roadmap |
 | --- | --- | --- | --- |
-| `core` | The language and the types every package shares | Values, types, collections, missing values, maths, program control; matrices from 1.8 | 75 / 0 / 3 |
+| `core` | The language and the types every package shares | Values, types, collections, missing values, maths, program control; matrices from 1.15 | 75 / 0 / 3 |
 
 **Tier 1: toolkit**, general machinery every method uses
 
@@ -292,7 +292,7 @@ Counts are functions in 1.0 / proposed for 1.0 (none since 16 October 2026) / on
 | 3 | `data` | Make any dataset ready for analysis | Frames, verbs, panels, reducers, files | 59 / 0 / 13 |
 | 4 | `dist` | Probability distributions | Fifteen families, the studentized range, truncation and mixtures; `pdf`, `cdf`, `quantile`, `draw` | 22 / 0 / 0 |
 | 5 | `results` | Every result looks and behaves the same | Result interface, estimator interface with marginal effects, publication tables, export | 24 / 0 / 1 |
-| 6 | `stats` | Classical inference | Correlation, tests, post-hoc comparisons, power, effect sizes, smoothing | 14 / 0 / 20 |
+| 6 | `stats` | Classical inference | Correlation, tests, post-hoc comparisons, power, effect sizes, smoothing | 14 / 0 / 19 |
 | 7 | `optim` | Fit anything defined by an objective | Minimisers, MLE and GMM frameworks, mathematical programming | 0 / 0 / 11 |
 | 8 | `resample` | Uncertainty and validation by resampling | Bootstrap, jackknife, permutation, holdout splits and cross-validation folds | 0 / 0 / 7 |
 | 9 | `survey` | Design-correct estimates from survey data | Design declaration, replicate weights, calibration | 0 / 0 / 8 |
@@ -304,33 +304,33 @@ Counts are functions in 1.0 / proposed for 1.0 (none since 16 October 2026) / on
 
 | # | Package | Objective | Focus | 1.0 / proposed / roadmap |
 | --- | --- | --- | --- | --- |
-| 1 | `regress` | Linear and IV regression | OLS, fixed effects, IV with the Anderson–Rubin test, event-study terms, linear-model diagnostics, wild bootstrap, quantile regression | 10 / 0 / 8 |
-| 2 | `glm` | Non-linear outcomes | Binary models with their classification table and ROC curve; count, ordinal, multinomial, censored and selection models | 4 / 0 / 12 |
-| 3 | `multilevel` | Repeated and nested data | Random effects (`re:`), mixed and growth models, dynamic panels | 0 / 0 / 6 |
-| 4 | `explore` | Find structure before testing | Dimension reduction, missingness, imputation and outlier checks | 0 / 0 / 9 |
-| 5 | `series` | Time series and forecasting | ARIMA, ETS, VAR, state space, dynamic factors | 0 / 0 / 7 |
-| 6 | `latent` | Latent-variable models | CFA and SEM (1.3); EFA, ESEM, latent classes and profiles | 0 / 0 / 18 |
+| 1 | `regress` | Linear and IV regression | OLS, fixed effects, IV with the Anderson–Rubin test, event-study terms, linear-model diagnostics, wild bootstrap, quantile regression | 10 / 0 / 7 |
+| 2 | `glm` | Non-linear outcomes | Binary models with their classification table and ROC curve; count, ordinal, multinomial, censored and selection models | 4 / 0 / 9 |
+| 3 | `multilevel` | Repeated and nested data | Random effects (`re:`), mixed and growth models, dynamic panels | 0 / 0 / 5 |
+| 4 | `explore` | Find structure before testing | Dimension reduction, missingness, imputation and outlier checks | 0 / 0 / 8 |
+| 5 | `series` | Time series and forecasting | ARIMA, ETS, VAR, state space, dynamic factors | 0 / 0 / 6 |
+| 6 | `latent` | Latent-variable models | EFA (1.3), CFA and SEM (1.12), latent classes and profiles (1.13), ESEM (1.25) | 0 / 0 / 17 |
 | 7 | `measure` | Reliability and validity of measures | Reliability, validity, invariance, IRT, agreement | 1 / 0 / 14 |
 | 8 | `learn` | Leakage-safe prediction | Recipes, model specifications, supervised learners, tuning, metrics, explanation | 0 / 0 / 32 |
-| 9 | `groups` | Hidden groupings | Clustering, mixtures, topic models, communities | 0 / 0 / 7 |
+| 9 | `groups` | Hidden groupings | Clustering, mixtures, topic models, communities | 0 / 0 / 3 |
 
 **Tier 3: designs**, which use fitted models to answer a research question
 
 | # | Package | Objective | Focus | 1.0 / proposed / roadmap |
 | --- | --- | --- | --- | --- |
 | 1 | `identify` | Say what a causal question needs before anything is fitted | Causal graphs, adjustment sets, implied independencies, checks of fitted models and instruments against a graph, graph drawing | 6 / 0 / 0 |
-| 2 | `experiment` | Design and analyse randomised trials | Designed experiments, randomisation, balance, variance reduction, randomisation inference, non-compliance | 0 / 0 / 9 |
+| 2 | `experiment` | Design and analyse randomised trials | Designed experiments, randomisation, balance, variance reduction, randomisation inference, non-compliance | 0 / 0 / 8 |
 | 3 | `quasi` | Natural-experiment designs | DiD and event studies, RDD, synthetic control, shift-share | 0 / 0 / 10 |
-| 4 | `adjust` | Selection on observables | Matching, weighting, double machine learning, sensitivity | 0 / 0 / 12 |
+| 4 | `adjust` | Selection on observables | Matching, weighting, double machine learning, sensitivity | 0 / 0 / 10 |
 | 5 | `mediate` | How and why an effect happens | Indirect effects, moderated mediation, front-door | 0 / 0 / 5 |
 | 6 | `hetero` | For whom and when | Moderation, conditional average treatment effects | 0 / 0 / 10 |
-| 7 | `structural` | Counterfactual policy simulation | SMM, discrete choice and demand, dynamic models, simulation, welfare | 0 / 0 / 11 |
+| 7 | `structural` | Counterfactual policy simulation | SMM, discrete choice and demand, dynamic models, simulation, welfare | 0 / 0 / 9 |
 | 8 | `decide` | What should be done | Policy learning, treatment regimes, bandits, operational decisions | 0 / 0 / 8 |
 | 9 | `meta` | What the evidence says | Meta-analysis, publication bias, specification curves | 0 / 0 / 13 |
 
 **Tier 4: extensions.** The project's own functions in `functions/` (they may call every package) and, from 2.0 at the earliest, third-party packages under rule 9.
 
-Totals: 279 functions in 1.0 (75 in tier 0, 183 in tier 1, 15 in tier 2, 6 in tier 3), of which 263 are written in Rust and 16 in Zeff; none remain proposed, and 266 are on the roadmap, 545 in all (eight functions joined 1.0 on 7 November 2026, five of them from the roadmap; zeff_open_decisions.md, #88; six methods of a test's result joined `results` on 9 November 2026, #94, and `design` joined `regress` at release 0.7.0, #71). Eighteen packages have no function in 1.0 (four in tier 1, six in tier 2 and every tier-3 package but `identify`): they give the roadmap its structure and stay out of menus until they ship (rule 7). Most 1.0 functions are small; what limits the schedule is the seven hard engine pieces listed in section 14.
+Totals: 279 functions in 1.0 (75 in tier 0, 183 in tier 1, 15 in tier 2, 6 in tier 3), of which 263 are written in Rust and 16 in Zeff; none remain proposed, and 248 are on the roadmap, 527 in all (the merges of the plan of releases after 1.0 took eighteen roadmap rows at release 0.8.0; zeff_open_decisions.md, #113; eight functions joined 1.0 on 7 November 2026, five of them from the roadmap; zeff_open_decisions.md, #88; six methods of a test's result joined `results` on 9 November 2026, #94, and `design` joined `regress` at release 0.7.0, #71). Eighteen packages have no function in 1.0 (four in tier 1, six in tier 2 and every tier-3 package but `identify`): they give the roadmap its structure and stay out of menus until they ship (rule 7). Most 1.0 functions are small; what limits the schedule is the seven hard engine pieces listed in section 14.
 
 ### 8.3 Engine architecture
 
@@ -536,7 +536,7 @@ Zeff has no file format of its own. Data on disk is in one of two open formats, 
 
 **Memory accounting.** A memory-mapped file counts against the memory budget (section 8.3, point 7) by the pages a step has touched, not by its size, and the estimate made before a step counts the columns the step will read, so a 10 GB file on the desktop is not refused by a script that reads three columns of it. In the browser nothing is mapped, and a cached copy counts in full once decoded.
 
-**Results, and several objects in one file.** `save` writes one frame. Fitted results need not be saved in 1.0: the result cache and `zeff run` reproduce them exactly, and `fit.estimates()` saves what a table or a plot needs. Whether a file holding several frames and results together arrives with the heavy models of 1.5 (a zip of Arrow files and JSON result descriptions in the versioned form of section 8.3, point 5, never a binary format of Zeff's own) is an open decision (section 15).
+**Results, and several objects in one file.** `save` writes one frame. Fitted results need not be saved in 1.0: the result cache and `zeff run` reproduce them exactly, and `fit.estimates()` saves what a table or a plot needs. Whether a file holding several frames and results together arrives with the heavy models of 1.14 (a zip of Arrow files and JSON result descriptions in the versioned form of section 8.3, point 5, never a binary format of Zeff's own) is an open decision (section 15).
 
 ---
 
@@ -624,12 +624,12 @@ fn share_missing(data: Frame, var: Var) -> Float {
 - **Collections:** `len`, `first`, `last`, `unique`, `sorted`, `reversed`, `any`, `all`, `append`, `keys`, `is_in`, `seq`, `equal`, `table`, `map`, `filter`, `reduce`
 - **Missing values:** `is_missing`, `fill_missing`, `coalesce`, `n_missing`
 - **Program:** `print`, `warn`, `note`, `error`, `assert`, `name_of`, `attempt`, `iterate`, `seed`, `timer`, `version`, `help`
-- **Roadmap (1.8; names reserved in `core` before the 1.0 freeze):** `matrix`, `vector`, `transpose`
+- **Roadmap, by release:** `matrix`, `vector`, `transpose` (1.15)
 
 #### `time` (tier 1) · 14 in 1.0, 0 proposed, 2 on the roadmap
 
 - **Dates:** `date`, `datetime`, `today`, `now`, `year`, `month`, `day`, `weekday`, `quarter`, `week`, `add_days`, `add_months`, `days_between`, `months_between`
-- **Roadmap:** `duration`, `to_timezone`
+- **Roadmap, by release:** `duration`, `to_timezone` (1.2)
 
 #### `text` (tier 1) · 13 in 1.0, 0 proposed, 0 on the roadmap
 
@@ -640,7 +640,7 @@ fn share_missing(data: Frame, var: Var) -> Float {
 - **Frames:** `frame`, `import`, `n_rows`, `n_cols`, `variables`, `describe`, `head`, `tail`, `where`, `select`, `drop`, `rename`, `add`, `update`, `sort`, `distinct`, `duplicates`, `sample`, `merge`, `append`, `to_long`, `to_wide`, `aggregate`, `panel`, `drop_missing`, `label`, `recode`, `save`
 - **Column functions:** `lag`, `lead`, `diff`, `running_sum`, `running_product`, `rank`, `quantile_group`, `bin`, `standardize`, `center`, `between`, `row_mean`, `row_sum`, `winsorize`, `fill_forward`
 - **Reducers and summaries:** `mean`, `sd`, `variance`, `median`, `iqr`, `mad`, `quantile`, `min`, `max`, `sum`, `n`, `n_distinct`, `skewness`, `kurtosis`, `summary`, `tabulate`
-- **Roadmap:** `stream`, `external` (desktop), `unnest`, `moving_average`, `growth_rate`, `index_number`, `rolling`, `gini` (as a reducer and, by group, as a frame method), `theil`, `atkinson`, `herfindahl`, `lorenz`; `merge` gains `join: semi | anti` at 0.10.0
+- **Roadmap, by release:** `external`, `unnest` (1.1); `moving_average`, `growth_rate`, `index_number`, `rolling` (1.2); `gini`, `theil`, `atkinson`, `herfindahl`, `lorenz` (1.5); `stream` (1.8)
 
 #### `dist` (tier 1) · 22 in 1.0, 0 proposed, 0 on the roadmap
 
@@ -652,32 +652,32 @@ fn share_missing(data: Frame, var: Var) -> Float {
 - **Result interface:** `summary`, `estimates`, `std_errors`, `p_values`, `ci`, `n_obs`, `export`; on a `TestResult` alone, `statistic`, `df`, `effect_size`, `h0`, `h1`, `alternative` (open decision #94)
 - **Estimator interface:** `coef`, `vcov`, `fit_measures`, `predict`, `residuals`, `fitted`, `compare`, `test`, `derive`, `margins` (0.9.0; for `reg`, `logistic` and `probit` in 1.0)
 - **Tables and export:** `report`
-- **Roadmap:** `contrasts`
+- **Roadmap, by release:** `contrasts` (1.6)
 
-#### `stats` (tier 1) · 14 in 1.0, 0 proposed, 20 on the roadmap
+#### `stats` (tier 1) · 14 in 1.0, 0 proposed, 19 on the roadmap
 
 - **Association:** `correlation`, `covariance`
 - **Tests:** `t_test`, `wilcoxon_test`, `anova` (one-way and factorial, with `type:`), `posthoc`, `kruskal_test`, `chi2_test`, `fisher_test`, `proportion_test`, `mcnemar_test`, `shapiro_test`, `ks_test`, `p_adjust`
-- **Roadmap:** `power.t_test`, `power.proportion_test`, `power.anova`, `mde`, `repeated_anova`, `tost` (1.9); `ci_median`, `effect_size`, `loess`, `spline`, `levene_test`, `bartlett_test`, `cochran_q_test`, `friedman_test`, `sign_test`, `jarque_bera_test`, `manova`, `hotelling_test`, `box_m_test`, `mardia_test`
+- **Roadmap, by release:** `effect_size`, `kernel_reg`, `normality_test` (1.2); `cov_test` (1.3); `ci_median`, `cochran_q_test`, `friedman_test`, `sign_test` (1.5); `spline` (1.6); `repeated_anova`, `manova`, `hotelling_test` (1.16); `power.t_test`, `power.proportion_test`, `power.anova`, `mde`, `tost` (1.17); `levene_test`, `bartlett_test` (after 1.0)
 
 #### `optim` (tier 1) · 0 in 1.0, 0 proposed, 11 on the roadmap
 
-- **Roadmap:** `minimize`, `root`, `gradient`, `hessian` (1.8, with automatic differentiation), `mle`, `gmm`, `lp`, `mip`, `nlp`, `stochastic_program`, `robust_program`
+- **Roadmap, by release:** `lp`, `mip` (1.5); `minimize`, `root`, `gradient`, `hessian`, `mle`, `gmm`, `nlp` (1.15); `stochastic_program`, `robust_program` (1.22)
 
 #### `resample` (tier 1) · 0 in 1.0, 0 proposed, 7 on the roadmap
 
-- **Roadmap:** `bootstrap`, `jackknife`, `permutation_test`; `holdout`, `training`, `testing`, `folds` (1.5, section 7.5 of the Language Reference)
+- **Roadmap, by release:** `holdout`, `folds`, `training`, `testing` (1.4); `bootstrap`, `jackknife`, `permutation_test` (1.6)
 
 #### `survey` (tier 1) · 0 in 1.0, 0 proposed, 8 on the roadmap
 
-- **Roadmap (1.9):** `survey`, `total`, `ratio`, `replicate_weights`, `design_effect`, `poststratify`, `rake`, `calibrate`
+- **Roadmap, by release:** `survey`, `total`, `ratio`, `replicate_weights`, `design_effect`, `poststratify`, `rake`, `calibrate` (1.17)
 
 #### `plot` (tier 1) · 35 in 1.0, 0 proposed, 6 on the roadmap
 
 - **Grammar (section 7.6 of the Language Reference):** `plot`; marks `points`, `lines`, `step`, `bars`, `area`, `ribbon`, `text`, `tile`, `rug`, `hline`, `vline`; statistical layers `histogram`, `density`, `boxplot`, `errorbars`; `scale_x`, `scale_y`, `scale`, `coord`, `facet`, `labels`, `legend`, `theme`, `annotate`
 - **Shorthands:** `histogram`, `scatter`, `line`, `bar`, `boxplot`, `density`, `qq_plot`, `heatmap`
 - **Result plots:** `plot`, `coef_plot`
-- **Roadmap:** `smooth`, `violin`, `aggregate`, `arrange`, `computed` (1.2); `scatter_matrix`
+- **Roadmap, by release:** `smooth`, `violin`, `aggregate`, `arrange`, `computed` (1.2); `scatter_matrix` (1.5)
 
 #### `datasets` (tier 1) · 2 in 1.0, 0 proposed, 0 on the roadmap
 
@@ -685,86 +685,85 @@ fn share_missing(data: Frame, var: Var) -> Float {
 
 #### `web` (tier 1) · 0 in 1.0, 0 proposed, 4 on the roadmap
 
-- **Roadmap (1.1, section 8.6):** `fetch`, `secret`, `flatten`, `rate_limit`
+- **Roadmap, by release:** `fetch`, `secret`, `flatten`, `rate_limit` (1.1)
 
-#### `regress` (tier 2) · 10 in 1.0, 0 proposed, 8 on the roadmap
+#### `regress` (tier 2) · 10 in 1.0, 0 proposed, 7 on the roadmap
 
 - **Models:** `reg`, `ivreg`
 - **Linear-model methods:** `r_squared`, `influence`, `vif`, `design`, `first_stage`, `ar_test` (the generic result methods are in `results`)
 - **Formula terms:** `interact`, `event`
-- **Roadmap:** `power.reg` (1.9), `wild_bootstrap`, `ivreg` method `liml`, `quantile_reg`, `het_test`, `reset_test`, `durbin_watson`, `ljung_box_test`
+- **Roadmap, by release:** `het_test`, `spec_test`, `serial_test` (1.2); `quantile_reg` (1.11); `power.reg` (1.17); `wild_bootstrap`, `ivreg` with `method: liml` (1.18)
 
-#### `glm` (tier 2) · 4 in 1.0, 0 proposed, 12 on the roadmap
+#### `glm` (tier 2) · 4 in 1.0, 0 proposed, 9 on the roadmap
 
 - **Binary models:** `logistic`, `probit`
 - **Methods on a binary fit:** `roc`, `confusion`
-- **Roadmap:** `poisson` (1.2), `negbin`, `gamma_reg`, `beta_reg`, `fractional`, `ordinal`, `multinomial`, `tobit`, `heckman`, `zero_inflated`, `hurdle`, `surv` (the censored-outcome term of `surv(time, event) ~ x`)
+- **Roadmap, by release:** `glm` with `family: poisson | negbin | gamma | quasibinomial`, `beta_reg`, `ordinal`, `multinomial`, `tobit`, `selection`, `zero_inflated`, `hurdle` (1.7); `surv` (1.10)
 
-#### `multilevel` (tier 2) · 0 in 1.0, 0 proposed, 6 on the roadmap
+#### `multilevel` (tier 2) · 0 in 1.0, 0 proposed, 5 on the roadmap
 
-- **Roadmap:** `mixed`, `panel_reg`, `hausman` (1.4), `glmm`, `growth`, `dynamic_panel`
+- **Roadmap, by release:** `panel_reg`, `hausman` (1.8); `mixed`, `growth` (1.11); `dynamic_panel` (1.21)
 
-#### `explore` (tier 2) · 0 in 1.0, 0 proposed, 9 on the roadmap
+#### `explore` (tier 2) · 0 in 1.0, 0 proposed, 8 on the roadmap
 
-- **Roadmap:** `impute`, `pca`, `correspondence`, `mds`, `tsne`, `umap`, `missing_pattern`, `mcar_test`, `outliers`
+- **Roadmap, by release:** `pca` (1.3); `correspondence` (1.5); `mds`, `outliers` (1.16); `impute`, `missing_pattern`, `mcar_test` (1.17); `embed` (1.28)
 
-#### `series` (tier 2) · 0 in 1.0, 0 proposed, 7 on the roadmap
+#### `series` (tier 2) · 0 in 1.0, 0 proposed, 6 on the roadmap
 
-- **Roadmap:** `arima`, `ets`, `vector_ar`, `state_space`, `dynamic_factor`, `forecast`, `trend_forecast`
+- **Roadmap, by release:** `arima`, `ets`, `forecast` (1.2); `vector_ar` (1.10); `state_space`, `dynamic_factor` (1.23)
 
-#### `latent` (tier 2) · 0 in 1.0, 0 proposed, 18 on the roadmap
+#### `latent` (tier 2) · 0 in 1.0, 0 proposed, 17 on the roadmap
 
-- **Roadmap:** `model`, `cfa`, `sem`, `effects`, `loadings`, `mod_indices` (1.3), `lca`, `pick`, `profiles`, `efa`, `kmo`, `sphericity_test`, `parallel_analysis`, `factor_scores`, `latent_growth`, `lpa`, `lta`, `growth_mixture`; also WLSMV and `efa()` blocks (ESEM) in `cfa` and `sem`
+- **Roadmap, by release:** `efa`, `kmo`, `factor_count` (1.3); `model`, `cfa`, `sem`, `effects`, `loadings`, `mod_indices`, `factor_scores` (1.12); `lca`, `pick`, `profiles`, `lpa` (1.13); `latent_growth` (1.25); `lta`, `growth_mixture` (1.26)
 
 #### `measure` (tier 2) · 1 in 1.0, 0 proposed, 14 on the roadmap
 
 - **Reliability:** `reliability`
-- **Roadmap:** `item_stats`, `polychoric`, `composite_reliability`, `ave`, `fornell_larcker`, `htmt`, `invariance`, `alignment`, `irt`, `dif`, `icc`, `kappa`, `g_study`, `bland_altman`
+- **Roadmap, by release:** `item_stats` (1.3); `bland_altman` (1.11); `polychoric`, `composite_reliability`, `ave`, `fornell_larcker`, `htmt`, `invariance`, `icc`, `kappa` (1.12); `alignment` (1.25); `irt`, `dif`, `g_study` (1.26)
 
 #### `learn` (tier 2) · 0 in 1.0, 0 proposed, 32 on the roadmap
 
-- **Roadmap, 1.5 (section 7.5 of the Language Reference):** `recipe` and its steps `impute`, `standardize`, `center`, `one_hot`, `bin`, `pca`, `winsorize`, `add`; `prepare`, `apply`; `spec.lasso`, `spec.random_forest`, `spec.boosting`, `spec.logistic`, `spec.reg`; `learn`, `tune`, `score`, `grid`, `best`; `lasso`
-- **Roadmap, later:** `tree`, `random_forest`, `boosting`, `svm`, `knn`, `naive_bayes`, `neural_net`, `calibration`, `shap`, `partial_dependence`
+- **Roadmap, by release:** `tree`, `score` (1.4); `penalized` (1.6); `random_forest`, `boosting`, `svm`, `knn`, `naive_bayes`, `neural_net`, `tune`, `calibration`, `shap`, `feature_effects`, `recipe`, `impute`, `standardize`, `center`, `one_hot`, `bin`, `pca`, `winsorize`, `add`, `prepare`, `apply`, `spec.penalized`, `spec.random_forest`, `spec.boosting`, `spec.logistic`, `spec.reg`, `learn`, `grid`, `best` (1.14)
 
-#### `groups` (tier 2) · 0 in 1.0, 0 proposed, 7 on the roadmap
+#### `groups` (tier 2) · 0 in 1.0, 0 proposed, 3 on the roadmap
 
-- **Roadmap:** `kmeans`, `kmedoids`, `hierarchical`, `dbscan`, `gaussian_mixture`, `topic_model`, `communities`
+- **Roadmap, by release:** `cluster` (1.5); `topic_model`, `communities` (1.15)
 
 #### `identify` (tier 3) · 6 in 1.0, 0 proposed, 0 on the roadmap
 
 - **Causal graphs:** `dag`, `adjustment_sets`, `implied_independencies`, `check`, `exclusion_check` (the exclusion-restriction check on an IV fit), `plot` (`g.plot()`, drawing the graph)
 
-#### `experiment` (tier 3) · 0 in 1.0, 0 proposed, 9 on the roadmap
+#### `experiment` (tier 3) · 0 in 1.0, 0 proposed, 8 on the roadmap
 
-- **Roadmap:** `factorial_design`, `fractional_design`, `response_surface`, `randomize`, `balance` (1.9), `cuped`, `ri_test`, `lee_bounds`, `late`
+- **Roadmap, by release:** `experiment` (1.9); `randomize`, `balance`, `factorial_design`, `fractional_design`, `response_surface` (1.17); `ri_test`, `bounds` (1.19)
 
 #### `quasi` (tier 3) · 0 in 1.0, 0 proposed, 10 on the roadmap
 
-- **Roadmap:** `did`, `combine`, `pre_trends` (1.2), `did` methods `sa`, `dcdh` and `imputation`, `honest_did`, `rdd`, `rd_bandwidth`, `density_test`, `synth`, `shift_share`
+- **Roadmap, by release:** `did`, `pre_trends`, `rdd`, `rd_bandwidth`, `density_test`, `synth` (1.9); `combine`, `did` with `method: sa | dcdh | imputation`, `honest_did`, `shift_share` (1.19)
 
-#### `adjust` (tier 3) · 0 in 1.0, 0 proposed, 12 on the roadmap
+#### `adjust` (tier 3) · 0 in 1.0, 0 proposed, 10 on the roadmap
 
-- **Roadmap:** `double_lasso`, `selected`, `matching`, `ipw`, `aipw`, `entropy_balance`, `overlap`, `dml`, `oster`, `e_value`, `sensitivity`, `rosenbaum`
+- **Roadmap, by release:** `matching`, `weighting`, `doubly_robust`, `overlap` (1.9); `double_lasso`, `selected` (1.18); `e_value`, `sensitivity`, `rosenbaum` (1.19); `dml` (1.20)
 
 #### `mediate` (tier 3) · 0 in 1.0, 0 proposed, 5 on the roadmap
 
-- **Roadmap:** `mediate`, `mediation_sensitivity`, `moderated_mediation`, `front_door`, `interventional`
+- **Roadmap, by release:** `mediate`, `moderated_mediation` (1.12); `mediation_sensitivity` (1.19); `front_door`, `interventional` (1.25)
 
 #### `hetero` (tier 3) · 0 in 1.0, 0 proposed, 10 on the roadmap
 
-- **Roadmap:** `causal_forest`, `ate`, `importance`, `simple_slopes`, `johnson_neyman`, `subgroups`, `meta_learner`, `blp`, `gates`, `qte`
+- **Roadmap, by release:** `simple_slopes`, `johnson_neyman`, `subgroups` (1.6); `causal_forest`, `ate`, `importance`, `meta_learner`, `blp`, `gates`, `qte` (1.20)
 
-#### `structural` (tier 3) · 0 in 1.0, 0 proposed, 11 on the roadmap
+#### `structural` (tier 3) · 0 in 1.0, 0 proposed, 9 on the roadmap
 
-- **Roadmap:** `smm`, `indirect_inference`, `conditional_logit`, `nested_logit`, `mixed_logit`, `blp_demand`, `nfxp`, `ccp`, `entry_model`, `simulate`, `welfare`
+- **Roadmap, by release:** `discrete_choice` (1.7); `smm`, `indirect_inference`, `demand`, `nfxp`, `ccp`, `entry_model`, `simulate`, `welfare` (1.22)
 
 #### `decide` (tier 3) · 0 in 1.0, 0 proposed, 8 on the roadmap
 
-- **Roadmap:** `policy_tree`, `ewm`, `q_learning`, `a_learning`, `bandit`, `newsvendor`, `pricing`, `robust_decision`
+- **Roadmap, by release:** `newsvendor`, `pricing` (1.15); `policy_tree`, `ewm`, `q_learning`, `a_learning` (1.20); `robust_decision` (1.22); `bandit` (1.27)
 
 #### `meta` (tier 3) · 0 in 1.0, 0 proposed, 13 on the roadmap
 
-- **Roadmap:** `effect_convert`, `meta`, `meta_reg`, `meta_3level`, `network_meta`, `forest_plot`, `funnel_plot`, `egger_test`, `trim_fill`, `pet_peese`, `p_curve`, `replication_test`, `spec_curve`
+- **Roadmap, by release:** `effect_convert`, `meta`, `meta_reg`, `forest_plot`, `funnel_plot`, `egger_test`, `trim_fill`, `pet_peese`, `p_curve`, `replication_test` (1.17); `spec_curve` (1.19); `meta_3level`, `network_meta` (1.24)
 
 ---
 
@@ -893,23 +892,41 @@ The ten functions once proposed for 1.0 were decided on 16 October 2026 (section
 
 **Zeff and Zemp.** Zeff 1.0.0 is the engine, the command line, the language server and the public validation suite. It does not wait for the desktop app, installers or code signing, which belong to Zemp's own release line (Zemp Specification, section 15); Zemp Lite 1.0, which needs no dialogs, ships with Zeff 1.0.0, and Zemp Studio 1.0 follows once its dialogs cover every 1.0 method. Each Zemp release records the engine versions it supports, and a Zemp fix never requires an engine release.
 
-**After 1.0.** Each minor release is built around one family of methods and the engine work it needs. The first is engine work alone, so that every method release after it is smaller and the 1.0 methods get faster at once.
+**After 1.0.** The plan is the owner's of 11 November 2026 (zeff_open_decisions.md, #113): twenty-nine minor releases, the basic methods first (1.1 to 1.5), then the advanced (1.6 to 1.17), then the research-grade ones (1.18 to 1.29), and within each level econometrics, then psychometrics, then machine learning, then the rest. The levels follow the curriculum map of the reference the plan was drawn from: basic is the bachelor's level, advanced the master's, research grade the doctoral level and above. Outputs are matched against R or Mplus only, so a method whose only reference implementation is in Stata waits in 1.29 until a Stata reference can be had. The first release is engine work alone, so that every method release after it is smaller and the 1.0 methods get faster at once. Each release's contents are confirmed when it is planned. The functions named are those of the catalogue (zeff_functions.csv), whose release column carries the same numbers; the plan's other methods join the catalogue as their releases are planned, each named by the rule of one function per kind of model with its variants as option words (#97). No third-party package ships before 2.0.0 (#123), which the plan does not place.
 
-| Release | Name | Methods | Engine work |
-| --- | --- | --- | --- |
-| 1.1 | Engine | `external` (desktop); `se: bootstrap` with `on_fail:` and `max_fail:` on every model; SPSS, SAS, R and HTML readers in `import` and SPSS in `save` (section 6.1 of the Language Reference); `fetch`, `secret`, `flatten`, `rate_limit` (section 8.6); `unnest` (section 4.3 of the Language Reference) | Thread pool with reproducible streams and deterministic parallelism (`--threads`); bootstrap in the variance layer; lazy chains with projection and filter pushdown; the remaining language-server features (quick fixes, navigation, rename, inlay hints) |
-| 1.2 | Difference-in-differences | `did`, `combine`, `pre_trends`; `poisson` with `fe:`; the plot layers `smooth`, `violin` and `aggregate`, `arrange` and `computed` (section 7.6 of the Language Reference) | Callaway–Sant'Anna with doubly robust estimation and multiplier bootstrap, on the thread pool and bootstrap of 1.1; PPML |
-| 1.3 | Latent variables | `model`, `cfa`, `sem`, `effects`, `loadings`, `mod_indices`; omega in `reliability` | `model { }` parser; ML and MLR with FIML |
-| 1.4 | Multilevel | `mixed` with `re:`, `panel_reg` (with `within_between:` for the Mundlak form), `hausman` | REML and ML for linear mixed models; Satterthwaite and Kenward–Roger degrees of freedom |
-| 1.5 | Machine learning: causal methods and leakage-safe prediction | `double_lasso`, `selected`, `causal_forest`, `ate`, `importance`; `holdout`, `training`, `testing`, `folds`; `recipe` with `impute`, `standardize`, `center`, `one_hot`, `bin`, `pca`, `winsorize`, `add`, `prepare`, `apply`; `spec.lasso`, `spec.random_forest`, `spec.boosting`, `spec.logistic`, `spec.reg`; `learn`, `tune`, `score`, `grid`, `best`, `lasso` | Lasso with plug-in and cross-validated penalties; honest forests on the thread pool; recipes re-estimated inside every fold; the leakage checker on column lineage (section 7.5 of the Language Reference) |
-| 1.6 | Ordinal measurement | WLSMV for ordered items; `efa()` blocks (ESEM) in `cfa` and `sem`; `polychoric` | Polychoric correlations, robust weighted least squares, geomin and target rotation |
-| 1.7 | Latent classes and large data | `lca`, `pick`, `profiles`; `stream` | EM with many random starts and class-label alignment; streaming estimation by QR |
-| 1.8 | User estimators | `mle`, `gmm`, `minimize`, `root`, `gradient`, `hessian` | Forward-mode automatic differentiation on the typed IR, compiled into kernels (section 8.3) |
-| 1.9 | Design | `power.t_test`, `power.proportion_test`, `power.anova`, `power.reg`, `mde`; `factorial_design`, `fractional_design`, `response_surface`; `repeated_anova`, `tost`; `randomize`, `balance`; `survey` and the survey family (`total`, `ratio`, `replicate_weights`, `design_effect`, `poststratify`, `rake`, `calibrate`) | Non-central t and F; design generators; sphericity corrections; design-based variance exposed through `survey` |
-| 1.10 | Bayesian estimation | Bayesian fitting of the built-in models and of `mle` objectives, with priors and posterior summaries | Hamiltonian Monte Carlo (NUTS) on the automatic differentiation of 1.8 |
-| 1.11 | Thirteen goals | Every research goal of the Zemp Specification covered in its core methods; third-party packages (section 8.4); user-defined types (section 15) | Package manifest and `zeff.lock`; component sandbox; a second edition only if the syntax needs one |
+| Release | Level | Domain | Contents | Functions in the catalogue | Engine work |
+| --- | --- | --- | --- | --- | --- |
+| 1.1 | Basic | Engine | `se: bootstrap` with `on_fail:` and `max_fail:` on every model; SPSS, SAS, R and HTML readers in `import` and SPSS in `save` (section 6.1 of the Language Reference); data from APIs (section 8.6); opaque columns unnested (section 4.3 of the Language Reference) | `external`, `fetch`, `secret`, `flatten`, `rate_limit`, `unnest` | Thread pool with reproducible streams and deterministic parallelism (`--threads`); bootstrap in the variance layer; lazy chains with projection and filter pushdown; the remaining language-server features (quick fixes, navigation, rename, inlay hints) |
+| 1.2 | Basic | Econometrics | Diagnostic tests and plots, model selection, Box–Cox, LOESS, time-series basics (moving averages, exponential smoothing, AR, forecasts); the plot layers of section 7.6 of the Language Reference | `duration`, `to_timezone`, `moving_average`, `growth_rate`, `index_number`, `effect_size`, `kernel_reg`, `het_test`, `spec_test`, `arima`, `ets`, `forecast`, `smooth`, `violin`, `aggregate`, `arrange`, `computed`, `normality_test`, `serial_test`, `rolling` | — |
+| 1.3 | Basic | Psychometrics | PCA, basic EFA, KMO and Bartlett, scale scores, item statistics | `pca`, `efa`, `kmo`, `factor_count`, `item_stats`, `cov_test` | — |
+| 1.4 | Basic | Machine learning | Train/test split, k-fold cross-validation, the regression tree, error metrics | `holdout`, `folds`, `tree`, `score`, `training`, `testing` | The leakage checker on column lineage (section 7.5 of the Language Reference) |
+| 1.5 | Basic | Other | Clustering, linear discriminant analysis, correspondence analysis, contingency plots, association rules, linear programming | `ci_median`, `lp`, `mip`, `scatter_matrix`, `correspondence`, `cluster`, `cochran_q_test`, `friedman_test`, `sign_test`, `gini`, `theil`, `atkinson`, `herfindahl`, `lorenz` | — |
+| 1.6 | Advanced | Econometrics | Linear models and inference: GLS, constraints, splines, moderation, ridge and lasso, PCR and PLS, bootstrap intervals | `spline`, `bootstrap`, `jackknife`, `permutation_test`, `contrasts`, `penalized`, `simple_slopes`, `johnson_neyman`, `subgroups` | Lasso with cross-validated penalties |
+| 1.7 | Advanced | Econometrics | GLM families, counts, ordinal, multinomial, choice, Tobit, Heckman, fractional and beta models | `glm` with `family: poisson \| negbin \| gamma \| quasibinomial`, `beta_reg`, `ordinal`, `multinomial`, `tobit`, `selection`, `zero_inflated`, `hurdle`, `discrete_choice` | PPML |
+| 1.8 | Advanced | Econometrics | Endogeneity, systems and panels: IV diagnostics, control functions, SUR, 3SLS, FE/RE/FD, Hausman, GEE; `stream` | `stream`, `panel_reg`, `hausman` | Streaming estimation by QR |
+| 1.9 | Advanced | Econometrics | Causal designs: experiments, matching, weighting, 2×2 DiD, sharp and fuzzy RD, synthetic control | `experiment`, `did`, `pre_trends`, `rdd`, `rd_bandwidth`, `density_test`, `synth`, `matching`, `weighting`, `doubly_robust`, `overlap` | — |
+| 1.10 | Advanced | Econometrics | Time series, forecasting and survival | `vector_ar`, `surv` | Censored-outcome likelihoods |
+| 1.11 | Advanced | Econometrics | Multilevel, quantile, robust and nonparametric models; cross-sectional frontier and DEA | `quantile_reg`, `mixed`, `growth`, `bland_altman` | REML and ML for linear mixed models; Satterthwaite and Kenward–Roger degrees of freedom |
+| 1.12 | Advanced | Psychometrics | Full EFA, CFA, SEM, reliability and validity (omega in `reliability`), basic invariance, mediation and conditional process | `model`, `cfa`, `sem`, `effects`, `loadings`, `mod_indices`, `factor_scores`, `polychoric`, `composite_reliability`, `ave`, `fornell_larcker`, `htmt`, `invariance`, `icc`, `kappa`, `mediate`, `moderated_mediation` | `model { }` parser; ML and MLR with FIML; polychoric correlations |
+| 1.13 | Advanced | Psychometrics | PLS-SEM, LCA, LPA | `lca`, `pick`, `profiles`, `lpa` | EM with many random starts and class-label alignment |
+| 1.14 | Advanced | Machine learning | The tuning workflow, forests, boosting, SVM, kernel ridge, neural networks, stacking, conformal prediction, interpretation | `random_forest`, `boosting`, `svm`, `knn`, `naive_bayes`, `neural_net`, `tune`, `calibration`, `shap`, `feature_effects`, `recipe`, `impute`, `standardize`, `center`, `one_hot`, `bin`, `pca`, `winsorize`, `add`, `prepare`, `apply`, `spec.penalized`, `spec.random_forest`, `spec.boosting`, `spec.logistic`, `spec.reg`, `learn`, `grid`, `best` | Recipes re-estimated inside every fold; forests on the thread pool |
+| 1.15 | Advanced | Other | User estimators and optimisation (`mle`, `gmm`, `minimize`, automatic differentiation, matrices), text, networks, spatial description; user-defined types (section 15) | `minimize`, `root`, `gradient`, `hessian`, `mle`, `gmm`, `nlp`, `topic_model`, `communities`, `newsvendor`, `pricing`, `matrix`, `vector`, `transpose` | Forward-mode automatic differentiation on the typed IR, compiled into kernels (section 8.3) |
+| 1.16 | Advanced | Other | Multivariate methods: MANOVA, Hotelling, covariance tests, CCA, QDA, MDS, MCA, conjoint, log-linear models, anomaly detection | `mds`, `outliers`, `repeated_anova`, `manova`, `hotelling_test` | Sphericity corrections |
+| 1.17 | Advanced | Other | Bayesian estimation of the built-in models and of `mle` objectives, with priors and posterior summaries; missing data, surveys, meta-analysis, design | `power.t_test`, `power.proportion_test`, `power.anova`, `mde`, `survey`, `total`, `ratio`, `replicate_weights`, `design_effect`, `poststratify`, `rake`, `calibrate`, `power.reg`, `impute`, `missing_pattern`, `mcar_test`, `randomize`, `balance`, `effect_convert`, `meta`, `meta_reg`, `forest_plot`, `funnel_plot`, `egger_test`, `trim_fill`, `pet_peese`, `p_curve`, `replication_test`, `factorial_design`, `fractional_design`, `response_surface`, `tost` | Hamiltonian Monte Carlo (NUTS) on the automatic differentiation of 1.15; non-central t and F; design generators; design-based variance exposed through `survey` |
+| 1.18 | Research | Econometrics | Inference and identification: few-cluster and multiway inference, weak IV, IV-free methods, post-double-selection | `wild_bootstrap`, `ivreg` with `method: liml`, `double_lasso`, `selected` | Lasso with plug-in penalties |
+| 1.19 | Research | Econometrics | Design-based inference: staggered DiD, synthetic DiD, RD variants, bunching, MTE, sensitivity | `ri_test`, `bounds`, `combine`, `did` with `method: sa \| dcdh \| imputation`, `honest_did`, `shift_share`, `e_value`, `sensitivity`, `rosenbaum`, `mediation_sensitivity`, `spec_curve` | Callaway–Sant'Anna with doubly robust estimation and multiplier bootstrap, on the thread pool and bootstrap of 1.1 |
+| 1.20 | Research | Econometrics | Causal machine learning and policy learning | `dml`, `causal_forest`, `ate`, `importance`, `meta_learner`, `blp`, `gates`, `qte`, `policy_tree`, `ewm`, `q_learning`, `a_learning` | Honest forests on the thread pool |
+| 1.21 | Research | Econometrics | Advanced panel econometrics | `dynamic_panel` | — |
+| 1.22 | Research | Econometrics | Structural econometrics and efficiency | `stochastic_program`, `robust_program`, `smm`, `indirect_inference`, `demand`, `nfxp`, `ccp`, `entry_model`, `simulate`, `welfare`, `robust_decision` | — |
+| 1.23 | Research | Econometrics | Advanced time series; distributional and nonparametric econometrics | `state_space`, `dynamic_factor` | — |
+| 1.24 | Research | Econometrics | Spatial and network models, advanced survival, measurement and synthesis | `meta_3level`, `network_meta` | — |
+| 1.25 | Research | Psychometrics | The SEM frontier: ordinal CFA (WLSMV for ordered items), bifactor, ESEM (`efa()` blocks in `cfa` and `sem`), Bayesian and penalized SEM, alignment, latent interactions, RI-CLPM, multilevel SEM, MASEM | `latent_growth`, `alignment`, `front_door`, `interventional` | Robust weighted least squares; geomin and target rotation |
+| 1.26 | Research | Psychometrics | Latent transitions, mixtures, IRT and DIF, intensive longitudinal models, network psychometrics | `lta`, `growth_mixture`, `irt`, `dif`, `g_study` | — |
+| 1.27 | Research | Machine learning | Nonconvex and grouped penalties, tree and kernel variants, explainable boosting, fairness, bandits | `bandit` | — |
+| 1.28 | Research | Other | Bayesian and multivariate frontier: model averaging, BART, Gaussian processes, robust and high-dimensional multivariate methods, copulas, graphical models | `embed` | — |
+| 1.29 | Research | Stata only | The methods whose only reference implementation is in Stata, held until a Stata reference is available | — | — |
 
-The remaining roadmap methods follow, package by package, in the order of the Zemp roadmap; the order within a tier (section 8.1, rule 3) says which packages must exist first.
+The releases planned before 11 November 2026 moved as follows: 1.1 stays; 1.2 went to 1.19 (its plot layers to 1.2, PPML to 1.7); 1.3 to 1.12; 1.4 to 1.8 and 1.11; 1.5 to 1.4, 1.14, 1.18 and 1.20; 1.6 to 1.12 and 1.25; 1.7 to 1.13 (`stream` to 1.8); 1.8 to 1.15; 1.9 to 1.17; 1.10 to 1.17; 1.11 to 1.15, less its third-party packages (2.0.0). User estimators come before Bayesian estimation because Hamiltonian Monte Carlo needs the gradients of automatic differentiation. Not planned: deep learning on images and text, large language models, model-free reinforcement learning, AutoML, process mining and discrete-event simulation. At the cadence below, a minor release about every three months, releases 1.2 to 1.29 take about seven years. The order within a tier (section 8.1, rule 3) still says which packages must exist first.
 
 **Cadence and support.**
 
@@ -920,7 +937,7 @@ The remaining roadmap methods follow, package by package, in the order of the Ze
 | Patches | From 0.9.0; change no name, default or result except the one fixed; a project moves to a patch only through "Update engine" |
 | Breaking changes | Allowed in a minor release before 1.0 and only in a major release after it (section 14, Version numbers); a feature planned after 1.0 that would break a 1.x script waits for a major release or ships behind a new edition |
 | Support | Patches are issued for the current and the previous minor release; every released engine stays downloadable indefinitely, because a replication package needs the engine it pins |
-| Editions | Edition 2027 ships with 1.0.0; no new edition before 1.11 |
+| Editions | Edition 2027 ships with 1.0.0; no new edition before 1.15 |
 | Proposed functions | None remain: the ten of 1.0 were decided on 16 October 2026 (section 15) |
 | Specification | This document carries a date; from 1.0.0 it also carries the engine version it describes and changes only with a minor release; the normative document for an engine version is the one dated at or before its release. It is published in two volumes, a Language Reference (sections 1.5, 3 to 7, 10, 11 and the glossary) and an Engine and Project Specification (the rest), with the section numbers shared; there is no generated source, so each volume is edited directly and the text both carry is kept identical by hand |
 
@@ -928,30 +945,30 @@ The remaining roadmap methods follow, package by package, in the order of the Ze
 
 ### 14.1 Future plan
 
-The releases above are dated by dependency and end at 1.11. This section sets out what comes after them, so that nothing built before 1.11 closes a door the later work needs. Nothing here is normative (section 1, status); each item becomes a release row when its prerequisites exist, and its design is written into this document before work starts.
+The releases above end at 1.29. This section records what the later work needs of the engine, so that nothing built earlier closes a door, and it was written when the dated releases ended at 1.11: since the plan of 11 November 2026 (zeff_open_decisions.md, #113) most of the methods below have a release in the table above, and where the two differ the table above holds. Nothing here is normative (section 1, status); each item's design is written into this document before work starts.
 
-**Methods, by research goal.** Planned after the dated releases, in roughly this order, each with the engine work it needs:
+**Methods, by research goal.** Each with the engine work it needs:
 
 | Goal | Methods | Engine work or prerequisite |
 | --- | --- | --- |
 | Causal | Over-identification and endogeneity tests beyond Hansen's J; control-function, copula and Lewbel instruments; Conley spatial standard errors; financial event studies (market model, cumulative abnormal returns) | The variance layer's spatial kernel |
 | Associational | Seemingly unrelated regression and 3SLS; multivariate outcomes and MANOVA (section 15); robust regression (M- and MM-estimators); Oaxaca–Blinder decomposition | Multivariate outcomes in the formula grammar |
-| Design | Blocking and questionnaire pre-tests (factorial and fractional designs, response surfaces, repeated-measures ANOVA and equivalence tests are 1.9 rows) | The 1.9 Design release |
+| Design | Blocking and questionnaire pre-tests (factorial and fractional designs, response surfaces, repeated-measures ANOVA and equivalence tests are rows of 1.16 and 1.17) | The design methods of 1.17 |
 | Descriptive and series | Survival analysis (Kaplan–Meier, Cox, parametric and competing risks); unit-root, cointegration and structural-break tests | Censored-outcome likelihoods |
-| Operations and productivity | Stochastic frontier analysis; data envelopment analysis; production-function estimation (Olley–Pakes, Levinsohn–Petrin, Ackerberg–Caves–Frazer) | `optim` with automatic differentiation (1.8); linear programming |
-| Measurement | Common-method-variance checks (marker variable, unmeasured latent method factor), bifactor, higher-order and multitrait–multimethod models, longitudinal invariance, random-intercept cross-lagged and latent change-score models, all written in model blocks with the constraints of zeff_open_decisions.md, #56; multilevel latent models (multilevel CFA, two-level SEM, multilevel mediation, the latent covariate model); latent interactions (LMS, QML) and latent moderated mediation; item response models beyond `irt` (partial credit, nominal, multidimensional, bifactor, explanatory); mixtures over time (latent transition, growth mixture, factor mixture, hidden Markov); composite models (PLS-SEM, PLSc, GSCA, confirmatory composite analysis); fuzzy-set QCA (#57 and #58) | The model-block parser and its constraints (1.3); mixed models (1.4); EM (1.7); numerical integration in the likelihood |
-| Bayesian | Priors in `model { }` blocks; hierarchical models; posterior predictive checks; models of the user's own in the manner of Stan and BUGS, with convergence diagnostics, LOO and WAIC (#59); Bayesian CFA with small-variance priors, approximate invariance and dynamic SEM; Gaussian processes | NUTS (1.10) on reverse-mode differentiation (#60); results that carry their draws (#61) |
-| Prediction and decisions | Stacking and conformal prediction (#62); feed-forward networks and deep ensembles fitted under the determinism contract; larger networks and inference from pretrained weights through packages; Markov decision processes and off-policy evaluation beside the bandits and Q-learning of `decide` (#63) | `learn`, `tune` and `folds` (1.5); reverse-mode differentiation (#60); component packages (1.11) on the routes of #55 |
+| Operations and productivity | Stochastic frontier analysis; data envelopment analysis; production-function estimation (Olley–Pakes, Levinsohn–Petrin, Ackerberg–Caves–Frazer) | `optim` with automatic differentiation (1.15); linear programming (1.5) |
+| Measurement | Common-method-variance checks (marker variable, unmeasured latent method factor), bifactor, higher-order and multitrait–multimethod models, longitudinal invariance, random-intercept cross-lagged and latent change-score models, all written in model blocks with the constraints of zeff_open_decisions.md, #56; multilevel latent models (multilevel CFA, two-level SEM, multilevel mediation, the latent covariate model); latent interactions (LMS, QML) and latent moderated mediation; item response models beyond `irt` (partial credit, nominal, multidimensional, bifactor, explanatory); mixtures over time (latent transition, growth mixture, factor mixture, hidden Markov); composite models (PLS-SEM, PLSc, GSCA, confirmatory composite analysis); fuzzy-set QCA (#57 and #58) | The model-block parser and its constraints (1.12); mixed models (1.11); EM (1.13); numerical integration in the likelihood |
+| Bayesian | Priors in `model { }` blocks; hierarchical models; posterior predictive checks; models of the user's own in the manner of Stan and BUGS, with convergence diagnostics, LOO and WAIC (#59); Bayesian CFA with small-variance priors, approximate invariance and dynamic SEM; Gaussian processes | NUTS (1.17) on reverse-mode differentiation (#60); results that carry their draws (#61) |
+| Prediction and decisions | Stacking and conformal prediction (#62); feed-forward networks and deep ensembles fitted under the determinism contract; larger networks and inference from pretrained weights through packages; Markov decision processes and off-policy evaluation beside the bandits and Q-learning of `decide` (#63) | `folds` (1.4), `learn` and `tune` (1.14); reverse-mode differentiation (#60); component packages (2.0.0, #123) on the routes of #55 |
 
 **Data.** Built on the opaque column types, metadata keys, reader interface and source rules fixed in sections 4.3, 6.1 and 8.6: a `spatial` package (tier 1) with `Geometry` columns from GeoParquet, GeoJSON, shapefile and GeoPackage, spatial joins, distances, buffers and reprojection on pure-Rust geometry crates, weights matrices, Moran's I and spatial lag and error models, Conley errors as a dependence structure in the variance layer, and maps through `coord(map, crs:)`; readers for survey platforms (Qualtrics, SurveyCTO, ODK and KoBoToolbox) that keep question text and labels; database and survey-platform sources with `secret()` credentials; a text-analysis package over corpora read from text, Word and PDF files (tokenisation, dictionaries, topic models); XML and SDMX readers; gridded data reduced to frames; a `Network` type with centrality and network regressions; a `Period` column type for quarterly, monthly, weekly and fiscal-year panels and series; survival analysis with `surv(time, event)` on the left of `~`; multiple imputation as `List<Frame>` with pooling by Rubin's rules; a salted hashing function for pseudonymising identifiers; and media through `FileRef` columns and `external()`, never inside the engine.
 
-**Language.** Closures, written `|x| expr` (section 4.3 of the Language Reference); `Matrix` and `Vector` with the user estimators of 1.8; variadic parameters, if the open decision of section 15 on them is taken; user-defined types belong to 1.11 (section 15); grapheme-aware text functions, locale-aware collation and time zones (section 3.8 of the Language Reference); a second edition only when these need syntax that edition 2027 cannot carry.
+**Language.** Closures, written `|x| expr` (section 4.3 of the Language Reference); `Matrix` and `Vector` with the user estimators of 1.15; variadic parameters, if the open decision of section 15 on them is taken; user-defined types belong to 1.15 (section 15); grapheme-aware text functions, locale-aware collation and time zones (section 3.8 of the Language Reference); a second edition only when these need syntax that edition 2027 cannot carry.
 
-**Engine.** 64-bit WebAssembly, which lifts the browser's 4 GB ceiling without changing the memory budget's meaning (section 8.3, point 7); out-of-core execution for more estimators than the streaming QR of 1.7; optional GPU kernels for forests and large matrix products, admitted only if they meet the determinism contract on every supported target, otherwise kept outside the result path. Large neural networks and pretrained models follow the same rule, decided on 28 October 2026 (zeff_open_decisions.md, #55): they reach a result only through a package that meets the contract, a frozen file of weights whose hash the run records, or `external`, whose results the run record already marks as outside the guarantees.
+**Engine.** 64-bit WebAssembly, which lifts the browser's 4 GB ceiling without changing the memory budget's meaning (section 8.3, point 7); out-of-core execution for more estimators than the streaming QR of 1.8; optional GPU kernels for forests and large matrix products, admitted only if they meet the determinism contract on every supported target, otherwise kept outside the result path. Large neural networks and pretrained models follow the same rule, decided on 28 October 2026 (zeff_open_decisions.md, #55): they reach a result only through a package that meets the contract, a frozen file of weights whose hash the run records, or `external`, whose results the run record already marks as outside the guarantees.
 
-**Ecosystem.** Zeff-source packages before 1.11 if the open decision of section 15 is taken; the registry's validated badge grown into a public conformance record per package; wrapper packages for public data APIs built on `fetch`; datasets added to `datasets` as their licences are verified.
+**Ecosystem.** No package of either kind before 2.0.0 (zeff_open_decisions.md, #123); from then, the registry's validated badge grown into a public conformance record per package; wrapper packages for public data APIs built on `fetch`; datasets added to `datasets` as their licences are verified.
 
-**Reporting and assistance.** Report documents of text and Zeff chunks that re-run from the project and export to Word, PDF and HTML (Zemp Specification, section 8) and AI assistance that writes Zeff and never results (Zemp Specification, section 12) arrive with Zemp 1.11 (Zemp Specification, section 15); after them, a methods paragraph drafted from the run record.
+**Reporting and assistance.** Report documents of text and Zeff chunks that re-run from the project and export to Word, PDF and HTML (Zemp Specification, section 8) and AI assistance that writes Zeff and never results (Zemp Specification, section 12) are scheduled by the open decisions the release plan of the Zemp Specification names (section 15: #73 and #124 for the report document; #27, #28 and #39 for AI assistance); after them, a methods paragraph drafted from the run record.
 
 **Governance.** A public change process for this document once outside contributors arrive (a proposal, a review period, a decision recorded in section 15); and the support policy above kept for every engine ever released.
 
@@ -975,15 +992,15 @@ Everything above is the current design; these items still need a decision.
 - [x] Third-party packages (11 November 2026): none of either kind, Zeff-source or component, before 2.0.0, and with them the registry and the package commands; the release that ships them is set when 2.0.0 is planned, and a project's own functions in `functions/` are unaffected (zeff_open_decisions.md, #123)
 - [ ] Where the package registry's static index and archives are hosted (a public repository host costs nothing and is the default), when 2.0.0 is planned
 - [ ] Synthetic copies of a user's own data for sharing (a `synthesize` function), after 1.0
-- [ ] A file holding several frames and fitted results together, for the heavy models of 1.5: a zip of Arrow files and JSON result descriptions in the versioned form of section 8.3, point 5, never a binary format of Zeff's own; in 1.0 `save` writes one frame and the result cache reproduces every fit (section 8.7); decide by 1.5 (zeff_open_decisions.md, #32)
+- [ ] A file holding several frames and fitted results together, for the heavy models of 1.14: a zip of Arrow files and JSON result descriptions in the versioned form of section 8.3, point 5, never a binary format of Zeff's own; in 1.0 `save` writes one frame and the result cache reproduces every fit (section 8.7); decide by 1.14 (zeff_open_decisions.md, #32)
 
 
 **Build and release**
 
 - [ ] Libraries not yet named, to confirm when the 0.1.0 workspace is set up: `arrow-rs` and `parquet` (the Apache Arrow Rust crates) for columns and files, needed from 0.1.0; `wasm-bindgen` with `wasm-pack` for the WebAssembly build; `tower-lsp` for the language server (0.7.0); each pinned exactly and upgraded one at a time (zeff_risk_register.md, R6)
 - [ ] Panels and fixed effects (0.6.0) before tests and plots (0.7.0)
-- [ ] Swap 1.2 (difference-in-differences) and 1.3 (latent variables) if the first users are mostly in organisational behaviour
-- [ ] Bayesian estimation (1.10): which models come first, and whether priors are written in `model { }` blocks or as arguments
+- [x] Swap 1.2 (difference-in-differences) and 1.3 (latent variables) if the first users are mostly in organisational behaviour: overtaken on 11 November 2026 by the plan of releases after 1.0 (zeff_open_decisions.md, #113), which orders every release by level and domain
+- [ ] Bayesian estimation (1.17): which models come first, and whether priors are written in `model { }` blocks or as arguments
 - [ ] Code signing for the Zemp desktop app: pay for Apple and Windows signing, or ship unsigned builds with published checksums until a free open-source signing service accepts the project. Installation is from the command line only for now (17 October 2026): the command line and the apps installed by `zeff app install` or a package manager need neither for that route, and setup files, which do, are deferred until this is decided (section 2.1; Zemp Specification, section 17; zeff_open_decisions.md, #23 and #38)
 - [ ] A specification freeze while 0.1.0 to 0.3.0 are built, as the risk register's R12 recommends: the normative text changes only for bugs found while coding, and further design work is recorded as an open decision with a deadline release (zeff_open_decisions.md, #40); decide at 0.1.0
 - [ ] Names: the domain for the installer, documentation and registry hosts (`zeff-lang.dev`, decided 6 November 2026; `zeff.dev` was found registered by others) and the GitHub organisation, needed before 0.9.0, when the launcher ships with the URL of its signed key list, and so well before the installer URL of 1.0.0 (zeff_open_decisions.md, #31)

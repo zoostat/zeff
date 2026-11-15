@@ -146,7 +146,7 @@ REFERENCES
     Hedges (1981), Distribution theory for Glass's estimator of effect size, J. Educational Statistics 6, 107–128.
 
 SEE ALSO
-    wilcoxon_test, anova, proportion_test, reg, power.t_test (from 1.9)
+    wilcoxon_test, anova, proportion_test, reg, power.t_test (from 1.17)
 
 EXAMPLES
     > let wages = import("zeff:wages.csv")

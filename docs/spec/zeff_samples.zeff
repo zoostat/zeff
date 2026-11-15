@@ -202,7 +202,7 @@ frame(b = slopes).summary([b])                        // sampling distribution o
 // ── 12. Reliability of a survey scale ────────────────────────────────
 
 let engage = import("data/engagement.csv")
-engage.reliability([eng1..eng6])                      // alpha and item-total statistics; omega from 1.3
+engage.reliability([eng1..eng6])                      // alpha and item-total statistics; omega from 1.12
 let engage = engage.add(engagement = row_mean([eng1..eng6], min_valid: 5))
 
 
@@ -256,15 +256,15 @@ plot(means, x: industry, y: mean_lwage, color: female)
 // From 1.1: bootstrap SEs that tolerate failed draws (the engine release: threads, bootstrap, lazy chains)
 //     let b = wages.logistic(union ~ educ, se: bootstrap, reps: 2000, on_fail: skip)
 //
-// From 1.2: staggered difference-in-differences
+// From 1.19: staggered difference-in-differences
 //     let cs = counties.did(emp, cohort: first_treat, method: cs, control: not_yet)
 //     cs.combine(type: event).plot().export("output/fig_event.pdf")
 //     cs.pre_trends()
 //
-// From 1.2: Poisson with fixed effects
-//     let trade = flows.poisson(exports ~ log_dist + rta, fe: exporter:year + importer:year)
+// From 1.7: Poisson with fixed effects
+//     let trade = flows.glm(exports ~ log_dist + rta, family: poisson, fe: exporter:year + importer:year)
 //
-// From 1.3: confirmatory factor analysis and SEM
+// From 1.12: confirmatory factor analysis and SEM
 //     let m = model {
 //         engagement =~ eng1 + eng2 + eng3 + eng4 + eng5 + eng6
 //         support    =~ sup1 + sup2 + sup3
@@ -276,12 +276,12 @@ plot(means, x: industry, y: mean_lwage, color: female)
 //     fit.summary(standardized: true, fit_measures: true)
 //     fit.effects()
 //
-// From 1.4: multilevel models
+// From 1.11: multilevel models
 //     let ml = pupils.mixed(score ~ ses + female,
 //                           re: [school => 1 + ses, school:class => 1])
 //     let cr = ratings.mixed(rating ~ tenure, re: [employee => 1, rater => 1])
 //
-// From 1.5: leakage-safe prediction (splits are roles, recipes are re-estimated inside every fold)
+// From 1.4 and 1.14: leakage-safe prediction (splits are roles, recipes are re-estimated inside every fold)
 //     let d = loans.holdout(frac: 0.2, seed: 7, strata: default, group: borrower)
 //     let rec = recipe()
 //         .impute([income, age], with: median)
@@ -289,6 +289,6 @@ plot(means, x: industry, y: mean_lwage, color: female)
 //         .standardize([lincome, age, x1..x9])
 //         .one_hot(industry, other: 0.01)
 //     let cv = d.training().folds(k: 10, strata: default)
-//     let tuned = cv.tune(default ~ . - id, recipe: rec, model: spec.lasso(penalty: grid(20)), metric: auc)
-//     let fit = d.training().learn(default ~ . - id, recipe: rec, model: spec.lasso(penalty: tuned.best()))
+//     let tuned = cv.tune(default ~ . - id, recipe: rec, model: spec.penalized(penalty: grid(20)), metric: auc)
+//     let fit = d.training().learn(default ~ . - id, recipe: rec, model: spec.penalized(penalty: tuned.best()))
 //     fit.score(d.testing())                                // the one permitted look at the test rows

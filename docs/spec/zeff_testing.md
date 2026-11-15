@@ -42,8 +42,8 @@ This handbook sets out how Zeff is tested: the kinds of test kept, the routine o
 | --- | --- |
 | Wooldridge textbook data (`wooldridge` package) | Regression, panel, IV and binary-outcome tests |
 | Card (1995) | IV with weak-instrument diagnostics |
-| `mpdta` (`did` package) | Difference-in-differences (from 1.2) |
-| Political Democracy, Holzinger–Swineford (`lavaan`) | CFA and SEM (from 1.3) |
+| `mpdta` (`did` package) | Difference-in-differences (two periods from 1.9, staggered from 1.19) |
+| Political Democracy, Holzinger–Swineford (`lavaan`) | CFA and SEM (from 1.12) |
 | The `datasets` package's synthetic files (Zeff Specification, section 8.5) | Truth-recovery tests for every estimator, with the parameters their generating scripts document; the scripts are re-run on every build and must reproduce the shipped files bit for bit |
 
 ### 1.3 Infrastructure

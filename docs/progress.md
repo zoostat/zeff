@@ -155,3 +155,14 @@ Tests, plots and the language server: 72 functions in 258 commits over 40 steps,
 **Next.** Step 8c `[function]`: the documentation step of #113, #120 and #122.
 
 **For the owner to decide.** Nothing blocks.
+
+## 15 November 2026, release 0.8.0, step 8c1 (the plan of releases after 1.0 in the catalogue and the three volumes)
+
+**Done.** Step 8c was split in three, being too large for one. Step 8c1 `[function]`: the catalogue's roadmap rows, the after-1.0 table of section 14, the roadmap lists of sections 8.2 and 9.2 and every release number written in the two volumes and the Zemp Specification follow the owner's 29 releases (#113), without third-party packages before 2.0.0 (#123). The merges and renames the decision lists are made (545 rows became 527, 248 of them on the roadmap). The engine's five messages that named a release of the earlier plan are corrected. The weekly job's corrected second pass was read from its run: every survivor of pass one was caught.
+
+**Green.** Format, clippy with warnings denied, the tier and message checks, every test of the workspace; CI read after the push.
+
+**Next.** Step 8c2 `[function]`: the rows of the graphics proposal (#122, #120).
+
+**For the owner to decide.** Nothing blocks. To settle when each release is planned: five methods the owner's table spells differently from their catalogue rows (`polychoric`, `meta_3level`, `alignment`, `effect_convert`, `spec.logistic`), the placement of the rows the plan does not list, and the deadlines of the open decisions written against the earlier plan (the register's status paragraph of this date lists them).
+

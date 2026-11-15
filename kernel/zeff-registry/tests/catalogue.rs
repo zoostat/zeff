@@ -5,11 +5,12 @@ use zeff_registry::Catalogue;
 #[test]
 fn the_compiled_catalogue_reads_in_full() {
     let catalogue = Catalogue::compiled().unwrap();
-    assert_eq!(catalogue.rows().len(), 545);
+    // 545 until step 8c1 of release 0.8.0, where the merges of open decision #113 took 18 rows.
+    assert_eq!(catalogue.rows().len(), 527);
     let mut ids: Vec<u32> = catalogue.rows().iter().map(|r| r.id).collect();
     ids.sort_unstable();
     ids.dedup();
-    assert_eq!(ids.len(), 545, "ids are distinct");
+    assert_eq!(ids.len(), 527, "ids are distinct");
 }
 
 #[test]

@@ -52,9 +52,9 @@ error[Z0304]: `use stats` is not available in this release
  --> scripts/main.zeff:1:1
   |
 1 | use stats
-  | ^^^^^^^^^ arrives with Zeff 1.11
+  | ^^^^^^^^^ arrives with Zeff 2.0
   |
-  = help: third-party packages arrive after 1.0; the project's own modules are brought in as `use functions::stats`
+  = help: third-party packages arrive with Zeff 2.0; the project's own modules are brought in as `use functions::stats`
 
 ## not_brought_in (exit 1)
 error[Z0103]: no function is called `quadruple`

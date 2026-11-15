@@ -8,4 +8,4 @@ error[Z0713]: third-party packages are not available yet
 5 | [packages]
   |  ^^^^^^^^ [packages] must be empty
   |
-  = help: third-party packages arrive after Zeff 1.0; every function of this release is built in
+  = help: third-party packages arrive with Zeff 2.0; every function of this release is built in

@@ -152,7 +152,7 @@ power       = postfix [ "^" unary ]                                    // right
 postfix     = primary { "." qname "(" [ args ] ")" | "." NAME | "[" expr "]" }
             // a qualified method, data.survival::coxph(...), names a package's function (section 8.4 of the Engine and Project Specification)
             // "." NAME without "(" reads a record field; on any other value error Z0213
-            // dist.normal(...), power.t_test(...) and spec.lasso(...) have this shape; the checker knows them
+            // dist.normal(...), power.t_test(...) and spec.penalized(...) have this shape; the checker knows them
             // from the function registry (section 3.7)
 primary     = literal | qname | qname "(" [ args ] ")" | "(" expr ")"
             | if_expr | case_expr | model_block | dag_block | "[" for_loop "]" | "."
@@ -321,7 +321,7 @@ This section fixes the rules an implementation needs beyond the grammar.
 | --- | --- | --- |
 | Reserved | The 18 of section 3.1, and the 8 reserved for later use | Never a name, except as an argument or record field name before `:` (section 3.1). A column with a reserved name, such as `case` or `model`, is written in backticks: `` wages.mean(`case`) `` |
 | Contextual | `latent` and `selected` inside `dag { }`; `efa` inside `model { }`; `_` in `case` | Special only in their context; ordinary names elsewhere |
-| Namespaces | `dist`, `power` and `spec` | Only in `dist.normal(...)`, `power.t_test(...)` and `spec.lasso(...)`: the call has the shape of a method call, and the checker recognises the namespaced function from the function registry, so a column named `dist` stays an ordinary name |
+| Namespaces | `dist`, `power` and `spec` | Only in `dist.normal(...)`, `power.t_test(...)` and `spec.penalized(...)`: the call has the shape of a method call, and the checker recognises the namespaced function from the function registry, so a column named `dist` stays an ordinary name |
 | Built-in names | Functions and constants of the packages | `core` names cannot be rebound; others may be shadowed by a `let`, with a warning (section 3.6) |
 | Argument names | `by`, `where`, `se`, `fe` and every other parameter name | Never reserved: they have meaning only before a `:` in a call |
 
@@ -502,7 +502,7 @@ Every value has one of the types below. Types are inferred everywhere and writte
 | Column | `Column<T>` of Bool, Int, Float, Str, Date, DateTime or `Category`; opaque column types carried but not computed on (section 4.3) | a variable in a frame | One type per column, plus NA; text never becomes a Category silently |
 | Collection | `List<T>`, `Record`, `Mapping<K, V>`, `Range` | `[m1, m2]`, `{ se: robust }`, `[0 => "male"]`, `2..5` | A list holds one type, and any list may also hold `Failed` values (section 5.4); a record has the fields of its literal (a structural type); a mapping has one key and one value type and keeps insertion order (section 3.7) |
 | Variables | `Var`, `Vars`, `Term` | `firm`; `[age, x1..x50]` in a frame method, `vars(age, x1..x50)` outside one; `educ` in `m.coef(educ)` | Variable names, checked against the frame where they are used; a `Term` names a column of a model matrix (section 7.2) and is checked against the result |
-| Data | `Frame`, `SurveyDesign` (1.9) | `import("data/wages.csv")`, `data.survey(...)` | A dataset; `panel()` adds unit and time to it; a survey design adds weights, strata and clusters |
+| Data | `Frame`, `SurveyDesign` (1.17) | `import("data/wages.csv")`, `data.survey(...)` | A dataset; `panel()` adds unit and time to it; a survey design adds weights, strata and clusters |
 | Specification | `Formula`, `Terms`, `Model`, `Dag`, `Distribution` | `lwage ~ educ`, `firm + year`, `model { }`, `dag { }`, `dist.t(df: 24)` | Values like any other: `let f = lwage ~ educ + exper`. `Terms` is the right side of a formula without `~`, as `fe:` takes it. A distribution parameter outside its domain (`sd:` not positive, `df:` not positive) or a probability outside [0, 1] given to `quantile` is an error (Z0413) |
 | Result | `TestResult`, `RegFit`, `IvFit`, `GlmFit` in 1.0; `DidFit`, `SemFit`, `MixedFit`, `LassoFit`, `ForestFit`, `LcaFit`, `LcaFits` and more as packages arrive | `wages.reg(f)` | `Result` is the interface every one of them implements: the result and estimator interfaces of `results` (section 8.1 of the Engine and Project Specification, rule 5). A `TestResult` carries a statistic with its degrees of freedom, a p-value, an estimate with its interval, an effect size and the observations, and, from open decision #91, the hypotheses it printed and the alternative; they are read by the result interface, `estimates()`, `p_values()`, `ci()` and `n_obs()`, and by its own methods `statistic()`, `df()`, `effect_size()`, `h0()`, `h1()` and `alternative()` (open decision #94); where the result prints a table of several rows (the terms of a factorial `anova`, the comparisons of `posthoc`), `p_values`, `statistic`, `df` and `effect_size` read one row by its name, `p_values("dose")`, a bare name working as on a fit, and without a name give the figure of the whole test (open decision #100) |
 | Failure | `Failed` | `attempt(expr)` when `expr` errors | Holds the error code, message and line; may stand in any `List<T>`, so `[for ...]` with `attempt` gives `List<RegFit>` with some entries failed; `report` and `len` skip it with a count (section 5.4) |
@@ -557,7 +557,7 @@ let m = wages.reg(lwage ~ educ + base(industry, "Retail") + female, se: robust)
 | Merge levels | `recode(var, [old => new])` | `forcats::fct_collapse()`; `recode` |
 | Inspect | `levels(var)` | `levels()` |
 | Contrasts | `category(x, contrast: treatment \| sum \| helmert \| poly = treatment)` sets how the indicators are coded; `sum` gives the effects type-3 ANOVA needs, `poly` orthogonal polynomial trends for ordered levels | R `contrasts()`, `contr.sum`; Stata `anova` and `contrast` |
-| Ordinal items | `ordered: true` makes CFA and SEM treat the item as ordinal once WLSMV arrives (1.6). Before then, an ordered item in `cfa` or `sem` is an error whose help gives the usual interim choice: fit with `estimator: mlr` and `ordered: false`, which treats five- or seven-point items as continuous with robust standard errors | lavaan `ordered =` |
+| Ordinal items | `ordered: true` makes CFA and SEM treat the item as ordinal once WLSMV arrives (1.25). Before then, an ordered item in `cfa` or `sem` is an error whose help gives the usual interim choice: fit with `estimator: mlr` and `ordered: false`, which treats five- or seven-point items as continuous with robust standard errors | lavaan `ordered =` |
 
 
 ### 4.3 Column types, metadata and the data to come
@@ -596,7 +596,7 @@ The names `Geometry`, `Bytes`, `FileRef`, `Duration`, `Period`, `Matrix`, `Vecto
 
 **4. What stays outside the engine.** Network data is an edge list, a frame, until the `Network` type arrives with its package. Gridded data (NetCDF, HDF5, rasters) is reduced to a frame by its reader, as zonal or district statistics, rather than given an array type. Images, audio and video never enter the engine: a `FileRef` column names them, and an `external()` step or a later package turns them into columns. Units are metadata, not a numeric type: a cutoff is a number with a `unit:` option, never a literal such as `100km`.
 
-**5. Values reserved for later, with their meaning fixed.** `Matrix` and `Vector` are dense Float values for the user estimators of 1.8 (`mle`, `gmm`, `minimize`), for structural VAR identification, for restriction matrices beyond what `test` writes as Bool expressions, and for the document–term matrices of text analysis; sparse storage is an implementation detail. Their semantics are fixed now so that no operator changes meaning: `*` between two matrices is the matrix product, as in Stata, MATLAB and R's `%*%`, and `^` is not defined for them; elementwise operations are methods; `.transpose()` transposes, and there is no `'` token; `matrix`, `vector` and `transpose` are `core` names reserved before the 1.0 freeze and callable from 1.8, so `core` need not change when they arrive; `m[i, j]` indexes, a syntax error in 1.0 and so reserved; `matrix([[1, 0], [0, 1]])` and `vector([1, 2, 3])` build them from nested lists, and a `Table` of matrix results converts with `to(Matrix)`. Closures are written `|x| expr`, as Rust writes them, a syntax error in 1.0 and so reserved (section 14.1 of the Engine and Project Specification). Censored outcomes need no grammar change: the left side of `~` is already any expression (section 3.4), so a survival analysis writes `surv(time, event) ~ x` with a term function and a value type that arrive with the package (section 14.1 of the Engine and Project Specification). `Complex` numbers stay internal to the `series` package, and there is no `Set`, `Interval`, decimal or array type.
+**5. Values reserved for later, with their meaning fixed.** `Matrix` and `Vector` are dense Float values for the user estimators of 1.15 (`mle`, `gmm`, `minimize`), for structural VAR identification, for restriction matrices beyond what `test` writes as Bool expressions, and for the document–term matrices of text analysis; sparse storage is an implementation detail. Their semantics are fixed now so that no operator changes meaning: `*` between two matrices is the matrix product, as in Stata, MATLAB and R's `%*%`, and `^` is not defined for them; elementwise operations are methods; `.transpose()` transposes, and there is no `'` token; `matrix`, `vector` and `transpose` are `core` names reserved before the 1.0 freeze and callable from 1.15, so `core` need not change when they arrive; `m[i, j]` indexes, a syntax error in 1.0 and so reserved; `matrix([[1, 0], [0, 1]])` and `vector([1, 2, 3])` build them from nested lists, and a `Table` of matrix results converts with `to(Matrix)`. Closures are written `|x| expr`, as Rust writes them, a syntax error in 1.0 and so reserved (section 14.1 of the Engine and Project Specification). Censored outcomes need no grammar change: the left side of `~` is already any expression (section 3.4), so a survival analysis writes `surv(time, event) ~ x` with a term function and a value type that arrive with the package (section 14.1 of the Engine and Project Specification). `Complex` numbers stay internal to the `series` package, and there is no `Set`, `Interval`, decimal or array type.
 
 ---
 
@@ -730,7 +730,7 @@ let fit = iterate(start: s0, step: em_step, args: {data: wages}, done: converged
 fit.loglik
 ```
 
-Here `em_step(state: Record, data: Frame) -> Record` is a project function that performs one E and one M step and returns the new state. `iterate` passes `args:` to every call of `step`, records the number of passes in the run record, and warns (W0805) when it stops at `max:` without converging. With `keep: true` it returns the list of every state, for a simulated path or a sampler's chain. Every script still finishes, because `max:` is required to be finite. Each step is an interpreted call, which suits algorithms of hundreds of passes such as EM; samplers of many thousands of draws are the native Bayesian release (1.10), not user code.
+Here `em_step(state: Record, data: Frame) -> Record` is a project function that performs one E and one M step and returns the new state. `iterate` passes `args:` to every call of `step`, records the number of passes in the run record, and warns (W0805) when it stops at `max:` without converging. With `keep: true` it returns the list of every state, for a simulated path or a sampler's chain. Every script still finishes, because `max:` is required to be finite. Each step is an interpreted call, which suits algorithms of hundreds of passes such as EM; samplers of many thousands of draws are the native Bayesian release (1.17), not user code.
 
 ### 5.6 Run-time errors and warnings
 
@@ -788,7 +788,7 @@ let ind_year = import("data/sales_wide.csv")
 | Combine | `merge`, `append`; columns other than the keys that both frames share are an error (Z0604) listing them, unless `suffixes: ["_l", "_r"]` is given |
 | Reshape and summarise | `to_long` (with `names_type: Str \| Int \| Date = Str` for the column built from the old names), `to_wide`, `aggregate` |
 | Panels | `panel`, then `lag`, `lead`, `diff` and `fill_forward` inside `add`; the declaration survives a verb that keeps the unit and time columns unchanged (`where`, `add`, `merge` on other keys) and is dropped with a note by one that does not (`aggregate`, `to_wide`) |
-| Read and write | `import`, `save`; `stream` from 1.7 |
+| Read and write | `import`, `save`; `stream` from 1.8 |
 
 **Shared arguments** mean the same wherever they appear and are not repeated in each function's entry.
 
@@ -797,8 +797,8 @@ let ind_year = import("data/sales_wide.csv")
 | `by:` | `Var` or `Vars` | Repeat the computation within each group; plots draw one panel per group | Statistics, `add`, `update`, `aggregate`, plots, `ate` |
 | `group:` | `Var` | The variable that defines groups: the groups a test compares, or the groups a split keeps together (section 7.5). A two-group test (`t_test`, `wilcoxon_test`, `proportion_test`) given one level or more than two stops with an error that suggests `anova` or `kruskal_test` (Z0412) | `t_test`, `wilcoxon_test`, `anova`, `kruskal_test`, `proportion_test`, `boxplot`; `holdout`, `folds` |
 | `color:` | `Var` | Colour points, lines or bars by group within one panel | Plots |
-| `fe:` | `Terms` | Fixed effects absorbed, as fixest and reghdfe: `fe: firm + year`; `firm:year` for interacted effects; singletons are dropped and reported | `reg`, `ivreg`; `poisson` from 1.2 |
-| `re:` | `Var` or `Mapping` | Random effects: `re: school` a random intercept; `re: [school => 1 + x]` an intercept and slope; nested groups as `school:class`, crossed groups as separate entries | `mixed` (from 1.4); later `glmm` and `growth` |
+| `fe:` | `Terms` | Fixed effects absorbed, as fixest and reghdfe: `fe: firm + year`; `firm:year` for interacted effects; singletons are dropped and reported | `reg`, `ivreg`; `glm` with `family: poisson` from 1.7 |
+| `re:` | `Var` or `Mapping` | Random effects: `re: school` a random intercept; `re: [school => 1 + x]` an intercept and slope; nested groups as `school:class`, crossed groups as separate entries | `mixed` and `growth` (from 1.11); `mixed` takes `family:` for the generalised models |
 | `se:` | `classical \| robust \| hc2 \| hc3 \| bootstrap`; default `classical`, or `robust` when `weights:` is given with `weight_type: sampling` | Standard-error type; `robust` is HC1, as Stata's `robust`; `bootstrap` from 1.1. With sampling weights, `se: classical` is an error (Z0410): classical errors treat the weights as precision weights and are not valid for probability weights. With `weight_type: frequency`, classical errors are valid and the observation count is the sum of the weights | Regression-type models |
 | `cluster:` | `Var`; `Vars` after 1.0 | Cluster-robust standard errors (CR1); one-observation clusters are reported; two-way and multiway clustering arrive as dependence structures of the variance layer (section 8.3, point 2 of the Engine and Project Specification) | Regression-type models |
 | `weights:` | `Var` | Weight variable | Models, statistics |
@@ -849,7 +849,7 @@ One function, `import(path, ...)`, picks the reader from the extension, or from 
 
 Every reader is pure Rust or permissively licensed (for example `calamine` for spreadsheets and ReadStat for SPSS and SAS), so the browser reads the same formats as the desktop; each format's help page has a "what is lost" line.
 
-**Readers.** `import` dispatches to readers behind one interface in the engine: `sniff` recognises a file from its extension and first bytes; `schema` gives column names, types and metadata (section 4.3) without reading the data, which is what `zeff check` caches in `.zeff/schemas/`; `read` reads with the column projection of `columns:` and, where the format allows, a row filter pushed down; `options` declares the reader's options as a typed signature, from which its help page and Zemp's import pane are generated. Every format in the table is one reader, and a format not in it is one reader away. From 1.11 a third-party package may ship a reader as a component: it receives the file's bytes and returns Arrow with metadata, and never opens a file itself, so the sandbox of section 8.3 of the Engine and Project Specification, point 6 holds. A reader that would need a C library (GDAL for ArcGIS geodatabases, for example) is not written; such a format is converted in its own tool to GeoParquet, or reached through `external()`.
+**Readers.** `import` dispatches to readers behind one interface in the engine: `sniff` recognises a file from its extension and first bytes; `schema` gives column names, types and metadata (section 4.3) without reading the data, which is what `zeff check` caches in `.zeff/schemas/`; `read` reads with the column projection of `columns:` and, where the format allows, a row filter pushed down; `options` declares the reader's options as a typed signature, from which its help page and Zemp's import pane are generated. Every format in the table is one reader, and a format not in it is one reader away. From 2.0.0 (zeff_open_decisions.md, #123) a third-party package may ship a reader as a component: it receives the file's bytes and returns Arrow with metadata, and never opens a file itself, so the sandbox of section 8.3 of the Engine and Project Specification, point 6 holds. A reader that would need a C library (GDAL for ArcGIS geodatabases, for example) is not written; such a format is converted in its own tool to GeoParquet, or reached through `external()`.
 
 **Saving.** `save(path)` mirrors `import`: CSV and TSV; Parquet and Arrow, lossless, the formats R, Python and Stata all read; Stata `.dta` version 118 with labels; Excel `.xlsx`; JSON records; SPSS `.sav` from 1.1. R users are served through Parquet (`arrow::read_parquet`) rather than `.rds`, whose format is R's internal serialisation. Parquet is written with fixed settings (zstd, row groups of 1,048,576 rows, statistics and a page index), so a file is byte-identical on every machine, and a panel is written sorted by unit and time so that a later `where` on unit or time skips whole row groups; the labels, categories and panel declaration travel under the Zeff Parquet profile (section 8.7 of the Engine and Project Specification). There is no file format of Zeff's own.
 
@@ -878,7 +878,7 @@ One formula grammar covers every model, from OLS to SEM: R's notation for regres
 | `f - term` | A formula binding less a term is a new formula | `wages.reg(f - female)` |
 | `fe: fe1 + fe2` | Fixed effects absorbed, as fixest and reghdfe; `fe:` admits `+` and `:` only, and `*` is an error with help | `reg(y ~ x, fe: firm + year)` |
 | `instruments: endog ~ instr` | How the endogenous regressors, which appear in the formula, are instrumented; several of each are joined with `+` | `ivreg(y ~ exper + educ, instruments: educ ~ nearc4)`, `instruments: educ + exper ~ nearc4 + nearc2 + age2` |
-| `re: school` | Random intercept by group, in `mixed` (from 1.4), and later `glmm` and `growth` | `mixed(y ~ x, re: school)` |
+| `re: school` | Random intercept by group, in `mixed` and `growth` (from 1.11) | `mixed(y ~ x, re: school)` |
 | `re: [g => terms]` | Random intercepts and slopes; nested groups as `school:class`, crossed groups as separate entries | `mixed(y ~ x, re: [school => 1 + x])` |
 
 Fixed effects, random effects and instruments are named arguments rather than parts of the formula, so every piece of a model is labelled where it is written and a referee never has to count `|` signs. lme4's `(1 + x | school)` is written `re: [school => 1 + x]`, and the editor converts pasted lme4 terms. The instrumented regressors appear in the formula like any other regressor; `instruments:` lists them on its left and the excluded instruments on its right. An endogenous regressor missing from the formula is an error (Z0504); a variable on both sides of `~` is an error (Z0505); fewer excluded instruments than endogenous regressors is under-identification (Z0804); an excluded instrument that also appears in the formula is an included instrument and is moved there with a note. `first_stage` reports Hansen's J for over-identified models and the Durbin–Wu–Hausman endogeneity test.
@@ -910,7 +910,7 @@ A formula becomes a design matrix through fixed rules, applied in this order. An
 | Collinearity | After the fixed effects are projected out, each regressor is scaled to unit norm; a regressor whose remaining norm is below 1e-8 of its original norm is absorbed by the fixed effects and reported so ("absorbed by fe: firm"). Pivoted QR then runs on the scaled columns, each pivot tested relative to its own column's norm (tolerance 1e-7): a column that fails is dropped as collinear with the columns before it, named in a note, and shown as "(omitted)" by `report`. Coefficients and the variance matrix are unscaled afterwards. The condition number of the scaled R is reported, with warning W1001 above 1e8 |
 | Rows | Rows with `NA` in a model variable are dropped and counted; singletons in `fe:` groups are dropped and counted |
 | Fixed effects | Applied in this order: drop rows with `NA`, then singletons; project the fixed effects out of the outcome and regressors; then run pivoted QR on what remains. Projection uses alternating projections with acceleration, as fixest does, demeaning only the model's columns into a scratch buffer of about n × (k + 1) values, to a tolerance of 1e-8 recorded in the run. With `fe:` the intercept is absorbed, every category gets K − 1 indicators, and `- 1` has no effect |
-| Random effects (1.4) | `re:` builds a sparse Z matrix (compressed sparse column) beside the dense X |
+| Random effects (1.11) | `re:` builds a sparse Z matrix (compressed sparse column) beside the dense X |
 | Term names | Every column of the model matrix has a stable name, used by `coef`, `report`, `test` and `derive`: a variable keeps its name (`educ`); a category level is `industry=Retail`; an interaction joins its parts with `:` (`educ:female`, `industry=Retail:female`); a transformation keeps its written form (`log(wage)`, `exper^2`); the intercept is `(intercept)`. A name that is not a valid identifier is given as text: `m.coef("industry=Retail")`; a level containing `=`, `:` or `+` is quoted inside the term name, `industry="A:B"`, so it cannot read as an interaction. Inside `fit.test` and `fit.derive`, bare names are term names and resolve to coefficients, never to columns; `test` takes Bool expressions, `fit.test(educ == exper, educ + exper == 1)` |
 
 ### 7.3 Causal graphs
@@ -957,9 +957,9 @@ warning[W0511]: no sufficient adjustment set exists: ability is latent and confo
   = help: consider an instrument for training, or a front-door design
 ```
 
-### 7.4 Model blocks (from 1.3)
+### 7.4 Model blocks (from 1.12)
 
-`model { }`, `cfa` and `sem` arrive in 1.3; the syntax is fixed now so that the parser, editor and Zemp can be designed around it.
+`model { }`, `cfa` and `sem` arrive in 1.12; the syntax is fixed now so that the parser, editor and Zemp can be designed around it.
 
 ```
 let pd = import("data/political_democracy.csv")
@@ -986,13 +986,13 @@ fit.effects()
 | `a ~~ b` | Covariance; `a ~~ a` a variance | `~~` |
 | `x as a` | Label a path; `*` keeps its one meaning, interaction | `a*x` |
 | `d := a * b` | Defined parameter, such as an indirect effect | `:=` |
-| `efa(f1, f2, f3) =~ x1..x9` | A rotated exploratory block (ESEM); the 1.3 model parser accepts it, and fitting it waits for 1.6 | `efa("block1")*f1 + ...` |
+| `efa(f1, f2, f3) =~ x1..x9` | A rotated exploratory block (ESEM); the model parser of 1.12 accepts it, and fitting it waits for 1.25 | `efa("block1")*f1 + ...` |
 
-In 1.3, `cfa` and `sem` fit continuous items by ML or MLR, with FIML for missing data. Items declared `ordered: true` with `category()` switch the fit to WLSMV from 1.6; until then they are an error that suggests `estimator: mlr` with `ordered: false` (section 4.2).
+In 1.12, `cfa` and `sem` fit continuous items by ML or MLR, with FIML for missing data. Items declared `ordered: true` with `category()` switch the fit to WLSMV from 1.25; until then they are an error that suggests `estimator: mlr` with `ordered: false` (section 4.2).
 
-### 7.5 Splits, recipes and leakage (from 1.5)
+### 7.5 Splits, recipes and leakage (from 1.4 and 1.14)
 
-Data leakage is information from the rows a model is judged on reaching the model before the judgement: a standardisation computed on all rows, an imputation that saw the test set, a lagged variable that looks forward, a unit whose rows sit on both sides of a split, a test set scored until it agrees. tidymodels prevents it by discipline: split first, express preprocessing as a `recipe` that is estimated on the analysis rows and applied to the assessment rows, re-estimate it inside every fold, touch the test set once. Zeff adopts that discipline and adds what a typed language can: since the IR knows every column's lineage, the checker finds the leaks the discipline misses. The functions arrive in 1.5 with the lasso and forests; the rules are fixed here so that the IR carries lineage from the start.
+Data leakage is information from the rows a model is judged on reaching the model before the judgement: a standardisation computed on all rows, an imputation that saw the test set, a lagged variable that looks forward, a unit whose rows sit on both sides of a split, a test set scored until it agrees. tidymodels prevents it by discipline: split first, express preprocessing as a `recipe` that is estimated on the analysis rows and applied to the assessment rows, re-estimate it inside every fold, touch the test set once. Zeff adopts that discipline and adds what a typed language can: since the IR knows every column's lineage, the checker finds the leaks the discipline misses. The splits, the folds and `score` arrive in 1.4, and the recipes, the model specifications and tuning in 1.14 with the forests; the rules are fixed here so that the IR carries lineage from the start.
 
 **Splits are roles, not copies.**
 
@@ -1015,8 +1015,8 @@ let rec = recipe()
     .pca([x1..x9], n: 5)                          // loadings from the analysis rows
 
 let cv    = d.training().folds(k: 10, repeats: 3, strata: default)
-let tuned = cv.tune(default ~ . - id, recipe: rec, model: spec.lasso(penalty: grid(20)), metric: auc)
-let fit   = d.training().learn(default ~ . - id, recipe: rec, model: spec.lasso(penalty: tuned.best()))
+let tuned = cv.tune(default ~ . - id, recipe: rec, model: spec.penalized(penalty: grid(20)), metric: auc)
+let fit   = d.training().learn(default ~ . - id, recipe: rec, model: spec.penalized(penalty: tuned.best()))
 fit.score(d.testing())                            // the one permitted look at the test rows
 ```
 
@@ -1026,9 +1026,9 @@ fit.score(d.testing())                            // the one permitted look at t
 | Order | Steps apply in the order written; a step may use columns an earlier step made |
 | Levels | `one_hot` fixes the levels at fit; a level first seen at apply goes to `other` with a note, never to a new column |
 | Inspection | `rec.prepare(train)` estimates the steps and `.apply(frame)` applies them, for looking at what the model saw; `learn`, `tune` and `score` do both without being asked |
-| Model specifications | `spec.lasso(...)`, `spec.random_forest(...)`, `spec.boosting(...)`, `spec.logistic()` and `spec.reg()` are unfitted specifications, a namespace like `dist.` and `power.`; a parameter given as `grid(20)` or `grid([0.01, 0.1, 1])` is tuned |
+| Model specifications | `spec.penalized(...)`, `spec.random_forest(...)`, `spec.boosting(...)`, `spec.logistic()` and `spec.reg()` are unfitted specifications, a namespace like `dist.` and `power.`; a parameter given as `grid(20)` or `grid([0.01, 0.1, 1])` is tuned |
 | Formulas | `y ~ .` means every column except the outcome and the columns with a role: the split marker, a `panel` unit and time, and anything removed with `- id`; an identifier left in is warned (W1106) |
-| Fitting | `data.learn(formula, recipe:, model:)` returns a `LearnFit` with the result and estimator interfaces plus `score`, `calibration`, `shap` and `partial_dependence`; `folds.tune(...)` returns a `TuneResult` whose `best()` picks the parameters by the metric |
+| Fitting | `data.learn(formula, recipe:, model:)` returns a `LearnFit` with the result and estimator interfaces plus `score`, `calibration`, `shap` and `feature_effects`; `folds.tune(...)` returns a `TuneResult` whose `best()` picks the parameters by the metric |
 
 **The leakage checker.** When a model is fitted on a training view or inside folds, `zeff check` walks each predictor's lineage in the typed IR and warns, with the fix, under the statistical-warning family W11xx; `--deny-warnings` turns them into errors for a replication package.
 
@@ -1067,7 +1067,7 @@ wages.scatter(educ, lwage)                         // the shorthand: the same Pl
 | --- | --- | --- |
 | Data and aesthetics | `plot(frame, x:, y:, color:, fill:, size:, shape:, group:, label:)` | `x` and `y` may be variables or expressions over the frame |
 | Marks | `points`, `lines`, `step`, `bars`, `area`, `ribbon`, `text`, `tile`, `rug`, `hline`, `vline` | `bars` with `y` draws values and without `y` counts, and its baseline is always zero; `hline` and `vline` take a value or a variable |
-| Statistical layers | `histogram(bins:)`, `density(bandwidth:)`, `boxplot`, `errorbars(low:, high:)`; `smooth(method: lm \| loess)`, `violin`, `aggregate(fun:, errorbars:)` from 1.2 | Computed by the engine's own functions, never by a package above `plot`: `smooth(method: lm)` and `scatter(fit: linear)` fit by the kernel's least squares (the QR `reg` also uses) with a classical band, `loess` and `density` come from `stats`, and `smooth(fit: m)` draws any fitted model's predictions and intervals through the result interface declared in `core`, so a robust, clustered or fixed-effects line is exactly the model `m` prints |
+| Statistical layers | `histogram(bins:)`, `density(bandwidth:)`, `boxplot`, `errorbars(low:, high:)`; `smooth(method: lm \| loess)`, `violin`, `aggregate(fun:, errorbars:)` from 1.2 | Computed by the engine's own functions, never by a package above `plot`: `smooth(method: lm)` and `scatter(fit: linear)` fit by the kernel's least squares (the QR `reg` also uses) with a classical band, `loess` (the `kernel_reg` of `stats`) and `density` come from `stats`, and `smooth(fit: m)` draws any fitted model's predictions and intervals through the result interface declared in `core`, so a robust, clustered or fixed-effects line is exactly the model `m` prints |
 | Scales | `scale_x(linear \| log \| sqrt \| date, limits:, breaks:, labels:)`, `scale_y(...)`, `scale(color:, fill:, size:, shape:)` | A variable's label becomes its axis title; numbers format as in tables (section 3.8); a log scale on a value at or below zero is an error naming the rows; `limits:` sets the visible range only: marks outside are clipped and counted in a note, statistical layers use every row, and removing rows is `where`; a Str or a Category variable makes an axis of categories, and a number with value labels a linear axis with its breaks at the labelled values, written as their labels; a Date or a DateTime variable makes an axis of dates, placed in proportion to the time, with its breaks on the calendar, written in the ISO form of tables cut to the part they differ in |
 | Coordinates | `coord(flip \| polar \| fixed)` | Coordinate systems are a registry of the renderer; `coord(map, crs:)` joins it with the `spatial` package (section 4.3) |
 | Facets | `facet(by:, rows:, cols:, scales: fixed \| free \| free_x \| free_y)` | `by:` keeps its one meaning; panels share scales unless told otherwise |
@@ -1151,7 +1151,7 @@ let iv = card.ivreg(lwage ~ exper + exper^2 + black + educ, fe: region,
                     instruments: educ ~ nearc4, se: robust, first: true)
 iv.first_stage()                         // effective F and Kleibergen–Paap F
 
-// 5. Two-period difference-in-differences (staggered designs: `did` from 1.2)
+// 5. Two-period difference-in-differences (staggered designs: `did` with `method: cs` from 1.19; the two-period `did` from 1.9)
 let counties = import("data/counties.csv").panel(unit: county, time: year)
 let dd = counties.reg(emp ~ treated * post, fe: county + year, cluster: county)
 dd.coef_plot().export("output/fig2.pdf", size: two_column)
@@ -1160,7 +1160,7 @@ dd.coef_plot().export("output/fig2.pdf", size: two_column)
 wages.t_test(lwage, group: female)
 let lg = wages.logistic(union ~ educ + exper + female, cluster: worker)
 
-// 7. Reliability of a survey scale (CFA and SEM from 1.3)
+// 7. Reliability of a survey scale (CFA and SEM from 1.12)
 let engage = import("data/engagement.csv")
 engage.reliability([eng1..eng6])
 ```

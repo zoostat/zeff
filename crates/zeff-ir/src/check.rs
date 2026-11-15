@@ -1322,8 +1322,8 @@ impl Checker<'_> {
                 self.not_yet(
                     span,
                     "a `model { }` block",
-                    "1.3",
-                    "latent-variable models arrive with release 1.3",
+                    "1.12",
+                    "latent-variable models arrive with release 1.12",
                 );
                 Expr::error(span)
             }
@@ -1340,8 +1340,8 @@ impl Checker<'_> {
                 self.not_yet(
                     span,
                     "a label",
-                    "1.3",
-                    "model blocks arrive with release 1.3",
+                    "1.12",
+                    "model blocks arrive with release 1.12",
                 );
                 Expr::error(span)
             }
@@ -2005,8 +2005,8 @@ impl Checker<'_> {
             [package, ..] => self.not_yet(
                 u.span,
                 &format!("`use {package}`"),
-                "1.11",
-                &format!("third-party packages arrive after 1.0; the project's own modules are brought in as `use functions::{package}`"),
+                "2.0",
+                &format!("third-party packages arrive with Zeff 2.0; the project's own modules are brought in as `use functions::{package}`"),
             ),
             [] => {}
         }
@@ -4003,7 +4003,7 @@ impl Checker<'_> {
     }
 
     /// Z0321: `.` alone stands for every other column only in the formulas of `learn` and
-    /// `tune` (section 7.5, release 1.5).
+    /// `tune` (section 7.5, release 1.14).
     fn dot_alone(&mut self, span: Span) {
         self.report(
             Diagnostic::error(
@@ -4011,7 +4011,7 @@ impl Checker<'_> {
                 "`.` alone stands for every other column only in the formulas of `learn` and `tune`",
             )
             .primary(span, "`.` outside those formulas")
-            .help("name the terms: `y ~ x1..x9`; the formulas of `learn` arrive with release 1.5"),
+            .help("name the terms: `y ~ x1..x9`; the formulas of `learn` arrive with release 1.14"),
         );
     }
 

@@ -19,7 +19,7 @@ error[Z0321]: `.` alone stands for every other column only in the formulas of `l
 1 | let f = y ~ . - id
   |             ^ `.` outside those formulas
   |
-  = help: name the terms: `y ~ x1..x9`; the formulas of `learn` arrive with release 1.5
+  = help: name the terms: `y ~ x1..x9`; the formulas of `learn` arrive with release 1.14
 [exit 1]
 
 > let f = y ~ x as a

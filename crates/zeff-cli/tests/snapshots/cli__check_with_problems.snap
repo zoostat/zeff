@@ -1,15 +1,14 @@
 ---
 source: crates/zeff-cli/tests/cli.rs
-assertion_line: 353
 expression: text
 ---
 error[Z0304]: `use stats` is not available in this release
  --> scripts/main.zeff:1:1
   |
 1 | use stats
-  | ^^^^^^^^^ arrives with Zeff 1.11
+  | ^^^^^^^^^ arrives with Zeff 2.0
   |
-  = help: third-party packages arrive after 1.0; the project's own modules are brought in as `use functions::stats`
+  = help: third-party packages arrive with Zeff 2.0; the project's own modules are brought in as `use functions::stats`
 
 note: `data/wages.csv` is checked at run time: the file does not exist yet, so the variables of this frame are checked when the script runs
  --> scripts/main.zeff:2:20

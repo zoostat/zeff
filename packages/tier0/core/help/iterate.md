@@ -20,7 +20,7 @@ passes is printed as a note under the result. With `keep: true` the result is th
 state the passes produced, for a simulated path or a sampler's chain.
 
 Each pass is an interpreted call, which suits algorithms of hundreds of passes such as EM;
-samplers of many thousands of draws are the native Bayesian release (1.10), not user code. Like
+samplers of many thousands of draws are the native Bayesian release (1.17), not user code. Like
 R's `repeat` with a counter and Stata's `while`, without a variable that is reassigned.
 
 ## Arguments

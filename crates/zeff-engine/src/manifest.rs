@@ -452,7 +452,7 @@ pub fn parse_manifest(file: &str, text: &str) -> Result<Manifest, Diagnostics> {
                 "third-party packages are not available yet",
                 span_of(key),
                 "[packages] must be empty",
-                Some("third-party packages arrive after Zeff 1.0; every function of this release is built in".into()),
+                Some("third-party packages arrive with Zeff 2.0; every function of this release is built in".into()),
             );
         }
     }
