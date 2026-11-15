@@ -37,7 +37,7 @@ data · tier 1 · 58 of 58 functions in this release
   lag               Previous values in the panel's time order
   lead              Next values
   diff              x − lag(x, n), so it respects the panel's time order and gaps
-  fill_forward      Replace NA with the last non-missing value, within panel units or by: groups
+  fill_missing      Replace NA with a value, or with the last or the next value present
   running_sum       Cumulative sum down the rows; an NA makes the rest NA
   running_product   Cumulative product down the rows; an NA makes the rest NA
   rank              Rank of each value, smallest first; NA stays NA

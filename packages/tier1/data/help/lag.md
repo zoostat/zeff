@@ -23,7 +23,7 @@ Exact: each row takes the value of the row of its unit whose time is exactly `n`
 found in the panel's sorted index.
 
 ## See also
-lead, diff, fill_forward, panel
+lead, diff, fill_missing, panel
 
 ## Examples
 > let p = frame(firm = [2, 1, 2, 1, 2], year = [2021, 2020, 2020, 2021, 2023], revenue = [12.5, 8, 11, 9, 15]).panel(unit: firm, time: year)

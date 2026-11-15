@@ -14,7 +14,7 @@ use zeff_engine::registry::{registry, zeff_bodies};
 use zeff_engine::run::run_script;
 
 /// A function, a code of its page, and a script that raises the code through the function.
-const SHOWN: [(&str, &str, &str); 41] = [
+const SHOWN: [(&str, &str, &str); 40] = [
     (
         "drop_missing",
         "Z0101",
@@ -27,11 +27,6 @@ const SHOWN: [(&str, &str, &str); 41] = [
     ),
     ("assert", "Z0001", "assert(1 == 2, \"one is not two\")"),
     ("assert", "Z0203", "assert(NA, \"no condition\")"),
-    (
-        "fill_missing",
-        "Z0214",
-        "frame(x = [1.0, NA]).add(y = fill_missing(x, \"a\"))",
-    ),
     ("logit", "W0204", "logit(1.0)"),
     ("logit", "W0205", "logit(2.0)"),
     (
@@ -238,8 +233,9 @@ fn the_pages_of_the_fourteen() {
     let mut names: Vec<&(String, String)> = zeff_bodies().keys().collect();
     names.sort();
     // Fourteen until release 0.8.0, step 7b, where `drop_missing` returned to Zeff; fourteen
-    // again from step 8h, where `quantile_group` became the option `n:` of `bin`, in Rust.
-    assert_eq!(names.len(), 14);
+    // again from step 8h, where `quantile_group` became the option `n:` of `bin`, in Rust;
+    // thirteen from step 8i, where `fill_missing` took in `fill_forward` and moved to `data`.
+    assert_eq!(names.len(), 13);
     let mut all = String::new();
     for (package, name) in names {
         all.push_str(&format!("{package}::{name}\n"));

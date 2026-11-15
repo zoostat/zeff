@@ -7,7 +7,7 @@
 // 1. The wages, read from the engine's own data root, with each worker's firm's size and
 //    founding date merged in from the firms dataset (the CSV form of the wages carries the
 //    industry as text, so the firms' category of it stays out of the merge), the variables the
-//    models need, and the panel declared: `lag`, `diff`, `fill_forward` and `fe:` then follow
+//    models need, and the panel declared: `lag`, `diff`, `fill_missing` and `fe:` then follow
 //    the worker and the year.
 let firms = dataset(firms)
 let wages = import("zeff:wages.csv")
@@ -38,7 +38,7 @@ by_industry.where(industry == "Retail")
 //    log wage is computed firm by firm with `by:`.
 let wages = wages.add(wage_growth = diff(lwage),
                       lag_hours = lag(hours),
-                      hours_filled = fill_forward(hours),
+                      hours_filled = fill_missing(hours, method: forward),
                       lwage_w = winsorize(lwage, at: 0.01))
 let wages = wages.add(dev_firm = lwage - mean(lwage), by: firm)
 wages.summary([wage_growth, lag_hours, hours_filled, lwage_w, dev_firm])

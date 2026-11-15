@@ -13,11 +13,12 @@ fn the_compiled_catalogue_reads_in_full() {
     // 677 until step 8f, which added `start_of` (#96).
     // 678 until step 8g, where `add_time` took the place of two rows (#97).
     // 677 until step 8h, where `bin` took in `quantile_group` (#97).
-    assert_eq!(catalogue.rows().len(), 676);
+    // 676 until step 8i, where `fill_missing` took in `fill_forward` (#97).
+    assert_eq!(catalogue.rows().len(), 675);
     let mut ids: Vec<u32> = catalogue.rows().iter().map(|r| r.id).collect();
     ids.sort_unstable();
     ids.dedup();
-    assert_eq!(ids.len(), 676, "ids are distinct");
+    assert_eq!(ids.len(), 675, "ids are distinct");
 }
 
 #[test]

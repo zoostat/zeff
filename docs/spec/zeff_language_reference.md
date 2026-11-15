@@ -789,7 +789,7 @@ let ind_year = import("data/sales_wide.csv")
 | Variables | `select`, `drop`, `rename`, `add`, `update`, `label`, `recode`; `add` may replace an existing column, with a note naming it, while `update` changes values only where a condition holds |
 | Combine | `merge`, `append`; columns other than the keys that both frames share are an error (Z0604) listing them, unless `suffixes: ["_l", "_r"]` is given |
 | Reshape and summarise | `to_long` (with `names_type: Str \| Int \| Date = Str` for the column built from the old names), `to_wide`, `aggregate` |
-| Panels | `panel`, then `lag`, `lead`, `diff` and `fill_forward` inside `add`; the declaration survives a verb that keeps the unit and time columns unchanged (`where`, `add`, `merge` on other keys) and is dropped with a note by one that does not (`aggregate`, `to_wide`) |
+| Panels | `panel`, then `lag`, `lead`, `diff` and `fill_missing(x, method: forward \| backward)` inside `add`; the declaration survives a verb that keeps the unit and time columns unchanged (`where`, `add`, `merge` on other keys) and is dropped with a note by one that does not (`aggregate`, `to_wide`) |
 | Read and write | `import`, `save`; `stream` from 1.8 |
 
 **Shared arguments** mean the same wherever they appear and are not repeated in each function's entry.
@@ -813,7 +813,7 @@ let ind_year = import("data/sales_wide.csv")
 | `alternative:` | `two_sided \| less \| greater = two_sided` | The alternative a test's p-value is computed for; H1 and the interval follow it, and `less` means the first-named quantity (the mean, the first group, `a`) is less than the second or than the reference value (open decision #91) | `t_test`, `wilcoxon_test`, `proportion_test`; `fisher_test` on a 2 × 2 table |
 | `title:` | `Str` | Title | Plots, `report` |
 
-**Panels.** `data.panel(unit: firm, time: year)` declares the panel once. After it, `lag`, `lead`, `diff` and `fill_forward` follow each unit's time order, a gap in time gives `NA` as Stata's `L.` does, and `did` takes its unit and time from the panel. What a gap is depends on the time variable's type: consecutive integers for an Int, consecutive calendar days for a Date, and consecutive periods of its own frequency for a `Period` (section 4.3), so a monthly panel never mistakes a missing month for a 30-day gap; until `Period` is computable, a monthly or quarterly panel uses an Int index such as `year * 12 + month`. `unit:` takes one variable in 1.0; a list of variables for a composite unit (store and product) is an additive change for later.
+**Panels.** `data.panel(unit: firm, time: year)` declares the panel once. After it, `lag`, `lead`, `diff` and `fill_missing` with `method:` follow each unit's time order, a gap in time gives `NA` as Stata's `L.` does, and `did` takes its unit and time from the panel. What a gap is depends on the time variable's type: consecutive integers for an Int, consecutive calendar days for a Date, and consecutive periods of its own frequency for a `Period` (section 4.3), so a monthly panel never mistakes a missing month for a 30-day gap; until `Period` is computable, a monthly or quarterly panel uses an Int index such as `year * 12 + month`. `unit:` takes one variable in 1.0; a list of variables for a composite unit (store and product) is an additive change for later.
 
 **Row order.** `sort` is stable: rows with equal keys keep their previous order, and `NA` sorts last. `aggregate` and `tabulate` return groups sorted by the `by:` keys, `NA` last. `distinct`, `duplicates`, `unique`, `first` and `last` refer to the current row order and keep the first occurrence. `merge` keeps the left frame's order and, within one left row, the right frame's order. `append` keeps the left rows, then the right. Group-by never depends on hashing order. These orders are part of the result and are checked by the conformance suite.
 
@@ -1345,7 +1345,7 @@ Zeff reports problems the way Rust does: a code, the location, a marker under th
 | Z0712 to Z0715 | `zeff.toml` is not valid TOML; valid TOML but wrong for Zeff; a script named on the command line that the project lacks; `import` of a project path with no readable file |
 | Z0716 | An export path with no extension, or with one that names no format Zeff writes; the formats are listed |
 | Z0601 | A panel declaration refused: a unit observed twice at one time, `NA` in the unit or the time variable, or a time variable that is not an Int or a `Date` (section 6, "Panels"; release 0.6.0) |
-| Z0602 | `lag`, `lead`, `diff` or `fill_forward` outside `add` or `update`, or on a frame with no panel declaration where the function needs one (section 6, "Panels"; release 0.6.0) |
+| Z0602 | `lag`, `lead`, `diff` or `fill_missing` with `method:` outside `add` or `update`, or on a frame with no panel declaration where the function needs one (section 6, "Panels"; release 0.6.0) |
 | Z0603 | A merge whose keys form a many-to-many relation, or whose `relation:` the data do not have (section 6, "Combine") |
 | Z0604 | A non-key column present in both frames of a merge, without `suffixes:` (section 6, "Combine") |
 | Z0609 | A column of one type in the left frame of `append` and of another, not Int with Float, in the right (section 6, "Combine"; release 0.6.0) |

@@ -213,7 +213,7 @@ axis: numbers a linear scale, text an axis of categories, dates a scale of dates
 `x: category(educ)` stands the years of schooling side by side as categories, and
 `x: add_time(hired, 6, unit: month)` is an axis of dates. One text alone, as in `x: "all"`, puts every
 row at one place. Where a layer has a frame of its own, the expression must come to the same
-kind of value there. `logit`, `inv_logit`, `clamp` and `fill_missing` are computed as well,
+kind of value there. `logit`, `inv_logit`, `clamp` and `fill_missing` with a value are computed as well,
 so `y: logit(share)` draws the log odds and `y: fill_missing(region, "none")` gives the rows
 with no region a place of their own. `case` chooses a value row by row, as it does in `add`:
 `y: case { wage > 100 => 100, _ => wage }` draws no wage above 100. A row that no arm matches

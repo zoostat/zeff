@@ -58,7 +58,6 @@ core keys
 core is_in
 core seq
 core is_missing
-core fill_missing
 core coalesce
 core n_missing
 core print
@@ -129,7 +128,6 @@ data between
 data row_mean
 data row_sum
 data winsorize
-data fill_forward
 data mean
 data sd
 data variance

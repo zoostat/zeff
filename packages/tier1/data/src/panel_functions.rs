@@ -1,5 +1,5 @@
-//! The panel column functions `lag`, `lead`, `diff` and `fill_forward` (catalogue rows 125 to
-//! 127 and 139; Language Reference, section 6, "Panels"; release 0.6.0, step 8), inside `add` or
+//! The panel column functions `lag`, `lead`, `diff` and `fill_missing` (catalogue rows 125 to
+//! 127 and 56; `fill_missing` took in `fill_forward`, row 139, at release 0.8.0, step 8i; Language Reference, section 6, "Panels"; release 0.6.0, step 8), inside `add` or
 //! `update`, where the enclosing frame supplies the panel index: each unit's rows in time order,
 //! a gap in time giving `NA` as Stata's `L.` does. `diff` is Rust rather than Zeff because a
 //! body written in Zeff has no handle on the enclosing frame (open decision #69), as `row_mean`.
@@ -222,18 +222,99 @@ pub fn diff(ctx: &mut CallContext<'_>, args: Args) -> Result<Value, Fail> {
     Ok(Value::Column(column))
 }
 
-/// `fill_forward(x)`: `NA` replaced by the last value present, within each unit in the panel's
-/// time order, or in the frame's row order without a declaration (under `by:` the frame is the
-/// group).
-pub fn fill_forward(ctx: &mut CallContext<'_>, args: Args) -> Result<Value, Fail> {
-    let frame = enclosing(ctx, "fill_forward")?.clone();
-    let x = column_arg(ctx, &frame, "fill_forward", &args)?;
+/// The scalar types a value may have, as `coalesce` takes them.
+const SCALAR: &str = "Bool | Int | Float | Str | Date | DateTime";
+
+/// `fill_missing(x, value)` for one row: `coalesce` under this function's name.
+fn fill_with_value(ctx: &mut CallContext<'_>, args: Args) -> Result<Value, Fail> {
+    zeff_core::missing::coalesce_as("fill_missing", ctx, args)
+}
+
+/// `fill_missing(x, value)` or `fill_missing(x, method: forward | backward)` (open decision
+/// #97; release 0.8.0, step 8i, where it took in `fill_forward` and moved here from `core`).
+/// With a value, `NA` is replaced by it row by row, the two joined to one type as `coalesce`
+/// joins them; this needs no frame. With `method:`, `NA` is replaced by the last value present
+/// (`forward`) or the next one (`backward`), within each unit in the panel's time order, or in
+/// the frame's row order without a declaration (under `by:` the frame is the group).
+pub fn fill_missing(ctx: &mut CallContext<'_>, mut args: Args) -> Result<Value, Fail> {
+    let (value_given, method_given) = (args.get(1).is_some(), args.get(2).is_some());
+    if value_given && method_given {
+        return Err(fail(
+            Diagnostic::error("Z0410", "`fill_missing` takes a value or `method:`, not both")
+                .in_file(ctx.script)
+                .primary(ctx.span_of(2), "given beside a value")
+                .help("`fill_missing(x, 0)` puts 0 where `x` is NA; `fill_missing(x, method: forward)` carries the last value down"),
+        ));
+    }
+    if !value_given && !method_given {
+        return Err(fail(
+            Diagnostic::error("Z0406", "`fill_missing` needs a value or `method:`")
+                .in_file(ctx.script)
+                .primary(ctx.callee_span, "neither is given")
+                .help("usage: `fill_missing(x, 0)` to fill with a value, or `fill_missing(x, method: forward)` to carry the last value down"),
+        ));
+    }
+    if value_given {
+        let x = args.take(0);
+        let value = args.take(1);
+        let column_given =
+            matches!(x, Some(Value::Column(_))) || matches!(value, Some(Value::Column(_)));
+        let pair = Args {
+            values: vec![x, value],
+            rest: Vec::new(),
+            definitions: Vec::new(),
+        };
+        return if column_given {
+            zeff_core::lift::call_rowwise(
+                fill_with_value,
+                ctx,
+                pair,
+                "Join",
+                zeff_core::lift::Params {
+                    function: "fill_missing",
+                    names: &["x", "value"],
+                    types: &[SCALAR, SCALAR],
+                },
+            )
+        } else {
+            fill_with_value(ctx, pair)
+        };
+    }
+    let backward = matches!(args.get(2), Some(Value::Word(w)) if w == "backward");
+    if !matches!(args.get(0), Some(Value::Column(_))) {
+        return Err(fail(
+            Diagnostic::error(
+                "Z0401",
+                format!(
+                    "`method:` of `fill_missing` fills down a column, but `x` is {}",
+                    args.get(0).map_or("missing".to_string(), Value::type_word)
+                ),
+            )
+            .in_file(ctx.script)
+            .primary(ctx.span_of(0), "one value, with no row before or after it")
+            .help("write it inside `add` or `update`, as in `d.add(filled = fill_missing(x, method: forward))`; `fill_missing(x, 0)` fills one value"),
+        ));
+    }
+    let Some(frame) = ctx.frame.clone() else {
+        return Err(fail(
+            Diagnostic::error(
+                "Z0602",
+                "`fill_missing` with `method:` follows the rows of a frame and stands inside `add` or `update`",
+            )
+            .in_file(ctx.script)
+            .primary(ctx.callee_span, "no frame here")
+            .help("write it inside a definition, as in `wages.add(filled = fill_missing(wage, method: forward))`"),
+        ));
+    };
+    let x = column_arg(ctx, &frame, "fill_missing", &args)?;
     let rows = frame.table.rows();
     let mut source: Vec<Option<usize>> = (0..rows).map(Some).collect();
-    let walk = |order: &[usize], unit_of_row: Option<&[usize]>, source: &mut Vec<Option<usize>>| {
+    let walk = |order: &mut dyn Iterator<Item = usize>,
+                unit_of_row: Option<&[usize]>,
+                source: &mut Vec<Option<usize>>| {
         let mut last: Option<usize> = None;
         let mut unit: Option<usize> = None;
-        for &row in order {
+        for row in order {
             let this_unit = unit_of_row.map(|u| u[row]);
             if this_unit != unit {
                 unit = this_unit;
@@ -249,11 +330,24 @@ pub fn fill_forward(ctx: &mut CallContext<'_>, args: Args) -> Result<Value, Fail
         }
     };
     if frame.table.metadata().panel.is_some() {
-        let order = panel_order(ctx, &frame, "fill_forward")?;
-        walk(&order.index, Some(&order.unit_of_row), &mut source);
+        let order = panel_order(ctx, &frame, "fill_missing")?;
+        if backward {
+            walk(
+                &mut order.index.iter().rev().copied(),
+                Some(&order.unit_of_row),
+                &mut source,
+            );
+        } else {
+            walk(
+                &mut order.index.iter().copied(),
+                Some(&order.unit_of_row),
+                &mut source,
+            );
+        }
+    } else if backward {
+        walk(&mut (0..rows).rev(), None, &mut source);
     } else {
-        let order: Vec<usize> = (0..rows).collect();
-        walk(&order, None, &mut source);
+        walk(&mut (0..rows), None, &mut source);
     }
     Ok(Value::Column(x.take_optional(&source)))
 }

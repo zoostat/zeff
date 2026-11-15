@@ -241,7 +241,7 @@ long.to_wide(values_from: sales, id: firm, names_from: year)
 
 // panels
 let p = frame(firm = [2, 1, 2, 1, 2], year = [2021, 2020, 2020, 2021, 2023], revenue = [12.5, 8, 11, 9, NA]).panel(unit: firm, time: year)
-p.add(prev = lag(revenue), next = lead(revenue), change = diff(revenue), filled = fill_forward(revenue))
+p.add(prev = lag(revenue), next = lead(revenue), change = diff(revenue), filled = fill_missing(revenue, method: forward))
 p.where(year > 2020)
 p.aggregate(total = sum(revenue), by: firm)
 

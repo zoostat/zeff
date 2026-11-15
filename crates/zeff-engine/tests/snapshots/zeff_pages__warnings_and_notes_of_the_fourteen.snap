@@ -6,8 +6,6 @@ core::assert
     Z0203   the condition is `NA`
     Z0001   the script stopped itself with the message given
 core::clamp
-core::fill_missing
-    Z0214   the arguments are of types that do not join
 core::inv_logit
 core::logit
     W0204   `p` is 0 or 1, where the logit is infinite

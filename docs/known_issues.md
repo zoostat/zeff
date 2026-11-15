@@ -217,7 +217,8 @@ is never listed here as accepted: it is fixed or the function is withdrawn.
   `drop_missing` returned to Zeff at step 7b of 0.8.0, once a body could raise the engine's
   codes and see a list of variables resolved against the frame (open decisions #89 and #90). `fill_missing` and
   `quantile_group` returned to Zeff at steps 4.1 and 4.4 of 0.7.0; `quantile_group` became
-  the option `n:` of `bin`, in Rust, at step 8h of 0.8.0 (open decision #97). Of the functions of 0.7.0
+  the option `n:` of `bin`, in Rust, at step 8h of 0.8.0, and `fill_missing` took in
+  `fill_forward` and moved to `data`, in Rust, at step 8i (open decision #97). Of the functions of 0.7.0
   that were planned in Zeff, `t_test`, `proportion_test`, `chi2_test`, `kruskal_test` and
   `p_adjust` are in Rust, since a body has no way to build a test's result (open decision #92,
   decided at 0.8.0: the tests stay in Rust), and so is `coef_plot`. Nothing a script sees differs, and section 8.2's totals follow

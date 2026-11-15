@@ -6,7 +6,7 @@ Declare unit and time variables
 ## Description
 Declares the frame a panel: `unit:` names the variable that identifies a unit (a worker, a firm,
 a county) and `time:` the variable that orders its observations, an Int or a `Date`. After it,
-`lag`, `lead`, `diff` and `fill_forward` follow each unit's time order and `did` takes its unit and
+`lag`, `lead`, `diff` and `fill_missing` with `method:` follow each unit's time order and `did` takes its unit and
 time from the panel, so none of them repeats `unit:` and `time:`; the declaration prints in the
 frame's header, `panel worker × year`, and is kept in Parquet and Arrow files under the Zeff
 Parquet profile. The frame is checked as Stata's `xtset` checks it: a unit observed twice at one

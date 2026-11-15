@@ -438,7 +438,7 @@ impl Column {
     }
 
     /// The rows at `rows`, in that order, with `NA` where a position is `None`: what `lag`,
-    /// `lead` and `fill_forward` build, each row taking its value from another row or none.
+    /// `lead` and `fill_missing` build, each row taking its value from another row or none.
     pub fn take_optional(&self, rows: &[Option<usize>]) -> Column {
         let indices: arrow_array::UInt64Array = rows.iter().map(|r| r.map(|r| r as u64)).collect();
         let data = match &self.data {

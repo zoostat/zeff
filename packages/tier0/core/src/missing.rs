@@ -44,8 +44,9 @@ fn coalesce(ctx: &mut CallContext<'_>, args: Args) -> Result<Value, Fail> {
     coalesce_as("coalesce", ctx, args)
 }
 
-/// `coalesce` under the name of the function that calls it, for its messages.
-fn coalesce_as(name: &str, ctx: &mut CallContext<'_>, args: Args) -> Result<Value, Fail> {
+/// `coalesce` under the name of the function that calls it, for its messages: `fill_missing`
+/// of `data` fills with a value by this rule (release 0.8.0, step 8i).
+pub fn coalesce_as(name: &str, ctx: &mut CallContext<'_>, args: Args) -> Result<Value, Fail> {
     let values: Vec<&Value> = args
         .values
         .iter()

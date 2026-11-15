@@ -726,7 +726,7 @@ p.add(prev = lag(revenue),
       next = lead(revenue),
       two = lag(revenue, n: 2),
       change = diff(revenue),
-      filled = fill_forward(revenue))
+      filled = fill_missing(revenue, method: forward))
 let d = frame(
     firm = ["a", "a", "a", "b"],
     day = [date("2026-01-01"), date("2026-01-02"), date("2026-01-04"), date("2026-01-01")],
@@ -734,8 +734,8 @@ let d = frame(
 )
     .panel(unit: firm, time: day)
 d.add(prev = lag(v), change = diff(v))
-frame(g = [1, 1, 2, 2], v = [NA, 3, NA, NA]).add(f = fill_forward(v))
-frame(g = [1, 1, 2, 2], v = [5, NA, 7, NA]).add(f = fill_forward(v), by: g)
+frame(g = [1, 1, 2, 2], v = [NA, 3, NA, NA]).add(f = fill_missing(v, method: forward))
+frame(g = [1, 1, 2, 2], v = [5, NA, 7, NA]).add(f = fill_missing(v, method: forward), by: g)
 let w = dataset(wages).where(worker <= 3)
 w.add(prev = lag(wage), growth = diff(wage)).select([worker, year, wage, prev, growth])
 frame(x = [1, 2]).add(y = lag(x))
@@ -2078,7 +2078,7 @@ assert(abs(huber.mu - complete.median(lwage)) < 0.05, "the Huber location lies n
 // 1. The wages, read from the engine's own data root, with each worker's firm's size and
 //    founding date merged in from the firms dataset (the CSV form of the wages carries the
 //    industry as text, so the firms' category of it stays out of the merge), the variables the
-//    models need, and the panel declared: `lag`, `diff`, `fill_forward` and `fe:` then follow
+//    models need, and the panel declared: `lag`, `diff`, `fill_missing` and `fe:` then follow
 //    the worker and the year.
 let firms = dataset(firms)
 let wages = import("zeff:wages.csv")
@@ -2109,7 +2109,7 @@ by_industry.where(industry == "Retail")
 //    log wage is computed firm by firm with `by:`.
 let wages = wages.add(wage_growth = diff(lwage),
                       lag_hours = lag(hours),
-                      hours_filled = fill_forward(hours),
+                      hours_filled = fill_missing(hours, method: forward),
                       lwage_w = winsorize(lwage, at: 0.01))
 let wages = wages.add(dev_firm = lwage - mean(lwage), by: firm)
 wages.summary([wage_growth, lag_hours, hours_filled, lwage_w, dev_firm])

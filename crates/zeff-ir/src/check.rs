@@ -6457,13 +6457,22 @@ impl Checker<'_> {
             }
         }
         // `Join` (section 3.7, "Joining types"): the one type of every argument, `coalesce`'s rule;
-        // types that do not join are an error naming both (Z0214).
+        // types that do not join are an error naming both (Z0214). A bare word chooses among an
+        // option's words and is no value to join (`fill_missing(x, method: forward)`), and a
+        // function that takes a column whole and is not lifted gives a column when given one.
+        let mut joined_a_column = false;
         let mut ty = if spec.returns == "Join" {
             let mut joined: Option<Ty> = None;
             let mut failed = false;
             for given in slots.iter().flatten().chain(rest.iter()) {
+                if matches!(given.kind, ExprKind::Word(_)) {
+                    continue;
+                }
                 let row_ty = match &given.ty {
-                    Ty::Column(inner) => (**inner).clone(),
+                    Ty::Column(inner) => {
+                        joined_a_column = true;
+                        (**inner).clone()
+                    }
                     other => other.clone(),
                 };
                 joined = Some(match &joined {
@@ -6659,7 +6668,7 @@ impl Checker<'_> {
         // column of a frame whose schema the checker does not see before 0.6.0) the result is
         // `Column<Unknown>`, so that an enclosing scalar function lifts over it in turn
         // (`min(max(w["educ"], 10), 14)`) and does not receive the column whole.
-        if lifted && !matches!(ty, Ty::Column(_)) {
+        if (lifted || joined_a_column) && !matches!(ty, Ty::Column(_)) {
             ty = Ty::Column(Box::new(ty));
         }
         let _ = expected;
@@ -8224,7 +8233,19 @@ fn not_kept(expr: &Expr) -> Option<(Span, String)> {
             // The functions that work row by row: those of `core`, `time` and `text` (open
             // decision #107, option B). A reducer of `data` would be computed on the rows of
             // one layer, and is left to `add`.
-            if !matches!(call.package.as_str(), "core" | "time" | "text") {
+            // `fill_missing` with a value is `coalesce` under another name, and was a function
+            // of `core` until release 0.8.0, step 8i; with `method:` it follows the rows of a
+            // frame, and is left to `add`.
+            let fills_with_a_value = call.package == "data"
+                && call.name == "fill_missing"
+                && call.args.get(2).is_none_or(Option::is_none);
+            if call.package == "data" && call.name == "fill_missing" && !fills_with_a_value {
+                return Some((
+                    call.callee_span,
+                    "`fill_missing` with `method:`, which follows the rows of a frame".to_string(),
+                ));
+            }
+            if !matches!(call.package.as_str(), "core" | "time" | "text") && !fills_with_a_value {
                 return Some((
                     call.callee_span,
                     format!("`{}`, a function of `{}`", call.name, call.package),

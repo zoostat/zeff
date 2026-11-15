@@ -3,7 +3,9 @@
 # and next values matched on the unit and the exact period (`time - 1`, `time + 1`, `time - 2`),
 # so that a gap gives NA as Stata's L. and F. do and unlike dplyr's lag, which takes the previous
 # row; the difference as a double subtraction; and the last value present carried forward within
-# the unit in time order, written out as a loop. The rows are shuffled, so the row order plays no
+# the unit in time order, written out as a loop; from release 0.8.0, step 8i, the next value
+# present carried backward as well, the same loop in the reverse order (`fill_missing(x, method:
+# forward | backward)`, which took in `fill_forward`). The rows are shuffled, so the row order plays no
 # part. The engine is held to these values exactly, so the difference, the one value computed
 # rather than copied, is written with 17 significant digits, which name a double uniquely; 15
 # would round the last bit of a subtraction away. Run with `Rscript tests/reference/r/panel.R`.
@@ -29,8 +31,19 @@ panel_outputs <- function(unit, time, x) {
     }
     if (is.na(filled[i])) filled[i] <- last else last <- filled[i]
   }
+  filled_back <- x
+  last <- NA
+  previous <- NULL
+  for (i in rev(ord)) {
+    if (is.null(previous) || unit[i] != previous) {
+      last <- NA
+      previous <- unit[i]
+    }
+    if (is.na(filled_back[i])) filled_back[i] <- last else last <- filled_back[i]
+  }
   list(lag1 = as.list(num(lag1)), lead1 = as.list(num(lead1)), lag2 = as.list(num(lag2)),
-       diff1 = as.list(exact(diff1)), filled = as.list(num(filled)))
+       diff1 = as.list(exact(diff1)), filled = as.list(num(filled)),
+       filled_back = as.list(num(filled_back)))
 }
 
 set.seed(20261101)

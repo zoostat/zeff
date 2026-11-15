@@ -1,6 +1,5 @@
 ---
 source: packages/tier1/data/tests/panel_functions.rs
-assertion_line: 126
 expression: out
 ---
 frame(x = [1, 2]).add(y = lag(x))
@@ -14,15 +13,115 @@ error[Z0602]: `lag` needs a panel, but the frame has no declaration
   = help: declare the panel first: `data.panel(unit: firm, time: year)` (section 6 of the Language Reference)
 
 let f = frame(x = [1, 2])
-f.add(y = fill_forward(x), z = lead(x))
+f.add(y = fill_missing(x, method: forward), z = lead(x))
 ---
 error[Z0602]: `lead` needs a panel, but f has no declaration
- --> scripts/main.zeff:2:32
+ --> scripts/main.zeff:2:49
   |
-2 | f.add(y = fill_forward(x), z = lead(x))
-  |                                ^^^^ which unit, and which time?
+2 | f.add(y = fill_missing(x, method: forward), z = lead(x))
+  |                                                 ^^^^ which unit, and which time?
   |
   = help: declare the panel first: `data.panel(unit: firm, time: year)` (section 6 of the Language Reference)
+
+frame(v = [NA, 3, NA]).add(f = fill_missing(v, 0, method: forward))
+---
+error[Z0410]: `fill_missing` takes a value or `method:`, not both
+ --> scripts/main.zeff:1:59
+  |
+1 | frame(v = [NA, 3, NA]).add(f = fill_missing(v, 0, method: forward))
+  |                                                           ^^^^^^^ given beside a value
+  |
+  = help: `fill_missing(x, 0)` puts 0 where `x` is NA; `fill_missing(x, method: forward)` carries the last value down
+
+frame(v = [NA, 3, NA]).add(f = fill_missing(v))
+---
+error[Z0406]: `fill_missing` needs a value or `method:`
+ --> scripts/main.zeff:1:32
+  |
+1 | frame(v = [NA, 3, NA]).add(f = fill_missing(v))
+  |                                ^^^^^^^^^^^^ neither is given
+  |
+  = help: usage: `fill_missing(x, 0)` to fill with a value, or `fill_missing(x, method: forward)` to carry the last value down
+
+let d = frame(v = [NA, 3, NA])
+fill_missing(d["v"], method: forward)
+---
+error[Z0602]: `fill_missing` with `method:` follows the rows of a frame and stands inside `add` or `update`
+ --> scripts/main.zeff:2:1
+  |
+2 | fill_missing(d["v"], method: forward)
+  | ^^^^^^^^^^^^ no frame here
+  |
+  = help: write it inside a definition, as in `wages.add(filled = fill_missing(wage, method: forward))`
+
+fill_missing(3, method: backward)
+---
+error[Z0401]: `method:` of `fill_missing` fills down a column, but `x` is an Int
+ --> scripts/main.zeff:1:14
+  |
+1 | fill_missing(3, method: backward)
+  |              ^ one value, with no row before or after it
+  |
+  = help: write it inside `add` or `update`, as in `d.add(filled = fill_missing(x, method: forward))`; `fill_missing(x, 0)` fills one value
+
+frame(v = [NA, 3, NA]).add(f = fill_missing(v, method: sideways))
+---
+error[Z0402]: `sideways` is not one of the allowed words
+ --> scripts/main.zeff:1:56
+  |
+1 | frame(v = [NA, 3, NA]).add(f = fill_missing(v, method: sideways))
+  |                                                        ^^^^^^^^ expected one of forward, backward
+
+frame(v = [NA, 3, NA]).add(f = fill_missing(v, method: "forward"))
+---
+error[Z0403]: expected one of forward, backward, found text
+ --> scripts/main.zeff:1:56
+  |
+1 | frame(v = [NA, 3, NA]).add(f = fill_missing(v, method: "forward"))
+  |                                                        ^^^^^^^^^ a word, not a string
+  |
+  = help: write the word without quotes: `forward`
+
+let q = frame(z = [1, 2, 3])
+frame(v = [NA, 3]).add(f = fill_missing(q["z"], method: forward))
+---
+error[Z0217]: `fill_missing` was given a column of 3 rows, but the frame has 2
+ --> scripts/main.zeff:2:41
+  |
+2 | frame(v = [NA, 3]).add(f = fill_missing(q["z"], method: forward))
+  |                                         ^^^^^^ a column of another frame
+  |
+  = help: name one of the frame's own variables
+
+frame(v = [NA, 3, NA]).add(f = fill_missing(v, "none"))
+---
+error[Z0214]: `fill_missing` needs values of one type, but these are an Int and a Str (row 2)
+ --> scripts/main.zeff:1:32
+  |
+1 | frame(v = [NA, 3, NA]).add(f = fill_missing(v, "none"))
+  |                                ^^^^^^^^^^^^ values of two types
+  |
+  = help: Int and Float join as Float, and NA fits any type; convert with `to` where a mixture is meant
+
+frame(v = [NA, 3, NA]).add(f = fill_forward(v))
+---
+error[Z0103]: no function is called `fill_forward`
+ --> scripts/main.zeff:1:32
+  |
+1 | frame(v = [NA, 3, NA]).add(f = fill_forward(v))
+  |                                ^^^^^^^^^^^^ not a function of Zeff
+  |
+  = help: `fill_forward(x)` is `fill_missing(x, method: forward)` since release 0.8.0
+
+frame(v = [NA, 3, NA]).plot(x: fill_missing(v, method: forward), y: v).points()
+---
+error[Z0401]: an expression mapped to an aesthetic cannot use `fill_missing` with `method:`, which follows the rows of a frame
+ --> scripts/main.zeff:1:32
+  |
+1 | frame(v = [NA, 3, NA]).plot(x: fill_missing(v, method: forward), y: v).points()
+  |                                ^^^^^^^^^^^^ not kept in a mapping
+  |
+  = help: a mapping is computed from variables, numbers, the operators, `case` and the functions of `core`, `time` and `text`, as in `log(wage)`, `wage / hours` or `year(hired)`; compute anything else with `add` first and map the new variable
 
 let p = frame(u = [1, 1], t = [1, 2], x = [1, 2]).panel(unit: u, time: t)
 lag(p["x"])

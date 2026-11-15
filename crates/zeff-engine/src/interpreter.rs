@@ -2805,6 +2805,22 @@ impl<'a> Interpreter<'a> {
                 if let Some(builtin) = zeff.and_then(|z| z.get(&key)) {
                     return self.kept_body(builtin, call, args);
                 }
+                // `fill_missing(x, value)` of `data` fills with a value as `coalesce` does, and
+                // was the Zeff body `coalesce(x, value)` until release 0.8.0, step 8i, taken in
+                // here as the bodies above are. The kept expression holds that call of `core`,
+                // which every package may make; the checker admits no form with `method:`.
+                if call.package == "data" && call.name == "fill_missing" {
+                    let pair: Vec<Option<ColumnExpr>> = args.into_iter().take(2).collect();
+                    let lifted = pair.iter().any(|a| a.as_ref().is_some_and(gives_column));
+                    return Ok(ColumnExpr::Call {
+                        package: "core".to_string(),
+                        name: "coalesce".to_string(),
+                        args: pair,
+                        rest: Vec::new(),
+                        lifted,
+                        returns: "Join".to_string(),
+                    });
+                }
                 let mut rest = Vec::with_capacity(call.rest.len());
                 for arg in &call.rest {
                     rest.push(self.kept_expr(arg, renamed, messages)?);
@@ -2830,7 +2846,7 @@ impl<'a> Interpreter<'a> {
 
     /// A call of a built-in written in Zeff, inside a kept expression: the body of the
     /// function with each parameter replaced by its argument, already kept. The body must be
-    /// one expression, as those of `logit`, `inv_logit`, `clamp` and `fill_missing` are; the
+    /// one expression, as those of `logit`, `inv_logit` and `clamp` are; the
     /// scalar form is taken, and its calls apply row by row where an argument is a column.
     fn kept_body(
         &self,

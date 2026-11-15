@@ -160,3 +160,13 @@ Step 2: the help contract of 0.8.0 (#103) in section 9.1 and in the registry, wi
 **Next.** Step 8i `[function]`: `fill_missing(x, value | method:)` taking in `fill_forward` (#97).
 
 **For the owner to decide.** Nothing blocks. Two things to know: a call of `bin` with neither `n:` nor `breaks:` is refused under Z0406 (an argument missing), not Z0410 as the decision's parenthesis reads; and `bin(x, [0, 10])` without the word `breaks:` is no longer accepted.
+
+## 15 November 2026, release 0.8.0, step 8i (`fill_missing` takes in `fill_forward`)
+
+**Done.** Step 8i `[function]`: `fill_missing(x, method: forward)` carries the last value down, as `fill_forward(x)` did, and `method: backward` carries the next value up; `fill_missing(x, 0)` is unchanged, in scripts, plot mappings and formulas. The function now lives in `data`. The old name is refused with the rewrite. Both directions agree with R.
+
+**Green.** Format, clippy with warnings denied, the tier, message and grammar checks, every test of the workspace; CI read after the push.
+
+**Next.** Step 8j `[function]`: `variance_test(var, group:, method: f | levene | bartlett)` (#97).
+
+**For the owner to decide.** Nothing blocks.

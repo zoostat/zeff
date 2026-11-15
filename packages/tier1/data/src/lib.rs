@@ -981,20 +981,34 @@ pub fn functions() -> Vec<Function> {
         },
         Function {
             spec: FunctionSpec {
-                name: "fill_forward",
+                name: "fill_missing",
                 package: "data",
                 method: false,
-                params: vec![ParamSpec::required("x", "Column")],
-                rest: None,
-                returns: "Same",
-                diagnostics: vec![
-                    DiagnosticDecl::new("Z0602", "outside add or update"),
-                    DiagnosticDecl::new("Z0217", "a column of another frame"),
+                params: vec![
+                    ParamSpec::required("x", "Column | Bool | Int | Float | Str | Date | DateTime"),
+                    ParamSpec::option(
+                        "value",
+                        "Column | Bool | Int | Float | Str | Date | DateTime",
+                    ),
+                    ParamSpec::option("method", "forward | backward"),
                 ],
-                help: include_str!("../help/fill_forward.md"),
+                rest: None,
+                returns: "Join",
+                diagnostics: vec![
+                    DiagnosticDecl::new("Z0406", "neither a value nor `method:` is given"),
+                    DiagnosticDecl::new("Z0410", "a value and `method:` are both given"),
+                    DiagnosticDecl::new("Z0214", "`x` and the value are of types that do not join"),
+                    DiagnosticDecl::new(
+                        "Z0401",
+                        "`method:` with one value in the place of a column",
+                    ),
+                    DiagnosticDecl::new("Z0602", "`method:` outside add or update"),
+                    DiagnosticDecl::new("Z0217", "a column of another frame, or of another length"),
+                ],
+                help: include_str!("../help/fill_missing.md"),
                 accuracy: None,
             },
-            body: panel_functions::fill_forward,
+            body: panel_functions::fill_missing,
         },
         Function {
             spec: FunctionSpec {

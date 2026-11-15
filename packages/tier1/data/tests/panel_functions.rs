@@ -1,4 +1,5 @@
-//! `lag`, `lead`, `diff` and `fill_forward` (release 0.6.0, step 8; Language Reference, section
+//! `lag`, `lead`, `diff` and `fill_missing` with `method:` (`fill_forward` until release 0.8.0,
+//! step 8i; release 0.6.0, step 8; Language Reference, section
 //! 6, "Panels"): against R on a generated unbalanced panel with gaps and missing values and on a
 //! slice of the shipped `wages` (`tests/reference/r/panel.json`), exactly, the rows shuffled so
 //! that the row order plays no part; the edge cases; every message; and the properties that
@@ -48,10 +49,10 @@ fn list(values: &Json) -> String {
 }
 
 /// The rows where the engine's column and R's disagree (both `NA` agreeing), as a count printed
-/// for each of the five functions.
+/// for each of the five functions, and for filling backward (release 0.8.0, step 8i).
 fn disagreements(frame_literal: &str, unit: &str, time: &str, x: &str) -> Vec<String> {
     let script = format!(
-        "let p = {frame_literal}.panel(unit: {unit}, time: {time})\nlet q = p.add(lag1 = lag({x}), lead1 = lead({x}), lag2 = lag({x}, n: 2), diff1 = diff({x}), filled = fill_forward({x}))\nq.where(!(lag1 == r_lag1 || (is_missing(lag1) && is_missing(r_lag1)))).n_rows()\nq.where(!(lead1 == r_lead1 || (is_missing(lead1) && is_missing(r_lead1)))).n_rows()\nq.where(!(lag2 == r_lag2 || (is_missing(lag2) && is_missing(r_lag2)))).n_rows()\nq.where(!(diff1 == r_diff1 || (is_missing(diff1) && is_missing(r_diff1)))).n_rows()\nq.where(!(filled == r_filled || (is_missing(filled) && is_missing(r_filled)))).n_rows()\n"
+        "let p = {frame_literal}.panel(unit: {unit}, time: {time})\nlet q = p.add(lag1 = lag({x}), lead1 = lead({x}), lag2 = lag({x}, n: 2), diff1 = diff({x}), filled = fill_missing({x}, method: forward), back = fill_missing({x}, method: backward))\nq.where(!(lag1 == r_lag1 || (is_missing(lag1) && is_missing(r_lag1)))).n_rows()\nq.where(!(lead1 == r_lead1 || (is_missing(lead1) && is_missing(r_lead1)))).n_rows()\nq.where(!(lag2 == r_lag2 || (is_missing(lag2) && is_missing(r_lag2)))).n_rows()\nq.where(!(diff1 == r_diff1 || (is_missing(diff1) && is_missing(r_diff1)))).n_rows()\nq.where(!(filled == r_filled || (is_missing(filled) && is_missing(r_filled)))).n_rows()\nq.where(!(back == r_filled_back || (is_missing(back) && is_missing(r_filled_back)))).n_rows()\n"
     );
     let (code, stdout, stderr) = go(&script);
     assert_eq!(code, 0, "{stderr}");
@@ -63,7 +64,7 @@ fn the_generated_panel_agrees_with_r() {
     let json = reference();
     let g = &json["generated"];
     let literal = format!(
-        "frame(unit = {}, time = {}, x = {}, r_lag1 = {}, r_lead1 = {}, r_lag2 = {}, r_diff1 = {}, r_filled = {})",
+        "frame(unit = {}, time = {}, x = {}, r_lag1 = {}, r_lead1 = {}, r_lag2 = {}, r_diff1 = {}, r_filled = {}, r_filled_back = {})",
         list(&g["unit"]),
         list(&g["time"]),
         list(&g["x"]),
@@ -71,11 +72,12 @@ fn the_generated_panel_agrees_with_r() {
         list(&g["lead1"]),
         list(&g["lag2"]),
         list(&g["diff1"]),
-        list(&g["filled"])
+        list(&g["filled"]),
+        list(&g["filled_back"])
     );
     assert_eq!(
         disagreements(&literal, "unit", "time", "x"),
-        ["0", "0", "0", "0", "0"]
+        ["0", "0", "0", "0", "0", "0"]
     );
 }
 
@@ -84,7 +86,7 @@ fn a_slice_of_wages_agrees_with_r() {
     let json = reference();
     let w = &json["wages"];
     let literal = format!(
-        "frame(worker = {}, year = {}, wage = {}, r_lag1 = {}, r_lead1 = {}, r_lag2 = {}, r_diff1 = {}, r_filled = {})",
+        "frame(worker = {}, year = {}, wage = {}, r_lag1 = {}, r_lead1 = {}, r_lag2 = {}, r_diff1 = {}, r_filled = {}, r_filled_back = {})",
         list(&w["worker"]),
         list(&w["year"]),
         list(&w["wage"]),
@@ -92,11 +94,12 @@ fn a_slice_of_wages_agrees_with_r() {
         list(&w["lead1"]),
         list(&w["lag2"]),
         list(&w["diff1"]),
-        list(&w["filled"])
+        list(&w["filled"]),
+        list(&w["filled_back"])
     );
     assert_eq!(
         disagreements(&literal, "worker", "year", "wage"),
-        ["0", "0", "0", "0", "0"]
+        ["0", "0", "0", "0", "0", "0"]
     );
     // And on the shipped frame itself, whose declaration it carries.
     let (code, stdout, stderr) = go(
@@ -127,17 +130,25 @@ fn a_slice_of_wages_agrees_with_r() {
 #[test]
 fn edge_cases_and_columns() {
     let script = r#"let p = frame(firm = [2, 1, 2, 1, 3, 2], year = [2021, 2020, 2020, 2021, 2020, 2023], revenue = [12.5, 8, 11, NA, 7, 15], tag = ["a", "b", "c", "d", "e", "f"]).panel(unit: firm, time: year)
-p.add(prev = lag(revenue), next = lead(revenue), two = lag(revenue, n: 2), three = lag(revenue, n: 3), change = diff(revenue), filled = fill_forward(revenue), ptag = lag(tag))
+p.add(prev = lag(revenue), next = lead(revenue), two = lag(revenue, n: 2), three = lag(revenue, n: 3), change = diff(revenue), filled = fill_missing(revenue, method: forward), ptag = lag(tag))
 let d = frame(firm = ["a", "a", "a", "b"], day = [date("2026-01-01"), date("2026-01-02"), date("2026-01-04"), date("2026-01-01")], v = [1, 2, 3, 4]).panel(unit: firm, time: day)
 d.add(prev = lag(v), next = lead(v), change = diff(v))
-frame(g = [1, 1, 2, 2], v = [NA, 3, NA, NA]).add(f = fill_forward(v))
-frame(g = [1, 1, 2, 2], v = [5, NA, 7, NA]).add(f = fill_forward(v), by: g)
-frame(g = [1, 2, 1, 2], v = [5, NA, NA, 9]).add(f = fill_forward(v), by: g)
+frame(g = [1, 1, 2, 2], v = [NA, 3, NA, NA]).add(f = fill_missing(v, method: forward))
+frame(g = [1, 1, 2, 2], v = [5, NA, 7, NA]).add(f = fill_missing(v, method: forward), by: g)
+frame(g = [1, 2, 1, 2], v = [5, NA, NA, 9]).add(f = fill_missing(v, method: forward), by: g)
 p.add(prev = lag(revenue), by: firm)
 p.sort(revenue).add(prev = lag(revenue), change = diff(revenue))
 p.where(firm == 2).add(prev = lag(revenue))
 let ints = frame(u = [1, 1, 1], t = [1, 2, 3], n = [10, 25, 20]).panel(unit: u, time: t)
 ints.add(d = diff(n), d2 = diff(n, n: 2))
+p.add(next = fill_missing(revenue, method: backward), zero = fill_missing(revenue, 0), both = fill_missing(fill_missing(revenue, method: forward), method: backward), ptag = fill_missing(lag(tag), method: backward))
+frame(g = [1, 1, 2, 2], v = [NA, 3, NA, NA]).add(b = fill_missing(v, method: backward))
+frame(g = [1, 1, 2, 2, 3], v = [NA, 5, NA, NA, 7]).add(f = fill_missing(v, method: forward), b = fill_missing(v, method: backward), by: g)
+frame(g = [1, 2, 1, 2], v = [5, NA, NA, 9]).add(b = fill_missing(v, method: backward), by: g)
+frame(day = [NA, date("2026-01-02"), NA], s = ["a", NA, NA], t = [true, NA, false]).add(df = fill_missing(day, method: forward), db = fill_missing(day, method: backward), sf = fill_missing(s, method: forward), tb = fill_missing(t, method: backward), sv = fill_missing(s, "none"))
+frame(v = [1.5, NA, 3]).where(v > 9).add(f = fill_missing(v, method: forward))
+let u = frame(v = [NA, 2, NA, 4])
+u.update(v = fill_missing(v, method: backward))
 "#;
     let (code, stdout, stderr) = go(script);
     assert_eq!(code, 0, "{stderr}");
@@ -148,7 +159,17 @@ ints.add(d = diff(n), d2 = diff(n, n: 2))
 fn every_message() {
     let scripts = [
         "frame(x = [1, 2]).add(y = lag(x))\n",
-        "let f = frame(x = [1, 2])\nf.add(y = fill_forward(x), z = lead(x))\n",
+        "let f = frame(x = [1, 2])\nf.add(y = fill_missing(x, method: forward), z = lead(x))\n",
+        "frame(v = [NA, 3, NA]).add(f = fill_missing(v, 0, method: forward))\n",
+        "frame(v = [NA, 3, NA]).add(f = fill_missing(v))\n",
+        "let d = frame(v = [NA, 3, NA])\nfill_missing(d[\"v\"], method: forward)\n",
+        "fill_missing(3, method: backward)\n",
+        "frame(v = [NA, 3, NA]).add(f = fill_missing(v, method: sideways))\n",
+        "frame(v = [NA, 3, NA]).add(f = fill_missing(v, method: \"forward\"))\n",
+        "let q = frame(z = [1, 2, 3])\nframe(v = [NA, 3]).add(f = fill_missing(q[\"z\"], method: forward))\n",
+        "frame(v = [NA, 3, NA]).add(f = fill_missing(v, \"none\"))\n",
+        "frame(v = [NA, 3, NA]).add(f = fill_forward(v))\n",
+        "frame(v = [NA, 3, NA]).plot(x: fill_missing(v, method: forward), y: v).points()\n",
         "let p = frame(u = [1, 1], t = [1, 2], x = [1, 2]).panel(unit: u, time: t)\nlag(p[\"x\"])\n",
         "let p = frame(u = [1, 1], t = [1, 2], x = [1, 2]).panel(unit: u, time: t)\np.add(y = lag(x, n: 0))\n",
         "let p = frame(u = [1, 1], t = [1, 2], x = [1, 2]).panel(unit: u, time: t)\np.add(y = lead(x, n: -1))\n",
@@ -168,8 +189,10 @@ fn every_message() {
 proptest! {
     #![proptest_config(ProptestConfig::with_cases(32))]
 
-    /// `lead(lag(x))` is `x` where both exist; `diff` is `x - lag(x)`; `fill_forward` leaves no
-    /// `NA` after a unit's first value; and the rows reordered give the same columns.
+    /// `lead(lag(x))` is `x` where both exist; `diff` is `x - lag(x)`; filling forward leaves no
+    /// `NA` after a unit's first value; the rows reordered give the same columns; and filling
+    /// forward then backward, or backward then forward, leaves `NA` only in a unit that holds
+    /// no value, and changes no value that was present.
     #[test]
     fn the_panel_functions_hold_their_invariants(
         units in proptest::collection::vec(0i64..5, 2..30),
@@ -191,11 +214,11 @@ proptest! {
         let units_t: Vec<String> = units[..n].iter().map(|u| u.to_string()).collect();
         let times_t: Vec<String> = times.iter().map(|t| t.to_string()).collect();
         let script = format!(
-            "let p = frame(u = {u}, t = {t}, x = {x}, k = {k}).panel(unit: u, time: t)\nlet q = p.add(l = lag(x), e = lead(x), d = diff(x), f = fill_forward(x))\nlet r = q.add(back = lead(l), forward = lag(e), dd = x - l)\nr.where(!is_missing(back) && back != x).n_rows()\nr.where(!is_missing(forward) && forward != x).n_rows()\nr.where(!(dd == d || (is_missing(dd) && is_missing(d)))).n_rows()\nlet starts = p.add(seen = fill_forward(x)).where(is_missing(seen))\nstarts.add(has_earlier = !is_missing(lag(fill_forward(x)))).where(has_earlier).n_rows()\nlet s = p.sort(k, desc: true).add(l = lag(x), e = lead(x), d = diff(x), f = fill_forward(x)).sort(k)\nlet o = q.sort(k)\ns.add(same = (l == o[\"l\"] || (is_missing(l) && is_missing(o[\"l\"]))) && (f == o[\"f\"] || (is_missing(f) && is_missing(o[\"f\"])))).where(!same).n_rows()\n",
+            "let p = frame(u = {u}, t = {t}, x = {x}, k = {k}).panel(unit: u, time: t)\nlet q = p.add(l = lag(x), e = lead(x), d = diff(x), f = fill_missing(x, method: forward))\nlet r = q.add(back = lead(l), forward = lag(e), dd = x - l)\nr.where(!is_missing(back) && back != x).n_rows()\nr.where(!is_missing(forward) && forward != x).n_rows()\nr.where(!(dd == d || (is_missing(dd) && is_missing(d)))).n_rows()\nlet starts = p.add(seen = fill_missing(x, method: forward)).where(is_missing(seen))\nstarts.add(has_earlier = !is_missing(lag(fill_missing(x, method: forward)))).where(has_earlier).n_rows()\nlet s = p.sort(k, desc: true).add(l = lag(x), e = lead(x), d = diff(x), f = fill_missing(x, method: forward)).sort(k)\nlet o = q.sort(k)\ns.add(same = (l == o[\"l\"] || (is_missing(l) && is_missing(o[\"l\"]))) && (f == o[\"f\"] || (is_missing(f) && is_missing(o[\"f\"])))).where(!same).n_rows()\nlet both = p.add(f = fill_missing(x, method: forward), b = fill_missing(x, method: backward)).add(fb = fill_missing(f, method: backward), bf = fill_missing(b, method: forward))\nboth.where(is_missing(fb) != is_missing(bf)).n_rows()\nboth.where(is_missing(fb) && !(is_missing(f) && is_missing(b))).n_rows()\nboth.where(!is_missing(x) && (fb != x || bf != x)).n_rows()\n",
             u = lit(&units_t), t = lit(&times_t), x = lit(&xs), k = lit(&(0..n).map(|k| k.to_string()).collect::<Vec<_>>())
         );
         let (code, stdout, stderr) = go(&script);
         prop_assert_eq!(code, 0, "{}", stderr);
-        prop_assert_eq!(stdout, "0\n0\n0\n0\n0\n");
+        prop_assert_eq!(stdout, "0\n0\n0\n0\n0\n0\n0\n0\n");
     }
 }

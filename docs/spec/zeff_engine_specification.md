@@ -281,7 +281,7 @@ Counts are functions in 1.0 / proposed for 1.0 (none since 16 October 2026) / on
 
 | Package | Objective | Focus | 1.0 / proposed / roadmap |
 | --- | --- | --- | --- |
-| `core` | The language and the types every package shares | Values, types, collections, missing values, maths, program control; matrices from 1.15 | 75 / 0 / 4 |
+| `core` | The language and the types every package shares | Values, types, collections, missing values, maths, program control; matrices from 1.15 | 74 / 0 / 4 |
 
 **Tier 1: toolkit**, general machinery every method uses
 
@@ -330,7 +330,7 @@ Counts are functions in 1.0 / proposed for 1.0 (none since 16 October 2026) / on
 
 **Tier 4: extensions.** The project's own functions in `functions/` (they may call every package) and, from 2.0 at the earliest, third-party packages under rule 9.
 
-Totals: 280 functions in 1.0 (75 in tier 0, 184 in tier 1, 15 in tier 2, 6 in tier 3), of which 265 are written in Rust and 15 in Zeff; none remain proposed, and 396 are on the roadmap, 676 in all (at release 0.8.0 `time_between` took the place of `days_between` and `months_between`, and `hour`, `minute`, `second` and `start_of` were added, zeff_open_decisions.md, #96; `add_time` took the place of `add_days` and `add_months`, and `bin` took in `quantile_group` as its option `n:`, #97; at release 0.8.0 the merges of the plan of releases after 1.0 took eighteen roadmap rows, zeff_open_decisions.md, #113, and the graphics and diagram proposals added 148, of which 41 are further options of functions that exist, #121 and #122; eight functions joined 1.0 on 7 November 2026, five of them from the roadmap; zeff_open_decisions.md, #88; six methods of a test's result joined `results` on 9 November 2026, #94, and `design` joined `regress` at release 0.7.0, #71). Eighteen packages have no function in 1.0 (four in tier 1, six in tier 2 and every tier-3 package but `identify`): they give the roadmap its structure and stay out of menus until they ship (rule 7). Most 1.0 functions are small; what limits the schedule is the seven hard engine pieces listed in section 14.
+Totals: 279 functions in 1.0 (74 in tier 0, 184 in tier 1, 15 in tier 2, 6 in tier 3), of which 265 are written in Rust and 14 in Zeff; none remain proposed, and 396 are on the roadmap, 675 in all (at release 0.8.0 `time_between` took the place of `days_between` and `months_between`, and `hour`, `minute`, `second` and `start_of` were added, zeff_open_decisions.md, #96; `add_time` took the place of `add_days` and `add_months`, `bin` took in `quantile_group` as its option `n:`, and `fill_missing` took in `fill_forward` as its option `method:` and moved from `core` to `data`, #97; at release 0.8.0 the merges of the plan of releases after 1.0 took eighteen roadmap rows, zeff_open_decisions.md, #113, and the graphics and diagram proposals added 148, of which 41 are further options of functions that exist, #121 and #122; eight functions joined 1.0 on 7 November 2026, five of them from the roadmap; zeff_open_decisions.md, #88; six methods of a test's result joined `results` on 9 November 2026, #94, and `design` joined `regress` at release 0.7.0, #71). Eighteen packages have no function in 1.0 (four in tier 1, six in tier 2 and every tier-3 package but `identify`): they give the roadmap its structure and stay out of menus until they ship (rule 7). Most 1.0 functions are small; what limits the schedule is the seven hard engine pieces listed in section 14.
 
 ### 8.3 Engine architecture
 
@@ -617,12 +617,12 @@ fn share_missing(data: Frame, var: Var) -> Float {
 
 ### 9.2 The functions by package
 
-#### `core` (tier 0) · 75 in 1.0, 0 proposed, 4 on the roadmap
+#### `core` (tier 0) · 74 in 1.0, 0 proposed, 4 on the roadmap
 
 - **Maths:** `abs`, `sign`, `sqrt`, `exp`, `log`, `log2`, `log10`, `log1p`, `expm1`, `round`, `floor`, `ceil`, `truncate`, `min`, `max`, `clamp`, `div`, `mod`, `sin`, `cos`, `tan`, `asin`, `acos`, `atan`, `atan2`, `logit`, `inv_logit`, `factorial`, `choose`, `gamma`, `log_gamma`, `beta`, `is_finite`, `PI`, `E`
 - **Types and categories:** `to`, `is`, `type_of`, `vars`, `category`, `levels`, `base`
 - **Collections:** `len`, `first`, `last`, `unique`, `sorted`, `reversed`, `any`, `all`, `append`, `keys`, `is_in`, `seq`, `equal`, `table`, `map`, `filter`, `reduce`
-- **Missing values:** `is_missing`, `fill_missing`, `coalesce`, `n_missing`
+- **Missing values:** `is_missing`, `coalesce`, `n_missing`
 - **Program:** `print`, `warn`, `note`, `error`, `assert`, `name_of`, `attempt`, `iterate`, `seed`, `timer`, `version`, `help`
 - **Roadmap, by release:** `diagram` (1.2); `matrix`, `vector`, `transpose` (1.15)
 
@@ -638,7 +638,7 @@ fn share_missing(data: Frame, var: Var) -> Float {
 #### `data` (tier 1) · 58 in 1.0, 0 proposed, 17 on the roadmap
 
 - **Frames:** `frame`, `import`, `n_rows`, `n_cols`, `variables`, `describe`, `head`, `tail`, `where`, `select`, `drop`, `rename`, `add`, `update`, `sort`, `distinct`, `duplicates`, `sample`, `merge`, `append`, `to_long`, `to_wide`, `aggregate`, `panel`, `drop_missing`, `label`, `recode`, `save`
-- **Column functions:** `lag`, `lead`, `diff`, `running_sum`, `running_product`, `rank`, `bin`, `standardize`, `center`, `between`, `row_mean`, `row_sum`, `winsorize`, `fill_forward`
+- **Column functions:** `lag`, `lead`, `diff`, `running_sum`, `running_product`, `rank`, `bin`, `standardize`, `center`, `between`, `row_mean`, `row_sum`, `winsorize`, `fill_missing`
 - **Reducers and summaries:** `mean`, `sd`, `variance`, `median`, `iqr`, `mad`, `quantile`, `min`, `max`, `sum`, `n`, `n_distinct`, `skewness`, `kurtosis`, `summary`, `tabulate`
 - **Roadmap, by release:** `external`, `unnest` (1.1); `moving_average`, `growth_rate`, `index_number`, `rolling`, and further options of `where`, `drop_missing`, `distinct`, `merge` (1.2); `gini`, `theil`, `atkinson`, `herfindahl`, `lorenz` (1.5); `stream` (1.8)
 
