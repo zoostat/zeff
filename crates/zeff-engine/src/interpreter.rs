@@ -3321,6 +3321,37 @@ impl<'a> Interpreter<'a> {
                                 return Err(e);
                             }
                         };
+                        // A range among the variables of `by:` (step 8m of release 0.8.0) is
+                        // expanded against the frame before the groups are made, as it is for
+                        // every other parameter that takes variables.
+                        let value = match (&value, self.receivers.last()) {
+                            (Value::Vars(names), Some(receiver))
+                                if has_definitions
+                                    && pushed
+                                    && call.by_slot == Some(*i)
+                                    && names.iter().any(|name| name.contains("..")) =>
+                            {
+                                let frame = receiver.original.clone();
+                                match zeff_data::verbs::resolve_names(
+                                    self.script,
+                                    expr.span,
+                                    &frame,
+                                    names,
+                                ) {
+                                    Ok(positions) => Value::Vars(
+                                        positions
+                                            .iter()
+                                            .map(|&p| frame.table.names()[p].clone())
+                                            .collect(),
+                                    ),
+                                    Err(e) => {
+                                        self.receivers.pop();
+                                        return Err(e);
+                                    }
+                                }
+                            }
+                            _ => value,
+                        };
                         if has_definitions
                             && pushed
                             && *i > 0
@@ -3621,6 +3652,46 @@ impl<'a> Interpreter<'a> {
             return Err(self.no_body(call));
         };
         let enclosing = self.receivers.last().map(|r| r.current().clone());
+        // A range of variables, `[educ..age]`, given to a parameter that takes variables
+        // (Language Reference, section 6, "Names inside a frame's methods"; release 0.8.0, step
+        // 8m): expanded here, by position against the frame the function works on (its receiver,
+        // or the frame around the call), each name once, exactly as `select` expands it, so that
+        // every function written in Rust sees plain names. A list with no range in it is left
+        // as written, and the function names what it lacks in its own words.
+        let mut values = values;
+        let works_on = match values.first() {
+            Some(Some(Value::Frame(frame))) => Some(frame.clone()),
+            // A method of a plot names the variables of the frame the plot draws.
+            Some(Some(Value::Plot(plot))) => Some(plot.frame.clone()),
+            _ => enclosing.clone(),
+        };
+        if let Some(frame) = works_on {
+            for (i, value) in values.iter_mut().enumerate() {
+                let takes_variables = call
+                    .signature
+                    .types
+                    .get(i)
+                    .is_some_and(|ty| ty.split('|').any(|part| part.trim() == "Vars"));
+                let Some(Value::Vars(names)) = value else {
+                    continue;
+                };
+                if !takes_variables || !names.iter().any(|name| name.contains("..")) {
+                    continue;
+                }
+                let span = arg_spans
+                    .get(i)
+                    .copied()
+                    .flatten()
+                    .unwrap_or(call.callee_span);
+                let positions = zeff_data::verbs::resolve_names(self.script, span, &frame, names)?;
+                *value = Some(Value::Vars(
+                    positions
+                        .iter()
+                        .map(|&p| frame.table.names()[p].clone())
+                        .collect(),
+                ));
+            }
+        }
         let before = messages.len();
         let mut ctx = CallContext {
             files: self.files,

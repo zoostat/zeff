@@ -125,3 +125,13 @@ Step 8b `[engine]`: the language server folds chains, blocks and functions, offe
 **Next.** Step 8m `[engine]`: variable ranges, `[educ..age]`, in every parameter that takes a list of variables.
 
 **For the owner to decide.** Nothing blocks.
+
+## 16 November 2026, release 0.8.0, step 8m (ranges of variables everywhere)
+
+**Done.** Step 8m `[engine]`: a range such as `[educ..age]` is now taken wherever a list of variables is: by `summary`, `tabulate`, `correlation`, `covariance`, `heatmap`, and every `by:`, `on:` and `id:`, as `select` always took it. Before, `w.summary([educ..age])` was refused. A test covers all 37 such parameters and fails if a new function is left out.
+
+**Green.** Format, clippy with warnings denied, the tier, message and grammar checks, every test of the workspace; CI read after the push.
+
+**Next.** Step 8n `[engine]`: a distribution written inside a call, `quantile(dist.t(df: 24), 0.975)`.
+
+**For the owner to decide.** Nothing blocks.

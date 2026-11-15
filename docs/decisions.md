@@ -5564,3 +5564,15 @@ Done before parts 1 and 2 are read, because those wait for jobs that run for hou
 **Held by.** Fourteen places in a stored snapshot (scalar and column, `NA` on either side, text, brackets, inside a larger condition, in a function), each refused once with nothing run; the test that a value that is `NA` still compares as `NA`; four cases in the checker's own table; the explained page.
 
 **Reason.** Language Reference, section 4.1, the row "Testing"; the checklist's step 8l, a correction where the engine disagreed with the specification.
+
+## 16 November 2026 — a range of variables in every parameter that takes variables (release 0.8.0, step 8m)
+
+**What was wrong.** `w.select([educ..age])` took the range and `w.summary([educ..age])` answered "no variable `educ..age`": each function written in Rust read its list of variables itself, and only those that went through the verbs' resolver (`select`, `drop`, `sort`, `distinct`, `duplicates`, `row`, and the functions written in Zeff) expanded a range. `summary`, `tabulate`, `correlation`, `covariance`, `heatmap`, every `by:` of the reducers and of the plots, `on:` of `merge`, `id:` of the reshapes and `by:` of `add`, `update`, `aggregate` and `facet` did not.
+
+**Choice.** The range is expanded in one place, where the interpreter hands a function written in Rust its arguments: for each parameter whose declared type takes variables, a list that holds a range is resolved against the frame the function works on (its receiver; the frame a plot draws, for a method of a plot; the frame around the call otherwise) by the resolver `select` uses, by position, each name once, and the function receives plain names. A list with no range in it is passed as written, so every function keeps its own message for a name the frame lacks. The verbs that take definitions (`add`, `update`, `aggregate`) read `by:` earlier, to make their groups, and expand it there by the same resolver. No function's own code changed, and a function added later needs nothing.
+
+**The messages.** A range that runs backwards (Z0401) and a range to a variable the frame lacks (Z0101) are refused in the resolver's words whatever the function, placed at the argument.
+
+**Held by.** `crates/zeff-engine/tests/variable_ranges.rs`: a table of 37 calls, one for every parameter of the registry that takes variables (34 of functions written in Rust and three reached through Zeff), each run with a range and with the names it expands to and required to print the same; a test that reads the registry and fails for a parameter the table lacks; a stored snapshot of ten refusals and of a name repeated by a range.
+
+**Reason.** Language Reference, section 6, "Names inside a frame's methods"; the checklist's step 8m, a correction where the engine disagreed with the specification. The specification is unchanged.

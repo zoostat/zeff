@@ -1,0 +1,103 @@
+---
+source: crates/zeff-engine/tests/variable_ranges.rs
+expression: all
+---
+w.select([age..educ])
+error[Z0401]: the range `age..educ` runs backwards: `educ` comes before `age` in w
+ --> scripts/main.zeff:5:10
+  |
+5 | w.select([age..educ])
+  |          ^^^^^^^^^^^ a range runs from an earlier variable to a later one
+  |
+  = help: the variables of w, in order: worker, year, wage, educ, exper, age, hours, union, female, industry, firm
+
+w.summary([age..educ])
+error[Z0401]: the range `age..educ` runs backwards: `educ` comes before `age` in w
+ --> scripts/main.zeff:5:11
+  |
+5 | w.summary([age..educ])
+  |           ^^^^^^^^^^^ a range runs from an earlier variable to a later one
+  |
+  = help: the variables of w, in order: worker, year, wage, educ, exper, age, hours, union, female, industry, firm
+
+w.mean(wage, by: [female..union])
+error[Z0401]: the range `female..union` runs backwards: `union` comes before `female` in w
+ --> scripts/main.zeff:5:18
+  |
+5 | w.mean(wage, by: [female..union])
+  |                  ^^^^^^^^^^^^^^^ a range runs from an earlier variable to a later one
+  |
+  = help: the variables of w, in order: worker, year, wage, educ, exper, age, hours, union, female, industry, firm
+
+w.aggregate(m = mean(wage), by: [female..union])
+error[Z0401]: the range `female..union` runs backwards: `union` comes before `female` in w
+ --> scripts/main.zeff:5:33
+  |
+5 | w.aggregate(m = mean(wage), by: [female..union])
+  |                                 ^^^^^^^^^^^^^^^ a range runs from an earlier variable to a later one
+  |
+  = help: the variables of w, in order: worker, year, wage, educ, exper, age, hours, union, female, industry, firm
+
+w.tabulate([female..union])
+error[Z0401]: the range `female..union` runs backwards: `union` comes before `female` in w
+ --> scripts/main.zeff:5:12
+  |
+5 | w.tabulate([female..union])
+  |            ^^^^^^^^^^^^^^^ a range runs from an earlier variable to a later one
+  |
+  = help: the variables of w, in order: worker, year, wage, educ, exper, age, hours, union, female, industry, firm
+
+w.correlation([age..educ])
+error[Z0401]: the range `age..educ` runs backwards: `educ` comes before `age` in w
+ --> scripts/main.zeff:5:15
+  |
+5 | w.correlation([age..educ])
+  |               ^^^^^^^^^^^ a range runs from an earlier variable to a later one
+  |
+  = help: the variables of w, in order: worker, year, wage, educ, exper, age, hours, union, female, industry, firm
+
+w.histogram(wage, by: [female..union])
+error[Z0401]: the range `female..union` runs backwards: `union` comes before `female` in w
+ --> scripts/main.zeff:5:23
+  |
+5 | w.histogram(wage, by: [female..union])
+  |                       ^^^^^^^^^^^^^^^ a range runs from an earlier variable to a later one
+  |
+  = help: the variables of w, in order: worker, year, wage, educ, exper, age, hours, union, female, industry, firm
+
+w.summary([educ..nope])
+error[Z0101]: no variable `nope` in `w`
+ --> scripts/main.zeff:5:11
+  |
+5 | w.summary([educ..nope])
+  |           ^^^^^^^^^^^^ not a variable of w
+  |
+  = help: the variables of `w` are: worker, year, wage, educ, exper, age, hours, union and 3 more
+
+w.aggregate(m = mean(wage), by: [union..nope])
+error[Z0101]: no variable `nope` in `w`
+ --> scripts/main.zeff:5:33
+  |
+5 | w.aggregate(m = mean(wage), by: [union..nope])
+  |                                 ^^^^^^^^^^^^^ not a variable of w
+  |
+  = help: the variables of `w` are: worker, year, wage, educ, exper, age, hours, union and 3 more
+
+w.correlation([nope..age])
+error[Z0101]: no variable `nope` in `w`
+ --> scripts/main.zeff:5:15
+  |
+5 | w.correlation([nope..age])
+  |               ^^^^^^^^^^^ not a variable of w
+  |
+  = help: the variables of `w` are: worker, year, wage, educ, exper, age, hours, union and 3 more
+
+summary · w
+
+  variable       N   missing     mean      sd      min      max
+  educ       1,518         0   13.509   2.551    8.000   20.000
+  exper      1,516         2   18.601   6.992    2.000   35.000
+  age        1,518         0   38.111   6.499   27.000   49.000
+3
+warning[W0201]: 2 rows with NA in exper were skipped (line 5)
+note: the panel declaration `worker × year` dropped: `select` left out `worker` (line 6)
