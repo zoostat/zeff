@@ -3424,13 +3424,50 @@ impl<'a> Interpreter<'a> {
     fn apply_call(
         &mut self,
         call: &Call,
-        values: Vec<Option<Value>>,
+        mut values: Vec<Option<Value>>,
         rest: Vec<Value>,
         definitions: Vec<(String, Value)>,
         columns_used: Vec<String>,
         printed: &mut String,
         messages: &mut Vec<Diagnostic>,
     ) -> Result<Value, Fail> {
+        // A list of variables given where one is taken (open decision #87): exactly one,
+        // `cluster: vars(firm)` or a record's field or a binding holding it, is that variable;
+        // any other count is refused here, where the count is first known.
+        for (i, value) in values.iter_mut().enumerate() {
+            if call.var_params.get(i) != Some(&true) {
+                continue;
+            }
+            if let Some(Value::Vars(names)) = value {
+                if names.len() == 1 && !names[0].contains("..") {
+                    *value = Some(Value::Var(names[0].clone()));
+                } else {
+                    let span = call.args[i].as_ref().map_or(call.callee_span, |e| e.span);
+                    let listed = names
+                        .iter()
+                        .map(|n| format!("`{n}`"))
+                        .collect::<Vec<_>>()
+                        .join(", ");
+                    return Err(fail(
+                        Diagnostic::error(
+                            "Z0401",
+                            format!(
+                                "`{}` takes one variable here, but this names {}: {listed}",
+                                call.name,
+                                if names.len() == 1 {
+                                    "a range of variables".to_string()
+                                } else {
+                                    format!("{} variables", names.len())
+                                }
+                            ),
+                        )
+                        .in_file(self.script)
+                        .primary(span, "more than one variable")
+                        .help("name one variable, as `vars(firm)` or a binding that holds one"),
+                    ));
+                }
+            }
+        }
         let key = (call.package.clone(), call.name.clone());
         let zeff = self.zeff.and_then(|z| z.get(&key));
         let body = self

@@ -5265,3 +5265,11 @@ Done before parts 1 and 2 are read, because those wait for jobs that run for hou
 **What is not proved here.** The two passes were tried on this machine at 0.7.0 (part seven) and shown to retest exactly what the first pass left; the full shard on a runner is proved by a run of the workflow started by hand on one shard after this commit, and the first scheduled run is read at the close of the release (`docs/known_issues.md`).
 
 **Reason.** `docs/decisions.md`, 14 and 15 November 2026 (parts seven and nine); the Testing Handbook, section 2.3; risk R9 of the register; the checklist's step 3.
+
+## 15 November 2026: a variable in an option record (release 0.8.0, step 4; open decision #87, option A)
+
+**Choice.** A list of exactly one variable, `vars(firm)`, is accepted wherever a parameter takes one variable (`Var`), directly, through a binding that holds the list, or as a field of a record spread into the call, and stands for that variable; so `{ se: robust, cluster: vars(firm) }` is written once and spread into every call, as section 3.2 shows. The checker lets a `Vars` through where a `Var` is taken (both call paths, the spread's fields included) and refuses a literal of two or more names, or a range, where it is written (Z0401, "`cluster` of `reg` takes one variable, but this names 2 variables: `worker`, `year`"); the interpreter counts a list that comes through a binding or a spread at the call, turns one name into the variable and refuses any other count (Z0401, "`reg` takes one variable here, but this names 2 variables: …"). The call carries which of its parameters take one variable (`Call::var_params`), set by the checker, so that no function body sees a list where it expects a name. Sections 3.2 and 3.7 of the Language Reference follow (logged), the page of `vars` says so, and the conformance case `control/option_records` holds the forms and the refusal.
+
+**Why not a bare name in a record.** Option B of #87 would have kept `{ cluster: firm }` by deferring the check of a bare name to the spread; it was not taken because a misspelt word in a record would then be caught at the spread and not where it is written, against the rule of section 3.7 that an unknown name is refused where it stands.
+
+**Reason.** Open decision #87 (decided 15 November 2026); Language Reference, section 3.7 ("Words and types"); the checklist's step 4.

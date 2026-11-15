@@ -13,8 +13,11 @@ used with. Each variable is checked against that frame when the statement runs.
 
 A loop variable over `vars(...)` stands for the variable it holds: in `for y in vars(lwage, hours)
 { wages.reg(y ~ educ) }` the formula is `lwage ~ educ` in the first pass and `hours ~ educ` in the
-second, and each fit keeps its variable's name. Like Stata's global macros holding a varlist, with
-the names checked rather than pasted.
+second, and each fit keeps its variable's name. A list of exactly one variable is accepted
+wherever a function takes one variable, directly or through an option record, so
+`{ se: robust, cluster: vars(firm) }` can be named once and spread into every call; a list of
+two or more there is an error (Z0401). Like Stata's global macros holding a varlist, with the
+names checked rather than pasted.
 
 ## Arguments
 - name: The first variable, a bare name, or a range of variables, `x1..x9`.

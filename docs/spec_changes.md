@@ -659,3 +659,7 @@ Open decision #103, the owner's decision of 11 November 2026 (option A), applied
 ## 15 November 2026 — zeff_help_examples.md, a new page, `zeff help tabulate`
 
 Step 2 of release 0.8.0. The document's seven pages show the contract as it stood; the new page shows the contract of 0.8.0 as the engine prints it (open decision #103, decided 11 November 2026), taken from the engine's own output for the revised page of `tabulate`, the function the owner's approved sample described. The seven older pages are left as written, since the pages they stand for are on the list of unrevised pages until their packages are revised.
+
+## 15 November 2026 — zeff_language_reference.md, section 3.2 (the record literal) and section 3.7 (the row "Words and types")
+
+Open decision #87, decided 15 November 2026 (option A), applied as step 4 of release 0.8.0. The example record of section 3.2 is written `{ se: robust, cluster: vars(firm) }`, since a record literal holds no bare variable name (the correction of 6 November under #83), and the row of section 3.7 says what the engine now does: a list of exactly one variable, `vars(firm)`, is accepted wherever a parameter takes one variable, directly or through a spread, and stands for that variable; a list of two or more there is an error (Z0401). Nothing else changes.

@@ -75,3 +75,13 @@ Tests, plots and the language server: 72 functions in 258 commits over 40 steps,
 **Next.** Step 4 `[engine]`: a variable in an option record (#87).
 
 **For the owner to decide.** Nothing blocks.
+
+## 15 November 2026, release 0.8.0, step 4 (a variable in an option record)
+
+**Done.** Step 4 `[engine]`: `vars(firm)`, a list of one variable, is accepted wherever a function takes one variable, directly, through a binding or through a spread, so the record of section 3.2, `{ se: robust, cluster: vars(firm) }`, can be named once and spread into every call; a list of two or more there is refused where it is written when it is a literal and at the call otherwise. Sections 3.2 and 3.7 follow, logged; the page of `vars` says so; the conformance case `control/option_records` holds it.
+
+**Green.** Format, clippy with warnings denied, the tier and message checks, every test of the workspace; CI read after the push.
+
+**Next.** Step 5 `[engine]`: a parameter where a term of a fit is expected (#147).
+
+**For the owner to decide.** Nothing blocks.

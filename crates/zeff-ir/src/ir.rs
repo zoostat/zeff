@@ -448,6 +448,10 @@ pub struct Call {
     pub liftable: bool,
     pub scalar_params: Vec<bool>,
     pub rest_scalar: bool,
+    /// Which parameters take one variable (`Var`): a list of exactly one variable given to
+    /// one, `cluster: vars(firm)`, directly or through a spread, is that variable (open
+    /// decision #87), and the interpreter makes the change at the call.
+    pub var_params: Vec<bool>,
     /// A reducer called inside a frame method's definition without a receiver (`mean(lwage)` in
     /// `add`): the enclosing frame, or its group under `by:`, is the receiver (section 6).
     pub implicit_receiver: bool,

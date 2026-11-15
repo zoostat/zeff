@@ -1199,6 +1199,10 @@ fn control_cases() -> Vec<Line> {
         // `fill_missing` in Zeff): each scalar type, `NA` typed and bare, Int with Float both
         // ways, the column forms, and the join inside `add`.
         ("several_types", SEVERAL_TYPES_SCRIPT),
+        // A variable in an option record (release 0.8.0, step 4; open decision #87): a list of
+        // one variable where one is taken, directly, through a binding and through a spread, the
+        // record of section 3.2 spread into two calls, and a list of two refused at the call.
+        ("option_records", OPTION_RECORDS_SCRIPT),
     ];
     let mut lines = Vec::new();
     for (name, script) in scripts {
@@ -1235,6 +1239,8 @@ fn control_cases() -> Vec<Line> {
 
 /// The script of the `several_types` case: `fill_missing`, written in Zeff on a parameter of
 /// several types, under every type and column form a call may take.
+const OPTION_RECORDS_SCRIPT: &str = "let w = dataset(wages)\nlet opts = {se: robust, cluster: vars(worker)}\nw.reg(log(wage) ~ educ, ..opts).std_errors(educ)\nw.reg(log(wage) ~ educ + exper, ..opts).std_errors(educ)\nw.reg(log(wage) ~ educ, cluster: worker).std_errors(educ)\nw.reg(log(wage) ~ educ, cluster: vars(worker)).std_errors(educ)\nlet c = vars(worker)\nw.reg(log(wage) ~ educ, cluster: c).std_errors(educ)\nlet two = {cluster: vars(worker, year)}\nw.reg(log(wage) ~ educ, ..two)\n";
+
 const SEVERAL_TYPES_SCRIPT: &str = "fill_missing(NA, 3)\nfill_missing(to(NA, Int), 0)\nfill_missing(true, false)\nfill_missing(to(NA, Bool), true)\nfill_missing(\"a\", \"b\")\nfill_missing(to(NA, Str), \"none\")\nfill_missing(1, 2.5)\nfill_missing(2.5, 1)\nfill_missing(to(NA, Float), 1)\nfill_missing(to(NA, Int), 1.5)\nfill_missing(to(\"2026-01-01\", Date), to(\"2000-01-01\", Date))\nfill_missing(to(NA, Date), to(\"2000-01-01\", Date))\nlet d = frame(i = [1, NA, 3], f = [1.5, NA, 2], s = [\"a\", NA, \"c\"], b = [true, NA, false])\nfill_missing(d[\"i\"], 0)\nfill_missing(d[\"f\"], 0)\nfill_missing(d[\"i\"], 0.5)\nfill_missing(d[\"s\"], \"none\")\nfill_missing(d[\"b\"], false)\nfill_missing(NA, d[\"i\"])\nfill_missing(d[\"f\"], d[\"i\"])\nd.add(i2 = fill_missing(i, 0), f2 = fill_missing(f, i), s2 = fill_missing(s, \"-\"))\nlet w = dataset(wages)\nw.add(wage2 = fill_missing(wage, 0)).summary([wage2])\n";
 
 /// The script of the `map` case: the three list functions over literals and named functions.

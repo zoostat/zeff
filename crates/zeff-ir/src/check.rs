@@ -2366,7 +2366,9 @@ impl Checker<'_> {
                             (None, _) => {}
                         }
                         let ty = &sig.params[position].1;
-                        if !ty.accepts(field_ty) {
+                        // A list of variables where one is taken is accepted here and counted
+                        // at the call: exactly one is that variable (open decision #87).
+                        if !ty.accepts(field_ty) && !(*ty == Ty::Var && *field_ty == Ty::Vars) {
                             self.report(
                                 Diagnostic::error("Z0401", format!("`{field}` of `{fname}` must be {}, but the spread gives {}", ty.with_article(), field_ty.with_article()))
                                     .primary(spread.span, format!("`{field}` is {}", field_ty.with_article()))
@@ -2424,6 +2426,12 @@ impl Checker<'_> {
                         .primary(given.span, "a column")
                         .help(format!("declare `{pname}: Column<{ty}>`, or write the expression inside `add`; a project function is not applied row by row")),
                     );
+                }
+                // A list of variables where one is taken (open decision #87): a literal of
+                // exactly one, `vars(firm)`, is that variable; a literal of two or more, or a
+                // range, is refused here; a binding or a spread is counted at the call.
+                Some(given) if *ty == Ty::Var && given.ty == Ty::Vars => {
+                    self.one_variable_list(pname, &fname, given);
                 }
                 Some(given) if !ty.accepts(&given.ty) => {
                     let help = match ty {
@@ -2780,6 +2788,57 @@ impl Checker<'_> {
     /// is checked with the receiver's columns in scope (section 3.7, "Name lookup"). Inside a
     /// method of a plot (`plot_method`), an expression given where a variable or an expression
     /// is taken is one over the variables of the frame the layer draws.
+    /// A list of variables given where a parameter takes one (open decision #87): a literal of
+    /// exactly one plain name, `vars(firm)`, stands for that variable and passes; a literal of
+    /// two or more, or a range, is refused here, where the count is known; a binding or a
+    /// spread's field is counted by the interpreter at the call.
+    fn one_variable_list(&mut self, pname: &str, fname: &str, given: &Expr) {
+        // The names a literal lists: `vars(a, b)` lowers to a call of `vars` whose arguments
+        // are the names; anything else it may hold is counted when the statement runs.
+        let names: Vec<String> = match &given.kind {
+            ExprKind::Vars(names) => names.clone(),
+            ExprKind::Call(listed) if listed.name == "vars" => {
+                let mut names = Vec::new();
+                for item in listed.args.iter().flatten().chain(listed.rest.iter()) {
+                    match &item.kind {
+                        ExprKind::Var(name) => names.push(name.clone()),
+                        ExprKind::Vars(more) => names.extend(more.iter().cloned()),
+                        _ => return,
+                    }
+                }
+                names
+            }
+            _ => return,
+        };
+        if names.len() == 1 && !names[0].contains("..") {
+            return;
+        }
+        let what = if names.len() == 1 {
+            "a range of variables".to_string()
+        } else {
+            let listed = names
+                .iter()
+                .map(|n| format!("`{n}`"))
+                .collect::<Vec<_>>()
+                .join(", ");
+            format!("{} variables: {listed}", names.len())
+        };
+        let first = names
+            .first()
+            .map(|n| n.split("..").next().unwrap_or(n))
+            .unwrap_or("x");
+        self.report(
+            Diagnostic::error(
+                "Z0401",
+                format!("`{pname}` of `{fname}` takes one variable, but this names {what}"),
+            )
+            .primary(given.span, "more than one variable")
+            .help(format!(
+                "name one variable, `{pname}: {first}` or `{pname}: vars({first})`"
+            )),
+        );
+    }
+
     fn argument(
         &mut self,
         value: &ast::Expr,
@@ -5298,6 +5357,7 @@ impl Checker<'_> {
                 lifted: false,
                 liftable: false,
                 scalar_params: vec![false; names.len()],
+                var_params: vec![false; names.len()],
                 rest_scalar: false,
                 implicit_receiver: false,
                 by_slot: None,
@@ -6144,7 +6204,8 @@ impl Checker<'_> {
                             (None, _) => {}
                         }
                         let (_, ty, _) = &params[position];
-                        if !ty.accepts(field_ty) {
+                        // A list of variables where one is taken is counted at the call (#87).
+                        if !ty.accepts(field_ty) && !(*ty == Ty::Var && *field_ty == Ty::Vars) {
                             argument_error = true;
                             self.report(
                                 Diagnostic::error(
@@ -6283,6 +6344,10 @@ impl Checker<'_> {
                         .primary(given.span, "a column, not one value")
                         .help("reduce the column to one Bool: `assert(all(d[\"x\"] > 0), ...)` checks every row, `any` checks for one"),
                     );
+                }
+                // A list of variables where one is taken (open decision #87).
+                Some(given) if *ty == Ty::Var && given.ty == Ty::Vars => {
+                    self.one_variable_list(pname, &fname, given);
                 }
                 Some(given) if !ty.accepts(&given.ty) => {
                     let (message, label) = if spec.method && i == 0 {
@@ -6568,6 +6633,7 @@ impl Checker<'_> {
                 liftable,
                 scalar_params: params.iter().map(|(_, ty, _)| scalar_type(ty)).collect(),
                 rest_scalar: matches!(&spec.rest, Some(Rest::Values(ty)) if Ty::parse(ty).is_some_and(|t| scalar_type(&t))),
+                var_params: params.iter().map(|(_, ty, _)| *ty == Ty::Var).collect(),
                 implicit_receiver,
                 by_slot: params.iter().position(|(n, _, _)| n == "by"),
                 returns: spec.returns.to_string(),
@@ -7275,6 +7341,7 @@ impl Checker<'_> {
                 lifted: false,
                 liftable: false,
                 scalar_params: Vec::new(),
+                var_params: Vec::new(),
                 rest_scalar: false,
                 implicit_receiver: false,
                 by_slot: None,

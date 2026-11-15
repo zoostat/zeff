@@ -210,3 +210,80 @@ fn every_message_of_spreads() {
     }
     insta::assert_snapshot!("every_message", all);
 }
+
+#[test]
+fn a_list_of_one_variable_stands_for_the_variable_where_one_is_taken() {
+    // Open decision #87 (release 0.8.0, step 4): `vars(firm)` where a parameter takes a `Var`,
+    // directly, through a binding and through a spread, is the variable; the result is the one
+    // the bare name gives.
+    // What a clustered fit prints, its note on one-observation clusters included.
+    let both = |script: &str| {
+        let outcome = run(script);
+        assert_eq!(outcome.exit_code, 0, "{script}:\n{}", outcome.output.stderr);
+        (outcome.output.stdout, outcome.output.stderr)
+    };
+    let plain = both("let w = dataset(wages)\nw.reg(log(wage) ~ educ, cluster: worker)\n");
+    assert!(plain.0.contains("worker"), "{}", plain.0);
+    let direct = both("let w = dataset(wages)\nw.reg(log(wage) ~ educ, cluster: vars(worker))\n");
+    assert_eq!(direct, plain);
+    let bound =
+        both("let w = dataset(wages)\nlet c = vars(worker)\nw.reg(log(wage) ~ educ, cluster: c)\n");
+    assert_eq!(bound.0, plain.0);
+    let spread = both(
+        "let w = dataset(wages)\nlet opts = {cluster: vars(worker)}\nw.reg(log(wage) ~ educ, ..opts)\n",
+    );
+    assert_eq!(spread.0, plain.0);
+    // The record of section 3.2, named once and spread into two calls.
+    let twice = both(
+        "let w = dataset(wages)\nlet opts = {se: robust, cluster: vars(worker)}\nprint(w.reg(log(wage) ~ educ, ..opts).n_obs() > 0 && w.reg(log(wage) ~ educ + exper, ..opts).n_obs() > 0)\n",
+    );
+    assert_eq!(twice.0.trim(), "true");
+    // A list of two, or a range, where one is taken: refused where it is written when it is a
+    // literal, and at the call when it comes through a binding or a spread.
+    let two_literal =
+        run("let w = dataset(wages)\nw.reg(log(wage) ~ educ, cluster: vars(worker, year))\n");
+    assert_eq!(two_literal.exit_code, 1);
+    assert!(
+        two_literal
+            .output
+            .stderr
+            .contains("error[Z0401]: `cluster` of `reg` takes one variable, but this names 2 variables: `worker`, `year`"),
+        "{}",
+        two_literal.output.stderr
+    );
+    let range_literal =
+        run("let w = dataset(wages)\nw.reg(log(wage) ~ educ, cluster: vars(worker..year))\n");
+    assert!(
+        range_literal
+            .output
+            .stderr
+            .contains("takes one variable, but this names a range of variables"),
+        "{}",
+        range_literal.output.stderr
+    );
+    let two_bound = run(
+        "let w = dataset(wages)\nlet c = vars(worker, year)\nw.reg(log(wage) ~ educ, cluster: c)\n",
+    );
+    assert!(
+        two_bound
+            .output
+            .stderr
+            .contains("error[Z0401]: `reg` takes one variable here, but this names 2 variables: `worker`, `year`"),
+        "{}",
+        two_bound.output.stderr
+    );
+    let two_spread = run(
+        "let w = dataset(wages)\nlet opts = {cluster: vars(worker, year)}\nw.reg(log(wage) ~ educ, ..opts)\n",
+    );
+    assert!(
+        two_spread
+            .output
+            .stderr
+            .contains("`reg` takes one variable here, but this names 2 variables"),
+        "{}",
+        two_spread.output.stderr
+    );
+    // A parameter that takes several variables is untouched.
+    let by = both("let w = dataset(wages)\nw.mean(wage, by: vars(union))\n");
+    assert!(by.0.contains("union"), "{}", by.0);
+}
