@@ -242,8 +242,8 @@ proptest! {
     ) {
         let script = format!(
             "fn same(x: Float, scale: Float = 2.0) -> Float {{ abs(x) * scale }}\n\
-             print(builtin_fixture({x:?}), same({x:?}))\n\
-             print(builtin_fixture({x:?}, scale: {scale:?}), same({x:?}, scale: {scale:?}))\n"
+             print(builtin_fixture({x:?}))\nprint(same({x:?}))\n\
+             print(builtin_fixture({x:?}, scale: {scale:?}))\nprint(same({x:?}, scale: {scale:?}))\n"
         );
         let out = run(&script);
         prop_assert_eq!(out.exit_code, 0, "{}", out.output.stderr);

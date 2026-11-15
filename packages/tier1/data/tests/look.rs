@@ -92,7 +92,8 @@ fn the_results_are_values_a_script_can_use() {
         "let wages = import(\"data/wages.csv\")\nlet n = wages.n_rows()\nprint(n, wages.n_cols(), wages.variables())\n",
     );
     assert_eq!(code, 0, "{stderr}");
-    assert_eq!(stdout, "3\n4\nid\nwage\nhours\nname\n");
+    // The two counts share a line; the list of names is a block (release 0.8.0, step 8p).
+    assert_eq!(stdout, "3 4\nid\nwage\nhours\nname\n");
 }
 
 // ----- the printed list -----

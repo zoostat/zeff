@@ -9,7 +9,7 @@ error[Z0406]: `print` needs `x`
 1 | print()
   | ^^^^^ `x` is missing
   |
-  = help: usage: `print(x, ...)`
+  = help: usage: `print(x, ..., sep: Str = " ")`
 
 ## the_result_bound (exit 1)
 error[Z0206]: this gives no value, so it cannot be bound
@@ -45,11 +45,20 @@ error[Z0101]: nothing is called `wage` here
 1 | print(wage)
   |       ^^^^ not a binding
 
-## an_option (exit 1)
-error[Z0404]: `print` has no argument called `sep`
+## an_option_it_does_not_have (exit 1)
+error[Z0404]: `print` has no argument called `separator`
  --> scripts/main.zeff:1:10
   |
-1 | print(1, sep: " ")
-  |          ^^^ unknown argument
+1 | print(1, separator: " ")
+  |          ^^^^^^^^^ unknown argument
   |
-  = help: usage: `print(x, ...)`
+  = help: usage: `print(x, ..., sep: Str = " ")`
+
+## a_separator_that_is_not_text (exit 1)
+error[Z0401]: `sep` of `print` must be a Str, but this is an Int
+ --> scripts/main.zeff:1:18
+  |
+1 | print(1, 2, sep: 3)
+  |                  ^ an Int
+  |
+  = help: usage: `print(x, ..., sep: Str = " ")`

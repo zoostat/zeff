@@ -77,7 +77,7 @@ fn the_pipeline_runs_in_order_and_prints_each_statement() {
     assert_eq!(
         out,
         format!(
-            "rows:\n3\n2\n{}{}",
+            "rows: 3\n2\n{}{}",
             wages_printed("wages"),
             wages_printed("wages")
         )

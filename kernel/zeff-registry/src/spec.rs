@@ -162,7 +162,12 @@ impl FunctionSpec {
             })
             .collect();
         match &self.rest {
-            Some(Rest::Values(_)) => args.push("...".to_string()),
+            // The further values stand after the parameters given by place and before the
+            // options, which such a function takes by name alone: `print(x, ..., sep: Str)`.
+            Some(Rest::Values(_)) => {
+                let before_options = rest.iter().take_while(|p| !p.option).count();
+                args.insert(before_options, "...".to_string());
+            }
             Some(Rest::Definitions(ty)) => args.push(format!("name = {ty}, ...")),
             None => {}
         }

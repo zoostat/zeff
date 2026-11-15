@@ -22,14 +22,14 @@ fn every_example_of_every_registered_function_prints_what_its_page_says() {
 
 #[test]
 fn an_example_that_prints_something_else_is_reported() {
-    let help: &'static str = "# print\n\n## Summary\nPrint values\n\n## Description\nTests.\n\n## Arguments\n- x: The value.\n- ...: More values.\n\n## Value\nNothing.\n\n## See also\nprint\n\n## Examples\n> print(42)\n42\n> print(\"a\", 1)\na\n2\n";
+    let help: &'static str = "# sign\n\n## Summary\n-1, 0 or 1\n\n## Description\nTests.\n\n## Arguments\n- x: The value.\n\n## Value\nAn Int.\n\n## Details\nExact.\n\n## References\nIEEE Std 754-2019.\n\n## See also\nsign\n\n## Examples\n> sign(42)\n1\n> sign(-1)\n2\n";
     let spec = FunctionSpec {
-        name: "print",
+        name: "sign",
         package: "core",
         method: false,
-        params: vec![ParamSpec::required("x", "Any")],
-        rest: Some(zeff_registry::Rest::Values("Any")),
-        returns: "Nothing",
+        params: vec![ParamSpec::required("x", "Float")],
+        rest: None,
+        returns: "Int",
         diagnostics: vec![],
         help,
         accuracy: None,
@@ -39,12 +39,12 @@ fn an_example_that_prints_something_else_is_reported() {
     let failures = run_examples(&fixture);
     assert_eq!(failures.len(), 1, "{failures:?}");
     let failure: &ExampleFailure = &failures[0];
-    assert_eq!((failure.function.as_str(), failure.example), ("print", 2));
-    assert_eq!(failure.expected, ["a", "2"]);
-    assert_eq!(failure.found, ["a", "1"]);
+    assert_eq!((failure.function.as_str(), failure.example), ("sign", 2));
+    assert_eq!(failure.expected, ["2"]);
+    assert_eq!(failure.found, ["-1"]);
     let text = failure.to_string();
     assert!(
-        text.contains("example 2 of core::print prints something else than its page says"),
+        text.contains("example 2 of core::sign prints something else than its page says"),
         "{text}"
     );
     assert!(
@@ -55,14 +55,14 @@ fn an_example_that_prints_something_else_is_reported() {
 
 #[test]
 fn an_example_that_fails_to_run_is_reported_with_the_error() {
-    let help: &'static str = "# print\n\n## Summary\nPrint values\n\n## Description\nTests.\n\n## Arguments\n- x: The value.\n- ...: More values.\n\n## Value\nNothing.\n\n## See also\nprint\n\n## Examples\n> print(nothing_here)\n1\n";
+    let help: &'static str = "# sign\n\n## Summary\n-1, 0 or 1\n\n## Description\nTests.\n\n## Arguments\n- x: The value.\n\n## Value\nAn Int.\n\n## Details\nExact.\n\n## References\nIEEE Std 754-2019.\n\n## See also\nsign\n\n## Examples\n> sign(nothing_here)\n1\n";
     let spec = FunctionSpec {
-        name: "print",
+        name: "sign",
         package: "core",
         method: false,
-        params: vec![ParamSpec::required("x", "Any")],
-        rest: Some(zeff_registry::Rest::Values("Any")),
-        returns: "Nothing",
+        params: vec![ParamSpec::required("x", "Float")],
+        rest: None,
+        returns: "Int",
         diagnostics: vec![],
         help,
         accuracy: None,

@@ -6072,7 +6072,15 @@ impl Checker<'_> {
                         );
                         continue;
                     }
-                    if next_positional < params.len() {
+                    // A function that takes further values takes its options by name alone
+                    // (`print(x, ..., sep: Str)`, open decision #95): a value given by place
+                    // after its required parameters is one of the further values.
+                    let by_place = if matches!(spec.rest, Some(Rest::Values(_))) {
+                        params.iter().take_while(|(_, _, option)| !option).count()
+                    } else {
+                        params.len()
+                    };
+                    if next_positional < by_place {
                         let (name, ty, _) = &params[next_positional];
                         let lowered = if (frame_method || plot_method)
                             && !implicit_receiver

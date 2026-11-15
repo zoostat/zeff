@@ -155,3 +155,13 @@ Step 8b `[engine]`: the language server folds chains, blocks and functions, offe
 **Next.** Step 8p `[engine]`: `print` puts several plain values on one line (#95).
 
 **For the owner to decide.** Open decision #149, new: whether a *warning* repeated word for word in the passes of a loop should also print once with the count. Recommended yes; deadline 0.9.0.
+
+## 16 November 2026, release 0.8.0, step 8p (`print` with several values)
+
+**Done.** Step 8p `[engine]`: `print("Mean wage:", 24.35)` prints one line, `Mean wage: 24.35`; plain values share a line with a space, or with `sep:`, between them; a frame, a list or a result still prints as its own block. One value prints exactly as before. `print(1, 2)` now prints `1 2` where it printed two lines. Blocks B4 and B5 of the checklist are done.
+
+**Green.** Format, clippy with warnings denied, the tier, message and grammar checks, every test of the workspace; CI read after the push.
+
+**Next.** Step 9 `[engine]`: the first of the instrumental-variables steps.
+
+**For the owner to decide.** Open decision #149 (a warning repeated in the passes of a loop), raised at step 8o; nothing blocks.

@@ -68,12 +68,7 @@ mean · wage by region
 24.8178
 40.3326
 65.9933
-workers:
-319
-regions:
-5
-median hourly wage:
-40.3326
+workers: 319 regions: 5 median hourly wage: 40.3326
 sleep · 20 rows × 3 variables
 
        extra   group                id

@@ -198,7 +198,7 @@ then: 4 words, 0 argument names, 0 names in reach, 0 functions
 > let d = import("data/small.csv")
 > print(d.mean(a), |
 variables: none
-then: 0 words, 0 argument names, 1 names in reach, 247 functions
+then: 0 words, 1 argument names, 1 names in reach, 247 functions
 ----
 > let d = import("data/small.csv")
 > let m = 3

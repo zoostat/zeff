@@ -5604,3 +5604,19 @@ Done before parts 1 and 2 are read, because those wait for jobs that run for hou
 **Held by.** `crates/zeff-engine/tests/messages_as_written.rs`: the exact message of each function; a loop of a thousand passes printing one note; a stored snapshot of the forms (one draw, `seed:`, a loop, `map`, two draws in a statement, a loop left early, notes that differ, nested loops); the rows drawn in three passes, stored.
 
 **Reason.** The checklist's step 8o, a correction where a message disagreed with what the script says.
+
+## 16 November 2026 — `print` puts plain values on one line (release 0.8.0, step 8p)
+
+**Choice.** `print(x, ..., sep: Str = " ")`, as open decision #95 (option A) words it. An Int, a Float, a Str, a Bool, a Date, a DateTime and `NA` are plain: given side by side they share one line, each printed as it prints alone, `sep:` between them. Any other value ends the line and prints as its own block through the display interface, as before, and plain values after it begin a new line. A column is a block whatever its length, and so is a list of one item: what shares a line is decided by the type, never by the count. Every line ends. One value prints byte for byte as a statement that is not a `let` prints it.
+
+**Two rules that `print` is the first to need.** A function that takes further values, `...`, takes its options by name alone: a value given by place after the required parameters is one of the further values, so `print("a", "b")` prints two values and never takes `"b"` for the separator. And the usage line writes `...` after the parameters given by place and before the options, `print(x, ..., sep: Str = " ")`. No other function has both further values and an option, so no other usage changes.
+
+**`sep:` around a block.** The separator stands between two plain values of one line and nowhere else: a block is set off by the ends of lines, not by `sep:`.
+
+**The page.** Written again to the 0.8.0 contract, with the sentence "Several values print one after another, each on its own lines" gone. Its name stays on the list of pages the contract is not yet enforced on (`kernel/zeff-registry/unrevised.txt`), though the page meets it: the fixtures of five test files build small registries around a stub page of `print` written to the old contract, and would all be refused. The line goes when those fixtures are rewritten with the revision of the old pages (decision 103, by 0.10.0). Two tests of the example runner that used such a stub with two printed values now use `sign`.
+
+**Stored outputs that changed, each read line by line.** Six sample projects print a label and its value with one `print`: `workers:` and `319` on two lines are now `workers: 319` on one, and so on, with every number unchanged. Nine tests that printed several plain values with one `print` have their expected text on one line, or print each value with its own statement where the test compares line with line. The editor's signature help writes `print(x, ..., sep: Str = " ")` and offers `sep`.
+
+**Held by.** `crates/zeff-engine/tests/print_line.rs`: plain values of every type on one line; `sep:`; a frame, a list, a record and a one-value column as blocks with plain values before, between and after; one argument of seventeen kinds printing as the bare statement does; a stored snapshot of the forms and of five refusals (`separator:`, a `sep:` that is not text, no value, a value after a named argument, binding the result). The conformance case `core/print`. Every stored output that printed two plain values with one `print` was re-run and read line by line.
+
+**Reason.** Open decision #95, the owner's decision of 9 November 2026; the checklist's step 8p.

@@ -886,7 +886,7 @@ fn the_two_requests_need_a_document_and_a_place() {
     let answers = session.send(&json!({"jsonrpc": "2.0", "id": 5, "method": "textDocument/signatureHelp", "params": saved}));
     assert_eq!(
         answers[0]["result"]["signatures"][0]["label"],
-        "print(x, ...)"
+        "print(x, ..., sep: Str = \" \")"
     );
     let nowhere = json!({"textDocument": {"uri": "file:///work/demo/scripts/none.zeff"}, "position": {"line": 0, "character": 0}});
     let answers = session.send(&json!({"jsonrpc": "2.0", "id": 6, "method": "textDocument/completion", "params": nowhere.clone()}));

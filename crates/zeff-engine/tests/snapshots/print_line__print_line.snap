@@ -1,0 +1,69 @@
+---
+source: crates/zeff-engine/tests/print_line.rs
+expression: all
+---
+Rows: 1518
+frame · 3 rows × 11 variables · panel worker × year
+
+      worker   year    wage   educ   exper   age   hours   union   female   industry      firm
+  1        1   2019   26.39     17      13    36    32.3   no      male     Retail          99
+  2        7   2019   23.39     13      27    46    47.3   no      female   Agriculture      1
+  3       13   2019   22.98     10      11    27      34   yes     male     Education      273
+n	mean	sd
+1518	30.5521	14.5085
+pass 1 of 3
+pass 2 of 3
+pass 3 of 3
+true NA 2026-11-16
+Scores
+1
+2.5
+done
+---
+warning[W0201]: 26 rows with NA in wage were skipped (line 4)
+warning[W0201]: 26 rows with NA in wage were skipped (line 4)
+
+print("n", "mean", separator: "\t")
+error[Z0404]: `print` has no argument called `separator`
+ --> scripts/main.zeff:1:20
+  |
+1 | print("n", "mean", separator: "\t")
+  |                    ^^^^^^^^^ unknown argument
+  |
+  = help: usage: `print(x, ..., sep: Str = " ")`
+
+print(1, 2, sep: 3)
+error[Z0401]: `sep` of `print` must be a Str, but this is an Int
+ --> scripts/main.zeff:1:18
+  |
+1 | print(1, 2, sep: 3)
+  |                  ^ an Int
+  |
+  = help: usage: `print(x, ..., sep: Str = " ")`
+
+print(sep: "\t")
+error[Z0406]: `print` needs `x`
+ --> scripts/main.zeff:1:1
+  |
+1 | print(sep: "\t")
+  | ^^^^^ `x` is missing
+  |
+  = help: usage: `print(x, ..., sep: Str = " ")`
+
+print(1, sep: "a", 2)
+error[Z0408]: a positional argument after a named one
+ --> scripts/main.zeff:1:20
+  |
+1 | print(1, sep: "a", 2)
+  |                    ^ once one argument is named, the rest must be
+  |
+  = help: write it as `name: value`, or move it before the named arguments
+
+let x = print(1, 2)
+error[Z0206]: this gives no value, so it cannot be bound
+ --> scripts/main.zeff:1:9
+  |
+1 | let x = print(1, 2)
+  |         ^^^^^^^^^^^ its type is Nothing
+  |
+  = help: `print` and the other statements that print or warn return nothing; use the value they were given

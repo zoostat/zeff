@@ -63,7 +63,7 @@ data.n_rows()
     (Number of rows)
 ----
 > print(1, 2, |
-print(x, [[...]])
+print(x, [[...]], sep: Str = " ")
     ...: 
     (Print values)
 ----
@@ -87,8 +87,8 @@ data.mean(var, [[by: Vars]], weights: Var, weight_type: frequency | analytic | s
 ----
 > let d = import("data/small.csv")
 > print(d.mean(a), |
-print(x, [[...]])
-    ...: 
+print(x, ..., [[sep: Str = " "]])
+    sep: The text between the plain values of one line; a space unless given.
     (Print values)
 ----
 > let d = import("data/small.csv")

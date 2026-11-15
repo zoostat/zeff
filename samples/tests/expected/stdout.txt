@@ -45,8 +45,7 @@ difference (male − female) = 0.138   95% CI [0.124, 0.152]
 t = 19.35   df = 18,130.3   p < 0.001
 Hedges' g = 0.29   95% CI [0.26, 0.32]
 decision at α = 0.05: reject H0 (p < 0.001)
-difference in log wage, Hedges' g:
-0.286923
+difference in log wage, Hedges' g: 0.286923
 wilcoxon_test · rank sum · lwage by female
   H0: the distribution of lwage is the same in male and female
   H1: values of lwage in male tend to be larger or smaller than in female
@@ -176,8 +175,7 @@ each row tests H0: the two population means are equal, against H1: they differ
 
 Tukey's HSD over 6 comparisons of 4 groups: p-values and intervals from the studentized range, family-wise
 pooled within-group variance on 7,502 degrees of freedom; N = 7,506
-Finance against Education, p:
-1.18303e-05
+Finance against Education, p: 1.18303e-05
 posthoc · Holm · lwage by industry
 each row tests H0: the two population means are equal, against H1: they differ
 
@@ -206,12 +204,8 @@ each row tests H0: the population effect of the term is zero, against H1: it is 
 
 type 2 sums of squares: each term adjusted for every other term that does not contain it
 partial omega squared from F = (F − 1) / (F + (df residual + 1) / df); N = 18,201
-interaction, F:
-3.1262
-p:
-0.00031527
-schooling, partial omega squared from F:
-0.0802642
+interaction, F: 3.1262 p: 0.00031527
+schooling, partial omega squared from F: 0.0802642
 posthoc · unadjusted · female · lwage ~ industry * category(female) + educ
 each row tests H0: the two marginal means of the population are equal, against H1: they differ
 

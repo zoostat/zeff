@@ -163,7 +163,11 @@ fn the_parameters_of_a_usage() {
     assert_eq!(params("data", "n_rows"), ["data"]);
     assert_eq!(params("data", "mean"), ["data", "var"]);
     assert_eq!(params("data", "summary"), ["data", "vars", "stats"]);
-    assert_eq!(params("core", "print"), ["x"], "`...` is not a parameter");
+    assert_eq!(
+        params("core", "print"),
+        ["x", "sep"],
+        "`...` is not a parameter"
+    );
     assert_eq!(
         params("results", "report"),
         ["fits", "stats", "digits", "stars", "labels"],

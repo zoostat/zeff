@@ -232,6 +232,8 @@ tests/kruskal/stdout d593e3789f0a0476
 tests/kruskal/stderr b278fd056143a710
 tests/variance/stdout 5b5db5eb6b7adbad
 tests/variance/stderr 49031bc9f38f16c7
+core/print/stdout cbf29ce484222325
+core/print/stderr 2b95943dc310df04
 tests/fisher/stdout 7f517681ac48644e
 tests/fisher/stderr b83be8741898d11e
 tests/fields/stdout cbf29ce484222325
@@ -481,30 +483,30 @@ kernels/r_factor eac858aa0c7c3fb3
 kernels/inverse 5b7382e62c183d11
 kernels/cholesky 85270cf23d1a64ab
 kernels/singular_values 196e8a08c4421003
-milestone/stdout 482f45990a238785
+milestone/stdout 0d6778e9348f5625
 milestone/stderr b9c8b38efbf6aca6
 milestone/exit_code a8c7f832281a39c5
 # milestone/exit_code bits 0000000000000000
-sample/stdout 60d5ee6c5a58ba4b
+sample/stdout 6c6461201501c1f1
 sample/stderr 2a0b42a40dea3602
 sample/exit_code a8c7f832281a39c5
 # sample/exit_code bits 0000000000000000
-data_cleaning/stdout 04c6367e4ed6627d
+data_cleaning/stdout ebdc8af55694e70b
 data_cleaning/stderr b1cb5de9be7c175f
 data_cleaning/exit_code a8c7f832281a39c5
 # data_cleaning/exit_code bits 0000000000000000
-simulation/stdout f3496c06ceb1594d
+simulation/stdout de27996085650ee9
 simulation/stderr cbf29ce484222325
 simulation/exit_code a8c7f832281a39c5
 # simulation/exit_code bits 0000000000000000
-regression/stdout fb34b6230a38d307
+regression/stdout e8527fee15741e15
 regression/stderr 4900cc247de814c8
 regression/exit_code a8c7f832281a39c5
 # regression/exit_code bits 0000000000000000
 regression/output/model5.tex 50a2cb894ae38f0c
 regression/output/table1.docx 38433d13dd4d1591
 regression/output/table1.tex 6cf45d170a0e5e55
-user_functions/stdout b13e85f493022fd4
+user_functions/stdout 54c24bf5106e3eb4
 user_functions/stderr e520ab3d7c59acaf
 user_functions/exit_code a8c7f832281a39c5
 # user_functions/exit_code bits 0000000000000000
@@ -548,7 +550,7 @@ plots/output/fig7_trend.png 3d9479bcdede1b06
 plots/output/fig7_trend.svg 95c372a56c500f6c
 plots/output/fig8_industries.svg c80034c74a5d78b0
 plots/output/fig9_shape.svg cbd3616f34331d64
-tests/stdout 1e11b9296fa3833c
+tests/stdout e9dec113fb628d10
 tests/stderr f1bcf360999ab7c4
 tests/exit_code a8c7f832281a39c5
 # tests/exit_code bits 0000000000000000

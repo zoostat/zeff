@@ -40,25 +40,17 @@ N = 400
             score     wait
   score   212.421   -0.086
   wait     -0.086    4.176
-z:
--1.07582
-one-sided p:
-0.858997
-two-sided p:
-0.282007
-P(Z > 8):
-6.22096e-16
-t 0.975 quantile, 24 df:
-2.0639
+z: -1.07582
+one-sided p: 0.858997
+two-sided p: 0.282007
+P(Z > 8): 6.22096e-16
+t 0.975 quantile, 24 df: 2.0639
 normal distribution · mean: 100, sd: 15 · truncated to [70, 130]
-P(X <= 100) in the truncated distribution:
-0.5
+P(X <= 100) in the truncated distribution: 0.5
 frame · 300 rows × 1 variable
 
   variable   type    non-missing   missing   example
   cut        Float           300         0   122.584
 mixture · 0.6 × (lognormal distribution · meanlog: 2.5, sdlog: 0.3) + 0.4 × (lognormal distribution · meanlog: 3.1, sdlog: 0.4)
-mixture median:
-14.6802
-mixture P(wage > 40):
-0.0282157
+mixture median: 14.6802
+mixture P(wage > 40): 0.0282157

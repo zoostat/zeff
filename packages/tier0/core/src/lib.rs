@@ -19,11 +19,52 @@ use runtime::{Args, CallContext, Fail, Function};
 use value::Value;
 use zeff_registry::{DiagnosticDecl, FunctionSpec, ParamSpec, Rest, ZeffSource};
 
-/// `print(x, ...)`: each value through the display interface.
-fn print(ctx: &mut CallContext<'_>, args: Args) -> Result<Value, Fail> {
-    for value in args.values.into_iter().flatten().chain(args.rest) {
-        let text = display::show(&value);
-        ctx.print(&text);
+/// `print(x, ..., sep: " ")`: each value through the display interface (open decision #95,
+/// option A; release 0.8.0, step 8p). Plain values given side by side, a number, a text, a
+/// Bool, a date, a time or `NA`, share one line, `sep:` between them; any other value ends
+/// the line and prints as its own block, as it always did; every line ends. One value prints
+/// exactly as before.
+fn print(ctx: &mut CallContext<'_>, mut args: Args) -> Result<Value, Fail> {
+    let sep = match args.take(1) {
+        Some(Value::Str(sep)) => sep,
+        _ => " ".to_string(),
+    };
+    let plain = |value: &Value| {
+        matches!(
+            value,
+            Value::Int(_)
+                | Value::Float(_)
+                | Value::Str(_)
+                | Value::Bool(_)
+                | Value::Date(_)
+                | Value::DateTime(_)
+                | Value::Na
+        )
+    };
+    let first = args.take(0);
+    let mut line: Option<String> = None;
+    for value in first.into_iter().chain(args.rest) {
+        if plain(&value) {
+            let shown = display::show(&value);
+            let text = shown.strip_suffix('\n').unwrap_or(&shown);
+            match line.as_mut() {
+                Some(line) => {
+                    line.push_str(&sep);
+                    line.push_str(text);
+                }
+                None => line = Some(text.to_string()),
+            }
+        } else {
+            if let Some(line) = line.take() {
+                ctx.print(&line);
+                ctx.print("\n");
+            }
+            ctx.print(&display::show(&value));
+        }
+    }
+    if let Some(line) = line {
+        ctx.print(&line);
+        ctx.print("\n");
     }
     Ok(Value::Nothing)
 }
@@ -87,7 +128,10 @@ pub fn functions() -> Vec<Function> {
             name: "print",
             package: "core",
             method: false,
-            params: vec![ParamSpec::required("x", "Any")],
+            params: vec![
+                ParamSpec::required("x", "Any"),
+                ParamSpec::option_with_default("sep", "Str", "\" \""),
+            ],
             rest: Some(Rest::Values("Any")),
             returns: "Nothing",
             diagnostics: vec![DiagnosticDecl::new(

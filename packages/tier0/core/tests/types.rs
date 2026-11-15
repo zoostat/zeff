@@ -239,7 +239,8 @@ proptest! {
         );
         let (code, stdout, stderr) = go(&script);
         prop_assert_eq!(code, 0, "{}", stderr);
-        prop_assert_eq!(stdout, "Column<Int>\ntrue\ntrue\nfalse\nFrame\ntrue\nStr\ntrue\nList<Int>\n");
+        // Plain values share a line from release 0.8.0, step 8p.
+        prop_assert_eq!(stdout, "Column<Int> true true false Frame true Str true List<Int>\n");
     }
 }
 

@@ -534,7 +534,7 @@ fn zeff_run_takes_a_script_and_needs_a_project() {
     std::fs::write(project.join("scripts/other.zeff"), "print(1, 2)\n").unwrap();
     let o = zeff(&project, &["run", "scripts/other.zeff"]);
     assert_eq!(code(&o), 0, "{}", err(&o));
-    assert_eq!(out(&o), "1\n2\n");
+    assert_eq!(out(&o), "1 2\n");
     let o = zeff(&project, &["run", "scripts/none.zeff"]);
     assert_eq!(code(&o), 1);
     assert!(err(&o).starts_with("error[Z0714]"));

@@ -65,13 +65,15 @@ fn every_value_prints_the_same_through_print_and_on_its_own() {
 }
 
 #[test]
-fn several_values_print_one_after_another_and_a_let_prints_nothing() {
+// Plain values share a line and a block stands apart from release 0.8.0, step 8p (open decision
+// #95); until then every value printed on lines of its own.
+fn plain_values_share_a_line_a_block_stands_apart_and_a_let_prints_nothing() {
     let outcome =
         run("let d = frame(x = [1])\nlet rows = d.n_rows()\nprint(rows, \"rows\", d, [rows])\n");
     assert_eq!(outcome.exit_code, 0, "{}", outcome.output.stderr);
     assert_eq!(
         outcome.output.stdout,
-        "1\nrows\nd · 1 row × 1 variable\n\n      x\n  1   1\n1\n"
+        "1 rows\nd · 1 row × 1 variable\n\n      x\n  1   1\n1\n"
     );
     assert_eq!(outcome.output.stderr, "");
 }
@@ -95,7 +97,8 @@ fn every_message_print_can_give() {
         ("the_result_passed", "print(print(1))\n"),
         ("the_result_as_a_method_receiver", "print(1).n_rows()\n"),
         ("a_bare_name", "print(wage)\n"),
-        ("an_option", "print(1, sep: \" \")\n"),
+        ("an_option_it_does_not_have", "print(1, separator: \" \")\n"),
+        ("a_separator_that_is_not_text", "print(1, 2, sep: 3)\n"),
     ];
     let mut all = String::new();
     for (name, script) in cases {

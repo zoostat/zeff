@@ -1454,6 +1454,11 @@ fn panel_cases() -> Vec<Line> {
     // the note, and the shipped wages by industry and by sex.
     let spread = "let g = frame(s = [2.9, 3.0, 2.5, 2.6, 3.2, 3.8, 2.7, 4.0, 2.4, 2.8, 3.4, 3.7, 2.2, 2.0], site = [1, 1, 1, 1, 1, 2, 2, 2, 2, 3, 3, 3, 3, 3])\ng.variance_test(s, group: site)\ng.variance_test(s, group: site, center: mean)\ng.variance_test(s, group: site, method: bartlett)\nlet f = g.where(site < 3).variance_test(s, group: site, method: f)\nf\nf.statistic()\nf.df()\nf.p_values()\nf.ci()\nlet t = frame(v = [3, 1, 4, 1, 5, 9, 2, 6, 5, 3, 5, 8, 9, 7, 9], k = [\"a\", \"b\", \"c\", \"a\", \"b\", \"c\", \"a\", \"b\", \"c\", \"a\", \"b\", \"c\", \"a\", \"b\", \"c\"])\nt.variance_test(v, group: k)\nlet m = frame(x = [1.5, 2.5, NA, 4.5, 5.5, 6.5, 7.5, 9.5, 3.0, 8.0], g = [1, 1, 2, 2, NA, 3, 3, 2, 1, 3])\nm.variance_test(x, group: g)\nlet w = dataset(wages).where(year == 2019)\nw.variance_test(wage, group: industry, method: bartlett)\nw.variance_test(wage, group: female, method: f)\ng.variance_test(s, group: site, method: f)\n";
     let spread_outcome = run_script(&fs, &project, "scripts/main.zeff", spread);
+    // `print` with several values (release 0.8.0, step 8p; open decision #95): plain values of
+    // every type on one line, `sep:`, a frame and a list as blocks with plain values before,
+    // between and after them, a one-value column as a block, and one value alone.
+    let lined = "print(42)\nprint(\"Extra sleep, in hours:\", 1.58)\nprint(3, 0.1, \"text\", true, date(\"2026-11-16\"), datetime(\"2026-11-16T09:30:00\"), NA)\nprint(\"n\", \"mean\", \"sd\", sep: \"\\t\")\nprint(1, 2, 3, sep: \", \")\nlet d = frame(x = [1, 2], y = [\"a\", \"b\"])\nprint(\"Rows:\", d.n_rows(), d, \"after\", 2)\nprint(\"a\", [1, 2.5], \"b\")\nprint(\"a\", frame(x = [5])[\"x\"], \"b\")\nfor i in 1..3 {\n    print(\"pass\", i, \"of\", 3)\n}\nprint(1, 2, separator: \"-\")\n";
+    let lined_outcome = run_script(&fs, &project, "scripts/main.zeff", lined);
     let exact = "let wages = dataset(wages)\nwages.fisher_test(union, female)\nwages.fisher_test(union, female, alternative: greater)\nlet t = frame(a = [\"x\", \"x\", \"x\", \"x\", \"y\", \"y\", \"y\", \"y\"], b = [1, 1, 1, 2, 1, 2, 2, 2])\nt.fisher_test(a, b)\nt.fisher_test(a, b, alternative: less)\nlet z = frame(a = [\"x\", \"x\", \"x\", \"x\", \"x\", \"y\", \"y\", \"y\", \"y\", \"y\", \"y\", \"y\"], b = [1, 1, 1, 1, 1, 1, 1, 1, 2, 2, 2, 2])\nz.fisher_test(a, b)\nlet m = frame(r = [\"a\", \"a\", \"a\", \"a\", \"a\", \"a\", \"b\", \"b\", \"b\", \"b\", \"c\", \"c\", \"c\", \"c\", \"c\", \"c\"], c = [1, 1, 2, 2, 2, 2, 1, 1, 1, 2, 1, 2, 2, 2, 2, 2])\nm.fisher_test(r, c)\nlet w = frame(r = [\"a\", \"a\", \"b\", \"b\", \"c\", \"c\"], c = [1, 2, 1, 2, 1, 2], w = [3, 1, 1, 3, 0, 0])\nw.fisher_test(r, c, weights: w, weight_type: frequency)\nlet d = frame(a = [\"x\", \"x\", NA, \"y\", \"y\", \"x\"], b = [1, 2, 1, 1, 2, 1])\nd.fisher_test(a, b)\n";
     let exact_outcome = run_script(&fs, &project, "scripts/main.zeff", exact);
     // A `TestResult` read as values (release 0.7.0, step 12b; open decision #94): the six
@@ -1543,6 +1548,8 @@ fn panel_cases() -> Vec<Line> {
         text("tests/kruskal/stderr", &compared_outcome.output.stderr),
         text("tests/variance/stdout", &spread_outcome.output.stdout),
         text("tests/variance/stderr", &spread_outcome.output.stderr),
+        text("core/print/stdout", &lined_outcome.output.stdout),
+        text("core/print/stderr", &lined_outcome.output.stderr),
         text("tests/fisher/stdout", &exact_outcome.output.stdout),
         text("tests/fisher/stderr", &exact_outcome.output.stderr),
         text("tests/fields/stdout", &fields_outcome.output.stdout),

@@ -366,7 +366,20 @@ fn engine_usage(f: &Registered) -> (String, Vec<InUsage>, Option<(usize, usize)>
         usage.push_str(text);
         (start, usage.len())
     };
-    for p in rest_of {
+    // The further values, `...`, stand after the parameters given by place and before the
+    // options, which such a function takes by name alone, as the registry's usage writes them:
+    // `print(x, ..., sep: Str = " ")` (release 0.8.0, step 8p).
+    let values_after = match &spec.rest {
+        Some(zeff_registry::Rest::Values(_)) => {
+            Some(rest_of.iter().take_while(|p| !p.option).count())
+        }
+        _ => None,
+    };
+    let mut rest = None;
+    for (i, p) in rest_of.iter().enumerate() {
+        if values_after == Some(i) {
+            rest = Some(piece(&mut usage, "..."));
+        }
         let text = match (p.option, p.default) {
             (true, Some(default)) => format!("{}: {} = {default}", p.name, p.ty),
             (true, None) => format!("{}: {}", p.name, p.ty),
@@ -375,13 +388,15 @@ fn engine_usage(f: &Registered) -> (String, Vec<InUsage>, Option<(usize, usize)>
         let at = piece(&mut usage, &text);
         written.push((p.name.to_string(), at, engine_help(f, p.name)));
     }
-    let rest = match &spec.rest {
-        Some(zeff_registry::Rest::Values(_)) => Some(piece(&mut usage, "...")),
-        Some(zeff_registry::Rest::Definitions(ty)) => {
-            Some(piece(&mut usage, &format!("name = {ty}, ...")))
+    match &spec.rest {
+        Some(zeff_registry::Rest::Values(_)) if rest.is_none() => {
+            rest = Some(piece(&mut usage, "..."));
         }
-        None => None,
-    };
+        Some(zeff_registry::Rest::Definitions(ty)) => {
+            rest = Some(piece(&mut usage, &format!("name = {ty}, ...")));
+        }
+        _ => {}
+    }
     usage.push(')');
     (usage, written, rest)
 }
