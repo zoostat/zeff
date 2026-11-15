@@ -524,7 +524,7 @@ Zeff has one missing value, `NA`. Invalid results such as `0/0` become `NA` with
 | Scalars | The same rules as columns: `Inf - Inf`, `Inf * 0`, `0/0`, `sqrt(-1)` and `log(-1)` give `NA` with a warning; `x/0` gives `Inf` or `-Inf` with a warning; `Inf` is a Float and turns an Int expression into a Float one; `-0.0` is kept as IEEE requires, equals `0.0`, groups with it (section 3.7, Identity) and prints as `0` | R keeps `NaN` |
 | `0/0`, `sqrt(-1)`, `log(-1)` | `NA`, with a warning giving the cause and the number of rows | R keeps `NaN` |
 | `log(0)`, `1/0` | `-Inf`, `Inf`, with a warning and a suggestion (`log1p`, or filter first) | R is silent; Stata turns them into missing silently |
-| Comparison | `income > 100` is `NA` where income is `NA`; `NA == NA` is `NA` | Stata treats missing as larger than any number |
+| Comparison | `income > 100` is `NA` where income is `NA`; two values that are both `NA` compare as `NA`, not as equal | Stata treats missing as larger than any number |
 | Filtering | `where(cond)` drops rows where `cond` is `NA` and says how many; `where(age > 30)` and `where(!(age > 30))` therefore both drop rows with `NA` age, and the note of each says so, so the two never silently partition a frame | Stata's `keep if x > 5` keeps missing x |
 | Statistics | `NA` skipped with a warning giving the count; any `Inf` gives `Inf`; `Inf` and `-Inf` together give `NA` with a warning; a sum of all-NA input is `NA` | R needs `na.rm = TRUE`; R and Stata give 0 for an all-missing sum |
 | Weights | A row with `NA` weight is dropped and counted; a negative weight is an error listing the rows (Z0224), and so are weights more than 1e150 apart, the smallest positive one being a share of nothing; a zero weight leaves the row out of the estimate and the observation count, with a note giving how many (as R's `lm` leaves such rows out of the degrees of freedom) |
@@ -1341,6 +1341,7 @@ Zeff reports problems the way Rust does: a code, the location, a marker under th
 | W0212 | Tied values in `ks_test`, whose distribution theory assumes a continuous distribution, with their count; the asymptotic p-value is used |
 | W0401 | An option written out that changes nothing in the call, printed as a note: `level:` of `posthoc` with a step-wise method, which has no intervals (open decision #105) |
 | Z0225 | A function whose body, or a `return` in it, gives a type other than the declared return type, or no value where one is declared (sections 3.7, "Inference", and 5.3) |
+| Z0226 | `x == NA` or `x != NA` written with the literal `NA`: the comparison is `NA` whatever `x` holds, so the checker refuses it and names `is_missing(x)` (section 4.1, the row "Testing") |
 | Z0323 | A module file that is not one: a statement in a file of `functions/`, or a file whose name is not a name of the language or is a package's (section 5.3, "Modules") |
 | Z0712 to Z0715 | `zeff.toml` is not valid TOML; valid TOML but wrong for Zeff; a script named on the command line that the project lacks; `import` of a project path with no readable file |
 | Z0716 | An export path with no extension, or with one that names no format Zeff writes; the formats are listed |

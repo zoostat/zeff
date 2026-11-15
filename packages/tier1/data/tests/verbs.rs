@@ -162,11 +162,13 @@ fn where_refuses_what_is_not_a_condition() {
         "let w = import(\"data/wages.csv\")\nw.where(NA)\n",
         "let w = import(\"data/wages.csv\")\nw.where(hour > 36)\n",
         "let w = import(\"data/wages.csv\")\nlet o = import(\"data/one_row.csv\")\nw.where(o[\"x\"] > 1)\n",
-        "let w = import(\"data/wages.csv\")\nw.where(hours == NA).n_rows()\n",
+        "let w = import(\"data/wages.csv\")\nw.where(hours == to(NA, Float)).n_rows()\n",
     ] {
         let (code, stdout, stderr) = go(script);
-        if script.contains("== NA") {
-            // A comparison with NA is NA in every row: all dropped, with the note.
+        if script.contains("== to(NA") {
+            // A comparison with a value that is NA is NA in every row: all dropped, with the
+            // note. (The literal, `hours == NA`, is the checker's Z0226 from release 0.8.0,
+            // step 8l.)
             assert_eq!(code, 0, "{stderr}");
             assert_eq!(stdout, "0\n");
             all.push_str(&without_format_notes(&stderr));

@@ -25,7 +25,7 @@ fn a_category_compares_with_text_by_its_levels() {
         w.where(industry != \"Retail\").n_rows()\n\
         w.where(\"Retail\" == industry).n_rows()\n\
         w.where(industry == \"Mining\").where(industry == \"Retail\").n_rows()\n\
-        w.where(industry == NA).n_rows()\n\
+        w.where(industry == to(NA, Str)).n_rows()\n\
         w.head(4).add(retail = industry == \"Retail\").select([worker, industry, retail])\n\
         w.where(female == 1).where(industry == \"Finance\").n_rows()\n";
     let outcome = run(script);

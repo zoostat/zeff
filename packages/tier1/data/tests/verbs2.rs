@@ -142,7 +142,7 @@ fn add_refuses_what_is_not_a_variable() {
 fn update_changes_values_where_asked_and_keeps_the_type() {
     let (code, stdout, stderr) = go(
         "let w = import(\"data/wages.csv\")\nw.update(hours = 38, where: is_missing(hours))[\"hours\"]\nw.update(wage = wage * 2, where: hours > 36)[\"wage\"]\n\
-         w.update(wage = 1)[\"wage\"]\nw.update(name = \"n\", where: id == 2)[\"name\"]\nw.update(hours = hours * 2, wage = hours)[\"wage\"]\nw.update(wage = 0, where: hours == NA)[\"wage\"]\n",
+         w.update(wage = 1)[\"wage\"]\nw.update(name = \"n\", where: id == 2)[\"name\"]\nw.update(hours = hours * 2, wage = hours)[\"wage\"]\nw.update(wage = 0, where: hours == to(NA, Float))[\"wage\"]\n",
     );
     assert_eq!(code, 0, "{stderr}");
     assert_eq!(

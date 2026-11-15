@@ -5550,3 +5550,17 @@ Done before parts 1 and 2 are read, because those wait for jobs that run for hou
 **Held by.** Every earlier test of the four functions under the two names, the comparisons with R unchanged (`cumsum`, `cumprod`, `rowMeans`, `rowSums`); the new messages (no `stat:`, a word not offered, the four old names); the conformance report, in which every digest of printed values is unchanged and one digest of standard error changes because the refusal that ends that script quotes the line as written; the pages' examples and their common mistakes.
 
 **Reason.** Open decision #99, question 4, the owner's "Yes, merge both"; the checklist's step 8k.
+
+## 16 November 2026 — a comparison with the literal `NA` is Z0226 (release 0.8.0, step 8l)
+
+**Choice.** The checker refuses `x == NA` and `x != NA` when one side is the literal `NA`, in brackets or not, wherever the comparison is written: in `where`, `add`, `update`, a `case` arm, `if`, a binding, a bare statement, the body of a function. It is an error, so nothing runs. The code is **Z0226**, the next free number of the Z02xx family (types and values), with its explained page and its line in section 11 of the Language Reference. The help writes the test meant, `is_missing(score)` for `==` and `!is_missing(score)` for `!=`, with the other side as the script wrote it; with `NA` on both sides it says so.
+
+**Only the literal, and only `==` and `!=`.** A binding or a variable that holds `NA` when the script runs compares as section 4.1 says and gives `NA`; the checker cannot know its value and the rule of comparison is unchanged. `x < NA` and the other orderings are left alone: the row "Testing" names `x == NA`, and an ordering against a literal `NA` is not the habit the row guards against.
+
+**What the engine did before.** `s.where(score == NA)` kept no row and printed two notes, and `if x == NA` stopped with Z0203. The page of Z0203 named the first as a common cause; it now points to Z0226 for the literal.
+
+**Tests changed.** Four tests compared with the literal to show that the result is `NA`; they now compare with `to(NA, Float)` and its like, which is the run-time rule they were written for. One stored note changes its quoted condition.
+
+**Held by.** Fourteen places in a stored snapshot (scalar and column, `NA` on either side, text, brackets, inside a larger condition, in a function), each refused once with nothing run; the test that a value that is `NA` still compares as `NA`; four cases in the checker's own table; the explained page.
+
+**Reason.** Language Reference, section 4.1, the row "Testing"; the checklist's step 8l, a correction where the engine disagreed with the specification.

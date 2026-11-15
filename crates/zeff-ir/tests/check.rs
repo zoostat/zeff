@@ -990,6 +990,10 @@ fn the_codes_of_expressions() {
             "let w = import(\"d.csv\")\nlet m = attempt(w)\nm.mean(wage)\n",
             "W0209",
         ),
+        ("let x = 1\nx == NA\n", "Z0226"),
+        ("let x = 1\nNA != x\n", "Z0226"),
+        ("let x = 1\nif (x == (NA)) { print(1) }\n", "Z0226"),
+        ("NA == NA\n", "Z0226"),
         ("/// Text.\nfn label(n: Int) -> Str { n }\n", "Z0225"),
         ("/// Let.\nfn f(n: Int) -> Int { let k = n }\n", "Z0225"),
         (

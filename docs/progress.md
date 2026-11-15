@@ -115,3 +115,13 @@ Step 8b `[engine]`: the language server folds chains, blocks and functions, offe
 **Next.** Step 8l `[engine]`: a comparison with `NA` refused under a code of its own.
 
 **For the owner to decide.** Nothing blocks.
+
+## 16 November 2026, release 0.8.0, step 8l (a comparison with `NA`)
+
+**Done.** Step 8l `[engine]`: `x == NA` and `x != NA`, written with the literal `NA`, are refused before the script runs (the new code Z0226), and the message gives the test that was meant, `is_missing(x)` or `!is_missing(x)`. Before, `where(score == NA)` silently kept no row. A value that turns out to be `NA` when the script runs compares as it always did.
+
+**Green.** Format, clippy with warnings denied, the tier, message and grammar checks, every test of the workspace; CI read after the push.
+
+**Next.** Step 8m `[engine]`: variable ranges, `[educ..age]`, in every parameter that takes a list of variables.
+
+**For the owner to decide.** Nothing blocks.

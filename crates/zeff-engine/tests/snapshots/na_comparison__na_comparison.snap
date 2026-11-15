@@ -1,0 +1,129 @@
+---
+source: crates/zeff-engine/tests/na_comparison.rs
+expression: all
+---
+== in_where
+error[Z0226]: `== NA` is never true: a comparison with `NA` gives `NA`, not true or false
+ --> scripts/main.zeff:2:18
+  |
+2 | s.where(score == NA)
+  |                  ^^ the literal `NA`
+  |
+  = help: write `is_missing(score)`; `NA` stands for a value that is not known, so nothing is known to equal it
+
+== in_where_not_equal
+error[Z0226]: `!= NA` is never true: a comparison with `NA` gives `NA`, not true or false
+ --> scripts/main.zeff:2:18
+  |
+2 | s.where(score != NA).n_rows()
+  |                  ^^ the literal `NA`
+  |
+  = help: write `!is_missing(score)`; `NA` stands for a value that is not known, so nothing is known to equal it
+
+== na_on_the_left
+error[Z0226]: `== NA` is never true: a comparison with `NA` gives `NA`, not true or false
+ --> scripts/main.zeff:2:9
+  |
+2 | s.where(NA == score)
+  |         ^^ the literal `NA`
+  |
+  = help: write `is_missing(score)`; `NA` stands for a value that is not known, so nothing is known to equal it
+
+== in_add
+error[Z0226]: `== NA` is never true: a comparison with `NA` gives `NA`, not true or false
+ --> scripts/main.zeff:2:26
+  |
+2 | s.add(missing = score == NA)
+  |                          ^^ the literal `NA`
+  |
+  = help: write `is_missing(score)`; `NA` stands for a value that is not known, so nothing is known to equal it
+
+== in_update
+error[Z0226]: `== NA` is never true: a comparison with `NA` gives `NA`, not true or false
+ --> scripts/main.zeff:2:37
+  |
+2 | s.update(score = 0, where: score == NA)
+  |                                     ^^ the literal `NA`
+  |
+  = help: write `is_missing(score)`; `NA` stands for a value that is not known, so nothing is known to equal it
+
+== in_case
+error[Z0226]: `== NA` is never true: a comparison with `NA` gives `NA`, not true or false
+ --> scripts/main.zeff:2:30
+  |
+2 | s.add(band = case { score == NA => "none", _ => "some" })
+  |                              ^^ the literal `NA`
+  |
+  = help: write `is_missing(score)`; `NA` stands for a value that is not known, so nothing is known to equal it
+
+== in_if
+error[Z0226]: `== NA` is never true: a comparison with `NA` gives `NA`, not true or false
+ --> scripts/main.zeff:3:9
+  |
+3 | if x == NA { print("missing") }
+  |         ^^ the literal `NA`
+  |
+  = help: write `is_missing(x)`; `NA` stands for a value that is not known, so nothing is known to equal it
+
+== in_a_bare_statement
+error[Z0226]: `== NA` is never true: a comparison with `NA` gives `NA`, not true or false
+ --> scripts/main.zeff:3:6
+  |
+3 | x == NA
+  |      ^^ the literal `NA`
+  |
+  = help: write `is_missing(x)`; `NA` stands for a value that is not known, so nothing is known to equal it
+
+== in_a_binding
+error[Z0226]: `!= NA` is never true: a comparison with `NA` gives `NA`, not true or false
+ --> scripts/main.zeff:3:18
+  |
+3 | let known = x != NA
+  |                  ^^ the literal `NA`
+  |
+  = help: write `!is_missing(x)`; `NA` stands for a value that is not known, so nothing is known to equal it
+
+== in_brackets
+error[Z0226]: `== NA` is never true: a comparison with `NA` gives `NA`, not true or false
+ --> scripts/main.zeff:3:14
+  |
+3 | print((x) == (NA))
+  |              ^^^^ the literal `NA`
+  |
+  = help: write `is_missing(x)`; `NA` stands for a value that is not known, so nothing is known to equal it
+
+== text
+error[Z0226]: `== NA` is never true: a comparison with `NA` gives `NA`, not true or false
+ --> scripts/main.zeff:2:17
+  |
+2 | s.where(name == NA)
+  |                 ^^ the literal `NA`
+  |
+  = help: write `is_missing(name)`; `NA` stands for a value that is not known, so nothing is known to equal it
+
+== both_sides
+error[Z0226]: `== NA` is never true: a comparison with `NA` gives `NA`, not true or false
+ --> scripts/main.zeff:2:7
+  |
+2 | NA == NA
+  |       ^^ the literal `NA`
+  |
+  = help: both sides are the literal `NA`; `is_missing(x)` tests whether a value is missing
+
+== inside_a_larger_condition
+error[Z0226]: `!= NA` is never true: a comparison with `NA` gives `NA`, not true or false
+ --> scripts/main.zeff:2:32
+  |
+2 | s.where(score > 50 && score != NA)
+  |                                ^^ the literal `NA`
+  |
+  = help: write `!is_missing(score)`; `NA` stands for a value that is not known, so nothing is known to equal it
+
+== in_a_function
+error[Z0226]: `== NA` is never true: a comparison with `NA` gives `NA`, not true or false
+ --> scripts/main.zeff:3:34
+  |
+3 | fn none(x: Float) -> Bool { x == NA }
+  |                                  ^^ the literal `NA`
+  |
+  = help: write `is_missing(x)`; `NA` stands for a value that is not known, so nothing is known to equal it

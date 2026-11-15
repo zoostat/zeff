@@ -4121,6 +4121,54 @@ impl Checker<'_> {
         if chained(lhs) || chained(rhs) {
             return Expr::error(span);
         }
+        // `x == NA` and `x != NA` with the literal `NA` (section 4.1, the row "Testing"): a
+        // comparison with `NA` is `NA` whatever `x` holds, so the test the script means is
+        // `is_missing`. Refused here, where the literal is still in sight; a value that turns
+        // out to be `NA` when the script runs compares as section 4.1 says.
+        if matches!(op, B::Eq | B::Ne) {
+            fn literal_na(e: &ast::Expr) -> bool {
+                match &e.kind {
+                    ast::ExprKind::Paren(inner) => literal_na(inner),
+                    ast::ExprKind::Na => true,
+                    _ => false,
+                }
+            }
+            let at = match (literal_na(lhs), literal_na(rhs)) {
+                (_, true) => Some((rhs, lhs)),
+                (true, false) => Some((lhs, rhs)),
+                (false, false) => None,
+            };
+            if let Some((na, other)) = at {
+                // The other side as the help writes it: without the brackets around it.
+                fn bare(e: &ast::Expr) -> &ast::Expr {
+                    match &e.kind {
+                        ast::ExprKind::Paren(inner) => bare(inner),
+                        _ => e,
+                    }
+                }
+                let sign = if op == B::Eq { "==" } else { "!=" };
+                let help = if literal_na(other) {
+                    "both sides are the literal `NA`; `is_missing(x)` tests whether a value is missing".to_string()
+                } else {
+                    format!(
+                        "write `{}is_missing({})`; `NA` stands for a value that is not known, so nothing is known to equal it",
+                        if op == B::Eq { "" } else { "!" },
+                        written(bare(other))
+                    )
+                };
+                self.report(
+                    Diagnostic::error(
+                        "Z0226",
+                        format!(
+                            "`{sign} NA` is never true: a comparison with `NA` gives `NA`, not true or false"
+                        ),
+                    )
+                    .primary(na.span, "the literal `NA`")
+                    .help(help),
+                );
+                return Expr::error(span);
+            }
+        }
         if op == B::Range
             && let Some(name) = leftmost_name(lhs)
             && let Some(id) = self.lookup(&name)
