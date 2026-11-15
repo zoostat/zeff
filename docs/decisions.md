@@ -5450,3 +5450,11 @@ Done before parts 1 and 2 are read, because those wait for jobs that run for hou
 
 **Reason.** Principle 6: a count the engine prints is a count of rows. A defect found while building a step is mended with a test before the next step.
 
+## 15 November 2026: the option words of the editor grammar, after steps 8d and 8e
+
+**What CI showed.** The job `grammar` failed on the pushes of step 8d, of the leak fix and of step 8e: the highlighting queries of `editors/tree-sitter-zeff` list the option words of every argument, written from the registry, and `time_between(unit:)` and `datetime(epoch:)` brought nine new words. Everything else in CI was green. The local routine of a step did not run that check, so the pushes were made with it failing.
+
+**Choice.** The words are written again (`cargo run -p xtask -- grammar-words`): two arguments, `unit` and `epoch`, with their words. The local routine of every step now runs `cargo run -p xtask -- check-grammar` beside the tier and message checks, so a step that adds an option word regenerates the list before its commit.
+
+**Reason.** A push with a failing CI job is a fault of the routine, not of the job.
+
