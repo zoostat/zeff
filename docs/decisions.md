@@ -5368,3 +5368,9 @@ Done before parts 1 and 2 are read, because those wait for jobs that run for hou
 
 **Reason.** Open decisions #113 (option A, with the owner's addition on the Zemp table) and #123; the checklist's step 8c, split because the catalogue, the three volumes and two proposals of some 200 rows are more than one step holds.
 
+## 15 November 2026: the owner's ruling on Zemp's repositories, recorded from another session (open decision #148)
+
+**Choice.** The ruling is recorded in the register as #148 and the Zemp Specification is amended for it, in a commit of its own between steps 8c1 and 8c2. It reached this session as a request from the session that created the Zemp Lite repository, which quoted the owner's words; this session did not hear them. Before writing anything it checked what could be checked: the folder `~/dev/zemp-lite` exists, its repository is public, its licence file is Apache 2.0 and its notice names Zemp Lite. The register's entry says where the ruling was given.
+
+**Reason.** The register and the Zemp Specification were held by this session with edits of step 8c1 in progress, so the other session could not write them without a conflict; a ruling of the owner belongs in the register on the day it is given.
+
