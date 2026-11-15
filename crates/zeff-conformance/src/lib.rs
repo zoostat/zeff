@@ -1307,6 +1307,12 @@ fn time_cases() -> Vec<Line> {
     // of a variable of dates and of times, alone, by group and inside `aggregate`.
     let clock = "let t = datetime(\"2026-10-16T09:30:07.9\")\n[hour(t), minute(t), second(t)]\n[hour(datetime(\"2026-10-16\")), hour(datetime(\"1999-12-31T23:59:59\")), second(datetime(\"1999-12-31T23:59:59\"))]\ndatetime(1763200800, epoch: seconds)\ndatetime(1763200800250, epoch: milliseconds)\ndatetime(-1.5, epoch: seconds)\ndatetime(253402300799999, epoch: milliseconds)\ndatetime(253402300800, epoch: seconds)\nlet raw = frame(ts = [1763200800, 0, NA, -62135596800])\nraw.add(t = datetime(ts, epoch: seconds)).add(h = hour(t), m = minute(t), s = second(t), y = year(t))\nlet v = frame(clinic = [\"a\", \"a\", \"b\", \"b\", \"b\"], arrived = [datetime(\"2026-03-02T09:15\"), datetime(\"2026-03-02T17:40\"), NA, datetime(\"2026-03-03T08:00\"), datetime(\"2026-03-01T23:59:59\")], opened = [date(\"2026-03-02\"), date(\"2026-03-02\"), date(\"2026-03-04\"), NA, date(\"2026-03-01\")])\n[v.min(opened), v.max(opened)]\n[v.min(arrived), v.max(arrived)]\nv.max(arrived, by: clinic)\nv.aggregate(start = min(arrived), finish = max(arrived), since = min(opened), by: clinic)\nv.add(day_of_study = time_between(min(opened), opened))\nhour(v.max(arrived))\n";
     let clocked = run_script(&fs, &project, "scripts/main.zeff", clock);
+    // A date from numbers and the start of a period (release 0.8.0, step 8f): `date(year, month,
+    // day)` on values and on columns, with numbers that name no date; `start_of` in each of its
+    // six units on a date and on a time, on columns, and feeding `aggregate`; and the hour of a
+    // date refused.
+    let starts = "date(2026, 3, 15)\ndate(2026, 3)\ndate(2026, 2, 30)\ndate(9999, 12, 31)\nlet q = frame(year = [2025, 2025, 2026, 2026, NA], qtr = [3, 4, 1, 13, 2])\nq.add(period = date(year, qtr * 3 - 2))\nlet d = date(\"2026-10-16\")\n[start_of(d, day), start_of(d, week), start_of(d, month), start_of(d, quarter), start_of(d, year)]\nlet t = datetime(\"2026-10-16T09:30:07.25\")\n[start_of(t, hour), start_of(t, day), start_of(t, week), start_of(t, month), start_of(t, quarter), start_of(t, year)]\nstart_of(date(\"2026-01-01\"), week)\nlet v = frame(day = [date(\"2026-01-05\"), date(\"2026-01-28\"), date(\"2026-02-03\"), NA], cost = [40, 55, 30, 20])\nv.add(month = start_of(day, month), week = start_of(day, week))\nv.add(month = start_of(day, month)).aggregate(visits = n(), cost = sum(cost), by: month)\nstart_of(d, hour)\n";
+    let started = run_script(&fs, &project, "scripts/main.zeff", starts);
     let arithmetic = "let d = date(\"2026-01-31\")\nadd_days(d, 30)\nadd_days(d, -31)\nadd_months(d, 1)\nadd_months(date(\"2024-01-31\"), 1)\nadd_months(d, -11)\nadd_months(date(\"9999-12-31\"), 1)\ntime_between(d, date(\"2026-03-01\"))\ntime_between(datetime(\"2026-01-31T23:00\"), datetime(\"2026-02-02T22:59\"))\ntime_between(d, date(\"2026-02-28\"), unit: month)\ntime_between(date(\"2026-03-31\"), d, unit: month)\nadd_days(datetime(\"2026-01-31T09:30\"), 1)\nlet f = frame(d = [d, date(\"2024-02-29\"), date(\"0001-01-01\")])\nf.add(later = add_months(d, 12), gap = time_between(d, date(\"2026-11-01\")), back = add_days(d, -1))\ntoday()\nnow()\ntime_between(today(), date(\"2027-01-01\"))\n";
     let moved = run_script(&fs, &project, "scripts/main.zeff", arithmetic);
     // `time_between` (release 0.8.0, step 8d): every unit on two dates and on two times, both
@@ -1345,6 +1351,8 @@ fn time_cases() -> Vec<Line> {
         text("time/parts/stderr", &outcome.output.stderr),
         text("time/clock/stdout", &clocked.output.stdout),
         text("time/clock/stderr", &clocked.output.stderr),
+        text("time/start_of/stdout", &started.output.stdout),
+        text("time/start_of/stderr", &started.output.stderr),
         text("time/arithmetic/stdout", &moved.output.stdout),
         text("time/arithmetic/stderr", &moved.output.stderr),
         text("time/between/stdout", &counted.output.stdout),
@@ -1996,6 +2004,16 @@ fn plot_cases() -> Vec<Line> {
     let data = zeff_engine::fs::FileSystem::read(&fs, Path::new("/g/output/labels.svg"))
         .unwrap_or_default();
     fills.push(bytes("plots/labels/labels.svg", &data));
+    // A date axis from numbers (release 0.8.0, step 8f; open decision #96): a file that carries
+    // the year and the month as two Int variables, made a date with `date(year, month)` and
+    // drawn as a line against it; what the script prints and the figure.
+    let script = "let s = frame(year = [2025, 2025, 2025, 2026, 2026, 2026], month = [10, 11, 12, 1, 2, 3], sales = [12.0, 15, 21, 9, 11, 14])\nlet p = s.add(period = date(year, month)).line(period, sales)\np\nexport(p, \"date_axis.svg\")\n";
+    let dated = run_script(&fs, &project, "scripts/main.zeff", script);
+    fills.push(text("plots/date_axis/stdout", &dated.output.stdout));
+    fills.push(text("plots/date_axis/stderr", &dated.output.stderr));
+    let data = zeff_engine::fs::FileSystem::read(&fs, Path::new("/g/output/date_axis.svg"))
+        .unwrap_or_default();
+    fills.push(bytes("plots/date_axis/date_axis.svg", &data));
     // An axis of categories (step 24a): the wages by industry as points, the means of the
     // industries joined, and a category on each axis; what the script prints and the first
     // figure in the three formats, with a label under each place.

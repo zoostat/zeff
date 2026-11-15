@@ -167,6 +167,44 @@ pub fn whole_days_between(start: i64, end: i64) -> i64 {
     (end - start) / MICROS_PER_DAY
 }
 
+/// A stretch of the calendar or of the clock that a date or a time can be moved back to the
+/// start of: `start_of` in the language (open decision #96).
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum Period {
+    Hour,
+    Day,
+    /// From Monday, as `weekday_of` counts.
+    Week,
+    Month,
+    Quarter,
+    Year,
+}
+
+/// The first day of the period a day lies in: the day itself, the Monday of its week, the first
+/// of its month, of its quarter or of its year. `Hour` has no meaning for a day and gives the
+/// day. The calendar starts on a Monday, so no start falls before it.
+pub fn start_of_day(days: i32, period: Period) -> i32 {
+    let (year, month, _) = civil_from_days(days);
+    let first = |month: u32| days_from_civil(year, month, 1).unwrap_or(days);
+    match period {
+        Period::Hour | Period::Day => days,
+        Period::Week => days - (weekday_of(days) as i32 - 1),
+        Period::Month => first(month),
+        Period::Quarter => first((month - 1) / 3 * 3 + 1),
+        Period::Year => first(1),
+    }
+}
+
+/// The first instant of the period a timestamp lies in: the start of its hour, midnight of its
+/// day, or midnight of the first day of its week, month, quarter or year.
+pub fn start_of_micros(micros: i64, period: Period) -> i64 {
+    let (day, within) = split_micros(micros);
+    match period {
+        Period::Hour => micros - within % (3_600 * MICROS_PER_SECOND),
+        other => micros_of_days(start_of_day(day, other)),
+    }
+}
+
 /// The hour (0 to 23), the minute and the whole second (0 to 59 each) of a timestamp's time of
 /// day; a fraction of a second is dropped.
 pub fn clock_of_micros(micros: i64) -> (u32, u32, u32) {
@@ -898,6 +936,81 @@ mod tests {
         assert_eq!(whole_days_between(0, MICROS_PER_DAY * 2 - 1), 1);
         assert_eq!(whole_days_between(MICROS_PER_DAY * 2 - 1, 0), -1);
         assert_eq!(whole_days_between(0, -MICROS_PER_DAY), -1);
+    }
+
+    #[test]
+    fn the_start_of_a_period() {
+        let d = |y, m, dd| days_from_civil(y, m, dd).unwrap();
+        // Friday 16 October 2026.
+        let day = d(2026, 10, 16);
+        assert_eq!(start_of_day(day, Period::Day), day);
+        assert_eq!(start_of_day(day, Period::Hour), day);
+        assert_eq!(
+            start_of_day(day, Period::Week),
+            d(2026, 10, 12),
+            "the Monday"
+        );
+        assert_eq!(start_of_day(d(2026, 10, 12), Period::Week), d(2026, 10, 12));
+        assert_eq!(
+            start_of_day(d(2026, 10, 18), Period::Week),
+            d(2026, 10, 12),
+            "Sunday"
+        );
+        assert_eq!(
+            start_of_day(d(2026, 1, 1), Period::Week),
+            d(2025, 12, 29),
+            "a Thursday"
+        );
+        assert_eq!(start_of_day(day, Period::Month), d(2026, 10, 1));
+        assert_eq!(start_of_day(d(2024, 2, 29), Period::Month), d(2024, 2, 1));
+        assert_eq!(start_of_day(day, Period::Quarter), d(2026, 10, 1));
+        assert_eq!(start_of_day(d(2026, 3, 31), Period::Quarter), d(2026, 1, 1));
+        assert_eq!(start_of_day(d(2026, 6, 30), Period::Quarter), d(2026, 4, 1));
+        assert_eq!(start_of_day(d(2026, 9, 1), Period::Quarter), d(2026, 7, 1));
+        assert_eq!(
+            start_of_day(d(2026, 12, 31), Period::Quarter),
+            d(2026, 10, 1)
+        );
+        assert_eq!(start_of_day(day, Period::Year), d(2026, 1, 1));
+        // The ends of the calendar: its first day is a Monday, so every start is in it.
+        for period in [
+            Period::Day,
+            Period::Week,
+            Period::Month,
+            Period::Quarter,
+            Period::Year,
+        ] {
+            assert_eq!(start_of_day(MIN_DAYS, period), MIN_DAYS);
+            assert!(start_of_day(MAX_DAYS, period) >= d(9999, 1, 1));
+            assert!(start_of_day(MAX_DAYS, period) <= MAX_DAYS);
+        }
+        assert_eq!(start_of_day(MAX_DAYS, Period::Week), d(9999, 12, 27));
+        // Times: the start of the hour, midnight, and midnight of the first day.
+        let at = |y, m, dd, h: i64, min: i64, sec: i64| {
+            micros_of_days(d(y, m, dd)) + (h * 3_600 + min * 60 + sec) * MICROS_PER_SECOND
+        };
+        let t = at(2026, 10, 16, 9, 30, 7) + 250_000;
+        assert_eq!(start_of_micros(t, Period::Hour), at(2026, 10, 16, 9, 0, 0));
+        assert_eq!(start_of_micros(t, Period::Day), at(2026, 10, 16, 0, 0, 0));
+        assert_eq!(start_of_micros(t, Period::Week), at(2026, 10, 12, 0, 0, 0));
+        assert_eq!(start_of_micros(t, Period::Month), at(2026, 10, 1, 0, 0, 0));
+        assert_eq!(
+            start_of_micros(t, Period::Quarter),
+            at(2026, 10, 1, 0, 0, 0)
+        );
+        assert_eq!(start_of_micros(t, Period::Year), at(2026, 1, 1, 0, 0, 0));
+        let exact = at(2026, 10, 16, 9, 0, 0);
+        assert_eq!(start_of_micros(exact, Period::Hour), exact);
+        // Before 1970 the hour still starts below the time.
+        assert_eq!(
+            start_of_micros(at(1969, 12, 31, 23, 59, 59), Period::Hour),
+            at(1969, 12, 31, 23, 0, 0)
+        );
+        assert_eq!(
+            start_of_micros(-1, Period::Hour),
+            at(1969, 12, 31, 23, 0, 0)
+        );
+        assert_eq!(start_of_micros(-1, Period::Day), at(1969, 12, 31, 0, 0, 0));
     }
 
     #[test]

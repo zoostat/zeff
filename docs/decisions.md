@@ -5458,3 +5458,15 @@ Done before parts 1 and 2 are read, because those wait for jobs that run for hou
 
 **Reason.** A push with a failing CI job is a fault of the routine, not of the job.
 
+## 15 November 2026: `date(year, month, day)` and `start_of(d, unit)` (release 0.8.0, step 8f; open decision #96)
+
+**Choice.** *A date from numbers.* `date(2026, 3, 15)` is 15 March 2026 and `date(2026, 3)` the first of the month; the three are Ints or Int columns, row by row, so `date(year, qtr * 3 - 2)` turns a year and a quarter into the quarter's first day. The day may be written by position or as `day:`. Numbers that name no day (a month 13, a 30 February, a year 0) are `NA` with a warning (W0203) in its own words, and `NA` in any part is `NA` without one, as `date` treats text. A year without a month is refused (Z0401), with the way to read a number such as 20260315; so is a month beside text (Z0401) and `format:` beside numbers (Z0410). The first parameter keeps the name `s`. *The start of a period.* `start_of(d, month)` gives the first day of the month of `d`, and `hour`, `day`, `week`, `quarter` and `year` likewise; a `Date` gives a `Date`, a `DateTime` the first instant of the period. A week starts on Monday, as `weekday` counts and as #96 says; quarters are the calendar's. The unit is a bare word in the second place, as #96 writes it. `hour` on a `Date` is refused (Z0401), as the units of the clock are in `time_between`.
+
+**Against R.** `tests/reference/r/time.R`: fourteen triples of numbers by `ISOdate`, six of which name no date; the start of the day, week, month, quarter and year of 28 dates and, with the hour, of 16 times, written out in base R. Every value agrees. The same 250 values were compared once with `lubridate` 1.9.5 (`floor_date` with `week_start = 1`, `make_date`): none differ where `make_date` names a date; for an impossible day `make_date` rolls into the next month, where `ISOdate` and the engine give `NA`.
+
+**The figure.** The checklist's test of done is a date axis drawn from a year and a month held as numbers. The conformance case `plots/date_axis` draws six months of a series against `date(year, month)`; the figure was read by eye: a date axis with a tick at each month, every second one labelled `2025-10`, `2025-12`, `2026-02`, and the line through the six points.
+
+**Held by.** `a_date_from_numbers_and_the_start_of_a_period_agree_with_r`, the edge cases and every message, stored; the kernel's tests; the examples of the two pages and the common mistake of `start_of` (the unit in quotes); the conformance cases `time/start_of` and `plots/date_axis`. The editor grammar's option words were written again for `unit`, and its check run, before the commit.
+
+**Reason.** Open decision #96; the checklist's step 8f.
+

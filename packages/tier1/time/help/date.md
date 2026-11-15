@@ -16,9 +16,18 @@ applies row by row and counts the rows that became `NA` in one warning. R's `as.
 same forms and also a two-digit year under `%Y`, which Zeff refuses; Stata's `date()` takes a
 mask such as `"DMY"` in place of a format.
 
+Given numbers, `date(year, month, day)` is the day they name, and `date(year, month)` the first
+of the month: the way from a file that carries `year` and `month`, or `year` and `quarter`, as
+numbers to a `Date` that plots on a date axis and declares a panel's time. The three are Ints or
+Int columns, row by row. Numbers that name no day, a month 13 or a 30 February, become `NA` with
+a warning (W0203), as text does; `NA` in any of them gives `NA`. Like R's `ISOdate(year, month,
+day)` and Stata's `mdy(month, day, year)`.
+
 ## Arguments
-- s: The text, or a column of text.
-- format: The format the text is written in, when it is not ISO 8601.
+- s: The text, or a column of text; or, with a month after it, the year as an Int.
+- month: With a year in `s`, the month, 1 to 12.
+- day: With a year and a month, the day of the month; 1 unless given.
+- format: The format the text is written in, when it is not ISO 8601. Not given with numbers.
 
 ## Value
 A `Date`; a column of dates when `s` is a column.
@@ -51,3 +60,19 @@ frame · 3 rows × 2 variables
   3   2026-03-01   2026-03-01
 warning[W0203]: text that is not a date in ISO 8601 became NA in 1 row (line 6)
   = help: `to(s, Date)` and `to(s, DateTime)` name the failing values; a format is written as `strftime` writes it, `format: "%d/%m/%Y"`
+> date(2026, 3, 15)
+2026-03-15
+> date(2026, 3)
+2026-03-01
+> date(2026, 2, 30)
+NA
+warning[W0203]: a year, a month and a day that name no date became NA (line 9)
+  = help: a month runs from 1 to 12 and a day to the length of its month; the calendar runs from year 1 to 9999
+> let quarters = frame(year = [2025, 2025, 2026], qtr = [3, 4, 1], sales = [10, 12, 9])
+> quarters.add(period = date(year, qtr * 3 - 2))
+frame · 3 rows × 4 variables
+
+      year   qtr   sales   period
+  1   2025     3      10   2025-07-01
+  2   2025     4      12   2025-10-01
+  3   2026     1       9   2026-01-01

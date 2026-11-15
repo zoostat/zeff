@@ -178,8 +178,47 @@ extremes_out <- list(
   })
 )
 
+# A date from numbers and the start of a period (release 0.8.0, step 8f). `ISOdate` names the day
+# of a year, a month and a day, or `NA` when they name none. The start of the day, the week from
+# Monday, the month, the quarter and the year of each date of the working grid inside the years
+# R prints, and of each of the sixteen times, with the start of the hour: the day counts and the
+# ISO texts, written out in base R (`lubridate::floor_date` gives the same, with
+# `week_start = 1`).
+parts_grid <- list(c(2026, 3, 15), c(2026, 3, 1), c(2024, 2, 29), c(2023, 2, 29), c(2026, 2, 30), c(2026, 13, 1),
+                   c(2026, 0, 1), c(2026, 4, 31), c(1999, 12, 31), c(2000, 2, 29), c(1900, 2, 29), c(2026, 1, 0),
+                   c(9999, 12, 31), c(1970, 1, 1))
+from_parts_out <- lapply(parts_grid, function(p) {
+  d <- suppressWarnings(as.Date(ISOdate(p[1], p[2], p[3], tz = "UTC")))
+  list(year = as.integer(p[1]), month = as.integer(p[2]), day = as.integer(p[3]), days = days(d))
+})
+start_day <- function(d, unit) {
+  lt <- as.POSIXlt(d, tz = "UTC")
+  switch(unit,
+    day = d,
+    week = d - (as.integer(format(d, "%u")) - 1L),
+    month = as.Date(sprintf("%04d-%02d-01", lt$year + 1900L, lt$mon + 1L), format = "%Y-%m-%d"),
+    quarter = as.Date(sprintf("%04d-%02d-01", lt$year + 1900L, (lt$mon %/% 3L) * 3L + 1L), format = "%Y-%m-%d"),
+    year = as.Date(sprintf("%04d-01-01", lt$year + 1900L), format = "%Y-%m-%d"))
+}
+start_units <- c("day", "week", "month", "quarter", "year")
+start_grid <- grid[as.integer(format(grid, "%Y")) >= 1000]
+start_dates_out <- lapply(seq_along(start_grid), function(i) {
+  starts <- lapply(start_units, function(u) days(start_day(start_grid[i], u)))
+  names(starts) <- start_units
+  c(list(d = format(start_grid[i], "%Y-%m-%d")), starts)
+})
+start_times_out <- lapply(seq_along(tb), function(i) {
+  day <- as.Date(tb[i], tz = "UTC")
+  starts <- lapply(start_units, function(u) paste0(format(start_day(day, u), "%Y-%m-%d"), "T00:00:00"))
+  names(starts) <- start_units
+  c(list(t = tb_texts[i], hour = format(tb[i], "%Y-%m-%dT%H:00:00", tz = "UTC")), starts)
+})
+
 out <- list(
   reference = reference_block(),
+  from_parts = from_parts_out,
+  start_dates = start_dates_out,
+  start_times = start_times_out,
   clock = clock_out,
   epoch = epoch_out,
   extremes = extremes_out,

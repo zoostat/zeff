@@ -64,13 +64,13 @@ error[Z0409]: `%d/%m/%Y %M` is not a date format: the format has a minute or sec
 
 date(20261016)
 ---
-error[Z0401]: `s` of `date` must be a Str, but this is an Int
+error[Z0401]: `date` from numbers needs a month: `date(year, month)`
  --> scripts/main.zeff:1:6
   |
 1 | date(20261016)
-  |      ^^^^^^^^ an Int
+  |      ^^^^^^^^ a year alone
   |
-  = help: usage: `date(s, format: Str)`
+  = help: `date(2026, 3)` is 1 March 2026 and `date(2026, 3, 15)` the 15th; a number such as 20260315 is first made text, `date(to(n, Str), format: "%Y%m%d")`
 
 year("2026-10-16")
 ---
@@ -397,6 +397,149 @@ error[Z0401]: `s` of `upper` must be a Str, but this is a DateTime
   |       ^^^^^^^^ a DateTime
   |
   = help: usage: `upper(s)`
+
+date(2026)
+---
+error[Z0401]: `date` from numbers needs a month: `date(year, month)`
+ --> scripts/main.zeff:1:6
+  |
+1 | date(2026)
+  |      ^^^^ a year alone
+  |
+  = help: `date(2026, 3)` is 1 March 2026 and `date(2026, 3, 15)` the 15th; a number such as 20260315 is first made text, `date(to(n, Str), format: "%Y%m%d")`
+
+date("2026-10-16", 3)
+---
+error[Z0401]: `date` reads text whole, but a month or a day is given beside it
+ --> scripts/main.zeff:1:20
+  |
+1 | date("2026-10-16", 3)
+  |                    ^ goes with a year
+  |
+  = help: text is read as `date(s)` or `date(s, format: "%d/%m/%Y")`; numbers as `date(year, month, day)`
+
+date("2026-10-16", day: 3)
+---
+error[Z0401]: `date` reads text whole, but a month or a day is given beside it
+ --> scripts/main.zeff:1:25
+  |
+1 | date("2026-10-16", day: 3)
+  |                         ^ goes with a year
+  |
+  = help: text is read as `date(s)` or `date(s, format: "%d/%m/%Y")`; numbers as `date(year, month, day)`
+
+date(2026, 3, format: "%Y-%m-%d")
+---
+error[Z0410]: `date` takes text with `format:`, or numbers without it
+ --> scripts/main.zeff:1:23
+  |
+1 | date(2026, 3, format: "%Y-%m-%d")
+  |                       ^^^^^^^^^^ `format:` beside a year
+  |
+  = help: `format:` says how text is written; a year, a month and a day need none: `date(year, month, day)`
+
+date(2026.5, 3)
+---
+error[Z0401]: `s` of `date` must be a Str or Int, but this is a Float
+ --> scripts/main.zeff:1:6
+  |
+1 | date(2026.5, 3)
+  |      ^^^^^^ a Float
+  |
+  = help: usage: `date(s, month, day, format: Str)`
+
+date(2026, 3.0)
+---
+error[Z0401]: `month` of `date` must be an Int, but this is a Float
+ --> scripts/main.zeff:1:12
+  |
+1 | date(2026, 3.0)
+  |            ^^^ a Float
+  |
+  = help: usage: `date(s, month, day, format: Str)`
+
+let f = frame(y = [2026, 2027])
+f.add(d = date(y))
+---
+error[Z0401]: `date` from numbers needs a month: `date(year, month)` (row 1)
+ --> scripts/main.zeff:2:16
+  |
+2 | f.add(d = date(y))
+  |                ^ a year alone
+  |
+  = help: `date(2026, 3)` is 1 March 2026 and `date(2026, 3, 15)` the 15th; a number such as 20260315 is first made text, `date(to(n, Str), format: "%Y%m%d")`
+
+let f = frame(y = [2026.0, 2027.0], m = [1, 2])
+f.add(d = date(y, m))
+---
+error[Z0401]: `s` of `date` must be a Str or an Int, but this is a column of Float
+ --> scripts/main.zeff:2:16
+  |
+2 | f.add(d = date(y, m))
+  |                ^ a column of Float
+  |
+  = help: a function given a column applies to every row, and the rows must be of a type it takes; `to(x, Str)` writes a value as text and `to(x, Float)` reads one
+
+start_of(date("2026-10-16"), "month")
+---
+error[Z0403]: expected one of hour, day, week, month, quarter, year, found text
+ --> scripts/main.zeff:1:30
+  |
+1 | start_of(date("2026-10-16"), "month")
+  |                              ^^^^^^^ a word, not a string
+  |
+  = help: write the word without quotes: `month`
+
+start_of(date("2026-10-16"))
+---
+error[Z0406]: `start_of` needs `unit`
+ --> scripts/main.zeff:1:1
+  |
+1 | start_of(date("2026-10-16"))
+  | ^^^^^^^^ `unit` is missing
+  |
+  = help: usage: `start_of(d, unit)`
+
+start_of(date("2026-10-16"), months)
+---
+error[Z0402]: `months` is not one of the allowed words
+ --> scripts/main.zeff:1:30
+  |
+1 | start_of(date("2026-10-16"), months)
+  |                              ^^^^^^ expected one of hour, day, week, month, quarter, year
+  |
+  = help: did you mean `month`?
+
+start_of(date("2026-10-16"), hour)
+---
+error[Z0401]: the start of the hour needs a time of day, but `d` is a Date
+ --> scripts/main.zeff:1:30
+  |
+1 | start_of(date("2026-10-16"), hour)
+  |                              ^^^^ a unit of the clock
+  |
+  = help: a Date has no time of day: ask for the `day`, `week`, `month`, `quarter` or `year`, or give a DateTime
+
+let f = frame(d = [date("2026-10-16")])
+f.add(h = start_of(d, hour))
+---
+error[Z0401]: the start of the hour needs a time of day, but `d` is a Date (row 1)
+ --> scripts/main.zeff:2:23
+  |
+2 | f.add(h = start_of(d, hour))
+  |                       ^^^^ a unit of the clock
+  |
+  = help: a Date has no time of day: ask for the `day`, `week`, `month`, `quarter` or `year`, or give a DateTime
+
+start_of(20261016, month)
+---
+error[Z0401]: `d` of `start_of` must be a Date or DateTime, but this is an Int
+ --> scripts/main.zeff:1:10
+  |
+1 | start_of(20261016, month)
+  |          ^^^^^^^^ an Int
+  |
+  = help: usage: `start_of(d, unit)`
 
 days_between(date("2026-10-16"), date("2026-10-17"))
 ---

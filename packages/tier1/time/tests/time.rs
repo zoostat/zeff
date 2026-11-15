@@ -513,6 +513,86 @@ fn the_earliest_and_latest_of_dates_and_times_agree_with_r() {
 }
 
 #[test]
+fn a_date_from_numbers_and_the_start_of_a_period_agree_with_r() {
+    let json = reference("time");
+    // A year, a month and a day: the day they name, or `NA` where they name none.
+    let cases = json["from_parts"].as_array().unwrap();
+    let expressions: Vec<String> = cases
+        .iter()
+        .map(|c| format!("date({}, {}, {})", c["year"], c["month"], c["day"]))
+        .collect();
+    let (lines, stderr) = printed(&expressions);
+    let mut missing = 0;
+    for (i, c) in cases.iter().enumerate() {
+        let wanted = calendar_day(c["days"].as_str().unwrap());
+        missing += usize::from(wanted == "NA");
+        assert_eq!(
+            lines[i], wanted,
+            "date({}, {}, {})",
+            c["year"], c["month"], c["day"]
+        );
+    }
+    assert!(missing >= 6);
+    assert_eq!(
+        stderr
+            .lines()
+            .filter(|l| l.starts_with("warning[W0203]"))
+            .count(),
+        missing,
+        "{stderr}"
+    );
+    // The start of the day, week, month, quarter and year of each date of the grid.
+    let units = ["day", "week", "month", "quarter", "year"];
+    let cases = json["start_dates"].as_array().unwrap();
+    assert_eq!(cases.len(), 28);
+    let expressions: Vec<String> = cases
+        .iter()
+        .flat_map(|c| {
+            let d = c["d"].as_str().unwrap();
+            units
+                .iter()
+                .map(move |unit| format!("start_of(date(\"{d}\"), {unit})"))
+        })
+        .collect();
+    let (lines, stderr) = printed(&expressions);
+    assert_eq!(stderr, "");
+    for (i, c) in cases.iter().enumerate() {
+        for (k, unit) in units.iter().enumerate() {
+            assert_eq!(
+                lines[units.len() * i + k],
+                calendar_day(c[*unit].as_str().unwrap()),
+                "{unit} of {}",
+                c["d"]
+            );
+        }
+    }
+    // And of each of the sixteen times, with the start of the hour.
+    let units = ["hour", "day", "week", "month", "quarter", "year"];
+    let cases = json["start_times"].as_array().unwrap();
+    let expressions: Vec<String> = cases
+        .iter()
+        .flat_map(|c| {
+            let t = c["t"].as_str().unwrap();
+            units
+                .iter()
+                .map(move |unit| format!("start_of(datetime(\"{t}\"), {unit})"))
+        })
+        .collect();
+    let (lines, stderr) = printed(&expressions);
+    assert_eq!(stderr, "");
+    for (i, c) in cases.iter().enumerate() {
+        for (k, unit) in units.iter().enumerate() {
+            assert_eq!(
+                lines[units.len() * i + k],
+                c[*unit].as_str().unwrap(),
+                "{unit} of {}",
+                c["t"]
+            );
+        }
+    }
+}
+
+#[test]
 fn today_and_now_read_the_run_clock_and_note_it() {
     let outcome = run_clocked(
         "today()\nnow()\nlet t = today()\ntime_between(t, date(\"2027-01-01\"))\nyear(now())\nto(now(), Date) == today()\n",
@@ -607,6 +687,30 @@ datetime(0.0000004, epoch: seconds)
 datetime(0.0000005, epoch: seconds)
 let raw = frame(ts = [1763200800, 0, NA, 999999999999999], ms = [1763200800250.0, 1.5, NA, 0.0])
 raw.add(t = datetime(ts, epoch: seconds), u = datetime(ms, epoch: milliseconds)).add(h = hour(t), m = minute(u), s = second(u))
+date(2026, 3)
+date(2026, 3, day: 31)
+date(1, 1, 1)
+date(9999, 12, 31)
+date(0, 1, 1)
+date(10000, 1, 1)
+date(2026, -1, 1)
+date(NA, 3, 1)
+date(2026, NA)
+date(2026, 3, NA)
+year(date(2026, 3, 15)) * 10000 + month(date(2026, 3, 15)) * 100 + day(date(2026, 3, 15))
+let q = frame(year = [2025, 2025, 2026, 2026, NA], qtr = [3, 4, 1, 13, 2], dom = [1, 31, NA, 1, 1])
+q.add(period = date(year, qtr * 3 - 2), exact = date(year, qtr, dom))
+start_of(date("0001-01-01"), week)
+start_of(date("9999-12-31"), year)
+start_of(date("2026-10-16"), day)
+start_of(NA, month)
+start_of(datetime("1969-12-31T23:59:59.999999"), hour)
+start_of(datetime("2026-10-16T09:30:07.25"), week)
+date("2026-10-16").start_of(quarter)
+start_of(start_of(date("2026-08-31"), quarter), year)
+let s = frame(day = [date("2026-01-05"), date("2026-01-28"), date("2026-02-03"), NA], at = [datetime("2026-01-05T09:15"), datetime("2026-01-05T09:45"), NA, datetime("2026-02-03T23:59:59")])
+s.add(month = start_of(day, month), week = start_of(day, week), hour = start_of(at, hour), midnight = start_of(at, day))
+s.add(month = start_of(day, month)).aggregate(visits = n(), by: month)
 let v = frame(clinic = ["a", "a", "b", "b", "b"], arrived = [datetime("2026-03-02T09:15"), datetime("2026-03-02T17:40"), NA, datetime("2026-03-03T08:00"), datetime("2026-03-01T23:59:59")], opened = [date("2026-03-02"), date("2026-03-02"), date("2026-03-04"), NA, date("2026-03-01")], w = [1, 0, 1, 1, 0])
 v.min(opened)
 v.max(arrived)
@@ -685,6 +789,23 @@ fn every_message() {
         "let f = frame(d = [date(\"2026-10-16\"), NA])\nf.mean(d)\n",
         "let f = frame(d = [date(\"2026-10-16\"), NA])\nf.max(d) + 1\n",
         "let f = frame(t = [datetime(\"2026-10-16T09:30\")])\nupper(f.min(t))\n",
+        // A date from numbers and the start of a period (step 8f): a year alone; a month beside
+        // text; a format beside numbers; a number that is no Int; the unit in quotes, left out,
+        // misspelt; the hour of a date, on a value and on a column.
+        "date(2026)\n",
+        "date(\"2026-10-16\", 3)\n",
+        "date(\"2026-10-16\", day: 3)\n",
+        "date(2026, 3, format: \"%Y-%m-%d\")\n",
+        "date(2026.5, 3)\n",
+        "date(2026, 3.0)\n",
+        "let f = frame(y = [2026, 2027])\nf.add(d = date(y))\n",
+        "let f = frame(y = [2026.0, 2027.0], m = [1, 2])\nf.add(d = date(y, m))\n",
+        "start_of(date(\"2026-10-16\"), \"month\")\n",
+        "start_of(date(\"2026-10-16\"))\n",
+        "start_of(date(\"2026-10-16\"), months)\n",
+        "start_of(date(\"2026-10-16\"), hour)\n",
+        "let f = frame(d = [date(\"2026-10-16\")])\nf.add(h = start_of(d, hour))\n",
+        "start_of(20261016, month)\n",
         "days_between(date(\"2026-10-16\"), date(\"2026-10-17\"))\n",
         "months_between(date(\"2026-10-16\"), date(\"2026-11-17\"))\n",
         "let f = frame(a = [date(\"2026-10-16\")])\nf.add(g = days_between(a, date(\"2026-11-01\")))\n",

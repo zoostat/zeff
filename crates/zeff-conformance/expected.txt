@@ -188,6 +188,8 @@ time/parts/stdout 9d8407bf30ba8484
 time/parts/stderr cb2442f2589bec96
 time/clock/stdout 4ff655d44e488478
 time/clock/stderr 11ae083e3b74119a
+time/start_of/stdout 816c52270d1c7cde
+time/start_of/stderr bde03fc41a63f4de
 time/arithmetic/stdout 8e2948fe3d0e9221
 time/arithmetic/stderr 6a11d8fbcfd0c419
 time/between/stdout 861fd9a776e031f0
@@ -302,6 +304,9 @@ plot/rug/rug.png 719c754e4b71575e
 plots/labels/stdout e48b17e26d9f4eaa
 plots/labels/stderr cd5c0fd7d48a43b2
 plots/labels/labels.svg f96eb92fc4b7190d
+plots/date_axis/stdout 471dd345735f17a5
+plots/date_axis/stderr cbf29ce484222325
+plots/date_axis/date_axis.svg b4e827f1f7570aa2
 plot/categories/stdout 37e887b8208eb9e1
 plot/categories/stderr c4acf2bd34822a80
 plot/categories/categories.svg 50aa051869d10d08

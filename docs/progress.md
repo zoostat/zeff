@@ -130,3 +130,13 @@ Step 2: the help contract of 0.8.0 (#103) in section 9.1 and in the registry, wi
 
 **For the owner to decide.** Nothing blocks.
 
+## 15 November 2026, release 0.8.0, step 8f (`date` from numbers, `start_of`), and what CI showed
+
+**Done.** Step 8f `[function]`: `date(year, month, day)` makes a date from numbers, and `start_of(d, unit)` gives the start of the hour, day, week, month, quarter or year a date or time lies in; a date axis is drawn from a year and a month held as numbers. Every value agrees with R. Before it, two things found by reading CI were mended in commits of their own: the count of missing rows in `aggregate` (two reducers on one variable counted them twice), and the editor grammar's list of option words, which steps 8d and 8e had left stale, so that CI's grammar job failed on three pushes. The local routine now runs the grammar check. Another session added three correction steps to the checklist (8l, 8m, 8n).
+
+**Green.** Format, clippy with warnings denied, the tier, message and grammar checks, every test of the workspace; CI read after the push.
+
+**Next.** Step 8g `[function]`: `add_time(d, n, unit:)` in the place of `add_days` and `add_months` (#97).
+
+**For the owner to decide.** Nothing blocks.
+

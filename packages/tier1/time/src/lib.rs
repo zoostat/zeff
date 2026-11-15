@@ -11,7 +11,7 @@
 use zeff_core::runtime::{Args, CallContext, Fail, Function, fail};
 use zeff_core::value::Value;
 use zeff_dates::{
-    DateFormat, EpochUnit, FixedUnit, civil_from_days, days_of_micros, format_iso_date,
+    DateFormat, EpochUnit, FixedUnit, Period, civil_from_days, days_of_micros, format_iso_date,
     format_iso_datetime, iso_week, micros_of_days, parse_iso_date, parse_iso_datetime, quarter_of,
     weekday_of,
 };
@@ -36,14 +36,15 @@ fn format_of(
     ctx: &CallContext<'_>,
     args: &Args,
     function: &str,
+    at: usize,
 ) -> Result<Option<DateFormat>, Fail> {
-    match args.get(1) {
+    match args.get(at) {
         None | Some(Value::Na) => Ok(None),
         Some(Value::Str(pattern)) => DateFormat::new(pattern).map(Some).map_err(|e| {
             fail(
                 Diagnostic::error("Z0409", format!("`{pattern}` is not a date format: {e}"))
                     .in_file(ctx.script)
-                    .primary(ctx.span_of(1), "the format")
+                    .primary(ctx.span_of(at), "the format")
                     .help(format!(
                         "a format is written as `strftime` writes it, with %Y, %y, %m, %b, %d, %H, %M and %S: `{function}(s, format: \"%d/%m/%Y\")`"
                     )),
@@ -77,31 +78,97 @@ fn offset_applied(ctx: &mut CallContext<'_>) {
     );
 }
 
-/// `date(s, format:)`: text as a calendar day, from ISO 8601 or the format given.
+/// `date(s, format:)`: text as a calendar day, from ISO 8601 or the format given; or
+/// `date(year, month, day)`: the day those three numbers name (open decision #96), `NA` with a
+/// warning when they name none.
 fn date(ctx: &mut CallContext<'_>, args: Args) -> Result<Value, Fail> {
-    let format = format_of(ctx, &args, "date")?;
-    let text = match args.get(0) {
+    // The parameters stand as `s` (or the year), `month`, `day`, `format:`.
+    let given = |at: usize| ctx.arg_spans.get(at).copied().flatten().is_some();
+    let (month_given, day_given) = (given(1), given(2));
+    let format = format_of(ctx, &args, "date", 3)?;
+    let year = match args.get(0) {
         None | Some(Value::Na) => return Ok(Value::Na),
-        Some(Value::Str(s)) => s.trim(),
-        Some(_) => return Err(internal(ctx, "a value that is not text")),
-    };
-    let parsed = match &format {
-        Some(f) => f.parse_date(text),
-        None => parse_iso_date(text),
-    };
-    Ok(match parsed {
-        Some(days) => Value::Date(days),
-        None => {
-            unreadable(ctx, "a date", format.as_ref());
-            Value::Na
+        Some(Value::Int(year)) => *year,
+        Some(Value::Str(s)) => {
+            if month_given || day_given {
+                let at = if month_given { 1 } else { 2 };
+                return Err(fail(
+                    Diagnostic::error(
+                        "Z0401",
+                        "`date` reads text whole, but a month or a day is given beside it",
+                    )
+                    .in_file(ctx.script)
+                    .primary(ctx.span_of(at), "goes with a year")
+                    .help("text is read as `date(s)` or `date(s, format: \"%d/%m/%Y\")`; numbers as `date(year, month, day)`"),
+                ));
+            }
+            let text = s.trim();
+            let parsed = match &format {
+                Some(f) => f.parse_date(text),
+                None => parse_iso_date(text),
+            };
+            return Ok(match parsed {
+                Some(days) => Value::Date(days),
+                None => {
+                    unreadable(ctx, "a date", format.as_ref());
+                    Value::Na
+                }
+            });
         }
-    })
+        Some(_) => return Err(internal(ctx, "a value that is neither text nor an Int")),
+    };
+    if format.is_some() {
+        return Err(fail(
+            Diagnostic::error("Z0410", "`date` takes text with `format:`, or numbers without it")
+                .in_file(ctx.script)
+                .primary(ctx.span_of(3), "`format:` beside a year")
+                .help("`format:` says how text is written; a year, a month and a day need none: `date(year, month, day)`"),
+        ));
+    }
+    if !month_given {
+        return Err(fail(
+            Diagnostic::error(
+                "Z0401",
+                "`date` from numbers needs a month: `date(year, month)`",
+            )
+            .in_file(ctx.script)
+            .primary(ctx.span_of(0), "a year alone")
+            .help("`date(2026, 3)` is 1 March 2026 and `date(2026, 3, 15)` the 15th; a number such as 20260315 is first made text, `date(to(n, Str), format: \"%Y%m%d\")`"),
+        ));
+    }
+    let part = |at: usize, unless_given: Option<i64>| -> Result<Option<i64>, Fail> {
+        match args.get(at) {
+            None => Ok(unless_given),
+            Some(Value::Na) => Ok(None),
+            Some(Value::Int(n)) => Ok(Some(*n)),
+            Some(_) => Err(internal(ctx, "a part of a date that is not an Int")),
+        }
+    };
+    let (Some(month), Some(day)) = (part(1, None)?, part(2, Some(1))?) else {
+        return Ok(Value::Na);
+    };
+    let named = i32::try_from(year)
+        .ok()
+        .zip(u32::try_from(month).ok())
+        .zip(u32::try_from(day).ok());
+    Ok(
+        match named.and_then(|((y, m), d)| zeff_dates::days_from_civil(y, m, d)) {
+            Some(days) => Value::Date(days),
+            None => {
+                ctx.message(
+                Diagnostic::warning("W0203", "a year, a month and a day that name no date became NA")
+                    .help("a month runs from 1 to 12 and a day to the length of its month; the calendar runs from year 1 to 9999"),
+            );
+                Value::Na
+            }
+        },
+    )
 }
 
 /// `datetime(s, format:)`: text as a date and time, from ISO 8601 (a date alone being midnight)
 /// or the format given, `Z` or an offset applied to reach UTC.
 fn datetime(ctx: &mut CallContext<'_>, args: Args) -> Result<Value, Fail> {
-    let format = format_of(ctx, &args, "datetime")?;
+    let format = format_of(ctx, &args, "datetime", 1)?;
     // `epoch:` reads a number as Unix time (open decision #96): seconds or milliseconds since
     // 1970-01-01 00:00:00 UTC. Text is read without it, and a number only with it, so that a
     // number such as 20261016 is never taken for a count of seconds by mistake.
@@ -273,6 +340,43 @@ fn int_at(ctx: &CallContext<'_>, args: &Args, at: usize) -> Result<Option<i64>, 
         Some(Value::Int(n)) => Ok(Some(*n)),
         Some(_) => Err(internal(ctx, "a count that is not an Int")),
     }
+}
+
+/// `start_of(d, unit)`: the first day, or the first instant, of the period `d` lies in, of the
+/// type of `d` (open decision #96): the hour, the day, the week from Monday, the month, the
+/// quarter or the year.
+fn start_of(ctx: &mut CallContext<'_>, args: Args) -> Result<Value, Fail> {
+    let (period, word) = match args.get(1) {
+        Some(Value::Word(w)) => match w.as_str() {
+            "hour" => (Period::Hour, "hour"),
+            "day" => (Period::Day, "day"),
+            "week" => (Period::Week, "week"),
+            "month" => (Period::Month, "month"),
+            "quarter" => (Period::Quarter, "quarter"),
+            "year" => (Period::Year, "year"),
+            _ => return Err(internal(ctx, "a word that is no unit of `start_of`")),
+        },
+        _ => return Err(internal(ctx, "`start_of` without its unit")),
+    };
+    Ok(match args.get(0) {
+        None | Some(Value::Na) => Value::Na,
+        Some(Value::Date(_)) if period == Period::Hour => {
+            return Err(fail(
+                Diagnostic::error(
+                    "Z0401",
+                    format!("the start of the {word} needs a time of day, but `d` is a Date"),
+                )
+                .in_file(ctx.script)
+                .primary(ctx.span_of(1), "a unit of the clock")
+                .help("a Date has no time of day: ask for the `day`, `week`, `month`, `quarter` or `year`, or give a DateTime"),
+            ));
+        }
+        Some(Value::Date(days)) => Value::Date(zeff_dates::start_of_day(*days, period)),
+        Some(Value::DateTime(micros)) => {
+            Value::DateTime(zeff_dates::start_of_micros(*micros, period))
+        }
+        Some(_) => return Err(internal(ctx, "a value that is not a date or a time")),
+    })
 }
 
 /// `add_days(d, n)`: the date or time `n` days later (earlier for a negative `n`), `NA` outside
@@ -587,7 +691,21 @@ pub fn functions() -> Vec<Function> {
                 package: "time",
                 method: false,
                 params: vec![
-                    ParamSpec::required("s", "Str"),
+                    ParamSpec::required("s", "Str | Int"),
+                    // The month and the day of the second form, `date(year, month, day)`: given
+                    // by position after the year, the day 1 unless given.
+                    ParamSpec {
+                        name: "month",
+                        ty: "Int",
+                        default: Some("NA"),
+                        option: false,
+                    },
+                    ParamSpec {
+                        name: "day",
+                        ty: "Int",
+                        default: Some("1"),
+                        option: false,
+                    },
                     ParamSpec::option("format", "Str"),
                 ],
                 rest: None,
@@ -595,9 +713,14 @@ pub fn functions() -> Vec<Function> {
                 diagnostics: vec![
                     DiagnosticDecl::new(
                         "W0203",
-                        "the text is not a date in ISO 8601 or in the format, so the value is NA",
+                        "the text is not a date in ISO 8601 or in the format, or the year, month and day name no date, so the value is NA",
                     ),
                     DiagnosticDecl::new("Z0409", "format: is not a date format"),
+                    DiagnosticDecl::new(
+                        "Z0401",
+                        "a month or a day is given beside text, or a year without a month",
+                    ),
+                    DiagnosticDecl::new("Z0410", "format: is given beside a year"),
                 ],
                 help: include_str!("../help/date.md"),
                 accuracy: None,
@@ -643,6 +766,26 @@ pub fn functions() -> Vec<Function> {
         time_part("hour", include_str!("../help/hour.md"), hour),
         time_part("minute", include_str!("../help/minute.md"), minute),
         time_part("second", include_str!("../help/second.md"), second),
+        Function {
+            spec: FunctionSpec {
+                name: "start_of",
+                package: "time",
+                method: false,
+                params: vec![
+                    ParamSpec::required("d", "Date | DateTime"),
+                    ParamSpec::required("unit", "hour | day | week | month | quarter | year"),
+                ],
+                rest: None,
+                returns: "Same",
+                diagnostics: vec![DiagnosticDecl::new(
+                    "Z0401",
+                    "unit is hour and d is a date, which has no time of day",
+                )],
+                help: include_str!("../help/start_of.md"),
+                accuracy: None,
+            },
+            body: start_of,
+        },
         moved("add_days", include_str!("../help/add_days.md"), add_days),
         moved(
             "add_months",
