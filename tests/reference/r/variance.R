@@ -10,6 +10,7 @@
 # in the C locale. Statistics and p-values are held to a relative 1e-10. Run with
 # `Rscript tests/reference/r/variance.R`.
 source(file.path(dirname(sub("^--file=", "", commandArgs(FALSE)[grepl("^--file=", commandArgs(FALSE))])), "common.R"))
+.libPaths(c(file.path(here(), "library"), .libPaths()))
 suppressMessages(library(car))
 options(warn = -1)
 
