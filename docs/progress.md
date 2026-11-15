@@ -65,3 +65,13 @@ Tests, plots and the language server: 72 functions in 258 commits over 40 steps,
 **Next.** Step 3 `[engine]`: the weekly mutation job in two passes and the early end of the studentized range's sum.
 
 **For the owner to decide.** Nothing blocks. To look at: `zeff help tabulate` and `zeff help add`, the first two pages under the new contract, as the shape every page will take by 0.10.0.
+
+## 15 November 2026, release 0.8.0, step 3 (the weekly job in two passes)
+
+**Done.** Step 3 `[engine]`: every shard of the weekly mutation job runs in two passes, the mutant against its own package's tests and then, if it survives, against the tests of the packages that use the mutated one, never against the whole workspace; the studentized range's sum over the nodes ends at the first term that is not a number, so a mutant that spoils the integrand fails in milliseconds instead of running every loop to its cap; no result changes. The two known-issues entries on the job are one, and the first scheduled run is read at the close.
+
+**Green.** Format, clippy with warnings denied, the tier and message checks, every test of the workspace; the workflow started by hand on one shard after the push.
+
+**Next.** Step 4 `[engine]`: a variable in an option record (#87).
+
+**For the owner to decide.** Nothing blocks.

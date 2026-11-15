@@ -155,6 +155,12 @@ fn log_integral(logf: impl Fn(f64) -> f64, guess: f64, stride: f64) -> f64 {
             let mut quiet = 0;
             loop {
                 let term = exp(logf(mode + (direction * i + offset) * step) - top);
+                // No argument the functions accept gives a term that is not a number, so one
+                // ends the sum at once: otherwise a fault upstream would run every loop of every
+                // level to its cap, hours instead of a result (release 0.8.0, step 3).
+                if term.is_nan() {
+                    return f64::NAN;
+                }
                 total += term;
                 if term <= NEGLIGIBLE * total && term <= previous {
                     quiet += 1;
@@ -577,6 +583,29 @@ mod tests {
             0.266_969_388_307_438_66,
             1e-13,
         );
+    }
+
+    #[test]
+    fn a_term_that_is_not_a_number_ends_the_sum_at_once() {
+        // An integrand that fails away from its peak: the sum gives up at the first such term
+        // instead of walking 200,000 nodes on three grids seven times over.
+        let start = std::time::Instant::now();
+        let value = log_integral(
+            |z| {
+                if z.abs() > 2.0 {
+                    f64::NAN
+                } else {
+                    -0.5 * z * z
+                }
+            },
+            0.0,
+            1.0,
+        );
+        assert!(value.is_nan());
+        assert!(start.elapsed().as_millis() < 500, "{:?}", start.elapsed());
+        // An integrand that is a number everywhere is summed as before.
+        let whole = log_integral(|z| -0.5 * z * z, 0.0, 1.0);
+        assert!((whole - LN_SQRT_2PI).abs() < 1e-10, "{whole}");
     }
 
     #[test]

@@ -326,12 +326,14 @@ jobs:
     # seconds on a runner), so each crate's mutants are shared among runners in proportion,
     # about 115 a shard: a clean shard of 150 took two and three-quarter hours at 0.5.0.
     # From 0.7.0 the tests of `zeff-stats` are in the job too (3,633 mutants at step 39c): the
-    # tests of means, counts and ranks, `anova` and `posthoc`. Each of its functions has its own
-    # reference and property tests in the package, so its mutants run against the package's own
-    # tests (`own_tests`), which take about a minute, and not the workspace's, which take a
-    # quarter of an hour at this release: sixteen shards of some 230 mutants. A mutant that only
-    # another package's tests would catch is then counted as missed, which errs on the side of
-    # reading one more.
+    # tests of means, counts and ranks, `anova` and `posthoc`.
+    # From 0.8.0 (step 3) every shard runs in two passes. The first tests each mutant against its
+    # own package's tests, which settle most mutants in seconds; the second (`--iterate`) retests
+    # only the mutants the first left, missed or timed out, against the tests of the packages
+    # that use the mutated one (`uses`), where a late test may catch what the package's own do
+    # not. At 0.7.0 one pass against the whole workspace, whose tests take over twenty minutes on
+    # a runner, cut off 29 of 34 shards at the job's limit and listed a mutant that late tests
+    # catch as timed out (docs/decisions.md, 14 November 2026, part seven).
     name: weekly (mutation testing, ${{ matrix.package }} ${{ matrix.shard }} of ${{ matrix.of }})
     if: >-
       github.event_name == 'workflow_dispatch' && (inputs.job == 'both' || inputs.job == 'weekly')
@@ -346,56 +348,56 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          - { package: zeff-numeric, shard: 0, of: 16 }
-          - { package: zeff-numeric, shard: 1, of: 16 }
-          - { package: zeff-numeric, shard: 2, of: 16 }
-          - { package: zeff-numeric, shard: 3, of: 16 }
-          - { package: zeff-numeric, shard: 4, of: 16 }
-          - { package: zeff-numeric, shard: 5, of: 16 }
-          - { package: zeff-numeric, shard: 6, of: 16 }
-          - { package: zeff-numeric, shard: 7, of: 16 }
-          - { package: zeff-numeric, shard: 8, of: 16 }
-          - { package: zeff-numeric, shard: 9, of: 16 }
-          - { package: zeff-numeric, shard: 10, of: 16 }
-          - { package: zeff-numeric, shard: 11, of: 16 }
-          - { package: zeff-numeric, shard: 12, of: 16 }
-          - { package: zeff-numeric, shard: 13, of: 16 }
-          - { package: zeff-numeric, shard: 14, of: 16 }
-          - { package: zeff-numeric, shard: 15, of: 16 }
-          - { package: zeff-kernels, shard: 0, of: 4 }
-          - { package: zeff-kernels, shard: 1, of: 4 }
-          - { package: zeff-kernels, shard: 2, of: 4 }
-          - { package: zeff-kernels, shard: 3, of: 4 }
-          - { package: zeff-results, shard: 0, of: 10 }
-          - { package: zeff-results, shard: 1, of: 10 }
-          - { package: zeff-results, shard: 2, of: 10 }
-          - { package: zeff-results, shard: 3, of: 10 }
-          - { package: zeff-results, shard: 4, of: 10 }
-          - { package: zeff-results, shard: 5, of: 10 }
-          - { package: zeff-results, shard: 6, of: 10 }
-          - { package: zeff-results, shard: 7, of: 10 }
-          - { package: zeff-results, shard: 8, of: 10 }
-          - { package: zeff-results, shard: 9, of: 10 }
-          - { package: zeff-regress, shard: 0, of: 4 }
-          - { package: zeff-regress, shard: 1, of: 4 }
-          - { package: zeff-regress, shard: 2, of: 4 }
-          - { package: zeff-regress, shard: 3, of: 4 }
-          - { package: zeff-stats, shard: 0, of: 16, own_tests: true }
-          - { package: zeff-stats, shard: 1, of: 16, own_tests: true }
-          - { package: zeff-stats, shard: 2, of: 16, own_tests: true }
-          - { package: zeff-stats, shard: 3, of: 16, own_tests: true }
-          - { package: zeff-stats, shard: 4, of: 16, own_tests: true }
-          - { package: zeff-stats, shard: 5, of: 16, own_tests: true }
-          - { package: zeff-stats, shard: 6, of: 16, own_tests: true }
-          - { package: zeff-stats, shard: 7, of: 16, own_tests: true }
-          - { package: zeff-stats, shard: 8, of: 16, own_tests: true }
-          - { package: zeff-stats, shard: 9, of: 16, own_tests: true }
-          - { package: zeff-stats, shard: 10, of: 16, own_tests: true }
-          - { package: zeff-stats, shard: 11, of: 16, own_tests: true }
-          - { package: zeff-stats, shard: 12, of: 16, own_tests: true }
-          - { package: zeff-stats, shard: 13, of: 16, own_tests: true }
-          - { package: zeff-stats, shard: 14, of: 16, own_tests: true }
-          - { package: zeff-stats, shard: 15, of: 16, own_tests: true }
+          - { package: zeff-numeric, shard: 0, of: 16, uses: "zeff-dist zeff-stats zeff-kernels" }
+          - { package: zeff-numeric, shard: 1, of: 16, uses: "zeff-dist zeff-stats zeff-kernels" }
+          - { package: zeff-numeric, shard: 2, of: 16, uses: "zeff-dist zeff-stats zeff-kernels" }
+          - { package: zeff-numeric, shard: 3, of: 16, uses: "zeff-dist zeff-stats zeff-kernels" }
+          - { package: zeff-numeric, shard: 4, of: 16, uses: "zeff-dist zeff-stats zeff-kernels" }
+          - { package: zeff-numeric, shard: 5, of: 16, uses: "zeff-dist zeff-stats zeff-kernels" }
+          - { package: zeff-numeric, shard: 6, of: 16, uses: "zeff-dist zeff-stats zeff-kernels" }
+          - { package: zeff-numeric, shard: 7, of: 16, uses: "zeff-dist zeff-stats zeff-kernels" }
+          - { package: zeff-numeric, shard: 8, of: 16, uses: "zeff-dist zeff-stats zeff-kernels" }
+          - { package: zeff-numeric, shard: 9, of: 16, uses: "zeff-dist zeff-stats zeff-kernels" }
+          - { package: zeff-numeric, shard: 10, of: 16, uses: "zeff-dist zeff-stats zeff-kernels" }
+          - { package: zeff-numeric, shard: 11, of: 16, uses: "zeff-dist zeff-stats zeff-kernels" }
+          - { package: zeff-numeric, shard: 12, of: 16, uses: "zeff-dist zeff-stats zeff-kernels" }
+          - { package: zeff-numeric, shard: 13, of: 16, uses: "zeff-dist zeff-stats zeff-kernels" }
+          - { package: zeff-numeric, shard: 14, of: 16, uses: "zeff-dist zeff-stats zeff-kernels" }
+          - { package: zeff-numeric, shard: 15, of: 16, uses: "zeff-dist zeff-stats zeff-kernels" }
+          - { package: zeff-kernels, shard: 0, of: 4, uses: "zeff-results zeff-regress zeff-stats" }
+          - { package: zeff-kernels, shard: 1, of: 4, uses: "zeff-results zeff-regress zeff-stats" }
+          - { package: zeff-kernels, shard: 2, of: 4, uses: "zeff-results zeff-regress zeff-stats" }
+          - { package: zeff-kernels, shard: 3, of: 4, uses: "zeff-results zeff-regress zeff-stats" }
+          - { package: zeff-results, shard: 0, of: 10, uses: "zeff-regress zeff-stats zeff-plot" }
+          - { package: zeff-results, shard: 1, of: 10, uses: "zeff-regress zeff-stats zeff-plot" }
+          - { package: zeff-results, shard: 2, of: 10, uses: "zeff-regress zeff-stats zeff-plot" }
+          - { package: zeff-results, shard: 3, of: 10, uses: "zeff-regress zeff-stats zeff-plot" }
+          - { package: zeff-results, shard: 4, of: 10, uses: "zeff-regress zeff-stats zeff-plot" }
+          - { package: zeff-results, shard: 5, of: 10, uses: "zeff-regress zeff-stats zeff-plot" }
+          - { package: zeff-results, shard: 6, of: 10, uses: "zeff-regress zeff-stats zeff-plot" }
+          - { package: zeff-results, shard: 7, of: 10, uses: "zeff-regress zeff-stats zeff-plot" }
+          - { package: zeff-results, shard: 8, of: 10, uses: "zeff-regress zeff-stats zeff-plot" }
+          - { package: zeff-results, shard: 9, of: 10, uses: "zeff-regress zeff-stats zeff-plot" }
+          - { package: zeff-regress, shard: 0, of: 4, uses: "zeff-conformance" }
+          - { package: zeff-regress, shard: 1, of: 4, uses: "zeff-conformance" }
+          - { package: zeff-regress, shard: 2, of: 4, uses: "zeff-conformance" }
+          - { package: zeff-regress, shard: 3, of: 4, uses: "zeff-conformance" }
+          - { package: zeff-stats, shard: 0, of: 16, uses: "zeff-plot zeff-conformance" }
+          - { package: zeff-stats, shard: 1, of: 16, uses: "zeff-plot zeff-conformance" }
+          - { package: zeff-stats, shard: 2, of: 16, uses: "zeff-plot zeff-conformance" }
+          - { package: zeff-stats, shard: 3, of: 16, uses: "zeff-plot zeff-conformance" }
+          - { package: zeff-stats, shard: 4, of: 16, uses: "zeff-plot zeff-conformance" }
+          - { package: zeff-stats, shard: 5, of: 16, uses: "zeff-plot zeff-conformance" }
+          - { package: zeff-stats, shard: 6, of: 16, uses: "zeff-plot zeff-conformance" }
+          - { package: zeff-stats, shard: 7, of: 16, uses: "zeff-plot zeff-conformance" }
+          - { package: zeff-stats, shard: 8, of: 16, uses: "zeff-plot zeff-conformance" }
+          - { package: zeff-stats, shard: 9, of: 16, uses: "zeff-plot zeff-conformance" }
+          - { package: zeff-stats, shard: 10, of: 16, uses: "zeff-plot zeff-conformance" }
+          - { package: zeff-stats, shard: 11, of: 16, uses: "zeff-plot zeff-conformance" }
+          - { package: zeff-stats, shard: 12, of: 16, uses: "zeff-plot zeff-conformance" }
+          - { package: zeff-stats, shard: 13, of: 16, uses: "zeff-plot zeff-conformance" }
+          - { package: zeff-stats, shard: 14, of: 16, uses: "zeff-plot zeff-conformance" }
+          - { package: zeff-stats, shard: 15, of: 16, uses: "zeff-plot zeff-conformance" }
     steps:
       - name: Check out the repository
         if: env.SELECTED == 'true'
@@ -444,22 +446,31 @@ jobs:
           # stops a series converging they run for hours before failing, where the kernel's own
           # exact reference rejects the mutant in seconds; they are skipped here and run in CI
           # on every push. cargo-mutants takes its budget from a baseline of the package's own
-          # tests, which run in seconds, so the floor is the whole budget; the workspace's tests
-          # under a mutant that only the kernel's own unit tests catch (they run last) take about
-          # 85 seconds on a runner at 0.5.0, twice the time at 0.4.0, and a floor of two minutes
-          # left no room for a mutant that fails slowly (a property test shrinking its case, a
-          # solver running to its cap). The floor is four minutes, which is also what a hang by
-          # nature costs.
-          (cargo mutants --package ${{ matrix.package }} --shard ${{ matrix.shard }}/${{ matrix.of }} --test-workspace ${{ matrix.own_tests && 'false' || 'true' }} --timeout-multiplier 5 --minimum-test-timeout 240 --output mutants -- -- --skip draws_recover_their_distribution --skip every_family_agrees_with_r_at_six_digits || true) 2>&1 | tail -40
+          # tests, which run in seconds, so the floor is the whole budget of each pass.
+          # Pass one: the package's own tests, with a floor of two minutes, which covers a slow
+          # failure under them and is what a hang by nature costs.
+          (cargo mutants --package ${{ matrix.package }} --shard ${{ matrix.shard }}/${{ matrix.of }} --test-workspace false --timeout-multiplier 5 --minimum-test-timeout 120 --output mutants -- -- --skip draws_recover_their_distribution --skip every_family_agrees_with_r_at_six_digits || true) 2>&1 | tail -40
+          mkdir -p pass1 && cp mutants/mutants.out/*.txt pass1/ || true
+          echo "Pass one, against the package's own tests: caught $(wc -l < pass1/caught.txt | tr -d ' '), missed $(wc -l < pass1/missed.txt | tr -d ' '), timed out $(wc -l < pass1/timeout.txt | tr -d ' '), unviable $(wc -l < pass1/unviable.txt | tr -d ' ')"
+          # Pass two: what pass one left (`--iterate` skips the mutants it caught or found
+          # unviable), against the tests of the packages that use this one, with a floor of ten
+          # minutes, since those tests come to several minutes under a slow mutant.
+          TEST_PACKAGES=""
+          for p in ${{ matrix.uses }}; do TEST_PACKAGES="$TEST_PACKAGES --test-package $p"; done
+          (cargo mutants --package ${{ matrix.package }} --shard ${{ matrix.shard }}/${{ matrix.of }} --iterate $TEST_PACKAGES --timeout-multiplier 5 --minimum-test-timeout 600 --output mutants -- -- --skip draws_recover_their_distribution --skip every_family_agrees_with_r_at_six_digits || true) 2>&1 | tail -40
           # The tool's own output is cut to its last forty lines, which holds the totals and at
           # most nineteen survivors. The lists are printed here in full, so that a shard with
           # more can be read from its log (at 0.7.0 three shards of zeff-stats had more).
-          echo "Surviving mutants, in full:"
+          echo "Surviving mutants after both passes, in full:"
           cat mutants/mutants.out/missed.txt || true
-          echo "Timeouts, in full:"
+          echo "Timeouts after both passes, in full:"
           cat mutants/mutants.out/timeout.txt || true
           {
             echo "## Weekly: mutation testing of ${{ matrix.package }}, shard ${{ matrix.shard }} of ${{ matrix.of }}"
+            echo
+            echo "Pass one (the package's own tests): caught $(wc -l < pass1/caught.txt | tr -d ' '), missed $(wc -l < pass1/missed.txt | tr -d ' '), timed out $(wc -l < pass1/timeout.txt | tr -d ' '), unviable $(wc -l < pass1/unviable.txt | tr -d ' ')"
+            echo
+            echo "After pass two (the tests of ${{ matrix.uses }}):"
             echo
             echo "Caught: $(wc -l < mutants/mutants.out/caught.txt | tr -d ' ')"
             echo "Missed (surviving mutants, each a test to write): $(wc -l < mutants/mutants.out/missed.txt | tr -d ' ')"
@@ -476,4 +487,6 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: mutation-reports-${{ matrix.package }}-${{ matrix.shard }}
-          path: mutants/mutants.out
+          path: |
+            mutants/mutants.out
+            pass1

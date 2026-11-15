@@ -135,16 +135,14 @@ is never listed here as accepted: it is fixed or the function is withdrawn.
 - **The reference file of `posthoc` after a formula was written with emmeans 2.0.3**, while CI
   holds it to the pinned 2.0.4 within tolerance; `emmeans` is not on the development machine,
   so that script is regenerated in CI alone. (Since 0.7.0; the installation is the owner's.)
-- **The weekly mutation job tests `zeff-stats` against its own tests**, not the workspace's,
-  which take a quarter of an hour for each mutant at this release; a mutant that only another
-  package's tests would catch is counted as missed. (Since 0.7.0.)
-- **The weekly mutation job's time budget is too small for the four older packages.** It gives
-  each mutant of `zeff-numeric`, `zeff-kernels`, `zeff-results` and `zeff-regress` four minutes
-  of the whole workspace's tests, which now take over twenty; a mutant that late tests catch is
-  listed as timed out, and at this release 29 of the 34 shards were cancelled at the job's
-  limit. No survivor is hidden by it. Until the job tests each mutant against its own package
-  first, its lists for those packages are completed by runs on the development machine.
-  (Since 0.7.0.)
+- **The weekly mutation job runs each shard in two passes**, since 0.8.0 (step 3): every mutant
+  against its own package's tests, then the mutants that pass against the tests of the packages
+  that use the mutated one, never against the whole workspace, whose tests took over twenty
+  minutes a mutant at 0.7.0 and cut off 29 of 34 shards. A mutant that only a package outside
+  that set would catch is counted as missed, which errs on the side of reading one more. The
+  lists the job gave for the four older packages at 0.7.0 were completed by runs on the
+  development machine; the first scheduled run of the two passes is read at the close of 0.8.0.
+  (Since 0.7.0; the job repaired at 0.8.0.)
 - **A one-sided interval of `wilcoxon_test` at a level of exactly 50 per cent is not unique under
   the normal approximation.** The standardised statistic can equal the quantile, which is 0
   there, along a whole step of the shift, and any point of the step is a bound. Zeff gives the
