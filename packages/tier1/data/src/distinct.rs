@@ -261,14 +261,25 @@ pub fn sample(ctx: &mut CallContext<'_>, args: Args) -> Result<Value, Fail> {
     }
     kept.sort_unstable();
     let seed_used = seed.or(ctx.random.seed).unwrap_or_default();
+    // A draw from the run's seed in a pass of a loop, or after another draw of the same
+    // statement, has a stream of its own, derived from that seed (Engine and Project
+    // Specification, section 8.3, point 3): the note says so, and does not give the run's seed
+    // as if it were the draw's (release 0.8.0, step 8o). With `seed:` the draw is that seed's.
+    let derived_stream = seed.is_none()
+        && (ctx.random.pass > 0 || ctx.random.repeating > 0 || ctx.random.calls_in_statement > 1);
     ctx.message(Diagnostic::plain_note(format!(
-        "{} of {} sampled{} with seed {seed_used}",
+        "{} of {} sampled{} with {}",
         count(kept.len() as u64),
         rows(total),
         if with_replacement {
             " with replacement"
         } else {
             ""
+        },
+        if derived_stream {
+            format!("a seed of its own, derived from {seed_used}")
+        } else {
+            format!("seed {seed_used}")
         }
     )));
     let repeated = kept.windows(2).any(|w| w[0] == w[1]);

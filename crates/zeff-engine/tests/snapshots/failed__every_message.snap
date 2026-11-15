@@ -102,8 +102,7 @@ warning[W0209]: `m` may hold a failed value, so `coef` may stop the script
   = help: guard the call: `if m.is(Failed) { ... }` with a `continue`, `break` or `error` inside, or `if !m.is(Failed) { m.coef(...) }`
 
 ## report_all_failed (exit 1)
-note: no row kept: the result is empty (line 2)
-note: no row kept: the result is empty (line 2)
+note: no row kept: the result is empty; the same for each of 2 passes (line 2)
 error[Z0406]: `report` needs at least one fit, but all 2 failed (Z0801 at line 2)
  --> scripts/main.zeff:2:8
   |

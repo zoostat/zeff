@@ -1,0 +1,16 @@
+---
+source: crates/zeff-engine/tests/messages_as_written.rs
+expression: stdout
+---
+Column<Int> · 3 values
+1948
+2074
+3779
+Column<Int> · 3 values
+313
+1655
+3306
+Column<Int> · 3 values
+1844
+2950
+3323

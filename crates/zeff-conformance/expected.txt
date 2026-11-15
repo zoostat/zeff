@@ -133,7 +133,7 @@ control/methods/stderr cbf29ce484222325
 control/share_missing/stdout f35b6738956a6623
 control/share_missing/stderr 513c7a42967c934b
 control/attempt/stdout 515eb37b724d8bfa
-control/attempt/stderr e0bd08f69a97c797
+control/attempt/stderr 41d21b3d81ae9ae7
 control/collections_basics/stdout 0b15b0ef80f5deb9
 control/collections_basics/stderr 6d3ebf477210de48
 control/table/stdout b1c69291c3848e4e
@@ -143,13 +143,13 @@ control/vif/stderr cbf29ce484222325
 control/moments/stdout 556d89db012b5b98
 control/moments/stderr 863f87d24f827097
 control/spread/stdout ede5c48e00baab72
-control/spread/stderr 21d8635b98dd81be
+control/spread/stderr 90de154cdcad211b
 control/drop_missing/stdout b040d903ac347919
 control/drop_missing/stderr 78a3b48639a6f067
 control/rows/stdout 52b69cf23ce489b9
 control/rows/stderr b8f84cf3ee567eba
 control/scale/stdout 28fa5953ad83a648
-control/scale/stderr fa5c35ec90fc3f36
+control/scale/stderr 1efe4c43cc7af439
 control/missing/stdout 081d61fcbd6bd263
 control/missing/stderr cbf29ce484222325
 control/logit/stdout a8644a245c15a616
@@ -463,7 +463,7 @@ plots/results/coef.pdf deac1d27d409190c
 plots/results/coef.png e5196ac8a8666971
 plots/results/event.svg 110dcb40fc5fe196
 plots/shorthands/stdout dc7dc5a33a6cbf6e
-plots/shorthands/stderr 7b937f7b6c81e924
+plots/shorthands/stderr f7acdc7a2dfa6c75
 plots/shorthands/histogram.svg c3cb8f361fd5b005
 plots/shorthands/scatter.svg 22342e67a2032100
 plots/shorthands/scatter.pdf 4878f6c5a6b1a777
@@ -509,7 +509,7 @@ user_functions/stderr e520ab3d7c59acaf
 user_functions/exit_code a8c7f832281a39c5
 # user_functions/exit_code bits 0000000000000000
 panel/stdout 8f9eeec8e717e2a4
-panel/stderr f599f45b43447c95
+panel/stderr 7f60bf5a4dcd77d6
 panel/exit_code a8c7f832281a39c5
 # panel/exit_code bits 0000000000000000
 panel/output/industry_year.csv 4a627b56e0a02c82

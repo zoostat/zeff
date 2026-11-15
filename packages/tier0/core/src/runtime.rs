@@ -90,6 +90,11 @@ pub struct Randomness {
     /// Specification, section 8.3, point 3): a running count of the passes of every loop within
     /// the statement, so that nested loops never share a key.
     pub pass: u32,
+    /// How many calls of `map`, `filter`, `reduce` or `iterate` the interpreter is inside: a
+    /// draw made there is one of several of its statement, each with a stream of its own, and a
+    /// note may say so of the first as of the rest (release 0.8.0, step 8o). It is no part of
+    /// a stream's key.
+    pub repeating: u32,
 }
 
 impl Randomness {

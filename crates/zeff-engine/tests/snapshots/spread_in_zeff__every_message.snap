@@ -1,12 +1,10 @@
 ---
 source: crates/zeff-engine/tests/spread_in_zeff.rs
-assertion_line: 120
 expression: text
 ---
 ## with_na (exit 0)
 5
 4.4478
-warning[W0201]: 1 row with NA in x was skipped (line 2)
 warning[W0201]: 1 row with NA in x was skipped (line 2)
 warning[W0201]: 1 row with NA in x was skipped (line 3)
 warning[W0201]: 1 row with NA in deviation was skipped (line 3)

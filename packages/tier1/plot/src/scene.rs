@@ -2289,6 +2289,23 @@ fn jitter(layer: &PlotLayer, points: &mut Drawn, alone: (f64, f64)) {
 
 /// `educ or wage`, `educ, wage or tenure`: the variables or expressions a dropped row may lack,
 /// each named once.
+/// The variables a note names, as [`either`] lists them: those the script wrote. A variable a
+/// shorthand added to the frame for its own drawing is left out, since the script never wrote
+/// it and its rows are missing exactly where the script's variable is; where nothing else is
+/// named it stays.
+fn written(plot: &Plot, names: &[&str]) -> String {
+    let kept: Vec<&str> = names
+        .iter()
+        .copied()
+        .filter(|name| !plot.made.iter().any(|made| made == name))
+        .collect();
+    if kept.is_empty() {
+        either(names)
+    } else {
+        either(&kept)
+    }
+}
+
 fn either(names: &[&str]) -> String {
     let mut distinct: Vec<&str> = Vec::new();
     for name in names {
@@ -3361,14 +3378,14 @@ pub fn scene<'a>(plot: &'a Plot) -> Scene {
                 note(format!(
                     "{} with NA in {} dropped",
                     rows_text(drawn.points.missing),
-                    either(&needs)
+                    written(plot, &needs)
                 ));
             }
             if drawn.points.infinite > 0 {
                 note(format!(
                     "{} with an infinite value in {} dropped",
                     rows_text(drawn.points.infinite),
-                    either(&needs)
+                    written(plot, &needs)
                 ));
             }
             if drawn.hidden > 0 {
@@ -3416,14 +3433,14 @@ pub fn scene<'a>(plot: &'a Plot) -> Scene {
                         note(format!(
                             "{} with NA in {} dropped",
                             rows_text(drawn.points.missing),
-                            either(&needs)
+                            written(plot, &needs)
                         ));
                     }
                     if drawn.points.infinite > 0 {
                         note(format!(
                             "{} with an infinite value in {} dropped",
                             rows_text(drawn.points.infinite),
-                            either(&needs)
+                            written(plot, &needs)
                         ));
                     }
                     if drawn.turned > 0 {
@@ -3462,14 +3479,14 @@ pub fn scene<'a>(plot: &'a Plot) -> Scene {
                 note(format!(
                     "{} with NA in {} dropped",
                     rows_text(drawn.points.missing),
-                    either(&needs)
+                    written(plot, &needs)
                 ));
             }
             if drawn.points.infinite > 0 {
                 note(format!(
                     "{} with an infinite value in {} dropped",
                     rows_text(drawn.points.infinite),
-                    either(&needs)
+                    written(plot, &needs)
                 ));
             }
             if few > 0 {
@@ -3574,14 +3591,14 @@ pub fn scene<'a>(plot: &'a Plot) -> Scene {
                         note(format!(
                             "{} with NA in {} dropped",
                             rows_text(drawn.points.missing),
-                            either(&needs)
+                            written(plot, &needs)
                         ));
                     }
                     if drawn.points.infinite > 0 {
                         note(format!(
                             "{} with an infinite value in {} dropped",
                             rows_text(drawn.points.infinite),
-                            either(&needs)
+                            written(plot, &needs)
                         ));
                     }
                     if drawn.unfit.0 > 0 {
@@ -3639,14 +3656,14 @@ pub fn scene<'a>(plot: &'a Plot) -> Scene {
                 note(format!(
                     "{} with NA in {} dropped",
                     rows_text(lines.missing),
-                    either(&names)
+                    written(plot, &names)
                 ));
             }
             if lines.infinite > 0 {
                 note(format!(
                     "{} with an infinite value in {} dropped",
                     rows_text(lines.infinite),
-                    either(&names)
+                    written(plot, &names)
                 ));
             }
             Some(across(lines))
@@ -3720,7 +3737,7 @@ pub fn scene<'a>(plot: &'a Plot) -> Scene {
                     needs.extend(edge);
                     needs.push(y);
                     let upright = match edge {
-                        Some(edge) => either(&[edge, y]),
+                        Some(edge) => written(plot, &[edge, y]),
                         None => y.to_string(),
                     };
                     let (one, many, none) = match layer.mark {
@@ -3732,14 +3749,14 @@ pub fn scene<'a>(plot: &'a Plot) -> Scene {
                         note(format!(
                             "{} with NA in {} dropped",
                             rows_text(lines.points.missing),
-                            either(&needs)
+                            written(plot, &needs)
                         ));
                     }
                     if lines.points.infinite > 0 {
                         note(format!(
                             "{} with an infinite value in {} dropped",
                             rows_text(lines.points.infinite),
-                            either(&needs)
+                            written(plot, &needs)
                         ));
                     }
                     if lines.breaks > 0 {
@@ -3846,14 +3863,14 @@ pub fn scene<'a>(plot: &'a Plot) -> Scene {
                         note(format!(
                             "{} with NA in {} dropped",
                             rows_text(points.missing),
-                            either(&names)
+                            written(plot, &names)
                         ));
                     }
                     if points.infinite > 0 {
                         note(format!(
                             "{} with an infinite value in {} dropped",
                             rows_text(points.infinite),
-                            either(&names)
+                            written(plot, &names)
                         ));
                     }
                     if let Some((name, column)) = sized.filter(|_| !ranged) {
@@ -5978,6 +5995,7 @@ pub fn start(frame: Frame, mappings: Vec<PlotMapping>, constants: Vec<PlotConsta
             rules: Vec::new(),
         },
         figure: Some(zeff_core::value::FigureWriter(crate::figure::write)),
+        made: Vec::new(),
     };
     describe(&mut plot);
     plot

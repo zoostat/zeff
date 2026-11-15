@@ -101,6 +101,10 @@ pub struct Plot {
     /// puts here when it makes a plot, so that `export`, in a package below it, can ask for the
     /// bytes without calling upwards (rule 5). `None` for a plot value made by hand in a test.
     pub figure: Option<FigureWriter>,
+    /// The variables a shorthand added to the frame for its own drawing (`theoretical` of
+    /// `qq_plot`): a note about the rows left out names the variables the script wrote, not
+    /// these (release 0.8.0, step 8o). Empty for a plot the script built itself.
+    pub made: Vec<String>,
 }
 
 /// The words of the script for a plot: its title, subtitle and caption, and the titles of

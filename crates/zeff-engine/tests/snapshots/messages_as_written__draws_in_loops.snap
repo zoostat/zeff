@@ -1,0 +1,20 @@
+---
+source: crates/zeff-engine/tests/messages_as_written.rs
+expression: "format!(\"{stdout}---\\n{stderr}\")"
+---
+50
+50
+50
+---
+note: 5 of 18,412 rows sampled with seed 7 (line 3)
+note: 5 of 18,412 rows sampled with seed 3 (line 4)
+note: 5 of 18,412 rows sampled with a seed of its own, derived from 7; the same for each of 4 passes (line 5)
+note: 2 of 18,412 rows sampled with seed 9; the same for each of 4 passes (line 8)
+note: 50 of 18,412 rows sampled with a seed of its own, derived from 7; the same for each of 3 items (line 11)
+note: 2 of 18,412 rows sampled with seed 7 (line 12)
+note: 2 of 18,412 rows sampled with a seed of its own, derived from 7 (line 12)
+note: 5 of 18,412 rows sampled with a seed of its own, derived from 7; the same for each of 3 passes (line 13)
+note: 1 of 18,412 rows sampled with a seed of its own, derived from 7 (line 17)
+note: 2 of 18,412 rows sampled with a seed of its own, derived from 7 (line 17)
+note: 3 of 18,412 rows sampled with a seed of its own, derived from 7 (line 17)
+note: 4 of 18,412 rows sampled with replacement with a seed of its own, derived from 7; the same for each of 6 passes (line 20)

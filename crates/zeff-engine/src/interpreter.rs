@@ -981,10 +981,13 @@ impl<'a> Interpreter<'a> {
             (low, Some(high)) if low == high => Some(high),
             _ => None,
         };
+        let before = messages.len();
+        let mut made = 0usize;
         for (at, item) in items.enumerate() {
             self.pass_begins(at + 1, passes, iter.span)?;
             self.random.pass += 1;
             self.bind(binding, item);
+            made += 1;
             let value = self.eval_block(body, printed, messages)?;
             match self.jump.take() {
                 Some(Jump::Break) => break,
@@ -1001,6 +1004,7 @@ impl<'a> Interpreter<'a> {
                 }
             }
         }
+        once_for_the_passes(messages, before, made, "passes");
         Ok(())
     }
 
@@ -1882,6 +1886,50 @@ impl<'a> Interpreter<'a> {
             if inside(message) {
                 let moved = std::mem::replace(message, Diagnostic::error("", ""));
                 *message = place_at_call(moved, self.script, call.callee_span);
+            }
+        }
+        // A warning of the body about rows with `NA` in a column the body made of a parameter
+        // names the argument as the script wrote it, `wage` and not the body's `value`
+        // (release 0.8.0, step 8o); and a warning or note the body raises twice word for word,
+        // once for each of two reductions of the one column, is said once.
+        let params = &builtin.forms[0].program.functions[builtin.forms[0].function].params;
+        let stands_for: Vec<(&str, &str)> = BODY_COLUMNS
+            .iter()
+            .filter(|(package, function, _, _)| {
+                *package == builtin.package && *function == builtin.name
+            })
+            .filter_map(|(_, _, column, param)| {
+                let i = params
+                    .iter()
+                    .position(|p| p.name == *param)?
+                    .checked_sub(usize::from(builtin.enclosing))?;
+                let span = call.args.get(i)?.as_ref()?.span;
+                Some((
+                    *column,
+                    self.source.text().get(span.start..span.end)?.trim(),
+                ))
+            })
+            .collect();
+        for message in messages[before..].iter_mut() {
+            if let Some((variable, _, _)) = na_warning_parts(message)
+                && let Some((_, written)) = stands_for.iter().find(|(c, _)| *c == variable)
+            {
+                message.message = message.message.replacen(
+                    &format!(" in {variable}"),
+                    &format!(" in {written}"),
+                    1,
+                );
+            }
+        }
+        let mut said: Vec<(String, String)> = Vec::new();
+        let mut at = before;
+        while at < messages.len() {
+            let key = (messages[at].code.clone(), messages[at].message.clone());
+            if said.contains(&key) {
+                messages.remove(at);
+            } else {
+                said.push(key);
+                at += 1;
             }
         }
         result.map_err(|e| {
@@ -3638,11 +3686,25 @@ impl<'a> Interpreter<'a> {
         }
         // `iterate` is the interpreter's: it calls the functions it is given (section 5.5).
         if call.package == "core" && call.name == "iterate" {
-            return self.run_iterate(call, values, printed, messages);
+            let before = messages.len();
+            self.random.repeating += 1;
+            let result = self.run_iterate(call, values, printed, messages);
+            self.random.repeating -= 1;
+            once_for_the_passes(messages, before, 0, "passes");
+            return result;
         }
         // So are `map`, `filter` and `reduce` (section 3.7, "Functions as values").
         if call.package == "core" && matches!(call.name.as_str(), "map" | "filter" | "reduce") {
-            return self.run_list_function(call, values, printed, messages);
+            let items = match values.first() {
+                Some(Some(Value::List(items))) => items.len(),
+                _ => 0,
+            };
+            let before = messages.len();
+            self.random.repeating += 1;
+            let result = self.run_list_function(call, values, printed, messages);
+            self.random.repeating -= 1;
+            once_for_the_passes(messages, before, items, "items");
+            return result;
         }
         // A built-in written in Zeff: its lowered body, with the arguments as evaluated.
         if let Some(builtin) = zeff {
@@ -4509,6 +4571,81 @@ fn panic_text(payload: &(dyn std::any::Any + Send)) -> String {
         text.clone()
     } else {
         "no further detail".to_string()
+    }
+}
+
+/// The columns a body written in Zeff makes of its own from a parameter, by function: the
+/// package, the function, the body's variable and the parameter it holds. A warning of the
+/// body about rows with `NA` in that variable names the argument instead, as the script wrote
+/// it (release 0.8.0, step 8o): `winsorize(wage)` skips rows with `NA` in `wage`, not in the
+/// body's `value`.
+const BODY_COLUMNS: &[(&str, &str, &str, &str)] = &[
+    ("data", "winsorize", "value", "x"),
+    ("data", "standardize", "value", "x"),
+    ("data", "center", "value", "x"),
+];
+
+/// A note raised word for word in several passes of one loop, or for several items of `map`,
+/// `filter` or `reduce`, is said once, with the count (release 0.8.0, step 8o): a simulation
+/// of a thousand passes that draws a sample in each prints one note, not a thousand. `made`
+/// is the number of passes or items, 0 where it is not known; `what` names them. Warnings,
+/// which carry a code and ask for attention, are left as they are; errors end the loop.
+fn once_for_the_passes(messages: &mut Vec<Diagnostic>, from: usize, made: usize, what: &str) {
+    let plain_note =
+        |d: &Diagnostic| d.severity == zeff_diagnostics::Severity::Note && d.code.is_empty();
+    let mut at = from;
+    while at < messages.len() {
+        if !plain_note(&messages[at]) {
+            at += 1;
+            continue;
+        }
+        let mut times = 1usize;
+        let mut later = at + 1;
+        while later < messages.len() {
+            if plain_note(&messages[later])
+                && messages[later].message == messages[at].message
+                && messages[later].help == messages[at].help
+                && messages[later].labels == messages[at].labels
+            {
+                messages.remove(later);
+                times += 1;
+            } else {
+                later += 1;
+            }
+        }
+        // A note an inner loop already said once for each of its passes is, in an outer loop,
+        // the same for each pass of both: the counts multiply.
+        let inner = "; the same for each of ";
+        if times > 1
+            && times == made
+            && let Some(cut) = messages[at].message.rfind(inner)
+            && let Some((number, kind)) = messages[at].message[cut + inner.len()..].split_once(' ')
+            && kind == what
+            && let Ok(each) = number.replace(',', "").parse::<u64>()
+        {
+            messages[at].message.truncate(cut);
+            messages[at].message.push_str(&format!(
+                "{inner}{} {what}",
+                zeff_diagnostics::count(each * times as u64)
+            ));
+        } else if times > 1 {
+            let said = if made == 0 {
+                format!("; the same {} times", zeff_diagnostics::count(times as u64))
+            } else if times == made {
+                format!(
+                    "; the same for each of {} {what}",
+                    zeff_diagnostics::count(made as u64)
+                )
+            } else {
+                format!(
+                    "; the same for {} of {} {what}",
+                    zeff_diagnostics::count(times as u64),
+                    zeff_diagnostics::count(made as u64)
+                )
+            };
+            messages[at].message.push_str(&said);
+        }
+        at += 1;
     }
 }
 

@@ -191,6 +191,7 @@ Date: 17 October 2026 · Source: Zeff Specification section 15, Zemp Specificati
 | 85 | The Games–Howell comparison in `posthoc` | Add `games_howell` to `method:` in the first release after 0.7.0 with room; until then Tukey's HSD after Welch's ANOVA prints a note | 0.9.0 |
 | 86 | Folding, snippets and the statement ranges behind **Run** in the language server | At 0.8.0, with Zemp's alpha; formatting through the server is built at 0.7.0 | decided 15 November 2026 (option A); built at 0.8.0, step 8b |
 | 87 | A variable name in an option record | Accept a `Vars` of exactly one variable where a parameter takes a `Var`, so that `{ se: robust, cluster: vars(firm) }` can be named once and spread | decided 15 November 2026 (option A); built at 0.8.0, step 4 |
+| 149 | A warning repeated word for word in the passes of a loop | Recommended A: said once with the count of passes, as a note is from step 8o of 0.8.0; B: every pass, as now | open; deadline 0.9.0 |
 | 148 | Zemp Lite in a public repository under Apache 2.0; Zemp Studio in a private one | The owner's ruling: Zemp Lite is developed in the public repository `zemp-lite` under Apache 2.0, as Zeff; Zemp Studio, when its work starts, gets a separate private repository and a proprietary licence and builds on Lite; Lite never depends on Studio's modules | decided 15 November 2026 (owner's ruling); the Zemp Specification amended the same day; replaces the repository and licence parts of #125, and with them #25 |
 | 147 | Inside a function's body, a parameter where a term of a fit is expected | A: inside a function's body a bound name that holds a `Var` or a `Str` is the term it names, one rule with #140; the help line of Z0414 names `name_of` until it is built | decided 15 November 2026 (option A); built at 0.8.0, step 5 |
 | 146 | The look of the website and of Zemp Lite web | The owner's rulings of 13 and 14 November 2026: logo D4, the tagline, Atkinson Hyperlegible Next with JetBrains Mono and Newsreader, one type scale, a light/dark button and the D4 watermark on every page, violet buttons, realistic pages; Zemp Lite's Panes with a tabbed left panel, data tabbed with the script, output under the script, a modern data and variables viewer, and a code text size control | decided 14 November 2026 (owner's rulings); Zemp section 5 amended at Zemp 0.2 alpha |
@@ -3039,3 +3040,14 @@ Raised and ruled on 15 November 2026 by the owner, when the folder and the repos
 
 **Amended on the same day and logged in `docs/spec_changes.md`:** in the Zemp Specification, the opening paragraph, section 2 (the rows "One shared codebase" and "Free"), section 3 (the row "Editions"), section 15 (the sentence on version numbers), section 16 and the decided list of section 17.
 
+
+### 149. A warning repeated word for word in the passes of a loop
+
+Raised on 16 November 2026 at step 8o of release 0.8.0. That step makes a note that is raised word for word in several passes of one loop, or for several items of `map`, `filter` or `reduce`, print once with the count: a simulation of a thousand passes that draws a sample in each printed a thousand notes. A warning is left as it was: `for i in 1..1000 { let m = d.mean(x) }` on a variable with a missing value prints `warning[W0201]: 1 row with NA in x was skipped` a thousand times.
+
+| Option | What it gives | What it costs |
+| --- | --- | --- |
+| A. A warning repeated word for word in the passes of one loop is said once, with the count, as a note is | A simulation's messages can be read; the rule is one for notes and warnings | A warning is seen once where a reader skimming for repetition might take the count for less; stored outputs of loops change |
+| B. Every pass, as now | Nothing changes; each pass's warning stands beside its place in the output | A long loop buries its output under its warnings |
+
+**Recommended: A**, with the count always printed, and never across statements: two statements that warn alike keep a warning each. Deadline 0.9.0, so that it is settled before the simulations of the first manual are written.

@@ -145,3 +145,13 @@ Step 8b `[engine]`: the language server folds chains, blocks and functions, offe
 **Next.** Step 8o `[engine]`: three messages that name a variable or a seed the user did not write (`winsorize`, `qq_plot`, `sample`).
 
 **For the owner to decide.** Nothing blocks.
+
+## 16 November 2026, release 0.8.0, step 8o (messages that name what the script wrote)
+
+**Done.** Step 8o `[engine]`: `winsorize(wage)` warns once of rows with NA in `wage` (it said `value`, twice); `qq_plot(wage)` notes rows with NA in `wage` (it added `theoretical`, a column of its own); and `sample` in a loop of 1,000 passes prints one note that says each pass has a seed of its own derived from the run's (it printed 1,000, each giving the run's seed). No value changes.
+
+**Green.** Format, clippy with warnings denied, the tier, message and grammar checks, every test of the workspace; CI read after the push.
+
+**Next.** Step 8p `[engine]`: `print` puts several plain values on one line (#95).
+
+**For the owner to decide.** Open decision #149, new: whether a *warning* repeated word for word in the passes of a loop should also print once with the count. Recommended yes; deadline 0.9.0.

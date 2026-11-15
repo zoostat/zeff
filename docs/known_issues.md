@@ -253,7 +253,8 @@ is never listed here as accepted: it is fixed or the function is withdrawn.
   section 3.7.)
 - **A message raised inside a built-in written in Zeff may name what the body used, not what the
   script wrote**: an inner function (`median` needs a Bool, Int or Float, from `mad`) or the body's
-  own column (`value`, from `standardize`; `deviation`, from `mad`). The message is placed at the
+  own column (`deviation`, from `mad`; from step 8o of 0.8.0 `winsorize`, `standardize` and
+  `center` name the argument as written, and warn once). The message is placed at the
   script's call and its code is on the function's page. (Since 0.5.0; the warning of `skewness`
   and `kurtosis` for too few values carries W0205 from step 4.3 of 0.7.0.)
 - **The mean of values that cancel is within a rounding of the largest input, not of the

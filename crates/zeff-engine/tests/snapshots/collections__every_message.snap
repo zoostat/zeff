@@ -55,8 +55,7 @@ warning[W0801]: 1 of 3 items failed (Z0801 at line 2) and was skipped (line 3)
 
 ## len_all_failed (exit 0)
 0
-note: no row kept: the result is empty (line 2)
-note: no row kept: the result is empty (line 2)
+note: no row kept: the result is empty; the same for each of 2 passes (line 2)
 warning[W0801]: 2 of 2 items failed (Z0801 at line 2) and were skipped (line 3)
   = help: the count is of the items that succeeded; `x.is(Failed)` tells which failed
 

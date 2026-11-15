@@ -70,7 +70,9 @@ fn center_and_standardize_on_columns_and_inside_add() {
 
 #[test]
 fn the_edge_cases_give_na_with_the_reducers_warnings() {
-    // NA rows stay NA; the mean and the sd each skip them with the warning, placed at the call.
+    // NA rows stay NA; the mean and the sd each skip them, and the warning, placed at the call,
+    // names the argument as it is written and is said once for the call (release 0.8.0, step
+    // 8o; before it the warning named the body's `value` and `standardize` gave it twice).
     let (out, err) =
         runs("let d = frame(x = [1, 2, 3, NA])\ncenter(d[\"x\"])\nstandardize(d[\"x\"])\n");
     assert_eq!(
@@ -78,16 +80,8 @@ fn the_edge_cases_give_na_with_the_reducers_warnings() {
         "Column<Float> · 4 values\n-1\n0\n1\nNA\nColumn<Float> · 4 values\n-1\n0\n1\nNA\n"
     );
     assert_eq!(
-        err.matches("1 row with NA in value was skipped (line 2)")
-            .count(),
-        1,
-        "{err}"
-    );
-    assert_eq!(
-        err.matches("1 row with NA in value was skipped (line 3)")
-            .count(),
-        2,
-        "{err}"
+        err,
+        "warning[W0201]: 1 row with NA in d[\"x\"] was skipped (line 2)\nwarning[W0201]: 1 row with NA in d[\"x\"] was skipped (line 3)\n"
     );
     // No spread: every z-score is NA with the warning 0 / 0 gives; centring still works.
     let (out, err) =

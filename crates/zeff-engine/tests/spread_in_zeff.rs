@@ -66,13 +66,15 @@ fn the_edge_cases() {
         runs("frame(y = [1, 3]).iqr(y)\nframe(y = [1, 3]).mad(y, constant: 1)\n").0,
         "1\n1\n"
     );
-    // NA skipped with the reducers' warning, placed at the call: twice for each, once per reducer.
+    // NA skipped with the reducers' warning, placed at the call and said once for a call where
+    // two reducers word it alike (release 0.8.0, step 8o): `iqr` once; `mad` once for its
+    // median of `x` and once for the median of its own `deviation`, a known issue.
     let (out, err) = runs("let d = frame(x = [1, 2, 4, 7, NA, 11])\nd.iqr(x)\nd.mad(x)\n");
     assert_eq!(out, "5\n4.4478\n");
     assert_eq!(
         err.matches("1 row with NA in x was skipped (line 2)")
             .count(),
-        2,
+        1,
         "{err}"
     );
     assert_eq!(err.matches("(line 3)").count(), 2, "{err}");

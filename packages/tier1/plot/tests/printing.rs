@@ -3031,8 +3031,8 @@ fn the_notes_of_a_statement_are_those_of_the_plot_it_ends_with() {
         notes(&format!(
             "{head}for i in [1, 2] {{\n    let p = w.plot(x: educ, y: wage, color: industry).points().scale(color: viridis)\n}}\n"
         )),
-        [format!("{na} (line 2)"), format!("{na} (line 2)")],
-        "the note of the rows dropped at each pass, and no other"
+        [format!("{na}; the same for each of 2 passes (line 2)")],
+        "the note of the rows dropped, said once for the passes (release 0.8.0, step 8o), and no other"
     );
     assert_eq!(
         notes(&format!(

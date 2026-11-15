@@ -843,7 +843,9 @@ fn the_edge_cases_of_a_qq_plot() {
     assert_eq!(drawn.panels[0].layers[0].rows, [1, 3, 5]);
     assert_eq!(gave.1.len(), 1, "{:?}", gave.1);
     assert!(
-        gave.1[0].starts_with("2 rows with NA in theoretical or y dropped"),
+        // The quantiles are the plot's own column, so the note names `y` alone (release
+        // 0.8.0, step 8o).
+        gave.1[0].starts_with("2 rows with NA in y dropped"),
         "{:?}",
         gave.1
     );

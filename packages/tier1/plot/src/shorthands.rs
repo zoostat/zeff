@@ -499,6 +499,11 @@ pub fn qq_plot(ctx: &mut CallContext<'_>, args: Args) -> Result<Value, Fail> {
         handed(ctx, &args, Q_VAR),
     ];
     let mut drawn = call(ctx, plot, mapped)?;
+    // The quantiles are this function's own variable: a note about rows left out names the
+    // variable the script gave, where the quantile is missing too.
+    if let Value::Plot(made) = &mut drawn {
+        Rc::make_mut(made).made.push(QQ_QUANTILES.to_string());
+    }
     drawn = call(ctx, marks::points, vec![(Some(drawn), None)])?;
     drawn = call(
         ctx,
