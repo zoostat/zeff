@@ -518,3 +518,297 @@ fn a_package_may_have_a_function_of_a_frame_and_one_of_a_plot_under_one_name() {
         "{mixed:?}"
     );
 }
+
+/// A page that meets the contract of 0.8.0 in full (section 9.1, "The contract of 0.8.0"), for a
+/// function with several forms, a coded diagnostic and an equivalent in R and Stata.
+const REVISED: &str = "# where
+
+## Summary
+Keep the rows where a condition is true
+
+## In brief
+- `wages.where(year >= 2010)`: the rows where the condition holds.
+- `wages.where(is_missing(wage))`: the rows with a missing wage.
+
+## Description
+Returns the rows for which `condition` is `true`.
+
+## Arguments
+- data: The frame to filter.
+- condition: An expression over the frame's variables.
+- keep_na: Whether rows where the condition is `NA` are kept.
+- limit: At most this many rows.
+
+## Value
+A `Frame` with the same columns and a subset of the rows.
+
+## Missing values
+Rows where the condition is `NA` are dropped and counted, unless `keep_na: true`.
+
+## Details
+### The order of the rows
+Row order is kept.
+
+## A common mistake
+Comparing a text variable with a number:
+
+> wages.where(industry > 3)
+error[Z0203]: `>` does not apply to a category
+
+Write the level in quotes.
+
+## Coming from R or Stata
+| where(year >= 2010) | filter(d, year >= 2010) | keep if year >= 2010 |
+
+Stata's `keep if` keeps the rows where the condition is missing.
+
+## Related tasks
+- To drop the rows with any `NA`, use `drop_missing`.
+
+## See also
+drop_missing, select, sort
+
+## Examples
+// The rows of one year.
+> wages.where(year >= 2010).n_rows()
+4217
+// Rows where the condition is NA kept.
+> wages.where(wage > 10, keep_na: true, limit: 5000).n_rows()
+4230
+";
+
+fn revised_spec(help: &'static str) -> FunctionSpec {
+    let mut spec = where_spec(help);
+    spec.params
+        .push(ParamSpec::option_with_default("keep_na", "Bool", "false"));
+    spec.params.push(ParamSpec::option("limit", "Int"));
+    spec.diagnostics
+        .push(DiagnosticDecl::new("Z0203", "a condition that is not Bool"));
+    spec
+}
+
+fn contract_errors_of(help: &'static str) -> Vec<HelpError> {
+    let catalogue = Catalogue::compiled().unwrap();
+    let spec = revised_spec(help);
+    let row = catalogue.find("data", "where").unwrap();
+    match parse_help(help) {
+        Err(errors) => errors,
+        Ok(doc) => {
+            let known = |name: &str| catalogue.has_name(name);
+            let mut errors = check_help(&spec, &doc, row, &known);
+            errors.extend(zeff_registry::check_contract(&spec, &doc, row, &known));
+            errors
+        }
+    }
+}
+
+fn revised_variant(from: &str, to: &str) -> &'static str {
+    assert!(REVISED.contains(from), "{from}");
+    Box::leak(REVISED.replacen(from, to, 1).into_boxed_str())
+}
+
+#[test]
+fn a_page_that_meets_the_contract_of_0_8_0_passes_and_parses_its_new_parts() {
+    assert_eq!(contract_errors_of(REVISED), Vec::<HelpError>::new());
+    let doc = parse_help(REVISED).unwrap();
+    assert_eq!(doc.in_brief.len(), 1, "one bullet list");
+    assert_eq!(doc.missing_values.len(), 1);
+    assert!(
+        matches!(doc.details[0], zeff_registry::Block::Heading(ref h) if h == "The order of the rows")
+    );
+    let mistake = doc.mistake_example.as_ref().expect("the wrong call");
+    assert_eq!(mistake.code, ["wages.where(industry > 3)"]);
+    assert_eq!(
+        mistake.output,
+        ["error[Z0203]: `>` does not apply to a category"]
+    );
+    assert_eq!(
+        doc.mistake.len(),
+        2,
+        "the text before the call and after it"
+    );
+    assert!(
+        matches!(doc.coming_from[0], zeff_registry::Block::Table(ref rows) if rows.len() == 1
+        && rows[0] == ["where(year >= 2010)", "filter(d, year >= 2010)", "keep if year >= 2010"])
+    );
+    assert_eq!(doc.related.len(), 1);
+    assert_eq!(doc.examples.len(), 2);
+    assert_eq!(
+        doc.examples[0].caption.as_deref(),
+        Some("The rows of one year.")
+    );
+    assert_eq!(
+        doc.examples[1].caption.as_deref(),
+        Some("Rows where the condition is NA kept.")
+    );
+    assert_eq!(
+        doc.examples[1].code,
+        ["wages.where(wage > 10, keep_na: true, limit: 5000).n_rows()"]
+    );
+}
+
+#[test]
+fn each_way_a_page_can_fall_short_of_the_contract_of_0_8_0_is_caught() {
+    let cases: Vec<(&str, HelpError)> = vec![
+        (
+            revised_variant(
+                "## In brief\n- `wages.where(year >= 2010)`: the rows where the condition holds.\n- `wages.where(is_missing(wage))`: the rows with a missing wage.\n\n",
+                "",
+            ),
+            HelpError::MissingPart {
+                part: "In brief",
+                why: "the function has more than one way of being called",
+            },
+        ),
+        (
+            revised_variant(
+                "## Missing values\nRows where the condition is `NA` are dropped and counted, unless `keep_na: true`.\n\n",
+                "",
+            ),
+            HelpError::MissingPart {
+                part: "Missing values",
+                why: "the function reads data, so the page says what it does with NA",
+            },
+        ),
+        (
+            revised_variant(
+                "## A common mistake\nComparing a text variable with a number:\n\n> wages.where(industry > 3)\nerror[Z0203]: `>` does not apply to a category\n\nWrite the level in quotes.\n\n",
+                "",
+            ),
+            HelpError::MissingPart {
+                part: "A common mistake",
+                why: "the function has a coded diagnostic of its own",
+            },
+        ),
+        (
+            revised_variant("error[Z0203]: `>` does not apply to a category", "nothing"),
+            HelpError::MistakeWithoutDiagnostic,
+        ),
+        (
+            revised_variant(
+                "## Coming from R or Stata\n| where(year >= 2010) | filter(d, year >= 2010) | keep if year >= 2010 |\n\nStata's `keep if` keeps the rows where the condition is missing.\n\n",
+                "",
+            ),
+            HelpError::MissingPart {
+                part: "Coming from R or Stata",
+                why: "the catalogue names an equivalent in R or Stata",
+            },
+        ),
+        (
+            revised_variant(
+                "| where(year >= 2010) | filter(d, year >= 2010) | keep if year >= 2010 |",
+                "| where(year >= 2010) | filter(d, year >= 2010) |",
+            ),
+            HelpError::MalformedTable("| where(year >= 2010) | filter(d, year >= 2010) |".into()),
+        ),
+        (
+            revised_variant(
+                "- To drop the rows with any `NA`, use `drop_missing`.",
+                "- To drop the rows with any NA, use drop_missing.",
+            ),
+            HelpError::UnknownRelated("To drop the rows with any NA, use drop_missing.".into()),
+        ),
+        (
+            revised_variant(
+                "- To drop the rows with any `NA`, use `drop_missing`.",
+                "- To drop the rows, use `drop_mising`.",
+            ),
+            HelpError::UnknownRelated("To drop the rows, use `drop_mising`.".into()),
+        ),
+        (
+            revised_variant("// Rows where the condition is NA kept.\n", ""),
+            HelpError::ExampleWithoutCaption(2),
+        ),
+        (
+            revised_variant(
+                "wages.where(wage > 10, keep_na: true, limit: 5000).n_rows()",
+                "wages.where(wage > 10, limit: 5000).n_rows()",
+            ),
+            HelpError::ArgumentNotInExamples("keep_na".into()),
+        ),
+        (
+            revised_variant(
+                "> wages.where(year >= 2010).n_rows()",
+                "> import(\"data/wages.csv\").where(year >= 2010).n_rows()",
+            ),
+            HelpError::ExampleOnOwnFile(
+                "import(\"data/wages.csv\").where(year >= 2010).n_rows()".into(),
+            ),
+        ),
+    ];
+    for (help, expected) in cases {
+        let found = contract_errors_of(help);
+        assert!(
+            found.contains(&expected),
+            "expected {expected:?} in {found:?} for:\n{help}"
+        );
+    }
+    // A shipped dataset is not a file of the page's own.
+    let shipped = revised_variant(
+        "> wages.where(year >= 2010).n_rows()",
+        "> import(\"zeff:wages.csv\").where(year >= 2010).n_rows()",
+    );
+    assert!(
+        !contract_errors_of(shipped)
+            .iter()
+            .any(|e| matches!(e, HelpError::ExampleOnOwnFile(_)))
+    );
+}
+
+#[test]
+fn a_page_with_one_form_and_no_diagnostic_needs_neither_in_brief_nor_a_mistake() {
+    // `GOOD` has one form, one note and reads data: Missing values and the caption are what the
+    // contract asks of it, and In brief, A common mistake and Coming from are not.
+    let catalogue = Catalogue::compiled().unwrap();
+    let spec = where_spec(GOOD);
+    let row = catalogue.find("data", "where").unwrap();
+    let doc = parse_help(GOOD).unwrap();
+    let errors = zeff_registry::check_contract(&spec, &doc, row, &|name| catalogue.has_name(name));
+    assert!(!errors.iter().any(|e| matches!(
+        e,
+        HelpError::MissingPart {
+            part: "In brief",
+            ..
+        }
+    )));
+    assert!(!errors.iter().any(|e| matches!(
+        e,
+        HelpError::MissingPart {
+            part: "A common mistake",
+            ..
+        }
+    )));
+    assert!(errors.iter().any(|e| matches!(
+        e,
+        HelpError::MissingPart {
+            part: "Missing values",
+            ..
+        }
+    )));
+    assert!(errors.contains(&HelpError::ExampleWithoutCaption(1)));
+}
+
+#[test]
+fn the_list_of_unrevised_pages_names_registered_pages_written_before_0_8_0() {
+    // Every line names a package and a function, none twice; the registry refuses a stale line
+    // and a listed function of 0.8.0 or later (checked where the registry is built).
+    let pages = zeff_registry::unrevised_pages();
+    assert!(
+        !pages.is_empty(),
+        "pages remain to be revised before 0.10.0"
+    );
+    let mut seen = pages.clone();
+    seen.sort_unstable();
+    seen.dedup();
+    assert_eq!(seen.len(), pages.len(), "no page is listed twice");
+    let catalogue = Catalogue::compiled().unwrap();
+    for (package, name) in &pages {
+        let row = catalogue
+            .find(package, name)
+            .unwrap_or_else(|| panic!("{package}::{name}"));
+        assert_ne!(
+            row.release, "0.8.0",
+            "{package}::{name} is new at 0.8.0 and may not be listed"
+        );
+    }
+}

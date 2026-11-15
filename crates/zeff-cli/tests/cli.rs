@@ -619,8 +619,12 @@ fn zeff_help_lists_a_package_and_says_when_a_function_arrives() {
         "{text}"
     );
     assert!(
-        text.trim_end().lines().last().is_some_and(|l| l
-            .starts_with("`aggregate` arrives with a release after 1.0, in the `plot` package: ")),
+        text.trim_end()
+            .lines()
+            .last()
+            .is_some_and(|l| l.starts_with(
+                "Another `aggregate`, of the `plot` package, arrives with a release after 1.0: "
+            )),
         "{text}"
     );
     // A name with two homes shipped in two tiers (`core`'s `append` on lists, `data`'s on

@@ -22,7 +22,7 @@ pub fn help_text(registry: &Registry, name: &str) -> Result<String, String> {
             .rows_named(name)
             .iter()
             .filter(|row| !shipped.contains(&row.package.as_str()))
-            .map(|row| arrives_line(row))
+            .map(|row| arrives_line(row, true))
             .collect();
         if !later.is_empty() {
             text.push('\n');
@@ -74,7 +74,7 @@ pub fn help_text(registry: &Registry, name: &str) -> Result<String, String> {
     // A function of a later release, or a package with nothing shipped yet.
     let later = catalogue.rows_named(name);
     if !later.is_empty() {
-        let lines: Vec<String> = later.iter().map(|row| arrives_line(row)).collect();
+        let lines: Vec<String> = later.iter().map(|row| arrives_line(row, false)).collect();
         return Ok(lines.join("\n") + "\n");
     }
     let packages: Vec<&str> = {
@@ -116,17 +116,26 @@ pub fn help_text(registry: &Registry, name: &str) -> Result<String, String> {
     Err(message)
 }
 
-/// The line that says when a catalogued function arrives and where.
-fn arrives_line(row: &zeff_registry::CatalogueRow) -> String {
+/// The line that says when a catalogued function arrives and where; `another` when it follows
+/// the page of a function of the same name that has shipped, so that the line does not read as
+/// though the function at hand were unavailable (open decision #103).
+fn arrives_line(row: &zeff_registry::CatalogueRow, another: bool) -> String {
     let when = if row.status != "roadmap" {
         format!("release {}", row.release)
     } else {
         "a release after 1.0".to_string()
     };
-    format!(
-        "`{}` arrives with {when}, in the `{}` package: {}",
-        row.name, row.package, row.description
-    )
+    if another {
+        format!(
+            "Another `{}`, of the `{}` package, arrives with {when}: {}",
+            row.name, row.package, row.description
+        )
+    } else {
+        format!(
+            "`{}` arrives with {when}, in the `{}` package: {}",
+            row.name, row.package, row.description
+        )
+    }
 }
 
 /// The page of a function of the project's `functions/` folder, from its `///` lines (section

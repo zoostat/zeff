@@ -20,7 +20,31 @@ pub use dataset::{
     DatasetDoc, DatasetSpec, FormatRow, RegisteredDataset, check_dataset_help, parse_dataset_help,
     render_dataset_page,
 };
-pub use help::{Block, Example, HelpDoc, HelpError, check_help, parse_help};
+pub use help::{Block, Example, HelpDoc, HelpError, check_contract, check_help, parse_help};
+
+/// The pages written before release 0.8.0 and not yet revised to the help contract of that
+/// release (section 9.1, "The contract of 0.8.0"; open decision #103): one line per page, the
+/// package and the function's name. A page listed is held to the contract as it stood; one not
+/// listed, to the contract in full. The list is empty at 0.10.0.
+pub const UNREVISED: &str = include_str!("../unrevised.txt");
+
+/// The pages the list names, as (package, name).
+pub fn unrevised_pages() -> Vec<(&'static str, &'static str)> {
+    UNREVISED
+        .lines()
+        .map(str::trim)
+        .filter(|l| !l.is_empty() && !l.starts_with('#'))
+        .filter_map(|l| l.split_once(' '))
+        .map(|(p, n)| (p.trim(), n.trim()))
+        .collect()
+}
+
+/// Whether a release, `0.8.0`, is 0.8.0 or later.
+fn from_0_8_0(release: &str) -> bool {
+    let mut parts = release.split('.').map(|p| p.parse::<u32>().unwrap_or(0));
+    let (major, minor) = (parts.next().unwrap_or(0), parts.next().unwrap_or(0));
+    (major, minor) >= (0, 8)
+}
 pub use render::{PAGE_WIDTH, TEXT_WIDTH, render_page, render_page_with};
 pub use shared::{SHARED, SharedArgument, shared_argument};
 pub use source::{ZeffSource, doc_examples, page_markdown};
@@ -76,6 +100,17 @@ pub enum RegistryError {
         package: String,
         name: String,
         errors: Vec<HelpError>,
+    },
+    /// A page of a function released at 0.8.0 or later on the list of unrevised pages, which
+    /// holds the pages written before that release only.
+    UnrevisedNew {
+        package: String,
+        name: String,
+    },
+    /// A line of the list of unrevised pages that names no registered function.
+    UnrevisedUnknown {
+        package: String,
+        name: String,
     },
     /// Problems with a dataset's page.
     DatasetHelp {
@@ -133,6 +168,14 @@ impl std::fmt::Display for RegistryError {
                 }
                 Ok(())
             }
+            RegistryError::UnrevisedNew { package, name } => write!(
+                f,
+                "{package}::{name} is on the list of unrevised pages (kernel/zeff-registry/unrevised.txt), which holds pages written before 0.8.0 only; a function released at 0.8.0 or later meets the contract in full"
+            ),
+            RegistryError::UnrevisedUnknown { package, name } => write!(
+                f,
+                "the list of unrevised pages (kernel/zeff-registry/unrevised.txt) names {package}::{name}, which is not a registered function; strike the line"
+            ),
             RegistryError::DatasetHelp { name, errors } => {
                 write!(f, "the page of the dataset `{name}` is incomplete:")?;
                 for e in errors {
@@ -180,6 +223,7 @@ impl Registry {
     ) -> Result<Registry, Vec<RegistryError>> {
         let mut errors = Vec::new();
         let mut functions: Vec<Registered> = Vec::new();
+        let unrevised = unrevised_pages();
         let known = |name: &str| -> bool {
             let first = name.split_whitespace().next().unwrap_or(name);
             match first.strip_suffix(':') {
@@ -234,7 +278,25 @@ impl Registry {
                     continue;
                 }
             };
-            let found = check_help(&spec, &doc, &row, &known);
+            let mut found = check_help(&spec, &doc, &row, &known);
+            // The contract of 0.8.0 (section 9.1): in full for every page not on the list of
+            // unrevised pages; a function released at 0.8.0 or later may not be listed.
+            let listed = unrevised
+                .iter()
+                .any(|(p, n)| *p == spec.package && *n == spec.name);
+            if listed {
+                if from_0_8_0(&row.release) {
+                    errors.push(RegistryError::UnrevisedNew {
+                        package: package.clone(),
+                        name: name.clone(),
+                    });
+                }
+            } else if !(row.status == "planned" && !from_0_8_0(&row.release)) {
+                // A function planned for a release before 0.8.0 and not implemented is a fixture
+                // of the tests (the engine ships every planned function of a past release); it
+                // is held to the contract as it stood, like the pages written before 0.8.0.
+                found.extend(check_contract(&spec, &doc, &row, &known));
+            }
             if !found.is_empty() {
                 errors.push(RegistryError::Help {
                     package,
@@ -338,6 +400,25 @@ impl Registry {
 
     pub fn functions(&self) -> &[Registered] {
         &self.functions
+    }
+
+    /// The lines of the list of unrevised pages that name no function of this registry: stale
+    /// lines, which the engine's full registry refuses (a registry built for a test holds a few
+    /// functions and does not read the list this way).
+    pub fn unrevised_unknown(&self) -> Vec<RegistryError> {
+        unrevised_pages()
+            .into_iter()
+            .filter(|(p, n)| {
+                !self
+                    .functions
+                    .iter()
+                    .any(|f| f.spec.package == *p && f.spec.name == *n)
+            })
+            .map(|(p, n)| RegistryError::UnrevisedUnknown {
+                package: p.to_string(),
+                name: n.to_string(),
+            })
+            .collect()
     }
 
     /// The shipped datasets, in the order the package gives them.

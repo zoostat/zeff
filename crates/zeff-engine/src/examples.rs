@@ -151,6 +151,52 @@ pub fn run_examples_with(
                 });
             }
         }
+        // The common mistake of the page (section 9.1, the contract of 0.8.0): its wrong call
+        // runs in a script of its own after the examples, since a mistake the checker refuses
+        // would stop the examples' script before any ran; what the engine prints for it, less
+        // the source excerpt, is compared with what the page shows under it.
+        if let Some(mistake) = registry
+            .functions()
+            .iter()
+            .find(|f| f.spec.package == package && f.spec.name == name)
+            .and_then(|f| f.doc.mistake_example.as_ref())
+        {
+            let mut all: Vec<zeff_registry::Example> = examples.to_vec();
+            all.push(mistake.clone());
+            let (found, outcome) =
+                run_page_with(&fs, &project, &[], &all, &options, registry, bodies, zeff);
+            let mut printed: Vec<String> = found
+                .last()
+                .cloned()
+                .unwrap_or_default()
+                .into_iter()
+                .filter(|l| !is_source_excerpt(l))
+                .collect();
+            if printed.is_empty() && outcome.exit_code != 0 {
+                printed = outcome
+                    .output
+                    .stderr
+                    .lines()
+                    .filter(|l| !is_source_excerpt(l))
+                    .map(|l| l.trim_end().to_string())
+                    .collect();
+            }
+            let expected: Vec<String> = mistake
+                .output
+                .iter()
+                .map(|l| l.trim_end().to_string())
+                .collect();
+            if printed != expected {
+                failures.push(ExampleFailure {
+                    package: package.to_string(),
+                    function: name.to_string(),
+                    example: examples.len() + 1,
+                    code: mistake.code.clone(),
+                    expected,
+                    found: printed,
+                });
+            }
+        }
         // An error that stopped the script before an example ran shows as that example's output;
         // an error in a statement the ranges do not cover (a page without examples) shows here.
         if outcome.exit_code != 0 && examples.is_empty() {
@@ -165,6 +211,23 @@ pub fn run_examples_with(
         }
     }
     failures
+}
+
+/// Whether a line of a diagnostic is part of its source excerpt (` --> file:line:column`, the
+/// gutter lines and the quoted statement), which a page's common mistake leaves out: it shows
+/// the message and the help, which do not depend on where the statement stands.
+pub fn is_source_excerpt(line: &str) -> bool {
+    let trimmed = line.trim_start();
+    if trimmed.starts_with("-->") || trimmed.starts_with('|') {
+        return true;
+    }
+    let mut words = trimmed.splitn(2, ' ');
+    let first = words.next().unwrap_or("");
+    !first.is_empty()
+        && first.chars().all(|c| c.is_ascii_digit())
+        && words
+            .next()
+            .is_some_and(|rest| rest.trim_start().starts_with('|'))
 }
 
 /// Run the examples of one page as one script in a project, after the lines of `prelude` (the

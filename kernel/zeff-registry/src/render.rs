@@ -86,7 +86,58 @@ pub(crate) fn blocks(out: &mut String, blocks: &[Block]) {
                     }
                 }
             }
+            // A short heading inside Details: on its own line, in the margin of the text.
+            Block::Heading(text) => {
+                out.push_str(INDENT);
+                out.push_str(text);
+                out.push('\n');
+            }
+            // The table of Coming from R or Stata: three columns, headed, each as wide as its
+            // widest cell, the Zeff call first.
+            Block::Table(rows) => {
+                let head = ["Zeff", "R", "Stata"];
+                let widths: Vec<usize> = (0..3)
+                    .map(|c| {
+                        rows.iter()
+                            .map(|r| width(&r[c]))
+                            .chain(std::iter::once(width(head[c])))
+                            .max()
+                            .unwrap_or(0)
+                    })
+                    .collect();
+                let line = |cells: [&str; 3], out: &mut String| {
+                    out.push_str(INDENT);
+                    for (c, cell) in cells.iter().enumerate() {
+                        out.push_str(cell);
+                        if c < 2 {
+                            out.push_str(&" ".repeat(widths[c] - width(cell) + 3));
+                        }
+                    }
+                    out.push('\n');
+                };
+                line(head, out);
+                for row in rows {
+                    line([&row[0], &row[1], &row[2]], out);
+                }
+            }
         }
+    }
+}
+
+/// The run of `> ` lines of an example and what it prints, as the page shows them.
+fn example_lines(out: &mut String, example: &crate::help::Example) {
+    for code in &example.code {
+        out.push_str(INDENT);
+        out.push_str("> ");
+        out.push_str(code);
+        out.push('\n');
+    }
+    for output in &example.output {
+        if !output.is_empty() {
+            out.push_str(INDENT);
+            out.push_str(output);
+        }
+        out.push('\n');
     }
 }
 
@@ -178,6 +229,11 @@ pub fn render_page_with(
 ) -> String {
     let mut out = header(spec, doc, row);
     out.push('\n');
+
+    if !doc.in_brief.is_empty() {
+        heading(&mut out, "IN BRIEF");
+        blocks(&mut out, &doc.in_brief);
+    }
 
     heading(&mut out, "USAGE");
     for line in usage_lines(spec) {
@@ -280,6 +336,11 @@ pub fn render_page_with(
         None => blocks(&mut out, &doc.value),
     }
 
+    if !doc.missing_values.is_empty() {
+        heading(&mut out, "MISSING VALUES");
+        blocks(&mut out, &doc.missing_values);
+    }
+
     if !doc.details.is_empty() {
         heading(&mut out, "DETAILS");
         blocks(&mut out, &doc.details);
@@ -299,6 +360,54 @@ pub fn render_page_with(
                 out.push('\n');
             }
         }
+    }
+
+    if !doc.mistake.is_empty() || doc.mistake_example.is_some() {
+        heading(&mut out, "A COMMON MISTAKE");
+        // The text before the run, the run, then any text after it (the corrected call).
+        let (before, after): (Vec<Block>, Vec<Block>) = match doc
+            .mistake
+            .iter()
+            .position(|b| matches!(b, Block::Paragraph(p) if p.ends_with(':')))
+        {
+            Some(i) => (doc.mistake[..=i].to_vec(), doc.mistake[i + 1..].to_vec()),
+            None => (doc.mistake.clone(), Vec::new()),
+        };
+        blocks(&mut out, &before);
+        if let Some(example) = &doc.mistake_example {
+            if !before.is_empty() {
+                out.push('\n');
+            }
+            example_lines(&mut out, example);
+        }
+        if !after.is_empty() {
+            out.push('\n');
+            blocks(&mut out, &after);
+        }
+    }
+
+    if !doc.coming_from.is_empty() {
+        heading(&mut out, "COMING FROM R OR STATA");
+        // The catalogue's equivalents first, generated, then the table and the differences.
+        let equivalent = row.equivalent.trim().trim_end_matches('.');
+        if !equivalent.is_empty() {
+            for line in wrap(
+                &format!("Equivalents: {equivalent}."),
+                INDENT,
+                INDENT,
+                TEXT_WIDTH,
+            ) {
+                out.push_str(&line);
+                out.push('\n');
+            }
+            out.push('\n');
+        }
+        blocks(&mut out, &doc.coming_from);
+    }
+
+    if !doc.related.is_empty() {
+        heading(&mut out, "RELATED TASKS");
+        blocks(&mut out, &doc.related);
     }
 
     heading(&mut out, "ACCURACY");
@@ -341,20 +450,19 @@ pub fn render_page_with(
     }
 
     heading(&mut out, "EXAMPLES");
-    for example in &doc.examples {
-        for code in &example.code {
-            out.push_str(INDENT);
-            out.push_str("> ");
-            out.push_str(code);
-            out.push('\n');
-        }
-        for output in &example.output {
-            if !output.is_empty() {
-                out.push_str(INDENT);
-                out.push_str(output);
+    for (i, example) in doc.examples.iter().enumerate() {
+        // A caption stands above its example as a comment line, with a blank line between
+        // examples once they have captions.
+        if let Some(caption) = &example.caption {
+            if i > 0 {
+                out.push('\n');
             }
-            out.push('\n');
+            for line in wrap(caption, "    // ", "    // ", TEXT_WIDTH) {
+                out.push_str(&line);
+                out.push('\n');
+            }
         }
+        example_lines(&mut out, example);
     }
     out
 }

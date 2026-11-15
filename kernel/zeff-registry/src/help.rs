@@ -34,18 +34,23 @@
 use crate::catalogue::CatalogueRow;
 use crate::spec::FunctionSpec;
 
-/// An example: the statement (one or more lines, without the `> `) and what it prints.
-#[derive(Debug, Clone, PartialEq, Eq)]
+/// An example: its caption (the comment line above it, saying what it shows; required by the
+/// contract of 0.8.0), the statement (one or more lines, without the `> `) and what it prints.
+#[derive(Debug, Clone, PartialEq, Eq, Default)]
 pub struct Example {
+    pub caption: Option<String>,
     pub code: Vec<String>,
     pub output: Vec<String>,
 }
 
-/// A text block: a paragraph, or a bullet list.
+/// A text block: a paragraph, a bullet list, a short heading inside Details (`### `), or a table
+/// of three columns under Coming from R or Stata (`| zeff | R | Stata |`).
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum Block {
     Paragraph(String),
     Bullets(Vec<String>),
+    Heading(String),
+    Table(Vec<[String; 3]>),
 }
 
 /// The written parts of a help page.
@@ -62,6 +67,19 @@ pub struct HelpDoc {
     pub references: Vec<String>,
     pub see_also: Vec<String>,
     pub examples: Vec<Example>,
+    /// The parts of the contract of 0.8.0 (open decision #103), each empty on a page that has
+    /// none. In brief: the commonest forms of the call, one bullet each.
+    pub in_brief: Vec<Block>,
+    /// What the function does with `NA`.
+    pub missing_values: Vec<Block>,
+    /// The wrong call a newcomer is most likely to write, with the diagnostic the engine prints
+    /// for it as a run of `> ` lines (`mistake_example`) and the corrected call.
+    pub mistake: Vec<Block>,
+    pub mistake_example: Option<Example>,
+    /// The equivalent calls as a table of three columns and the differences that would surprise.
+    pub coming_from: Vec<Block>,
+    /// "To do this other thing, use that function", one bullet each.
+    pub related: Vec<Block>,
 }
 
 /// What is wrong with a help page; each is a build failure.
@@ -99,6 +117,23 @@ pub enum HelpError {
     NoExample,
     /// An example whose statement is empty or whose lines are not `> ` lines before output.
     MalformedExample(String),
+    /// A part the contract of 0.8.0 requires of this function, with the reason it is required.
+    MissingPart {
+        part: &'static str,
+        why: &'static str,
+    },
+    /// An example without the comment line above it that says what it shows.
+    ExampleWithoutCaption(usize),
+    /// An optional argument of the function's own that no example writes.
+    ArgumentNotInExamples(String),
+    /// An example that reads a file of its own instead of a shipped dataset.
+    ExampleOnOwnFile(String),
+    /// A table row under Coming from R or Stata without three cells.
+    MalformedTable(String),
+    /// A common mistake whose `> ` run does not end in a diagnostic the engine prints.
+    MistakeWithoutDiagnostic,
+    /// A related task that names no function in backticks, or one that does not exist.
+    UnknownRelated(String),
 }
 
 impl std::fmt::Display for HelpError {
@@ -139,18 +174,49 @@ impl std::fmt::Display for HelpError {
             HelpError::MalformedExample(l) => {
                 write!(f, "an example starts with `> ` lines; `{l}` does not")
             }
+            HelpError::MissingPart { part, why } => {
+                write!(f, "the part `{part}` is required: {why}")
+            }
+            HelpError::ExampleWithoutCaption(n) => write!(
+                f,
+                "example {n} has no caption: a `// ` line above it saying what it shows"
+            ),
+            HelpError::ArgumentNotInExamples(p) => {
+                write!(f, "no example writes the argument `{p}:`")
+            }
+            HelpError::ExampleOnOwnFile(l) => write!(
+                f,
+                "an example runs on the shipped datasets (`dataset(wages)`, `zeff:wages.csv`), not on a file of its own: `{l}`"
+            ),
+            HelpError::MalformedTable(l) => write!(
+                f,
+                "a row under Coming from R or Stata is `| zeff | R | Stata |`, not `{l}`"
+            ),
+            HelpError::MistakeWithoutDiagnostic => write!(
+                f,
+                "A common mistake shows the wrong call as `> ` lines and, under them, the diagnostic the engine prints"
+            ),
+            HelpError::UnknownRelated(l) => write!(
+                f,
+                "a related task names its function in backticks, and the function must exist: `{l}`"
+            ),
         }
     }
 }
 
 impl std::error::Error for HelpError {}
 
-const WRITTEN: [&str; 8] = [
+const WRITTEN: [&str; 13] = [
     "Summary",
+    "In brief",
     "Description",
     "Arguments",
     "Value",
+    "Missing values",
     "Details",
+    "A common mistake",
+    "Coming from R or Stata",
+    "Related tasks",
     "References",
     "See also",
     "Examples",
@@ -175,6 +241,27 @@ pub(crate) fn blocks(lines: &[&str]) -> Vec<Block> {
         let trimmed = line.trim();
         if trimmed.is_empty() {
             flush(&mut paragraph, &mut bullets, &mut out);
+        } else if let Some(heading) = trimmed.strip_prefix("### ") {
+            // A short heading inside Details.
+            flush(&mut paragraph, &mut bullets, &mut out);
+            out.push(Block::Heading(heading.trim().to_string()));
+        } else if trimmed.starts_with('|') {
+            // A row of the three-column table of Coming from R or Stata; the cells are checked
+            // by `check_contract`, which reports a row without three.
+            flush(&mut paragraph, &mut bullets, &mut out);
+            let cells: Vec<String> = trimmed
+                .trim_matches('|')
+                .split('|')
+                .map(|c| c.trim().to_string())
+                .collect();
+            let row: [String; 3] = match cells.len() {
+                3 => [cells[0].clone(), cells[1].clone(), cells[2].clone()],
+                _ => [trimmed.to_string(), String::new(), String::new()],
+            };
+            match out.last_mut() {
+                Some(Block::Table(rows)) => rows.push(row),
+                _ => out.push(Block::Table(vec![row])),
+            }
         } else if let Some(item) = trimmed.strip_prefix("- ") {
             if !paragraph.is_empty() {
                 flush(&mut paragraph, &mut bullets, &mut out);
@@ -252,6 +339,33 @@ pub fn parse_help(text: &str) -> Result<HelpDoc, Vec<HelpError>> {
             "Description" => doc.description = blocks(lines),
             "Value" => doc.value = blocks(lines),
             "Details" => doc.details = blocks(lines),
+            "In brief" => doc.in_brief = blocks(lines),
+            "Missing values" => doc.missing_values = blocks(lines),
+            "Coming from R or Stata" => doc.coming_from = blocks(lines),
+            "Related tasks" => doc.related = blocks(lines),
+            "A common mistake" => {
+                // The text, and the one run of `> ` lines with the diagnostic under it.
+                let mut text: Vec<&str> = Vec::new();
+                let mut run: Vec<&str> = Vec::new();
+                let mut in_run = false;
+                for line in lines {
+                    if line.trim_start().starts_with('>') {
+                        in_run = true;
+                    } else if in_run && line.trim().is_empty() {
+                        in_run = false;
+                        continue;
+                    }
+                    if in_run {
+                        run.push(line);
+                    } else {
+                        text.push(line);
+                    }
+                }
+                doc.mistake = blocks(&text);
+                let mut examples = Vec::new();
+                parse_examples(&run, &mut examples, &mut errors);
+                doc.mistake_example = examples.into_iter().next();
+            }
             "Arguments" => {
                 for line in lines.iter().map(|l| l.trim()).filter(|l| !l.is_empty()) {
                     match line.strip_prefix("- ").and_then(|l| l.split_once(':')) {
@@ -407,6 +521,8 @@ pub(crate) fn parse_examples(
             examples.push(example);
         }
     };
+    // The caption of the example about to start: a `// ` line before its `> ` lines.
+    let mut caption: Option<String> = None;
     for line in lines.iter() {
         let trimmed = line.trim_end();
         if trimmed.trim().is_empty() {
@@ -416,23 +532,25 @@ pub(crate) fn parse_examples(
             }
             continue;
         }
+        if let Some(text) = trimmed.trim().strip_prefix("//")
+            && current.as_ref().is_none_or(|e| !e.output.is_empty())
+        {
+            close(current.take(), examples);
+            caption = Some(text.trim().to_string());
+            continue;
+        }
         if let Some(code) = trimmed.strip_prefix('>') {
             let code = code.strip_prefix(' ').unwrap_or(code).to_string();
             match current.as_mut() {
                 Some(example) if example.output.is_empty() => example.code.push(code),
-                Some(_) => {
-                    // A new statement after output: a new example.
+                _ => {
+                    // A new statement after output, or the first: a new example.
                     close(current.take(), examples);
                     current = Some(Example {
+                        caption: caption.take(),
                         code: vec![code],
                         output: Vec::new(),
                     });
-                }
-                None => {
-                    current = Some(Example {
-                        code: vec![code],
-                        output: Vec::new(),
-                    })
                 }
             }
         } else {
@@ -443,4 +561,141 @@ pub(crate) fn parse_examples(
         }
     }
     close(current.take(), examples);
+}
+
+/// Whether a parameter's type reads data: a frame, a variable, a column, terms or a formula.
+fn reads_data(ty: &str) -> bool {
+    [
+        "Frame",
+        "Var",
+        "Vars",
+        "Column",
+        "Terms",
+        "Formula",
+        "Result",
+        "RegFit",
+        "TestResult",
+    ]
+    .iter()
+    .any(|word| {
+        ty.split(['<', '>', '|', ' ', ','])
+            .any(|part| part == *word)
+    })
+}
+
+/// The function a related task names: the last word in backticks, `use \`chi2_test\``.
+fn backticked(text: &str) -> Option<&str> {
+    let end = text.rfind('`')?;
+    let start = text[..end].rfind('`')? + 1;
+    Some(&text[start..end])
+}
+
+/// The checks of the contract of 0.8.0 (Engine and Project Specification, section 9.1, "The
+/// contract of 0.8.0"; open decision #103), beside those of [`check_help`]: the parts the
+/// function must carry (In brief where it has several ways of being called, Missing values where
+/// it reads data, A common mistake where it has a coded diagnostic, Coming from R or Stata where
+/// the catalogue names an equivalent), a caption on every example, every optional argument of the
+/// function's own in some example, every example on the shipped datasets, the shape of the table
+/// and of the mistake, and the function of each related task. Run on every page not on the list
+/// of unrevised pages.
+pub fn check_contract(
+    spec: &FunctionSpec,
+    doc: &HelpDoc,
+    row: &CatalogueRow,
+    known: &dyn Fn(&str) -> bool,
+) -> Vec<HelpError> {
+    let mut errors = Vec::new();
+    let own_options: Vec<&str> = spec
+        .params
+        .iter()
+        .filter(|p| p.option && !p.is_shared())
+        .map(|p| p.name)
+        .collect();
+    let several_forms = row.usage.contains(" or ") || own_options.len() >= 2;
+    if several_forms && doc.in_brief.is_empty() {
+        errors.push(HelpError::MissingPart {
+            part: "In brief",
+            why: "the function has more than one way of being called",
+        });
+    }
+    let reads =
+        spec.method || spec.params.iter().any(|p| reads_data(p.ty)) || reads_data(spec.returns);
+    if reads && doc.missing_values.is_empty() {
+        errors.push(HelpError::MissingPart {
+            part: "Missing values",
+            why: "the function reads data, so the page says what it does with NA",
+        });
+    }
+    let coded = spec.diagnostics.iter().any(|d| !d.code.is_empty());
+    if coded && doc.mistake.is_empty() && doc.mistake_example.is_none() {
+        errors.push(HelpError::MissingPart {
+            part: "A common mistake",
+            why: "the function has a coded diagnostic of its own",
+        });
+    }
+    if !doc.mistake.is_empty() || doc.mistake_example.is_some() {
+        let shown = doc.mistake_example.as_ref().is_some_and(|e| {
+            e.output
+                .iter()
+                .any(|l| l.starts_with("error[") || l.starts_with("warning["))
+        });
+        if !shown {
+            errors.push(HelpError::MistakeWithoutDiagnostic);
+        }
+    }
+    let equivalent = row.equivalent.trim();
+    if !equivalent.is_empty() && !equivalent.starts_with("None") && doc.coming_from.is_empty() {
+        errors.push(HelpError::MissingPart {
+            part: "Coming from R or Stata",
+            why: "the catalogue names an equivalent in R or Stata",
+        });
+    }
+    for block in &doc.coming_from {
+        if let Block::Table(rows) = block {
+            for cells in rows {
+                if cells[1].is_empty() && cells[2].is_empty() {
+                    errors.push(HelpError::MalformedTable(cells[0].clone()));
+                }
+            }
+        }
+    }
+    for block in &doc.related {
+        if let Block::Bullets(items) = block {
+            for item in items {
+                match backticked(item) {
+                    Some(name) if known(name) => {}
+                    _ => errors.push(HelpError::UnknownRelated(item.clone())),
+                }
+            }
+        }
+    }
+    for (i, example) in doc.examples.iter().enumerate() {
+        if example.caption.as_deref().is_none_or(|c| c.is_empty()) {
+            errors.push(HelpError::ExampleWithoutCaption(i + 1));
+        }
+    }
+    let all_code = || {
+        doc.examples
+            .iter()
+            .chain(doc.mistake_example.iter())
+            .flat_map(|e| e.code.iter())
+    };
+    for option in own_options {
+        let written = format!("{option}:");
+        if !all_code().any(|code| code.contains(&written)) {
+            errors.push(HelpError::ArgumentNotInExamples(option.to_string()));
+        }
+    }
+    for code in all_code() {
+        let mut rest = code.as_str();
+        while let Some(at) = rest.find("import(\"") {
+            let path = &rest[at + 8..];
+            if !path.starts_with("zeff:") {
+                errors.push(HelpError::ExampleOnOwnFile(code.trim().to_string()));
+                break;
+            }
+            rest = path;
+        }
+    }
+    errors
 }

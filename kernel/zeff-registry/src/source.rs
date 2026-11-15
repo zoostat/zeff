@@ -74,6 +74,16 @@ pub fn page_markdown(name: &str, params: &[&str], doc: &[String]) -> String {
     let mut references: Vec<String> = Vec::new();
     let mut see_also: Vec<String> = Vec::new();
     let mut examples: Vec<String> = Vec::new();
+    // The parts of the contract of 0.8.0, each from its own key: `in brief:` one bullet per
+    // line, `missing values:`, `common mistake:` (its wrong call as `mistake call:` and the
+    // lines the engine prints as `mistake prints:`), `coming from:` (a row `zeff | R | Stata`,
+    // or a sentence), `related:` one bullet per line, and `example:` the caption of the example
+    // that follows.
+    let mut in_brief: Vec<String> = Vec::new();
+    let mut missing: Vec<String> = Vec::new();
+    let mut mistake: Vec<String> = Vec::new();
+    let mut coming_from: Vec<String> = Vec::new();
+    let mut related: Vec<String> = Vec::new();
     // A `///` summary is written as a sentence, with its full stop; a page's Summary completes
     // "`name` — …" and has none.
     let summary = doc
@@ -94,13 +104,36 @@ pub fn page_markdown(name: &str, params: &[&str], doc: &[String]) -> String {
             Some(("details", text)) => details.push(text.to_string()),
             Some(("reference" | "references", text)) => references.push(text.to_string()),
             Some(("see also", text)) => see_also.push(text.to_string()),
+            Some(("in brief", text)) => in_brief.push(format!("- {text}")),
+            Some(("missing values", text)) => missing.push(text.to_string()),
+            Some(("common mistake", text)) => mistake.push(text.to_string()),
+            Some(("mistake call", text)) => mistake.push(format!("> {text}")),
+            Some(("mistake prints", text)) => mistake.push(text.to_string()),
+            Some(("coming from", text)) => coming_from.push(if text.contains('|') {
+                format!("| {text} |")
+            } else {
+                text.to_string()
+            }),
+            Some(("related", text)) => related.push(format!("- {text}")),
+            Some(("example", text)) => examples.push(format!("// {text}")),
             Some((key, text)) if params.contains(&key) => {
                 arguments.push((key.to_string(), text.to_string()));
             }
             _ => description.push(line.trim_end().to_string()),
         }
     }
-    let mut out = format!("# {name}\n\n## Summary\n{summary}\n\n## Description\n");
+    let mut out = format!("# {name}\n\n## Summary\n{summary}\n");
+    let part = |out: &mut String, heading: &str, lines: &[String]| {
+        if !lines.is_empty() {
+            out.push_str(&format!("\n## {heading}\n"));
+            for line in lines {
+                out.push_str(line);
+                out.push('\n');
+            }
+        }
+    };
+    part(&mut out, "In brief", &in_brief);
+    out.push_str("\n## Description\n");
     for line in &description {
         out.push_str(line.trim());
         out.push('\n');
@@ -114,6 +147,7 @@ pub fn page_markdown(name: &str, params: &[&str], doc: &[String]) -> String {
         out.push_str(line);
         out.push('\n');
     }
+    part(&mut out, "Missing values", &missing);
     if !details.is_empty() {
         out.push_str("\n## Details\n");
         for line in &details {
@@ -121,6 +155,9 @@ pub fn page_markdown(name: &str, params: &[&str], doc: &[String]) -> String {
             out.push('\n');
         }
     }
+    part(&mut out, "A common mistake", &mistake);
+    part(&mut out, "Coming from R or Stata", &coming_from);
+    part(&mut out, "Related tasks", &related);
     if !references.is_empty() {
         out.push_str("\n## References\n");
         for line in &references {

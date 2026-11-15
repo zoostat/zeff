@@ -55,3 +55,13 @@ Tests, plots and the language server: 72 functions in 258 commits over 40 steps,
 **Next.** Step 2 `[engine]`: the help contract amended (#103) and its build check, with the list of unrevised pages.
 
 **For the owner to decide.** Nothing blocks. #18 at the close, from the alpha's users. The reader test (testing handbook, section 2.4, item 4) and a Stata run on the Card data are his. The decisions of 0.7.0 that placed work here (#96, #97, #99, #113, #120, #122) were found at the opening after the checklist was shown and are now block B2; he is told in the announcement of step 1.
+
+## 15 November 2026, release 0.8.0, step 2 (the help contract of 0.8.0)
+
+**Done.** Step 2 `[engine]`: section 9.1 of the Engine Specification carries the contract the owner decided under #103 (In brief, Missing values, A common mistake, Coming from R or Stata, Related tasks, headings inside Details, a caption on every example, every optional argument in an example, every example on the shipped datasets), logged; the registry parses, checks and prints the new parts, a function written in Zeff carries them in `///` keys, and the example runner runs each page's wrong call after its examples and holds the page to what the engine prints, less the source excerpt. The 251 pages written before this release are listed in `kernel/zeff-registry/unrevised.txt` and held to the contract as it stood; a page off the list meets the contract in full, a new function may not be listed, a stale line fails the engine's test, and the list must be empty from 0.10.0. Two pages are revised: `add` (the three errors #103 named corrected) and `tabulate`, the owner's approved sample, whose printed form is the eighth page of `docs/spec/zeff_help_examples.md`. The rulings the decision left to the build check are in `docs/decisions.md` under this date.
+
+**Green.** Format, clippy with warnings denied, the tier and message checks, every test of the workspace; CI read after the push.
+
+**Next.** Step 3 `[engine]`: the weekly mutation job in two passes and the early end of the studentized range's sum.
+
+**For the owner to decide.** Nothing blocks. To look at: `zeff help tabulate` and `zeff help add`, the first two pages under the new contract, as the shape every page will take by 0.10.0.

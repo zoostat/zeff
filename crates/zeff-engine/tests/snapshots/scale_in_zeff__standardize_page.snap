@@ -52,4 +52,4 @@ EXAMPLES
     > frame(z = standardize(d["x"])).sd(z)
     1
 
-`standardize` arrives with a release after 1.0, in the `learn` package: z-scores with the analysis-set mean and sd
+Another `standardize`, of the `learn` package, arrives with a release after 1.0: z-scores with the analysis-set mean and sd
