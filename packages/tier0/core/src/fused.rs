@@ -76,6 +76,20 @@ pub struct CallNode {
     pub callee_span: Span,
     pub arg_spans: Vec<Option<Span>>,
     pub rest_spans: Vec<Span>,
+    /// The function's name and its parameters' names and declared types, for the check of each
+    /// column's type before the rows run (open decision #108).
+    pub function: String,
+    pub param_names: Vec<String>,
+    pub param_types: Vec<String>,
+}
+
+impl CallNode {
+    fn params(&self) -> (Vec<&str>, Vec<&str>) {
+        (
+            self.param_names.iter().map(String::as_str).collect(),
+            self.param_types.iter().map(String::as_str).collect(),
+        )
+    }
 }
 
 /// An expression over columns, compiled: its nodes in evaluation order, the last the root; the
@@ -263,7 +277,18 @@ fn unfused(
                     definitions: Vec::new(),
                 };
                 let mut ctx = context(call, plan, resources, &mut own[i]);
-                lift::call_rowwise(call.body, &mut ctx, args, &call.returns)
+                let (names, types) = call.params();
+                lift::call_rowwise(
+                    call.body,
+                    &mut ctx,
+                    args,
+                    &call.returns,
+                    lift::Params {
+                        function: &call.function,
+                        names: &names,
+                        types: &types,
+                    },
+                )
             }
         };
         match value {
@@ -550,9 +575,21 @@ fn shapes(plan: &Plan, values: &[Option<Value>]) -> (Vec<Shape>, Vec<bool>) {
                 }
             }
             Node::Call(call) => {
-                let inputs = call.args.iter().flatten().chain(&call.rest);
                 let mut ok = true;
-                for &j in inputs {
+                for (k, arg) in call.args.iter().enumerate() {
+                    if let Some(j) = arg
+                        && let Shape::Column(ty) = &shapes[*j]
+                    {
+                        ok &= computable(*ty) || *ty == ColumnType::Category;
+                        // A column of a type the parameter does not take is not run in a block:
+                        // the whole evaluation refuses it before any row (open decision #108).
+                        ok &= call
+                            .param_types
+                            .get(k)
+                            .is_none_or(|declared| lift::accepts_column(declared, *ty));
+                    }
+                }
+                for &j in &call.rest {
                     if let Shape::Column(ty) = &shapes[j] {
                         ok &= computable(*ty) || *ty == ColumnType::Category;
                     }
@@ -645,6 +682,7 @@ fn materialise(
                 }
                 let mut messages = Vec::new();
                 let mut ctx = context(call, plan, resources, &mut messages);
+                let (names, types) = call.params();
                 let value = lift::call_rowwise(
                     call.body,
                     &mut ctx,
@@ -654,6 +692,11 @@ fn materialise(
                         definitions: Vec::new(),
                     },
                     &call.returns,
+                    lift::Params {
+                        function: &call.function,
+                        names: &names,
+                        types: &types,
+                    },
                 )
                 .map_err(|_| Fallback)?;
                 own[i] = messages;

@@ -1,0 +1,108 @@
+---
+source: crates/zeff-engine/tests/column_types.rs
+expression: report
+---
+--- on `s`
+abs: error[Z0401]: `x` of `abs` must be a Float, but this is a column of Str
+acos: error[Z0401]: `x` of `acos` must be a Float, but this is a column of Str
+asin: error[Z0401]: `x` of `asin` must be a Float, but this is a column of Str
+atan: error[Z0401]: `x` of `atan` must be a Float, but this is a column of Str
+ceil: error[Z0401]: `x` of `ceil` must be a Float, but this is a column of Str
+cos: error[Z0401]: `x` of `cos` must be a Float, but this is a column of Str
+exp: error[Z0401]: `x` of `exp` must be a Float, but this is a column of Str
+expm1: error[Z0401]: `x` of `expm1` must be a Float, but this is a column of Str
+factorial: error[Z0401]: `n` of `factorial` must be an Int, but this is a column of Str
+floor: error[Z0401]: `x` of `floor` must be a Float, but this is a column of Str
+gamma: error[Z0401]: `x` of `gamma` must be a Float, but this is a column of Str
+inv_logit: error[Z0221]: `-` needs a number, but this is text
+is_finite: error[Z0401]: `x` of `is_finite` must be a Float, but this is a column of Str
+log: error[Z0401]: `x` of `log` must be a Float, but this is a column of Str
+log10: error[Z0401]: `x` of `log10` must be a Float, but this is a column of Str
+log1p: error[Z0401]: `x` of `log1p` must be a Float, but this is a column of Str
+log2: error[Z0401]: `x` of `log2` must be a Float, but this is a column of Str
+log_gamma: error[Z0401]: `x` of `log_gamma` must be a Float, but this is a column of Str
+logit: error[Z0215]: `-` does not apply to text
+round: error[Z0401]: `x` of `round` must be a Float, but this is a column of Str
+sign: error[Z0401]: `x` of `sign` must be a Float, but this is a column of Str
+sin: error[Z0401]: `x` of `sin` must be a Float, but this is a column of Str
+sqrt: error[Z0401]: `x` of `sqrt` must be a Float, but this is a column of Str
+tan: error[Z0401]: `x` of `tan` must be a Float, but this is a column of Str
+truncate: error[Z0401]: `x` of `truncate` must be a Float, but this is a column of Str
+--- on `c`
+abs: error[Z0401]: `x` of `abs` must be a Float, but this is a column of Category
+acos: error[Z0401]: `x` of `acos` must be a Float, but this is a column of Category
+asin: error[Z0401]: `x` of `asin` must be a Float, but this is a column of Category
+atan: error[Z0401]: `x` of `atan` must be a Float, but this is a column of Category
+ceil: error[Z0401]: `x` of `ceil` must be a Float, but this is a column of Category
+cos: error[Z0401]: `x` of `cos` must be a Float, but this is a column of Category
+exp: error[Z0401]: `x` of `exp` must be a Float, but this is a column of Category
+expm1: error[Z0401]: `x` of `expm1` must be a Float, but this is a column of Category
+factorial: error[Z0401]: `n` of `factorial` must be an Int, but this is a column of Category
+floor: error[Z0401]: `x` of `floor` must be a Float, but this is a column of Category
+gamma: error[Z0401]: `x` of `gamma` must be a Float, but this is a column of Category
+inv_logit: error[Z0221]: `-` does not apply to a category
+is_finite: error[Z0401]: `x` of `is_finite` must be a Float, but this is a column of Category
+log: error[Z0401]: `x` of `log` must be a Float, but this is a column of Category
+log10: error[Z0401]: `x` of `log10` must be a Float, but this is a column of Category
+log1p: error[Z0401]: `x` of `log1p` must be a Float, but this is a column of Category
+log2: error[Z0401]: `x` of `log2` must be a Float, but this is a column of Category
+log_gamma: error[Z0401]: `x` of `log_gamma` must be a Float, but this is a column of Category
+logit: error[Z0221]: `-` does not apply to a category
+round: error[Z0401]: `x` of `round` must be a Float, but this is a column of Category
+sign: error[Z0401]: `x` of `sign` must be a Float, but this is a column of Category
+sin: error[Z0401]: `x` of `sin` must be a Float, but this is a column of Category
+sqrt: error[Z0401]: `x` of `sqrt` must be a Float, but this is a column of Category
+tan: error[Z0401]: `x` of `tan` must be a Float, but this is a column of Category
+truncate: error[Z0401]: `x` of `truncate` must be a Float, but this is a column of Category
+--- on `t`
+abs: error[Z0401]: `x` of `abs` must be a Float, but this is a column of Date
+acos: error[Z0401]: `x` of `acos` must be a Float, but this is a column of Date
+asin: error[Z0401]: `x` of `asin` must be a Float, but this is a column of Date
+atan: error[Z0401]: `x` of `atan` must be a Float, but this is a column of Date
+ceil: error[Z0401]: `x` of `ceil` must be a Float, but this is a column of Date
+cos: error[Z0401]: `x` of `cos` must be a Float, but this is a column of Date
+exp: error[Z0401]: `x` of `exp` must be a Float, but this is a column of Date
+expm1: error[Z0401]: `x` of `expm1` must be a Float, but this is a column of Date
+factorial: error[Z0401]: `n` of `factorial` must be an Int, but this is a column of Date
+floor: error[Z0401]: `x` of `floor` must be a Float, but this is a column of Date
+gamma: error[Z0401]: `x` of `gamma` must be a Float, but this is a column of Date
+inv_logit: error[Z0221]: `-` needs a number, but this is a Date
+is_finite: error[Z0401]: `x` of `is_finite` must be a Float, but this is a column of Date
+log: error[Z0401]: `x` of `log` must be a Float, but this is a column of Date
+log10: error[Z0401]: `x` of `log10` must be a Float, but this is a column of Date
+log1p: error[Z0401]: `x` of `log1p` must be a Float, but this is a column of Date
+log2: error[Z0401]: `x` of `log2` must be a Float, but this is a column of Date
+log_gamma: error[Z0401]: `x` of `log_gamma` must be a Float, but this is a column of Date
+logit: error[Z0221]: `-` does not apply to a Date and a number
+round: error[Z0401]: `x` of `round` must be a Float, but this is a column of Date
+sign: error[Z0401]: `x` of `sign` must be a Float, but this is a column of Date
+sin: error[Z0401]: `x` of `sin` must be a Float, but this is a column of Date
+sqrt: error[Z0401]: `x` of `sqrt` must be a Float, but this is a column of Date
+tan: error[Z0401]: `x` of `tan` must be a Float, but this is a column of Date
+truncate: error[Z0401]: `x` of `truncate` must be a Float, but this is a column of Date
+--- on `b`
+abs: error[Z0401]: `x` of `abs` must be a Float, but this is a column of Bool
+acos: error[Z0401]: `x` of `acos` must be a Float, but this is a column of Bool
+asin: error[Z0401]: `x` of `asin` must be a Float, but this is a column of Bool
+atan: error[Z0401]: `x` of `atan` must be a Float, but this is a column of Bool
+ceil: error[Z0401]: `x` of `ceil` must be a Float, but this is a column of Bool
+cos: error[Z0401]: `x` of `cos` must be a Float, but this is a column of Bool
+exp: error[Z0401]: `x` of `exp` must be a Float, but this is a column of Bool
+expm1: error[Z0401]: `x` of `expm1` must be a Float, but this is a column of Bool
+factorial: error[Z0401]: `n` of `factorial` must be an Int, but this is a column of Bool
+floor: error[Z0401]: `x` of `floor` must be a Float, but this is a column of Bool
+gamma: error[Z0401]: `x` of `gamma` must be a Float, but this is a column of Bool
+inv_logit: error[Z0221]: `-` needs a number, but this is a Bool
+is_finite: error[Z0401]: `x` of `is_finite` must be a Float, but this is a column of Bool
+log: error[Z0401]: `x` of `log` must be a Float, but this is a column of Bool
+log10: error[Z0401]: `x` of `log10` must be a Float, but this is a column of Bool
+log1p: error[Z0401]: `x` of `log1p` must be a Float, but this is a column of Bool
+log2: error[Z0401]: `x` of `log2` must be a Float, but this is a column of Bool
+log_gamma: error[Z0401]: `x` of `log_gamma` must be a Float, but this is a column of Bool
+logit: error[Z0221]: `-` needs numbers, but one side is a Bool
+round: error[Z0401]: `x` of `round` must be a Float, but this is a column of Bool
+sign: error[Z0401]: `x` of `sign` must be a Float, but this is a column of Bool
+sin: error[Z0401]: `x` of `sin` must be a Float, but this is a column of Bool
+sqrt: error[Z0401]: `x` of `sqrt` must be a Float, but this is a column of Bool
+tan: error[Z0401]: `x` of `tan` must be a Float, but this is a column of Bool
+truncate: error[Z0401]: `x` of `truncate` must be a Float, but this is a column of Bool

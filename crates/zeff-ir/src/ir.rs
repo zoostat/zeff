@@ -414,6 +414,19 @@ pub struct Spread {
     pub targets: Vec<(String, usize)>,
 }
 
+/// The parameters of a called function, one entry each, as the interpreter reads them.
+#[derive(Debug, Clone, PartialEq, Default)]
+pub struct CallSignature {
+    /// Which parameters take one variable (`Var`): a list of exactly one variable given to
+    /// one, `cluster: vars(firm)`, directly or through a spread, is that variable (open
+    /// decision #87), and the interpreter makes the change at the call.
+    pub var: Vec<bool>,
+    /// The parameters' names and declared types, as the language writes them, for the check of
+    /// a column's type before a scalar function is applied row by row (open decision #108).
+    pub names: Vec<String>,
+    pub types: Vec<String>,
+}
+
 /// A call of a built-in function, with its arguments in parameter order.
 #[derive(Debug, Clone, PartialEq)]
 pub struct Call {
@@ -448,10 +461,9 @@ pub struct Call {
     pub liftable: bool,
     pub scalar_params: Vec<bool>,
     pub rest_scalar: bool,
-    /// Which parameters take one variable (`Var`): a list of exactly one variable given to
-    /// one, `cluster: vars(firm)`, directly or through a spread, is that variable (open
-    /// decision #87), and the interpreter makes the change at the call.
-    pub var_params: Vec<bool>,
+    /// What the interpreter needs of the function's parameters at the call, kept apart so that
+    /// a call stays small inside an expression.
+    pub signature: Box<CallSignature>,
     /// A reducer called inside a frame method's definition without a receiver (`mean(lwage)` in
     /// `add`): the enclosing frame, or its group under `by:`, is the receiver (section 6).
     pub implicit_receiver: bool,

@@ -3438,7 +3438,7 @@ impl<'a> Interpreter<'a> {
         // `cluster: vars(firm)` or a record's field or a binding holding it, is that variable;
         // any other count is refused here, where the count is first known.
         for (i, value) in values.iter_mut().enumerate() {
-            if call.var_params.get(i) != Some(&true) {
+            if call.signature.var.get(i) != Some(&true) {
                 continue;
             }
             if let Some(Value::Vars(names)) = value {
@@ -3587,7 +3587,19 @@ impl<'a> Interpreter<'a> {
                 .any(|(v, scalar)| *scalar && matches!(v, Some(Value::Column(_))))
                 || (call.rest_scalar && args.rest.iter().any(|v| matches!(v, Value::Column(_)))));
         let result = if call.lifted || column_given {
-            zeff_core::lift::call_rowwise(*body, &mut ctx, args, &call.returns)
+            let names: Vec<&str> = call.signature.names.iter().map(String::as_str).collect();
+            let types: Vec<&str> = call.signature.types.iter().map(String::as_str).collect();
+            zeff_core::lift::call_rowwise(
+                *body,
+                &mut ctx,
+                args,
+                &call.returns,
+                zeff_core::lift::Params {
+                    function: &call.name,
+                    names: &names,
+                    types: &types,
+                },
+            )
         } else {
             body(&mut ctx, args)
         };
@@ -3974,6 +3986,9 @@ impl<'a> Interpreter<'a> {
                     .map(|a| a.as_ref().map(|e| e.span))
                     .collect(),
                 rest_spans: call.rest.iter().map(|e| e.span).collect(),
+                function: call.name.clone(),
+                param_names: call.signature.names.clone(),
+                param_types: call.signature.types.clone(),
             };
             plan.push(fused::Node::Call(Box::new(node)), Vec::new());
             let _ = expr;

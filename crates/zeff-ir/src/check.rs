@@ -6,8 +6,9 @@
 //! `Unknown`, which no later check reports again.
 
 use crate::ir::{
-    Arm, Binding, BindingId, BindingKind, Block, Call, Expr, ExprKind, FnId, Formula, Function,
-    FunctionValue, Param, Program, RecordField, Slot, Spread, Statement, Term, TermKind, TermStep,
+    Arm, Binding, BindingId, BindingKind, Block, Call, CallSignature, Expr, ExprKind, FnId,
+    Formula, Function, FunctionValue, Param, Program, RecordField, Slot, Spread, Statement, Term,
+    TermKind, TermStep,
 };
 use crate::schema::{FrameSchema, ImportRequest, SchemaLookup, Schemas, statement_hash};
 use crate::ty::{ResultKind, Ty};
@@ -5375,7 +5376,11 @@ impl Checker<'_> {
                 lifted: false,
                 liftable: false,
                 scalar_params: vec![false; names.len()],
-                var_params: vec![false; names.len()],
+                signature: Box::new(CallSignature {
+                    var: vec![false; names.len()],
+                    names: names.iter().map(|n| n.to_string()).collect(),
+                    types: vec![String::new(); names.len()],
+                }),
                 rest_scalar: false,
                 implicit_receiver: false,
                 by_slot: None,
@@ -6651,7 +6656,11 @@ impl Checker<'_> {
                 liftable,
                 scalar_params: params.iter().map(|(_, ty, _)| scalar_type(ty)).collect(),
                 rest_scalar: matches!(&spec.rest, Some(Rest::Values(ty)) if Ty::parse(ty).is_some_and(|t| scalar_type(&t))),
-                var_params: params.iter().map(|(_, ty, _)| *ty == Ty::Var).collect(),
+                signature: Box::new(CallSignature {
+                    var: params.iter().map(|(_, ty, _)| *ty == Ty::Var).collect(),
+                    names: params.iter().map(|(n, _, _)| n.to_string()).collect(),
+                    types: spec.params.iter().map(|p| p.ty.to_string()).collect(),
+                }),
                 implicit_receiver,
                 by_slot: params.iter().position(|(n, _, _)| n == "by"),
                 returns: spec.returns.to_string(),
@@ -7359,7 +7368,7 @@ impl Checker<'_> {
                 lifted: false,
                 liftable: false,
                 scalar_params: Vec::new(),
-                var_params: Vec::new(),
+                signature: Box::default(),
                 rest_scalar: false,
                 implicit_receiver: false,
                 by_slot: None,

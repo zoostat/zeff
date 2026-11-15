@@ -151,15 +151,130 @@ fn inputs_of(args: &Args) -> Inputs {
     inputs
 }
 
+/// The function a row-wise call applies, for the check of its columns' types: its name and, for
+/// each positional parameter, the parameter's name and declared type as the language writes it
+/// (`Float`, `Int | Float`, `Str`, `Date | DateTime`).
+#[derive(Debug, Clone, Copy)]
+pub struct Params<'a> {
+    pub function: &'a str,
+    pub names: &'a [&'a str],
+    pub types: &'a [&'a str],
+}
+
+/// Whether a column of type `column` may be given to a parameter declared `ty`: the scalar types
+/// of section 4 by name, `Float` and `Number` taking an Int as the checker does and `Str` a
+/// category, whose rows are its labels; a declaration
+/// that is no scalar type (`Any`, `Join`, `Same`, a `Column<…>`, a list, a word) is left to the
+/// body. An opaque column is taken by no scalar parameter (section 4.3, rule 2).
+pub(crate) fn accepts_column(ty: &str, column: ColumnType) -> bool {
+    let mut scalar = false;
+    for alternative in ty.split('|').map(str::trim) {
+        let accepted: Option<&[ColumnType]> = match alternative {
+            "Float" | "Number" => Some(&[ColumnType::Float, ColumnType::Int]),
+            "Int" => Some(&[ColumnType::Int]),
+            "Bool" => Some(&[ColumnType::Bool]),
+            // A category's rows reach a function as their labels (`cell_value`), so a
+            // category column fits a parameter that takes text: `is_in(industry, ["Retail"])`.
+            "Str" => Some(&[ColumnType::Str, ColumnType::Category]),
+            "Date" => Some(&[ColumnType::Date]),
+            "DateTime" => Some(&[ColumnType::DateTime]),
+            "Category" => Some(&[ColumnType::Category]),
+            _ => None,
+        };
+        match accepted {
+            Some(kinds) => {
+                scalar = true;
+                if kinds.contains(&column) {
+                    return true;
+                }
+            }
+            None => return true,
+        }
+    }
+    !scalar
+}
+
+/// A type as a message names it: `a Float`, `an Int or a Float`.
+fn with_articles(ty: &str) -> String {
+    let parts: Vec<String> = ty
+        .split('|')
+        .map(str::trim)
+        .map(|name| {
+            let article = if name.starts_with(['A', 'E', 'I', 'O', 'U']) {
+                "an"
+            } else {
+                "a"
+            };
+            format!("{article} {name}")
+        })
+        .collect();
+    match parts.split_last() {
+        Some((last, rest)) if !rest.is_empty() => format!("{} or {last}", rest.join(", ")),
+        Some((last, _)) => last.clone(),
+        None => String::new(),
+    }
+}
+
+/// Z0401: a column of a type the parameter does not take, refused before any row runs (open
+/// decision #108: what R and Stata do, and what the checker does for one value), with the
+/// conversion that would make it fit.
+fn wrong_column(ctx: &CallContext<'_>, params: Params<'_>, i: usize, column: ColumnType) -> Fail {
+    let name = params.names.get(i).copied().unwrap_or("x");
+    let ty = params.types.get(i).copied().unwrap_or("");
+    let span = ctx
+        .arg_spans
+        .get(i)
+        .copied()
+        .flatten()
+        .unwrap_or(ctx.callee_span);
+    let conversion = match column {
+        ColumnType::Str => "`to(x, Float)` or `to(x, Int)` reads numbers written as text",
+        ColumnType::Category => {
+            "`to(x, Int)` gives the positions of a category's levels and `to(x, Str)` their labels"
+        }
+        ColumnType::Bool => "`to(x, Int)` gives 1 for true and 0 for false",
+        ColumnType::Date | ColumnType::DateTime => {
+            "`year`, `month` and the other functions of `time` read a date's parts as numbers"
+        }
+        _ => "`to(x, Str)` writes a value as text and `to(x, Float)` reads one",
+    };
+    fail(
+        Diagnostic::error(
+            "Z0401",
+            format!(
+                "`{name}` of `{}` must be {}, but this is a column of {}",
+                params.function,
+                with_articles(ty),
+                column.name()
+            ),
+        )
+        .in_file(ctx.script)
+        .primary(span, format!("a column of {}", column.name()))
+        .help(format!(
+            "a function given a column applies to every row, and the rows must be of a type it takes; {conversion}"
+        )),
+    )
+}
+
 /// Call `body` once per row of the columns among `args`, and return the column of its results.
 /// `returns` is the function's declared return type (`Float`, `Int`, `Bool`, `Str` or `Number`),
-/// which decides the column's type when no row gives a value.
+/// which decides the column's type when no row gives a value; `params` names the function and
+/// its parameters' types, against which each column is checked before any row runs.
 pub fn call_rowwise(
     body: Body,
     ctx: &mut CallContext<'_>,
     args: Args,
     returns: &str,
+    params: Params<'_>,
 ) -> Result<Value, Fail> {
+    for (i, value) in args.values.iter().enumerate() {
+        if let Some(Value::Column(column)) = value
+            && let Some(ty) = params.types.get(i)
+            && !accepts_column(ty, column.ty())
+        {
+            return Err(wrong_column(ctx, params, i, column.ty()));
+        }
+    }
     let len = common_length(&args).map_err(|(a, b)| {
         fail(
             Diagnostic::error(

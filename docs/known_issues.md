@@ -7,12 +7,6 @@ is never listed here as accepted: it is fixed or the function is withdrawn.
 
 ## As of 0.7.0
 
-- **A function of `time` or `text` given a column of a type it does not take ends in an internal
-  error.** `f.add(y = year(industry))` stops with Z9001, "this is a bug in Zeff", where it should
-  say that `year` takes a date; from 0.7.0 the same happens in a plot's mapping. And a numeric
-  function of `core` given a text or category column, `log(industry)`, gives `NA` on every row
-  without a message. Nothing wrong is computed in the first case; in the second the `NA`s are
-  the sign. (The first since 0.6.0, found at 0.7.0; open decision #108, for 0.8.0.)
 - **In a script, a loop variable does not stand for a term of a fit.** `for v in vars(educ) {
   m.coef(v) }` asks for a term called `v` and stops with Z0414 listing the terms;
   `coef(name_of(v))` reads the term the variable names. Inside a function the parameters and

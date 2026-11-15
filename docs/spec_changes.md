@@ -667,3 +667,7 @@ Open decision #87, decided 15 November 2026 (option A), applied as step 4 of rel
 ## 15 November 2026 — zeff_language_reference.md, section 3.7 (the table "Resolution by parameter type", the row of a term name)
 
 Open decision #147, decided 15 November 2026 (option A), applied as step 5 of release 0.8.0. The row says that inside the body of a function a name the function binds that holds a `Var` or a `Str` is the term it names, so `coef(on)` in a function with a parameter `on` reads the coefficient of the variable the parameter holds: one rule with the row above it and with #140, the function's names coming first everywhere. A name the function does not bind, and every name in a script, is the term of that name as before.
+
+## 15 November 2026 — zeff_language_reference.md, section 3.7 (the row "Columns and scalars")
+
+Open decision #108, decided 15 November 2026 (option A), applied as step 6 of release 0.8.0. The row said that a scalar function applies row by row when given a column and did not say what happens when the column's type is one the function does not take; it now says the column is refused when the statement runs (Z0401), as one value of that type is refused when the script is checked, with the conversion that would make it fit. Until this release such a column gave `NA` on every row without a message in `core`, and an internal error in `time` and `text`; the release notes of 0.8.0 list the change as breaking, with the rewrite.

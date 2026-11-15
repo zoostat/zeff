@@ -1208,6 +1208,11 @@ fn control_cases() -> Vec<Line> {
         // with a variable of the parameter's name too; a Str parameter spells the term;
         // `name_of` still works; a name the function does not bind is the term of that name.
         ("term_parameters", TERM_PARAMETERS_SCRIPT),
+        // A column of a type a function does not take (release 0.8.0, step 6; open decision
+        // #108): refused when the statement runs, in `add`, `where`, a mapping and a formula,
+        // each caught by `attempt`; the right types pass; the last statement's refusal ends the
+        // script and is what the standard error digests.
+        ("column_types", COLUMN_TYPES_SCRIPT),
     ];
     let mut lines = Vec::new();
     for (name, script) in scripts {
@@ -1244,6 +1249,8 @@ fn control_cases() -> Vec<Line> {
 
 /// The script of the `several_types` case: `fill_missing`, written in Zeff on a parameter of
 /// several types, under every type and column form a call may take.
+const COLUMN_TYPES_SCRIPT: &str = "let d = frame(s = [\"a\", \"b\"], n = [1, 2], b = [true, false], t = [to(\"2026-01-01\", Date), to(\"2026-02-01\", Date)])\nprint(attempt(d.add(a = log(s))).is(Failed))\nprint(attempt(d.add(a = year(n))).is(Failed))\nprint(attempt(d.add(a = upper(n))).is(Failed))\nprint(attempt(d.add(a = round(b))).is(Failed))\nprint(attempt(d.add(a = abs(t))).is(Failed))\nprint(attempt(d.where(sqrt(s) > 1)).is(Failed))\nprint(attempt(d.plot(x: log(s), y: n).points()).is(Failed))\nprint(attempt(d.reg(n ~ log(s))).is(Failed))\nd.add(ok = log(n), day = year(t), up = upper(s), flag = to(b, Int))\nlet w = dataset(wages)\nw.add(x = log(industry))\n";
+
 const TERM_PARAMETERS_SCRIPT: &str = "/// A regression's slope.\nfn slope(data: Frame, outcome: Var, on: Var) -> Float {\n    data.reg(outcome ~ on).coef(on)\n}\n/// The coefficient of a named term.\nfn of(data: Frame, outcome: Var, on: Var, term: Str) -> Float {\n    data.reg(outcome ~ on).coef(term)\n}\n/// The slope by name_of.\nfn slope_named(data: Frame, outcome: Var, on: Var) -> Float {\n    data.reg(outcome ~ on).coef(name_of(on))\n}\nlet w = dataset(wages)\nw.slope(wage, educ)\nlet twin = w.add(on = educ * 2, outcome = wage)\ntwin.slope(wage, educ)\nw.of(wage, educ, \"educ\")\nw.of(wage, educ, \"(intercept)\")\nw.slope_named(wage, educ)\nlet m = w.reg(wage ~ educ)\nfor v in vars(educ) {\n    print(m.coef(v))\n}\n";
 
 const OPTION_RECORDS_SCRIPT: &str = "let w = dataset(wages)\nlet opts = {se: robust, cluster: vars(worker)}\nw.reg(log(wage) ~ educ, ..opts).std_errors(educ)\nw.reg(log(wage) ~ educ + exper, ..opts).std_errors(educ)\nw.reg(log(wage) ~ educ, cluster: worker).std_errors(educ)\nw.reg(log(wage) ~ educ, cluster: vars(worker)).std_errors(educ)\nlet c = vars(worker)\nw.reg(log(wage) ~ educ, cluster: c).std_errors(educ)\nlet two = {cluster: vars(worker, year)}\nw.reg(log(wage) ~ educ, ..two)\n";

@@ -95,3 +95,13 @@ Tests, plots and the language server: 72 functions in 258 commits over 40 steps,
 **Next.** Step 6 `[engine]`: the type of a column checked against the parameter when the statement runs (#108).
 
 **For the owner to decide.** Nothing blocks.
+
+## 15 November 2026, release 0.8.0, step 6 (a column of the wrong type refused)
+
+**Done.** Step 6 `[engine]`: a numeric function of `core`, or a function of `time` or `text`, given a column of a type it does not take is refused when the statement runs, with Z0401 in the checker's words and the conversion to use, in `add`, `update`, `where`, a plot's mapping and a formula alike; until now `log(industry)` gave `NA` in every row without a word and `year(industry)` ended in an internal error. A category still fits where text is taken, since its rows are its labels (`is_in(industry, [...])`). Section 3.7 follows, logged; the known-issues entry is resolved; the conformance case `control/column_types` holds it. A breaking change for the notes: a script that relied on the silent `NA` now stops.
+
+**Green.** Format, clippy with warnings denied, the tier and message checks, every test of the workspace; CI read after the push.
+
+**Next.** Step 7a `[engine]`: a coded error from a built-in written in Zeff (#89).
+
+**For the owner to decide.** Nothing blocks.

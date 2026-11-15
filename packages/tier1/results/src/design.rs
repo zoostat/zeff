@@ -1221,9 +1221,19 @@ impl Builder<'_, '_> {
                     rest,
                     definitions: Vec::new(),
                 };
-                let body = self.function(package, name)?;
+                let (body, names, types) = self.function(package, name)?;
                 if *lifted {
-                    lift::call_rowwise(body, self.ctx, call, returns)?
+                    lift::call_rowwise(
+                        body,
+                        self.ctx,
+                        call,
+                        returns,
+                        lift::Params {
+                            function: name,
+                            names: &names,
+                            types: &types,
+                        },
+                    )?
                 } else {
                     body(self.ctx, call)?
                 }
@@ -1256,13 +1266,31 @@ impl Builder<'_, '_> {
     }
 
     /// The body of a function a term calls: those of `core`, which every package may call.
-    fn function(&self, package: &str, name: &str) -> Result<zeff_core::runtime::Body, Fail> {
+    /// The body of a function of `core`, with its parameters' names and declared types, against
+    /// which a column's type is checked before the rows run.
+    #[allow(clippy::type_complexity)]
+    fn function(
+        &self,
+        package: &str,
+        name: &str,
+    ) -> Result<
+        (
+            zeff_core::runtime::Body,
+            Vec<&'static str>,
+            Vec<&'static str>,
+        ),
+        Fail,
+    > {
         if package == "core"
             && let Some(f) = zeff_core::functions()
                 .iter()
                 .find(|f: &&Function| f.spec.name == name)
         {
-            return Ok(f.body);
+            return Ok((
+                f.body,
+                f.spec.params.iter().map(|p| p.name).collect(),
+                f.spec.params.iter().map(|p| p.ty).collect(),
+            ));
         }
         Err(fail(
             Diagnostic::error(

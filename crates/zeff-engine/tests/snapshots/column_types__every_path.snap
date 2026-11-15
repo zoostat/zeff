@@ -1,0 +1,68 @@
+---
+source: crates/zeff-engine/tests/column_types.rs
+expression: report
+---
+--- add
+error[Z0401]: `x` of `log` must be a Float, but this is a column of Str
+ --> scripts/main.zeff:2:15
+  |
+2 | d.add(y = log(s))
+  |               ^ a column of Str
+  |
+  = help: a function given a column applies to every row, and the rows must be of a type it takes; `to(x, Float)` or `to(x, Int)` reads numbers written as text
+--- update
+error[Z0401]: `x` of `sqrt` must be a Float, but this is a column of Category
+ --> scripts/main.zeff:2:19
+  |
+2 | d.update(f = sqrt(c))
+  |                   ^ a column of Category
+  |
+  = help: a function given a column applies to every row, and the rows must be of a type it takes; `to(x, Int)` gives the positions of a category's levels and `to(x, Str)` their labels
+--- where
+error[Z0401]: `x` of `sqrt` must be a Float, but this is a column of Str
+ --> scripts/main.zeff:2:14
+  |
+2 | d.where(sqrt(s) > 1)
+  |              ^ a column of Str
+  |
+  = help: a function given a column applies to every row, and the rows must be of a type it takes; `to(x, Float)` or `to(x, Int)` reads numbers written as text
+--- mapping
+error[Z0401]: `x` of `log` must be a Float, but this is a column of Str
+ --> scripts/main.zeff:2:11
+  |
+2 | d.plot(x: log(s), y: n).points()
+  |           ^^^^^^ a column of Str
+  |
+  = help: a function given a column applies to every row, and the rows must be of a type it takes; `to(x, Float)` or `to(x, Int)` reads numbers written as text
+--- formula
+error[Z0401]: `x` of `log` must be a Float, but this is a column of Str
+ --> scripts/main.zeff:2:1
+  |
+2 | d.reg(f ~ log(s))
+  | ^ a column of Str
+  |
+  = help: a function given a column applies to every row, and the rows must be of a type it takes; `to(x, Float)` or `to(x, Int)` reads numbers written as text
+--- time in a mapping
+error[Z0401]: `d` of `year` must be a Date or a DateTime, but this is a column of Category
+ --> scripts/main.zeff:2:11
+  |
+2 | d.plot(x: year(c), y: n).points()
+  |           ^^^^^^^ a column of Category
+  |
+  = help: a function given a column applies to every row, and the rows must be of a type it takes; `to(x, Int)` gives the positions of a category's levels and `to(x, Str)` their labels
+--- text in add
+error[Z0401]: `s` of `upper` must be a Str, but this is a column of Int
+ --> scripts/main.zeff:2:17
+  |
+2 | d.add(y = upper(n))
+  |                 ^ a column of Int
+  |
+  = help: a function given a column applies to every row, and the rows must be of a type it takes; `to(x, Str)` writes a value as text and `to(x, Float)` reads one
+--- shipped data
+error[Z0401]: `x` of `log` must be a Float, but this is a column of Category
+ --> scripts/main.zeff:2:15
+  |
+2 | w.add(x = log(industry))
+  |               ^^^^^^^^ a column of Category
+  |
+  = help: a function given a column applies to every row, and the rows must be of a type it takes; `to(x, Int)` gives the positions of a category's levels and `to(x, Str)` their labels

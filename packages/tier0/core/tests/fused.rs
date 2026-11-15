@@ -388,6 +388,11 @@ impl Gen {
                 callee_span: Span::new(0, 1),
                 arg_spans,
                 rest_spans: Vec::new(),
+                // No declared types: these plans are built by hand over numeric columns, and
+                // the check of a column's type is tested where the checker builds the plan.
+                function: name.to_string(),
+                param_names: Vec::new(),
+                param_types: Vec::new(),
             })),
             Vec::new(),
         )
@@ -499,6 +504,9 @@ fn a_fused_pass_counts_warnings_per_operation_as_the_unfused_one() {
             callee_span: Span::new(0, 3),
             arg_spans: vec![Some(Span::new(4, 5)), None],
             rest_spans: Vec::new(),
+            function: "log".to_string(),
+            param_names: vec!["x".to_string(), "base".to_string()],
+            param_types: vec!["Float".to_string(), "Float".to_string()],
         })),
         Vec::new(),
     );

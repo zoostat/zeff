@@ -206,14 +206,14 @@ error[Z0102]: no variable `wage` in `d`; names are case-sensitive
 let w = dataset(wages)
 let d = frame(educ = [1, 2], wage = ["a", "b"])
 w.plot(x: educ, y: abs(wage)).points(data: d)
-error[Z0401]: the plot maps `abs(wage)` to `y`, which gives a Float on its own frame and a Str on the frame of this layer
+error[Z0401]: `x` of `abs` must be a Float, but this is a column of Str
  --> scripts/main.zeff:3:44
   |
 3 | w.plot(x: educ, y: abs(wage)).points(data: d)
   |                               ------ this layer draws `abs(wage)`, which the plot maps to `y`
-  |                                            ^ `abs(wage)` is of another kind here
+  |                                            ^ `abs(wage)` cannot be computed on this frame
   |
-  = help: the layers of a plot share one axis, so an expression must come to numbers, to text or to dates on the frame of every layer
+  = help: a function given a column applies to every row, and the rows must be of a type it takes; `to(x, Float)` or `to(x, Int)` reads numbers written as text
 
 let w = dataset(wages)
 let d = frame(educ = [1, 2], wage = ["a", "b"])
