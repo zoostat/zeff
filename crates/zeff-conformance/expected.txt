@@ -230,6 +230,8 @@ tests/wilcoxon/stdout 192b719562229135
 tests/wilcoxon/stderr 93c75308cc8ba522
 tests/kruskal/stdout d593e3789f0a0476
 tests/kruskal/stderr b278fd056143a710
+tests/variance/stdout 5b5db5eb6b7adbad
+tests/variance/stderr 49031bc9f38f16c7
 tests/fisher/stdout 7f517681ac48644e
 tests/fisher/stderr b83be8741898d11e
 tests/fields/stdout cbf29ce484222325

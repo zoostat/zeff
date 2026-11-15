@@ -170,3 +170,13 @@ Step 2: the help contract of 0.8.0 (#103) in section 9.1 and in the registry, wi
 **Next.** Step 8j `[function]`: `variance_test(var, group:, method: f | levene | bartlett)` (#97).
 
 **For the owner to decide.** Nothing blocks.
+
+## 15 November 2026, release 0.8.0, step 8j (`variance_test`)
+
+**Done.** Step 8j `[function]`: `variance_test(var, group:, method: f | levene | bartlett, center: median | mean)` tests whether a variable has the same variance in every group: Levene's test (centred on the median unless told the mean), Bartlett's test, or for two groups the ratio of the variances with its 95% interval. Every statistic, p-value and interval agrees with R (`car::leveneTest`, `bartlett.test`, `var.test`) on fourteen cases and the two shipped datasets.
+
+**Green.** Format, clippy with warnings denied, the tier, message and grammar checks, every test of the workspace; CI read after the push.
+
+**Next.** Step 8k `[function]`: `running(x, stat:)` and `row(vars, stat:, min_valid:)` in the place of four names (#99).
+
+**For the owner to decide.** Nothing blocks.

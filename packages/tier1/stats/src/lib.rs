@@ -19,6 +19,7 @@ pub mod qq;
 pub mod shapiro_test;
 pub mod t_test;
 pub mod testing;
+pub mod variance_test;
 pub mod wilcoxon_test;
 
 use zeff_columns::{Column, ColumnType};
@@ -678,6 +679,39 @@ pub fn functions() -> Vec<Function> {
                 }),
             },
             body: kruskal_test::kruskal_test,
+        },
+        Function {
+            spec: FunctionSpec {
+                name: "variance_test",
+                package: "stats",
+                method: true,
+                params: vec![
+                    ParamSpec::required("data", "Frame"),
+                    ParamSpec::required("var", "Var"),
+                    ParamSpec::option("group", "Var"),
+                    ParamSpec::option_with_default("method", "f | levene | bartlett", "levene"),
+                    ParamSpec::option_with_default("center", "median | mean", "median"),
+                ],
+                rest: None,
+                returns: "TestResult",
+                diagnostics: vec![
+                    DiagnosticDecl::note(
+                        "rows with NA in the variable or the groups dropped, with the count",
+                    ),
+                    DiagnosticDecl::new("Z0101", "a variable the frame does not have"),
+                    DiagnosticDecl::new(
+                        "Z0401",
+                        "a variable that is not numeric; group: missing, or with fewer than two groups among the rows kept; method: f with more than two groups; a group of one value, or with no spread, under method: f or bartlett; no variation within any group under method: levene",
+                    ),
+                    DiagnosticDecl::new("Z0410", "center: with a method other than levene"),
+                ],
+                help: include_str!("../help/variance_test.md"),
+                accuracy: Some(AccuracyRecord {
+                    reference: "R 4.6.0 var.test(), bartlett.test() and car 3.1-5 leveneTest() (tests/reference/r/variance.R)".to_string(),
+                    last_run: None,
+                }),
+            },
+            body: variance_test::variance_test,
         },
         Function {
             spec: FunctionSpec {

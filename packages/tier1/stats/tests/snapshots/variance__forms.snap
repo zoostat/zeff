@@ -1,0 +1,200 @@
+---
+source: packages/tier1/stats/tests/variance.rs
+expression: "format!(\"{stdout}---\\n{stderr}\")"
+---
+variance_test · s by site
+  H0: the variance of s is the same in every group of site
+  H1: the variance of s in at least one group of site differs from that in another
+
+  group    N      sd   variance
+  site=1   5   0.288      0.083
+  site=2   4   0.793      0.629
+  site=3   5   0.736      0.542
+
+F(2, 11) = 4.48   p = 0.038
+decision at α = 0.05: reject H0 (p = 0.038)
+Levene's test over 3 groups, distances taken from each group's median (Brown–Forsythe)
+variance_test · s by site
+  H0: the variance of s is the same in every group of site
+  H1: the variance of s in at least one group of site differs from that in another
+
+  group    N      sd   variance
+  site=1   5   0.288      0.083
+  site=2   4   0.793      0.629
+  site=3   5   0.736      0.542
+
+F(2, 11) = 4.78   p = 0.032
+decision at α = 0.05: reject H0 (p = 0.032)
+Levene's test over 3 groups, distances taken from each group's mean
+variance_test · s by site
+  H0: the variance of s is the same in every group of site
+  H1: the variance of s in at least one group of site differs from that in another
+
+  group    N      sd   variance
+  site=1   5   0.288      0.083
+  site=2   4   0.793      0.629
+  site=3   5   0.736      0.542
+
+F(2, 11) = 4.48   p = 0.038
+decision at α = 0.05: reject H0 (p = 0.038)
+Levene's test over 3 groups, distances taken from each group's median (Brown–Forsythe)
+variance_test · s by site
+  H0: the variance of s is the same in every group of site
+  H1: the variance of s in at least one group of site differs from that in another
+
+  group    N      sd   variance
+  site=1   5   0.288      0.083
+  site=2   4   0.793      0.629
+  site=3   5   0.736      0.542
+
+K2(2) = 3.28   p = 0.194
+decision at α = 0.05: fail to reject H0 (p = 0.194)
+Bartlett's test over 3 groups, chi-squared approximation; it assumes normal data and is sensitive to departures from it
+variance_test · s by site
+  H0: the variance of s is the same in both groups of site
+  H1: the variance of s differs between the two groups of site
+
+  group    N      sd   variance
+  site=1   5   0.288      0.083
+  site=2   4   0.793      0.629
+
+F(1, 7) = 18.35   p = 0.004
+decision at α = 0.05: reject H0 (p = 0.004)
+Levene's test over 2 groups, distances taken from each group's median (Brown–Forsythe)
+variance_test · s by site
+  H0: the variance of s is the same in both groups of site
+  H1: the variance of s differs between the two groups of site
+
+  group    N      sd   variance
+  site=1   5   0.288      0.083
+  site=2   4   0.793      0.629
+
+ratio of variances (site=1 / site=2) = 0.132   95% CI [0.009, 1.316]
+F(4, 3) = 0.13   p = 0.080
+decision at α = 0.05: fail to reject H0 (p = 0.080)
+F test of the ratio of two variances, two-sided; it assumes normal data and is sensitive to departures from it
+0.131921
+4
+3
+0.0795982
+ci · 95%
+
+  term                                   lower   upper
+  ratio of variances (site=1 / site=2)   0.009   1.316
+9
+the variance of s is the same in both groups of site
+the variance of s differs between the two groups of site
+two_sided
+variance_test · v by k
+  H0: the variance of v is the same in every group of k
+  H1: the variance of v in at least one group of k differs from that in another
+
+  group   N      sd   variance
+  a       5   3.130      9.800
+  b       5   2.280      5.200
+  c       5   2.345      5.500
+
+F(2, 12) = 0.07   p = 0.934
+decision at α = 0.05: fail to reject H0 (p = 0.934)
+Levene's test over 3 groups, distances taken from each group's median (Brown–Forsythe)
+variance_test · v by k
+  H0: the variance of v is the same in every group of k
+  H1: the variance of v in at least one group of k differs from that in another
+
+  group   N      sd   variance
+  a       5   3.130      9.800
+  b       5   2.280      5.200
+  c       5   2.345      5.500
+
+K2(2) = 0.47   p = 0.792
+decision at α = 0.05: fail to reject H0 (p = 0.792)
+Bartlett's test over 3 groups, chi-squared approximation; it assumes normal data and is sensitive to departures from it
+variance_test · x by g
+  H0: the variance of x is the same in every group of g
+  H1: the variance of x in at least one group of g differs from that in another
+
+  group   N      sd   variance
+  g=1     3   0.764      0.583
+  g=2     2   3.536     12.500
+  g=3     3   0.764      0.583
+
+F(2, 5) = 15.00   p = 0.008
+decision at α = 0.05: reject H0 (p = 0.008)
+Levene's test over 3 groups, distances taken from each group's median (Brown–Forsythe)
+variance_test · x by g
+  H0: the variance of x is the same in every group of g
+  H1: the variance of x in at least one group of g differs from that in another
+
+  group   N      sd   variance
+  g=1     3   1.528      2.333
+  g=2     3   3.215     10.333
+  g=3     1      NA         NA
+
+F(2, 4) = 0.43   p = 0.678
+decision at α = 0.05: fail to reject H0 (p = 0.678)
+Levene's test over 3 groups, distances taken from each group's median (Brown–Forsythe)
+variance_test · x by g
+  H0: the variance of x is the same in both groups of g
+  H1: the variance of x differs between the two groups of g
+
+  group     N      sd   variance
+  g=false   3   4.000     16.000
+  g=true    3   0.000      0.000
+
+F(1, 4) = 4.00   p = 0.116
+decision at α = 0.05: fail to reject H0 (p = 0.116)
+Levene's test over 2 groups, distances taken from each group's median (Brown–Forsythe)
+variance_test · wage by industry
+  H0: the variance of wage is the same in every group of industry
+  H1: the variance of wage in at least one group of industry differs from that in another
+
+  group                     N       sd   variance
+  Agriculture              44   11.392    129.783
+  Mining                   15   10.807    116.793
+  Utilities                38   17.455    304.691
+  Construction            125   13.251    175.582
+  Manufacturing           204   13.896    193.109
+  Retail                  231   14.913    222.405
+  Transport                83   14.133    199.753
+  Finance                 129   16.478    271.523
+  Services                204   14.159    200.480
+  Education               130   15.924    253.580
+  Health                  166   14.156    200.389
+  Public administration   123   12.859    165.365
+
+F(11, 1,480) = 1.00   p = 0.447
+decision at α = 0.05: fail to reject H0 (p = 0.447)
+Levene's test over 12 groups, distances taken from each group's median (Brown–Forsythe)
+variance_test · wage by female
+  H0: the variance of wage is the same in both groups of female
+  H1: the variance of wage differs between the two groups of female
+
+  group      N       sd   variance
+  male     777   15.101    228.054
+  female   715   13.476    181.593
+
+ratio of variances (male / female) = 1.256   95% CI [1.087, 1.450]
+F(776, 714) = 1.26   p = 0.002
+decision at α = 0.05: reject H0 (p = 0.002)
+F test of the ratio of two variances, two-sided; it assumes normal data and is sensitive to departures from it
+report
+
+                     (1)         (2)          (3)
+  estimate                                  0.961
+  statistic     F = 0.01   K2 = 0.26     F = 0.96
+  df            1, 1,490           1   1,021, 469
+  p value          0.909       0.609        0.602
+  effect size
+  ───────────────────────────────────────────────
+  N                1,492       1,492        1,492
+
+(1) H0: the variance of wage is the same in both groups of union; H1: the variance of wage differs between the two groups of union
+(2) H0: the variance of wage is the same in both groups of union; H1: the variance of wage differs between the two groups of union
+(3) H0: the variance of wage is the same in both groups of union; H1: the variance of wage differs between the two groups of union
+---
+note: 2 rows with NA in x or g dropped (line 22)
+note: 26 rows with NA in wage or industry dropped (line 26)
+note: 26 rows with NA in wage or female dropped (line 27)
+note: 26 rows with NA in wage or union dropped (line 28)
+note: 26 rows with NA in wage or union dropped (line 28)
+note: 26 rows with NA in wage or union dropped (line 28)

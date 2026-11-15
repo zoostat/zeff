@@ -292,7 +292,7 @@ Counts are functions in 1.0 / proposed for 1.0 (none since 16 October 2026) / on
 | 3 | `data` | Make any dataset ready for analysis | Frames, verbs, panels, reducers, files | 58 / 0 / 17 |
 | 4 | `dist` | Probability distributions | Fifteen families, the studentized range, truncation and mixtures; `pdf`, `cdf`, `quantile`, `draw` | 22 / 0 / 0 |
 | 5 | `results` | Every result looks and behaves the same | Result interface, estimator interface with marginal effects, publication tables, export | 24 / 0 / 5 |
-| 6 | `stats` | Classical inference | Correlation, tests, post-hoc comparisons, power, effect sizes, smoothing | 14 / 0 / 19 |
+| 6 | `stats` | Classical inference | Correlation, tests, post-hoc comparisons, power, effect sizes, smoothing | 15 / 0 / 17 |
 | 7 | `optim` | Fit anything defined by an objective | Minimisers, MLE and GMM frameworks, mathematical programming | 0 / 0 / 11 |
 | 8 | `resample` | Uncertainty and validation by resampling | Bootstrap, jackknife, permutation, holdout splits and cross-validation folds | 0 / 0 / 7 |
 | 9 | `survey` | Design-correct estimates from survey data | Design declaration, replicate weights, calibration | 0 / 0 / 8 |
@@ -330,7 +330,7 @@ Counts are functions in 1.0 / proposed for 1.0 (none since 16 October 2026) / on
 
 **Tier 4: extensions.** The project's own functions in `functions/` (they may call every package) and, from 2.0 at the earliest, third-party packages under rule 9.
 
-Totals: 279 functions in 1.0 (74 in tier 0, 184 in tier 1, 15 in tier 2, 6 in tier 3), of which 265 are written in Rust and 14 in Zeff; none remain proposed, and 396 are on the roadmap, 675 in all (at release 0.8.0 `time_between` took the place of `days_between` and `months_between`, and `hour`, `minute`, `second` and `start_of` were added, zeff_open_decisions.md, #96; `add_time` took the place of `add_days` and `add_months`, `bin` took in `quantile_group` as its option `n:`, and `fill_missing` took in `fill_forward` as its option `method:` and moved from `core` to `data`, #97; at release 0.8.0 the merges of the plan of releases after 1.0 took eighteen roadmap rows, zeff_open_decisions.md, #113, and the graphics and diagram proposals added 148, of which 41 are further options of functions that exist, #121 and #122; eight functions joined 1.0 on 7 November 2026, five of them from the roadmap; zeff_open_decisions.md, #88; six methods of a test's result joined `results` on 9 November 2026, #94, and `design` joined `regress` at release 0.7.0, #71). Eighteen packages have no function in 1.0 (four in tier 1, six in tier 2 and every tier-3 package but `identify`): they give the roadmap its structure and stay out of menus until they ship (rule 7). Most 1.0 functions are small; what limits the schedule is the seven hard engine pieces listed in section 14.
+Totals: 280 functions in 1.0 (74 in tier 0, 185 in tier 1, 15 in tier 2, 6 in tier 3), of which 266 are written in Rust and 14 in Zeff; none remain proposed, and 394 are on the roadmap, 674 in all (at release 0.8.0 `time_between` took the place of `days_between` and `months_between`, and `hour`, `minute`, `second` and `start_of` were added, zeff_open_decisions.md, #96; `add_time` took the place of `add_days` and `add_months`, `bin` took in `quantile_group` as its option `n:`, and `fill_missing` took in `fill_forward` as its option `method:` and moved from `core` to `data`, and `variance_test` joined 1.0 in the place of the two variance tests planned for after it, #97; at release 0.8.0 the merges of the plan of releases after 1.0 took eighteen roadmap rows, zeff_open_decisions.md, #113, and the graphics and diagram proposals added 148, of which 41 are further options of functions that exist, #121 and #122; eight functions joined 1.0 on 7 November 2026, five of them from the roadmap; zeff_open_decisions.md, #88; six methods of a test's result joined `results` on 9 November 2026, #94, and `design` joined `regress` at release 0.7.0, #71). Eighteen packages have no function in 1.0 (four in tier 1, six in tier 2 and every tier-3 package but `identify`): they give the roadmap its structure and stay out of menus until they ship (rule 7). Most 1.0 functions are small; what limits the schedule is the seven hard engine pieces listed in section 14.
 
 ### 8.3 Engine architecture
 
@@ -654,10 +654,10 @@ fn share_missing(data: Frame, var: Var) -> Float {
 - **Tables and export:** `report`
 - **Roadmap, by release:** further options of `predict`, `export` (1.2); `contrasts` (1.6); further options of `export` (1.28)
 
-#### `stats` (tier 1) · 14 in 1.0, 0 proposed, 19 on the roadmap
+#### `stats` (tier 1) · 15 in 1.0, 0 proposed, 17 on the roadmap
 
 - **Association:** `correlation`, `covariance`
-- **Tests:** `t_test`, `wilcoxon_test`, `anova` (one-way and factorial, with `type:`), `posthoc`, `kruskal_test`, `chi2_test`, `fisher_test`, `proportion_test`, `mcnemar_test`, `shapiro_test`, `ks_test`, `p_adjust`
+- **Tests:** `t_test`, `wilcoxon_test`, `anova` (one-way and factorial, with `type:`), `posthoc`, `kruskal_test`, `variance_test`, `chi2_test`, `fisher_test`, `proportion_test`, `mcnemar_test`, `shapiro_test`, `ks_test`, `p_adjust`
 - **Roadmap, by release:** `effect_size`, `kernel_reg`, `normality_test` (1.2); `cov_test` (1.3); `ci_median`, `cochran_q_test`, `friedman_test`, `sign_test` (1.5); `spline` (1.6); `repeated_anova`, `manova`, `hotelling_test` (1.16); `power.t_test`, `power.proportion_test`, `power.anova`, `mde`, `tost` (1.17); `levene_test`, `bartlett_test` (after 1.0)
 
 #### `optim` (tier 1) · 0 in 1.0, 0 proposed, 11 on the roadmap
