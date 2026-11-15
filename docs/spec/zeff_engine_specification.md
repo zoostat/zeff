@@ -291,12 +291,12 @@ Counts are functions in 1.0 / proposed for 1.0 (none since 16 October 2026) / on
 | 2 | `text` | Work with text | Matching, replacing, splitting, formatting numbers and dates | 13 / 0 / 0 |
 | 3 | `data` | Make any dataset ready for analysis | Frames, verbs, panels, reducers, files | 59 / 0 / 13 |
 | 4 | `dist` | Probability distributions | Fifteen families, the studentized range, truncation and mixtures; `pdf`, `cdf`, `quantile`, `draw` | 22 / 0 / 0 |
-| 5 | `results` | Every result looks and behaves the same | Result interface, estimator interface with marginal effects, publication tables, export | 24 / 0 / 1 |
+| 5 | `results` | Every result looks and behaves the same | Result interface, estimator interface with marginal effects, publication tables, export | 24 / 0 / 4 |
 | 6 | `stats` | Classical inference | Correlation, tests, post-hoc comparisons, power, effect sizes, smoothing | 14 / 0 / 19 |
 | 7 | `optim` | Fit anything defined by an objective | Minimisers, MLE and GMM frameworks, mathematical programming | 0 / 0 / 11 |
 | 8 | `resample` | Uncertainty and validation by resampling | Bootstrap, jackknife, permutation, holdout splits and cross-validation folds | 0 / 0 / 7 |
 | 9 | `survey` | Design-correct estimates from survey data | Design declaration, replicate weights, calibration | 0 / 0 / 8 |
-| 10 | `plot` | Draw anything the same way | Layered plot grammar and renderer (section 7.6 of the Language Reference), shorthands, result plots | 35 / 0 / 6 |
+| 10 | `plot` | Draw anything the same way | Layered plot grammar and renderer (section 7.6 of the Language Reference), shorthands, result plots | 35 / 0 / 92 |
 | 11 | `datasets` | Data for examples, tests and users | Shipped public and synthetic datasets with help pages; the `zeff:` data root (section 8.5) | 2 / 0 / 0 |
 | 12 | `web` | Data from APIs, reproducibly | `fetch` with caching, pagination and recorded provenance; secrets kept out of projects (section 8.6) | 0 / 0 / 4 |
 
@@ -304,33 +304,33 @@ Counts are functions in 1.0 / proposed for 1.0 (none since 16 October 2026) / on
 
 | # | Package | Objective | Focus | 1.0 / proposed / roadmap |
 | --- | --- | --- | --- | --- |
-| 1 | `regress` | Linear and IV regression | OLS, fixed effects, IV with the Anderson–Rubin test, event-study terms, linear-model diagnostics, wild bootstrap, quantile regression | 10 / 0 / 7 |
-| 2 | `glm` | Non-linear outcomes | Binary models with their classification table and ROC curve; count, ordinal, multinomial, censored and selection models | 4 / 0 / 9 |
-| 3 | `multilevel` | Repeated and nested data | Random effects (`re:`), mixed and growth models, dynamic panels | 0 / 0 / 5 |
-| 4 | `explore` | Find structure before testing | Dimension reduction, missingness, imputation and outlier checks | 0 / 0 / 8 |
-| 5 | `series` | Time series and forecasting | ARIMA, ETS, VAR, state space, dynamic factors | 0 / 0 / 6 |
-| 6 | `latent` | Latent-variable models | EFA (1.3), CFA and SEM (1.12), latent classes and profiles (1.13), ESEM (1.25) | 0 / 0 / 17 |
-| 7 | `measure` | Reliability and validity of measures | Reliability, validity, invariance, IRT, agreement | 1 / 0 / 14 |
-| 8 | `learn` | Leakage-safe prediction | Recipes, model specifications, supervised learners, tuning, metrics, explanation | 0 / 0 / 32 |
-| 9 | `groups` | Hidden groupings | Clustering, mixtures, topic models, communities | 0 / 0 / 3 |
+| 1 | `regress` | Linear and IV regression | OLS, fixed effects, IV with the Anderson–Rubin test, event-study terms, linear-model diagnostics, wild bootstrap, quantile regression | 10 / 0 / 15 |
+| 2 | `glm` | Non-linear outcomes | Binary models with their classification table and ROC curve; count, ordinal, multinomial, censored and selection models | 4 / 0 / 12 |
+| 3 | `multilevel` | Repeated and nested data | Random effects (`re:`), mixed and growth models, dynamic panels | 0 / 0 / 7 |
+| 4 | `explore` | Find structure before testing | Dimension reduction, missingness, imputation and outlier checks | 0 / 0 / 12 |
+| 5 | `series` | Time series and forecasting | ARIMA, ETS, VAR, state space, dynamic factors | 0 / 0 / 10 |
+| 6 | `latent` | Latent-variable models | EFA (1.3), CFA and SEM (1.12), latent classes and profiles (1.13), ESEM (1.25) | 0 / 0 / 18 |
+| 7 | `measure` | Reliability and validity of measures | Reliability, validity, invariance, IRT, agreement | 1 / 0 / 18 |
+| 8 | `learn` | Leakage-safe prediction | Recipes, model specifications, supervised learners, tuning, metrics, explanation | 0 / 0 / 38 |
+| 9 | `groups` | Hidden groupings | Clustering, mixtures, topic models, communities | 0 / 0 / 5 |
 
 **Tier 3: designs**, which use fitted models to answer a research question
 
 | # | Package | Objective | Focus | 1.0 / proposed / roadmap |
 | --- | --- | --- | --- | --- |
-| 1 | `identify` | Say what a causal question needs before anything is fitted | Causal graphs, adjustment sets, implied independencies, checks of fitted models and instruments against a graph, graph drawing | 6 / 0 / 0 |
-| 2 | `experiment` | Design and analyse randomised trials | Designed experiments, randomisation, balance, variance reduction, randomisation inference, non-compliance | 0 / 0 / 8 |
-| 3 | `quasi` | Natural-experiment designs | DiD and event studies, RDD, synthetic control, shift-share | 0 / 0 / 10 |
-| 4 | `adjust` | Selection on observables | Matching, weighting, double machine learning, sensitivity | 0 / 0 / 10 |
+| 1 | `identify` | Say what a causal question needs before anything is fitted | Causal graphs, adjustment sets, implied independencies, checks of fitted models and instruments against a graph, graph drawing | 6 / 0 / 1 |
+| 2 | `experiment` | Design and analyse randomised trials | Designed experiments, randomisation, balance, variance reduction, randomisation inference, non-compliance | 0 / 0 / 11 |
+| 3 | `quasi` | Natural-experiment designs | DiD and event studies, RDD, synthetic control, shift-share | 0 / 0 / 14 |
+| 4 | `adjust` | Selection on observables | Matching, weighting, double machine learning, sensitivity | 0 / 0 / 11 |
 | 5 | `mediate` | How and why an effect happens | Indirect effects, moderated mediation, front-door | 0 / 0 / 5 |
-| 6 | `hetero` | For whom and when | Moderation, conditional average treatment effects | 0 / 0 / 10 |
+| 6 | `hetero` | For whom and when | Moderation, conditional average treatment effects | 0 / 0 / 11 |
 | 7 | `structural` | Counterfactual policy simulation | SMM, discrete choice and demand, dynamic models, simulation, welfare | 0 / 0 / 9 |
 | 8 | `decide` | What should be done | Policy learning, treatment regimes, bandits, operational decisions | 0 / 0 / 8 |
-| 9 | `meta` | What the evidence says | Meta-analysis, publication bias, specification curves | 0 / 0 / 13 |
+| 9 | `meta` | What the evidence says | Meta-analysis, publication bias, specification curves | 0 / 0 / 15 |
 
 **Tier 4: extensions.** The project's own functions in `functions/` (they may call every package) and, from 2.0 at the earliest, third-party packages under rule 9.
 
-Totals: 279 functions in 1.0 (75 in tier 0, 183 in tier 1, 15 in tier 2, 6 in tier 3), of which 263 are written in Rust and 16 in Zeff; none remain proposed, and 248 are on the roadmap, 527 in all (the merges of the plan of releases after 1.0 took eighteen roadmap rows at release 0.8.0; zeff_open_decisions.md, #113; eight functions joined 1.0 on 7 November 2026, five of them from the roadmap; zeff_open_decisions.md, #88; six methods of a test's result joined `results` on 9 November 2026, #94, and `design` joined `regress` at release 0.7.0, #71). Eighteen packages have no function in 1.0 (four in tier 1, six in tier 2 and every tier-3 package but `identify`): they give the roadmap its structure and stay out of menus until they ship (rule 7). Most 1.0 functions are small; what limits the schedule is the seven hard engine pieces listed in section 14.
+Totals: 279 functions in 1.0 (75 in tier 0, 183 in tier 1, 15 in tier 2, 6 in tier 3), of which 263 are written in Rust and 16 in Zeff; none remain proposed, and 383 are on the roadmap, 662 in all (at release 0.8.0 the merges of the plan of releases after 1.0 took eighteen roadmap rows, zeff_open_decisions.md, #113, and the graphics proposal added 135, of which 35 are further options of functions that exist, #122; eight functions joined 1.0 on 7 November 2026, five of them from the roadmap; zeff_open_decisions.md, #88; six methods of a test's result joined `results` on 9 November 2026, #94, and `design` joined `regress` at release 0.7.0, #71). Eighteen packages have no function in 1.0 (four in tier 1, six in tier 2 and every tier-3 package but `identify`): they give the roadmap its structure and stay out of menus until they ship (rule 7). Most 1.0 functions are small; what limits the schedule is the seven hard engine pieces listed in section 14.
 
 ### 8.3 Engine architecture
 
@@ -647,12 +647,12 @@ fn share_missing(data: Frame, var: Var) -> Float {
 - **Distributions:** `dist.normal`, `dist.lognormal`, `dist.t`, `dist.chi2`, `dist.f`, `dist.binomial`, `dist.poisson`, `dist.negbinomial`, `dist.uniform`, `dist.exponential`, `dist.gamma`, `dist.beta`, `dist.weibull`, `dist.logistic`, `dist.hypergeometric`, `dist.tukey`, `dist.truncated`, `dist.mixture`
 - **Methods on a distribution:** `pdf`, `cdf`, `quantile`, `draw`
 
-#### `results` (tier 1) · 24 in 1.0, 0 proposed, 1 on the roadmap
+#### `results` (tier 1) · 24 in 1.0, 0 proposed, 4 on the roadmap
 
 - **Result interface:** `summary`, `estimates`, `std_errors`, `p_values`, `ci`, `n_obs`, `export`; on a `TestResult` alone, `statistic`, `df`, `effect_size`, `h0`, `h1`, `alternative` (open decision #94)
 - **Estimator interface:** `coef`, `vcov`, `fit_measures`, `predict`, `residuals`, `fitted`, `compare`, `test`, `derive`, `margins` (0.9.0; for `reg`, `logistic` and `probit` in 1.0)
 - **Tables and export:** `report`
-- **Roadmap, by release:** `contrasts` (1.6)
+- **Roadmap, by release:** further options of `predict`, `export` (1.2); `contrasts` (1.6); further options of `export` (1.28)
 
 #### `stats` (tier 1) · 14 in 1.0, 0 proposed, 19 on the roadmap
 
@@ -672,12 +672,12 @@ fn share_missing(data: Frame, var: Var) -> Float {
 
 - **Roadmap, by release:** `survey`, `total`, `ratio`, `replicate_weights`, `design_effect`, `poststratify`, `rake`, `calibrate` (1.17)
 
-#### `plot` (tier 1) · 35 in 1.0, 0 proposed, 6 on the roadmap
+#### `plot` (tier 1) · 35 in 1.0, 0 proposed, 92 on the roadmap
 
 - **Grammar (section 7.6 of the Language Reference):** `plot`; marks `points`, `lines`, `step`, `bars`, `area`, `ribbon`, `text`, `tile`, `rug`, `hline`, `vline`; statistical layers `histogram`, `density`, `boxplot`, `errorbars`; `scale_x`, `scale_y`, `scale`, `coord`, `facet`, `labels`, `legend`, `theme`, `annotate`
 - **Shorthands:** `histogram`, `scatter`, `line`, `bar`, `boxplot`, `density`, `qq_plot`, `heatmap`
 - **Result plots:** `plot`, `coef_plot`
-- **Roadmap, by release:** `smooth`, `violin`, `aggregate`, `arrange`, `computed` (1.2); `scatter_matrix` (1.5)
+- **Roadmap, by release:** `smooth`, `violin`, `aggregate`, `arrange`, `computed`, `paths`, `segments`, `rects`, `polygons`, `raster`, `brackets`, `highlight`, `callout`, `inset`, `margins`, `residual_plot`, `prediction_plot`, and further options of `plot`, `errorbars`, `text`, `points`, `area`, `histogram`, `aggregate`, `boxplot`, `scale_x`, `scale`, `facet`, `legend`, `annotate`, `labels`, `theme`, `arrange`, `coef_plot` (1.2); `scatter_matrix`, `ecdf`, `bins2d`, `mosaic`, `violin`, `hexbin`, `dotchart`, `dumbbell`, `likert`, and further options of `heatmap` (1.5); `slope_plot`, `comparison_plot`, and further options of `smooth` (1.6); `geometry`, and further options of `scale`, `coord`, `annotate`, `plot` (1.15); `qq`, `ridges`, `beeswarm`, `halfeye`, `raincloud`, `density2d`, `ellipse`, `curve`, and further options of `density` (1.16); `contour`, `trace_plot`, `posterior_plot`, `ppc_plot` (1.17); `dotplot`, `pointdensity`, `hull`, `magnify`, `parallel_coordinates`, `slopegraph`, `lollipop`, `bump`, `waffle`, `treemap`, `alluvial`, `upset`, `calendar`, `animate`, `surface`, and further options of `text`, `annotate`, `scale_y`, `scale`, `coord`, `facet` (1.28)
 
 #### `datasets` (tier 1) · 2 in 1.0, 0 proposed, 0 on the roadmap
 
@@ -687,71 +687,72 @@ fn share_missing(data: Frame, var: Var) -> Float {
 
 - **Roadmap, by release:** `fetch`, `secret`, `flatten`, `rate_limit` (1.1)
 
-#### `regress` (tier 2) · 10 in 1.0, 0 proposed, 7 on the roadmap
+#### `regress` (tier 2) · 10 in 1.0, 0 proposed, 15 on the roadmap
 
 - **Models:** `reg`, `ivreg`
 - **Linear-model methods:** `r_squared`, `influence`, `vif`, `design`, `first_stage`, `ar_test` (the generic result methods are in `results`)
 - **Formula terms:** `interact`, `event`
-- **Roadmap, by release:** `het_test`, `spec_test`, `serial_test` (1.2); `quantile_reg` (1.11); `power.reg` (1.17); `wild_bootstrap`, `ivreg` with `method: liml` (1.18)
+- **Roadmap, by release:** `het_test`, `spec_test`, `serial_test`, `binscatter`, `influence_plot`, `vif_plot`, `event_plot`, `first_stage_plot`, `ar_plot` (1.2); `partial_plot`, `component_plot` (1.6); `quantile_reg` (1.11); `power.reg` (1.17); `wild_bootstrap`, `ivreg` with `method: liml` (1.18)
 
-#### `glm` (tier 2) · 4 in 1.0, 0 proposed, 9 on the roadmap
+#### `glm` (tier 2) · 4 in 1.0, 0 proposed, 12 on the roadmap
 
 - **Binary models:** `logistic`, `probit`
 - **Methods on a binary fit:** `roc`, `confusion`
-- **Roadmap, by release:** `glm` with `family: poisson | negbin | gamma | quasibinomial`, `beta_reg`, `ordinal`, `multinomial`, `tobit`, `selection`, `zero_inflated`, `hurdle` (1.7); `surv` (1.10)
+- **Roadmap, by release:** `glm` with `family: poisson | negbin | gamma | quasibinomial`, `beta_reg`, `ordinal`, `multinomial`, `tobit`, `selection`, `zero_inflated`, `hurdle`, `rootogram_plot` (1.7); `surv`, `survival_plot`, `zph_plot` (1.10)
 
-#### `multilevel` (tier 2) · 0 in 1.0, 0 proposed, 5 on the roadmap
+#### `multilevel` (tier 2) · 0 in 1.0, 0 proposed, 7 on the roadmap
 
-- **Roadmap, by release:** `panel_reg`, `hausman` (1.8); `mixed`, `growth` (1.11); `dynamic_panel` (1.21)
+- **Roadmap, by release:** `panel_reg`, `hausman` (1.8); `mixed`, `growth`, `ranef_plot`, `trajectory_plot` (1.11); `dynamic_panel` (1.21)
 
-#### `explore` (tier 2) · 0 in 1.0, 0 proposed, 8 on the roadmap
+#### `explore` (tier 2) · 0 in 1.0, 0 proposed, 12 on the roadmap
 
-- **Roadmap, by release:** `pca` (1.3); `correspondence` (1.5); `mds`, `outliers` (1.16); `impute`, `missing_pattern`, `mcar_test` (1.17); `embed` (1.28)
+- **Roadmap, by release:** `pca`, `scree_plot`, `biplot`, `loadings_plot` (1.3); `correspondence` (1.5); `mds`, `outliers` (1.16); `impute`, `missing_pattern`, `mcar_test`, `missing_plot` (1.17); `embed` (1.28)
 
-#### `series` (tier 2) · 0 in 1.0, 0 proposed, 6 on the roadmap
+#### `series` (tier 2) · 0 in 1.0, 0 proposed, 10 on the roadmap
 
-- **Roadmap, by release:** `arima`, `ets`, `forecast` (1.2); `vector_ar` (1.10); `state_space`, `dynamic_factor` (1.23)
+- **Roadmap, by release:** `arima`, `ets`, `forecast`, `acf_plot` (1.2); `vector_ar`, `seasonal_plot`, `lag_plot`, `irf_plot` (1.10); `state_space`, `dynamic_factor` (1.23)
 
-#### `latent` (tier 2) · 0 in 1.0, 0 proposed, 17 on the roadmap
+#### `latent` (tier 2) · 0 in 1.0, 0 proposed, 18 on the roadmap
 
-- **Roadmap, by release:** `efa`, `kmo`, `factor_count` (1.3); `model`, `cfa`, `sem`, `effects`, `loadings`, `mod_indices`, `factor_scores` (1.12); `lca`, `pick`, `profiles`, `lpa` (1.13); `latent_growth` (1.25); `lta`, `growth_mixture` (1.26)
+- **Roadmap, by release:** `efa`, `kmo`, `factor_count` (1.3); `model`, `cfa`, `sem`, `effects`, `loadings`, `mod_indices`, `factor_scores` (1.12); `lca`, `pick`, `profiles`, `lpa`, `profile_plot` (1.13); `latent_growth` (1.25); `lta`, `growth_mixture` (1.26)
 
-#### `measure` (tier 2) · 1 in 1.0, 0 proposed, 14 on the roadmap
+#### `measure` (tier 2) · 1 in 1.0, 0 proposed, 18 on the roadmap
 
 - **Reliability:** `reliability`
-- **Roadmap, by release:** `item_stats` (1.3); `bland_altman` (1.11); `polychoric`, `composite_reliability`, `ave`, `fornell_larcker`, `htmt`, `invariance`, `icc`, `kappa` (1.12); `alignment` (1.25); `irt`, `dif`, `g_study` (1.26)
+- **Roadmap, by release:** `item_stats` (1.3); `bland_altman`, `agreement_plot` (1.11); `polychoric`, `composite_reliability`, `ave`, `fornell_larcker`, `htmt`, `invariance`, `icc`, `kappa` (1.12); `alignment` (1.25); `irt`, `dif`, `g_study`, `item_plot`, `information_plot`, `wright_map` (1.26)
 
-#### `learn` (tier 2) · 0 in 1.0, 0 proposed, 32 on the roadmap
+#### `learn` (tier 2) · 0 in 1.0, 0 proposed, 38 on the roadmap
 
-- **Roadmap, by release:** `tree`, `score` (1.4); `penalized` (1.6); `random_forest`, `boosting`, `svm`, `knn`, `naive_bayes`, `neural_net`, `tune`, `calibration`, `shap`, `feature_effects`, `recipe`, `impute`, `standardize`, `center`, `one_hot`, `bin`, `pca`, `winsorize`, `add`, `prepare`, `apply`, `spec.penalized`, `spec.random_forest`, `spec.boosting`, `spec.logistic`, `spec.reg`, `learn`, `grid`, `best` (1.14)
+- **Roadmap, by release:** `tree`, `score`, `confusion_plot`, `gain_plot` (1.4); `penalized`, `penalty_plot` (1.6); `random_forest`, `boosting`, `svm`, `knn`, `naive_bayes`, `neural_net`, `tune`, `calibration`, `shap`, `feature_effects`, `recipe`, `impute`, `standardize`, `center`, `one_hot`, `bin`, `pca`, `winsorize`, `add`, `prepare`, `apply`, `spec.penalized`, `spec.random_forest`, `spec.boosting`, `spec.logistic`, `spec.reg`, `learn`, `grid`, `best`, `calibration_plot`, `importance_plot`, `shap_plot` (1.14)
 
-#### `groups` (tier 2) · 0 in 1.0, 0 proposed, 3 on the roadmap
+#### `groups` (tier 2) · 0 in 1.0, 0 proposed, 5 on the roadmap
 
-- **Roadmap, by release:** `cluster` (1.5); `topic_model`, `communities` (1.15)
+- **Roadmap, by release:** `cluster`, `silhouette_plot`, `heatmap` (1.5); `topic_model`, `communities` (1.15)
 
-#### `identify` (tier 3) · 6 in 1.0, 0 proposed, 0 on the roadmap
+#### `identify` (tier 3) · 6 in 1.0, 0 proposed, 1 on the roadmap
 
 - **Causal graphs:** `dag`, `adjustment_sets`, `implied_independencies`, `check`, `exclusion_check` (the exclusion-restriction check on an IV fit), `plot` (`g.plot()`, drawing the graph)
+- **Roadmap, by release:** further options of `plot` (1.9)
 
-#### `experiment` (tier 3) · 0 in 1.0, 0 proposed, 8 on the roadmap
+#### `experiment` (tier 3) · 0 in 1.0, 0 proposed, 11 on the roadmap
 
-- **Roadmap, by release:** `experiment` (1.9); `randomize`, `balance`, `factorial_design`, `fractional_design`, `response_surface` (1.17); `ri_test`, `bounds` (1.19)
+- **Roadmap, by release:** `experiment` (1.9); `randomize`, `balance`, `factorial_design`, `fractional_design`, `response_surface`, `effects_plot`, `screening_plot`, `surface_plot` (1.17); `ri_test`, `bounds` (1.19)
 
-#### `quasi` (tier 3) · 0 in 1.0, 0 proposed, 10 on the roadmap
+#### `quasi` (tier 3) · 0 in 1.0, 0 proposed, 14 on the roadmap
 
-- **Roadmap, by release:** `did`, `pre_trends`, `rdd`, `rd_bandwidth`, `density_test`, `synth` (1.9); `combine`, `did` with `method: sa | dcdh | imputation`, `honest_did`, `shift_share` (1.19)
+- **Roadmap, by release:** `did`, `pre_trends`, `rdd`, `rd_bandwidth`, `density_test`, `synth`, `treatment_plot`, `bandwidth_plot`, `synth_plot` (1.9); `combine`, `did` with `method: sa | dcdh | imputation`, `honest_did`, `shift_share`, `group_time_plot` (1.19)
 
-#### `adjust` (tier 3) · 0 in 1.0, 0 proposed, 10 on the roadmap
+#### `adjust` (tier 3) · 0 in 1.0, 0 proposed, 11 on the roadmap
 
-- **Roadmap, by release:** `matching`, `weighting`, `doubly_robust`, `overlap` (1.9); `double_lasso`, `selected` (1.18); `e_value`, `sensitivity`, `rosenbaum` (1.19); `dml` (1.20)
+- **Roadmap, by release:** `matching`, `weighting`, `doubly_robust`, `overlap`, `overlap_plot` (1.9); `double_lasso`, `selected` (1.18); `e_value`, `sensitivity`, `rosenbaum` (1.19); `dml` (1.20)
 
 #### `mediate` (tier 3) · 0 in 1.0, 0 proposed, 5 on the roadmap
 
 - **Roadmap, by release:** `mediate`, `moderated_mediation` (1.12); `mediation_sensitivity` (1.19); `front_door`, `interventional` (1.25)
 
-#### `hetero` (tier 3) · 0 in 1.0, 0 proposed, 10 on the roadmap
+#### `hetero` (tier 3) · 0 in 1.0, 0 proposed, 11 on the roadmap
 
-- **Roadmap, by release:** `simple_slopes`, `johnson_neyman`, `subgroups` (1.6); `causal_forest`, `ate`, `importance`, `meta_learner`, `blp`, `gates`, `qte` (1.20)
+- **Roadmap, by release:** `simple_slopes`, `johnson_neyman`, `subgroups` (1.6); `causal_forest`, `ate`, `importance`, `meta_learner`, `blp`, `gates`, `qte`, `cate_plot` (1.20)
 
 #### `structural` (tier 3) · 0 in 1.0, 0 proposed, 9 on the roadmap
 
@@ -761,9 +762,9 @@ fn share_missing(data: Frame, var: Var) -> Float {
 
 - **Roadmap, by release:** `newsvendor`, `pricing` (1.15); `policy_tree`, `ewm`, `q_learning`, `a_learning` (1.20); `robust_decision` (1.22); `bandit` (1.27)
 
-#### `meta` (tier 3) · 0 in 1.0, 0 proposed, 13 on the roadmap
+#### `meta` (tier 3) · 0 in 1.0, 0 proposed, 15 on the roadmap
 
-- **Roadmap, by release:** `effect_convert`, `meta`, `meta_reg`, `forest_plot`, `funnel_plot`, `egger_test`, `trim_fill`, `pet_peese`, `p_curve`, `replication_test` (1.17); `spec_curve` (1.19); `meta_3level`, `network_meta` (1.24)
+- **Roadmap, by release:** `effect_convert`, `meta`, `meta_reg`, `forest_plot`, `funnel_plot`, `egger_test`, `trim_fill`, `pet_peese`, `p_curve`, `replication_test`, `influence_plot`, `drapery_plot` (1.17); `spec_curve` (1.19); `meta_3level`, `network_meta` (1.24)
 
 ---
 
@@ -897,33 +898,33 @@ The ten functions once proposed for 1.0 were decided on 16 October 2026 (section
 | Release | Level | Domain | Contents | Functions in the catalogue | Engine work |
 | --- | --- | --- | --- | --- | --- |
 | 1.1 | Basic | Engine | `se: bootstrap` with `on_fail:` and `max_fail:` on every model; SPSS, SAS, R and HTML readers in `import` and SPSS in `save` (section 6.1 of the Language Reference); data from APIs (section 8.6); opaque columns unnested (section 4.3 of the Language Reference) | `external`, `fetch`, `secret`, `flatten`, `rate_limit`, `unnest` | Thread pool with reproducible streams and deterministic parallelism (`--threads`); bootstrap in the variance layer; lazy chains with projection and filter pushdown; the remaining language-server features (quick fixes, navigation, rename, inlay hints) |
-| 1.2 | Basic | Econometrics | Diagnostic tests and plots, model selection, Box–Cox, LOESS, time-series basics (moving averages, exponential smoothing, AR, forecasts); the plot layers of section 7.6 of the Language Reference | `duration`, `to_timezone`, `moving_average`, `growth_rate`, `index_number`, `effect_size`, `kernel_reg`, `het_test`, `spec_test`, `arima`, `ets`, `forecast`, `smooth`, `violin`, `aggregate`, `arrange`, `computed`, `normality_test`, `serial_test`, `rolling` | — |
-| 1.3 | Basic | Psychometrics | PCA, basic EFA, KMO and Bartlett, scale scores, item statistics | `pca`, `efa`, `kmo`, `factor_count`, `item_stats`, `cov_test` | — |
-| 1.4 | Basic | Machine learning | Train/test split, k-fold cross-validation, the regression tree, error metrics | `holdout`, `folds`, `tree`, `score`, `training`, `testing` | The leakage checker on column lineage (section 7.5 of the Language Reference) |
-| 1.5 | Basic | Other | Clustering, linear discriminant analysis, correspondence analysis, contingency plots, association rules, linear programming | `ci_median`, `lp`, `mip`, `scatter_matrix`, `correspondence`, `cluster`, `cochran_q_test`, `friedman_test`, `sign_test`, `gini`, `theil`, `atkinson`, `herfindahl`, `lorenz` | — |
-| 1.6 | Advanced | Econometrics | Linear models and inference: GLS, constraints, splines, moderation, ridge and lasso, PCR and PLS, bootstrap intervals | `spline`, `bootstrap`, `jackknife`, `permutation_test`, `contrasts`, `penalized`, `simple_slopes`, `johnson_neyman`, `subgroups` | Lasso with cross-validated penalties |
-| 1.7 | Advanced | Econometrics | GLM families, counts, ordinal, multinomial, choice, Tobit, Heckman, fractional and beta models | `glm` with `family: poisson \| negbin \| gamma \| quasibinomial`, `beta_reg`, `ordinal`, `multinomial`, `tobit`, `selection`, `zero_inflated`, `hurdle`, `discrete_choice` | PPML |
+| 1.2 | Basic | Econometrics | Diagnostic tests and plots, model selection, Box–Cox, LOESS, time-series basics (moving averages, exponential smoothing, AR, forecasts); the plot layers of section 7.6 of the Language Reference | `duration`, `to_timezone`, `moving_average`, `growth_rate`, `index_number`, `effect_size`, `kernel_reg`, `het_test`, `spec_test`, `arima`, `ets`, `forecast`, `smooth`, `violin`, `aggregate`, `arrange`, `computed`, `normality_test`, `serial_test`, `rolling`, `paths`, `segments`, `rects`, `polygons`, `raster`, `brackets`, `highlight`, `callout`, `inset`, `margins`, `binscatter`, `residual_plot`, `prediction_plot`, `influence_plot`, `vif_plot`, `event_plot`, `first_stage_plot`, `ar_plot`, `acf_plot`, and further options of `plot`, `errorbars`, `text`, `points`, `area`, `histogram`, `aggregate`, `boxplot`, `scale_x`, `scale`, `facet`, `legend`, `annotate`, `labels`, `theme`, `arrange`, `coef_plot`, `predict`, `export` | — |
+| 1.3 | Basic | Psychometrics | PCA, basic EFA, KMO and Bartlett, scale scores, item statistics | `pca`, `efa`, `kmo`, `factor_count`, `item_stats`, `cov_test`, `scree_plot`, `biplot`, `loadings_plot` | — |
+| 1.4 | Basic | Machine learning | Train/test split, k-fold cross-validation, the regression tree, error metrics | `holdout`, `folds`, `tree`, `score`, `training`, `testing`, `confusion_plot`, `gain_plot` | The leakage checker on column lineage (section 7.5 of the Language Reference) |
+| 1.5 | Basic | Other | Clustering, linear discriminant analysis, correspondence analysis, contingency plots, association rules, linear programming | `ci_median`, `lp`, `mip`, `scatter_matrix`, `correspondence`, `cluster`, `cochran_q_test`, `friedman_test`, `sign_test`, `gini`, `theil`, `atkinson`, `herfindahl`, `lorenz`, `ecdf`, `bins2d`, `mosaic`, `violin`, `hexbin`, `dotchart`, `dumbbell`, `likert`, `silhouette_plot`, `heatmap`, and further options of `heatmap` | — |
+| 1.6 | Advanced | Econometrics | Linear models and inference: GLS, constraints, splines, moderation, ridge and lasso, PCR and PLS, bootstrap intervals | `spline`, `bootstrap`, `jackknife`, `permutation_test`, `contrasts`, `penalized`, `simple_slopes`, `johnson_neyman`, `subgroups`, `slope_plot`, `comparison_plot`, `partial_plot`, `component_plot`, `penalty_plot`, and further options of `smooth` | Lasso with cross-validated penalties |
+| 1.7 | Advanced | Econometrics | GLM families, counts, ordinal, multinomial, choice, Tobit, Heckman, fractional and beta models | `glm` with `family: poisson \| negbin \| gamma \| quasibinomial`, `beta_reg`, `ordinal`, `multinomial`, `tobit`, `selection`, `zero_inflated`, `hurdle`, `discrete_choice`, `rootogram_plot` | PPML |
 | 1.8 | Advanced | Econometrics | Endogeneity, systems and panels: IV diagnostics, control functions, SUR, 3SLS, FE/RE/FD, Hausman, GEE; `stream` | `stream`, `panel_reg`, `hausman` | Streaming estimation by QR |
-| 1.9 | Advanced | Econometrics | Causal designs: experiments, matching, weighting, 2×2 DiD, sharp and fuzzy RD, synthetic control | `experiment`, `did`, `pre_trends`, `rdd`, `rd_bandwidth`, `density_test`, `synth`, `matching`, `weighting`, `doubly_robust`, `overlap` | — |
-| 1.10 | Advanced | Econometrics | Time series, forecasting and survival | `vector_ar`, `surv` | Censored-outcome likelihoods |
-| 1.11 | Advanced | Econometrics | Multilevel, quantile, robust and nonparametric models; cross-sectional frontier and DEA | `quantile_reg`, `mixed`, `growth`, `bland_altman` | REML and ML for linear mixed models; Satterthwaite and Kenward–Roger degrees of freedom |
+| 1.9 | Advanced | Econometrics | Causal designs: experiments, matching, weighting, 2×2 DiD, sharp and fuzzy RD, synthetic control | `experiment`, `did`, `pre_trends`, `rdd`, `rd_bandwidth`, `density_test`, `synth`, `matching`, `weighting`, `doubly_robust`, `overlap`, `treatment_plot`, `bandwidth_plot`, `synth_plot`, `overlap_plot`, and further options of `plot` | — |
+| 1.10 | Advanced | Econometrics | Time series, forecasting and survival | `vector_ar`, `surv`, `survival_plot`, `zph_plot`, `seasonal_plot`, `lag_plot`, `irf_plot` | Censored-outcome likelihoods |
+| 1.11 | Advanced | Econometrics | Multilevel, quantile, robust and nonparametric models; cross-sectional frontier and DEA | `quantile_reg`, `mixed`, `growth`, `bland_altman`, `ranef_plot`, `trajectory_plot`, `agreement_plot` | REML and ML for linear mixed models; Satterthwaite and Kenward–Roger degrees of freedom |
 | 1.12 | Advanced | Psychometrics | Full EFA, CFA, SEM, reliability and validity (omega in `reliability`), basic invariance, mediation and conditional process | `model`, `cfa`, `sem`, `effects`, `loadings`, `mod_indices`, `factor_scores`, `polychoric`, `composite_reliability`, `ave`, `fornell_larcker`, `htmt`, `invariance`, `icc`, `kappa`, `mediate`, `moderated_mediation` | `model { }` parser; ML and MLR with FIML; polychoric correlations |
-| 1.13 | Advanced | Psychometrics | PLS-SEM, LCA, LPA | `lca`, `pick`, `profiles`, `lpa` | EM with many random starts and class-label alignment |
-| 1.14 | Advanced | Machine learning | The tuning workflow, forests, boosting, SVM, kernel ridge, neural networks, stacking, conformal prediction, interpretation | `random_forest`, `boosting`, `svm`, `knn`, `naive_bayes`, `neural_net`, `tune`, `calibration`, `shap`, `feature_effects`, `recipe`, `impute`, `standardize`, `center`, `one_hot`, `bin`, `pca`, `winsorize`, `add`, `prepare`, `apply`, `spec.penalized`, `spec.random_forest`, `spec.boosting`, `spec.logistic`, `spec.reg`, `learn`, `grid`, `best` | Recipes re-estimated inside every fold; forests on the thread pool |
-| 1.15 | Advanced | Other | User estimators and optimisation (`mle`, `gmm`, `minimize`, automatic differentiation, matrices), text, networks, spatial description; user-defined types (section 15) | `minimize`, `root`, `gradient`, `hessian`, `mle`, `gmm`, `nlp`, `topic_model`, `communities`, `newsvendor`, `pricing`, `matrix`, `vector`, `transpose` | Forward-mode automatic differentiation on the typed IR, compiled into kernels (section 8.3) |
-| 1.16 | Advanced | Other | Multivariate methods: MANOVA, Hotelling, covariance tests, CCA, QDA, MDS, MCA, conjoint, log-linear models, anomaly detection | `mds`, `outliers`, `repeated_anova`, `manova`, `hotelling_test` | Sphericity corrections |
-| 1.17 | Advanced | Other | Bayesian estimation of the built-in models and of `mle` objectives, with priors and posterior summaries; missing data, surveys, meta-analysis, design | `power.t_test`, `power.proportion_test`, `power.anova`, `mde`, `survey`, `total`, `ratio`, `replicate_weights`, `design_effect`, `poststratify`, `rake`, `calibrate`, `power.reg`, `impute`, `missing_pattern`, `mcar_test`, `randomize`, `balance`, `effect_convert`, `meta`, `meta_reg`, `forest_plot`, `funnel_plot`, `egger_test`, `trim_fill`, `pet_peese`, `p_curve`, `replication_test`, `factorial_design`, `fractional_design`, `response_surface`, `tost` | Hamiltonian Monte Carlo (NUTS) on the automatic differentiation of 1.15; non-central t and F; design generators; design-based variance exposed through `survey` |
+| 1.13 | Advanced | Psychometrics | PLS-SEM, LCA, LPA | `lca`, `pick`, `profiles`, `lpa`, `profile_plot` | EM with many random starts and class-label alignment |
+| 1.14 | Advanced | Machine learning | The tuning workflow, forests, boosting, SVM, kernel ridge, neural networks, stacking, conformal prediction, interpretation | `random_forest`, `boosting`, `svm`, `knn`, `naive_bayes`, `neural_net`, `tune`, `calibration`, `shap`, `feature_effects`, `recipe`, `impute`, `standardize`, `center`, `one_hot`, `bin`, `pca`, `winsorize`, `add`, `prepare`, `apply`, `spec.penalized`, `spec.random_forest`, `spec.boosting`, `spec.logistic`, `spec.reg`, `learn`, `grid`, `best`, `calibration_plot`, `importance_plot`, `shap_plot` | Recipes re-estimated inside every fold; forests on the thread pool |
+| 1.15 | Advanced | Other | User estimators and optimisation (`mle`, `gmm`, `minimize`, automatic differentiation, matrices), text, networks, spatial description; user-defined types (section 15) | `minimize`, `root`, `gradient`, `hessian`, `mle`, `gmm`, `nlp`, `topic_model`, `communities`, `newsvendor`, `pricing`, `matrix`, `vector`, `transpose`, `geometry`, and further options of `scale`, `coord`, `annotate`, `plot` | Forward-mode automatic differentiation on the typed IR, compiled into kernels (section 8.3) |
+| 1.16 | Advanced | Other | Multivariate methods: MANOVA, Hotelling, covariance tests, CCA, QDA, MDS, MCA, conjoint, log-linear models, anomaly detection | `mds`, `outliers`, `repeated_anova`, `manova`, `hotelling_test`, `qq`, `ridges`, `beeswarm`, `halfeye`, `raincloud`, `density2d`, `ellipse`, `curve`, and further options of `density` | Sphericity corrections |
+| 1.17 | Advanced | Other | Bayesian estimation of the built-in models and of `mle` objectives, with priors and posterior summaries; missing data, surveys, meta-analysis, design | `power.t_test`, `power.proportion_test`, `power.anova`, `mde`, `survey`, `total`, `ratio`, `replicate_weights`, `design_effect`, `poststratify`, `rake`, `calibrate`, `power.reg`, `impute`, `missing_pattern`, `mcar_test`, `randomize`, `balance`, `effect_convert`, `meta`, `meta_reg`, `forest_plot`, `funnel_plot`, `egger_test`, `trim_fill`, `pet_peese`, `p_curve`, `replication_test`, `factorial_design`, `fractional_design`, `response_surface`, `tost`, `contour`, `missing_plot`, `effects_plot`, `screening_plot`, `surface_plot`, `influence_plot`, `drapery_plot`, `trace_plot`, `posterior_plot`, `ppc_plot` | Hamiltonian Monte Carlo (NUTS) on the automatic differentiation of 1.15; non-central t and F; design generators; design-based variance exposed through `survey` |
 | 1.18 | Research | Econometrics | Inference and identification: few-cluster and multiway inference, weak IV, IV-free methods, post-double-selection | `wild_bootstrap`, `ivreg` with `method: liml`, `double_lasso`, `selected` | Lasso with plug-in penalties |
-| 1.19 | Research | Econometrics | Design-based inference: staggered DiD, synthetic DiD, RD variants, bunching, MTE, sensitivity | `ri_test`, `bounds`, `combine`, `did` with `method: sa \| dcdh \| imputation`, `honest_did`, `shift_share`, `e_value`, `sensitivity`, `rosenbaum`, `mediation_sensitivity`, `spec_curve` | Callaway–Sant'Anna with doubly robust estimation and multiplier bootstrap, on the thread pool and bootstrap of 1.1 |
-| 1.20 | Research | Econometrics | Causal machine learning and policy learning | `dml`, `causal_forest`, `ate`, `importance`, `meta_learner`, `blp`, `gates`, `qte`, `policy_tree`, `ewm`, `q_learning`, `a_learning` | Honest forests on the thread pool |
+| 1.19 | Research | Econometrics | Design-based inference: staggered DiD, synthetic DiD, RD variants, bunching, MTE, sensitivity | `ri_test`, `bounds`, `combine`, `did` with `method: sa \| dcdh \| imputation`, `honest_did`, `shift_share`, `e_value`, `sensitivity`, `rosenbaum`, `mediation_sensitivity`, `spec_curve`, `group_time_plot` | Callaway–Sant'Anna with doubly robust estimation and multiplier bootstrap, on the thread pool and bootstrap of 1.1 |
+| 1.20 | Research | Econometrics | Causal machine learning and policy learning | `dml`, `causal_forest`, `ate`, `importance`, `meta_learner`, `blp`, `gates`, `qte`, `policy_tree`, `ewm`, `q_learning`, `a_learning`, `cate_plot` | Honest forests on the thread pool |
 | 1.21 | Research | Econometrics | Advanced panel econometrics | `dynamic_panel` | — |
 | 1.22 | Research | Econometrics | Structural econometrics and efficiency | `stochastic_program`, `robust_program`, `smm`, `indirect_inference`, `demand`, `nfxp`, `ccp`, `entry_model`, `simulate`, `welfare`, `robust_decision` | — |
 | 1.23 | Research | Econometrics | Advanced time series; distributional and nonparametric econometrics | `state_space`, `dynamic_factor` | — |
 | 1.24 | Research | Econometrics | Spatial and network models, advanced survival, measurement and synthesis | `meta_3level`, `network_meta` | — |
 | 1.25 | Research | Psychometrics | The SEM frontier: ordinal CFA (WLSMV for ordered items), bifactor, ESEM (`efa()` blocks in `cfa` and `sem`), Bayesian and penalized SEM, alignment, latent interactions, RI-CLPM, multilevel SEM, MASEM | `latent_growth`, `alignment`, `front_door`, `interventional` | Robust weighted least squares; geomin and target rotation |
-| 1.26 | Research | Psychometrics | Latent transitions, mixtures, IRT and DIF, intensive longitudinal models, network psychometrics | `lta`, `growth_mixture`, `irt`, `dif`, `g_study` | — |
+| 1.26 | Research | Psychometrics | Latent transitions, mixtures, IRT and DIF, intensive longitudinal models, network psychometrics | `lta`, `growth_mixture`, `irt`, `dif`, `g_study`, `item_plot`, `information_plot`, `wright_map` | — |
 | 1.27 | Research | Machine learning | Nonconvex and grouped penalties, tree and kernel variants, explainable boosting, fairness, bandits | `bandit` | — |
-| 1.28 | Research | Other | Bayesian and multivariate frontier: model averaging, BART, Gaussian processes, robust and high-dimensional multivariate methods, copulas, graphical models | `embed` | — |
+| 1.28 | Research | Other | Bayesian and multivariate frontier: model averaging, BART, Gaussian processes, robust and high-dimensional multivariate methods, copulas, graphical models | `embed`, `dotplot`, `pointdensity`, `hull`, `magnify`, `parallel_coordinates`, `slopegraph`, `lollipop`, `bump`, `waffle`, `treemap`, `alluvial`, `upset`, `calendar`, `animate`, `surface`, and further options of `text`, `annotate`, `scale_y`, `scale`, `coord`, `facet`, `export` | — |
 | 1.29 | Research | Stata only | The methods whose only reference implementation is in Stata, held until a Stata reference is available | — | — |
 
 The releases planned before 11 November 2026 moved as follows: 1.1 stays; 1.2 went to 1.19 (its plot layers to 1.2, PPML to 1.7); 1.3 to 1.12; 1.4 to 1.8 and 1.11; 1.5 to 1.4, 1.14, 1.18 and 1.20; 1.6 to 1.12 and 1.25; 1.7 to 1.13 (`stream` to 1.8); 1.8 to 1.15; 1.9 to 1.17; 1.10 to 1.17; 1.11 to 1.15, less its third-party packages (2.0.0). User estimators come before Bayesian estimation because Hamiltonian Monte Carlo needs the gradients of automatic differentiation. Not planned: deep learning on images and text, large language models, model-free reinforcement learning, AutoML, process mining and discrete-event simulation. At the cadence below, a minor release about every three months, releases 1.2 to 1.29 take about seven years. The order within a tier (section 8.1, rule 3) still says which packages must exist first.

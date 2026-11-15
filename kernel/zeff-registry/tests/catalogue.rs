@@ -5,12 +5,13 @@ use zeff_registry::Catalogue;
 #[test]
 fn the_compiled_catalogue_reads_in_full() {
     let catalogue = Catalogue::compiled().unwrap();
-    // 545 until step 8c1 of release 0.8.0, where the merges of open decision #113 took 18 rows.
-    assert_eq!(catalogue.rows().len(), 527);
+    // 545 until step 8c1 of release 0.8.0, where the merges of open decision #113 took 18 rows;
+    // 527 until step 8c2, which added the 135 rows of the graphics proposal (#122).
+    assert_eq!(catalogue.rows().len(), 662);
     let mut ids: Vec<u32> = catalogue.rows().iter().map(|r| r.id).collect();
     ids.sort_unstable();
     ids.dedup();
-    assert_eq!(ids.len(), 527, "ids are distinct");
+    assert_eq!(ids.len(), 662, "ids are distinct");
 }
 
 #[test]
@@ -78,6 +79,34 @@ fn a_package_may_give_a_name_a_home_on_two_types() {
     assert_eq!(points(Some("p")), Some(461));
     assert_eq!(points(None), Some(461));
     assert!(catalogue.find_for("plot", "no_such_mark", None).is_none());
+    // A row of kind `option` records further options of a function under the function's name
+    // and is never taken for the function's own row: `points` has such a row since step 8c2 of
+    // release 0.8.0, and a name that has only an option row has no row of a function.
+    let options: Vec<u32> = catalogue
+        .rows()
+        .iter()
+        .filter(|r| r.package == "plot" && r.name == "points" && r.is_option())
+        .map(|r| r.id)
+        .collect();
+    assert_eq!(options.len(), 1, "one option row of `points`");
+    assert!(options[0] > 461);
+    assert_eq!(catalogue.find("plot", "points").map(|r| r.id), Some(461));
+    assert!(
+        catalogue
+            .rows()
+            .iter()
+            .any(|r| r.name == "liml" && r.is_option())
+    );
+    assert!(catalogue.find("regress", "liml").is_none());
+    assert!(
+        catalogue
+            .find_for("regress", "liml", Some("data"))
+            .is_none()
+    );
+    assert!(
+        catalogue.has_name("liml"),
+        "the name is still one a page may refer to"
+    );
     let row = |id: u32| catalogue.rows().iter().find(|r| r.id == id).unwrap();
     assert_eq!(row(460).receiver().as_deref(), Some("data"));
     assert_eq!(row(461).receiver().as_deref(), Some("p"));

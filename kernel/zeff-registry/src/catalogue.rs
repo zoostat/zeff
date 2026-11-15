@@ -45,6 +45,12 @@ impl CatalogueRow {
         self.accuracy.replace('_', " ")
     }
 
+    /// Whether the row records further options of a function (`data.did(..., method: sa)`)
+    /// and not a function of its own.
+    pub fn is_option(&self) -> bool {
+        self.kind == "option"
+    }
+
     /// The receiver the usage is written on, `data` of `data.reg(…)`, or `None` for a function
     /// that has none; the first form speaks for a usage of several.
     pub fn receiver(&self) -> Option<String> {
@@ -298,17 +304,19 @@ impl Catalogue {
     }
 
     /// The row of a function in a package, the first when the package has several of the name
-    /// (section 8.1, rule 6: one home per name per type).
+    /// (section 8.1, rule 6: one home per name per type). A row of kind `option` is never the
+    /// row of a function: it records the options a later release adds to one, under its name.
     pub fn find(&self, package: &str, name: &str) -> Option<&CatalogueRow> {
         self.rows
             .iter()
-            .find(|r| r.package == package && r.name == name)
+            .find(|r| r.package == package && r.name == name && !r.is_option())
     }
 
     /// The row of a function in a package for the receiver its usage is written on. A package
     /// may give a name a home on more than one type (rule 6): `plot` is `data.plot(…)` on a frame
     /// and `fit.plot()` on a fit, both in the package `plot`. Where a package has one row of the
     /// name, that row is the one meant; where it has several, the row written on `receiver`.
+    /// Rows of kind `option` are not counted, as in [`Catalogue::find`].
     pub fn find_for(
         &self,
         package: &str,
@@ -318,7 +326,7 @@ impl Catalogue {
         let rows: Vec<&CatalogueRow> = self
             .rows
             .iter()
-            .filter(|r| r.package == package && r.name == name)
+            .filter(|r| r.package == package && r.name == name && !r.is_option())
             .collect();
         match rows.as_slice() {
             [] => None,

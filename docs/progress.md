@@ -56,95 +56,9 @@ Tests, plots and the language server: 72 functions in 258 commits over 40 steps,
 
 **For the owner to decide.** Nothing blocks. #18 at the close, from the alpha's users. The reader test (testing handbook, section 2.4, item 4) and a Stata run on the Card data are his. The decisions of 0.7.0 that placed work here (#96, #97, #99, #113, #120, #122) were found at the opening after the checklist was shown and are now block B2; he is told in the announcement of step 1.
 
-## 15 November 2026, release 0.8.0, step 2 (the help contract of 0.8.0)
+## 15 November 2026, release 0.8.0, steps 2 to 8a2 (folded)
 
-**Done.** Step 2 `[engine]`: section 9.1 of the Engine Specification carries the contract the owner decided under #103 (In brief, Missing values, A common mistake, Coming from R or Stata, Related tasks, headings inside Details, a caption on every example, every optional argument in an example, every example on the shipped datasets), logged; the registry parses, checks and prints the new parts, a function written in Zeff carries them in `///` keys, and the example runner runs each page's wrong call after its examples and holds the page to what the engine prints, less the source excerpt. The 251 pages written before this release are listed in `kernel/zeff-registry/unrevised.txt` and held to the contract as it stood; a page off the list meets the contract in full, a new function may not be listed, a stale line fails the engine's test, and the list must be empty from 0.10.0. Two pages are revised: `add` (the three errors #103 named corrected) and `tabulate`, the owner's approved sample, whose printed form is the eighth page of `docs/spec/zeff_help_examples.md`. The rulings the decision left to the build check are in `docs/decisions.md` under this date.
-
-**Green.** Format, clippy with warnings denied, the tier and message checks, every test of the workspace; CI read after the push.
-
-**Next.** Step 3 `[engine]`: the weekly mutation job in two passes and the early end of the studentized range's sum.
-
-**For the owner to decide.** Nothing blocks. To look at: `zeff help tabulate` and `zeff help add`, the first two pages under the new contract, as the shape every page will take by 0.10.0.
-
-## 15 November 2026, release 0.8.0, step 3 (the weekly job in two passes)
-
-**Done.** Step 3 `[engine]`: every shard of the weekly mutation job runs in two passes, the mutant against its own package's tests and then, if it survives, against the tests of the packages that use the mutated one, never against the whole workspace; the studentized range's sum over the nodes ends at the first term that is not a number, so a mutant that spoils the integrand fails in milliseconds instead of running every loop to its cap; no result changes. The two known-issues entries on the job are one, and the first scheduled run is read at the close.
-
-**Green.** Format, clippy with warnings denied, the tier and message checks, every test of the workspace; the workflow started by hand on one shard after the push.
-
-**Next.** Step 4 `[engine]`: a variable in an option record (#87).
-
-**For the owner to decide.** Nothing blocks.
-
-## 15 November 2026, release 0.8.0, step 4 (a variable in an option record)
-
-**Done.** Step 4 `[engine]`: `vars(firm)`, a list of one variable, is accepted wherever a function takes one variable, directly, through a binding or through a spread, so the record of section 3.2, `{ se: robust, cluster: vars(firm) }`, can be named once and spread into every call; a list of two or more there is refused where it is written when it is a literal and at the call otherwise. Sections 3.2 and 3.7 follow, logged; the page of `vars` says so; the conformance case `control/option_records` holds it.
-
-**Green.** Format, clippy with warnings denied, the tier and message checks, every test of the workspace; CI read after the push.
-
-**Next.** Step 5 `[engine]`: a parameter where a term of a fit is expected (#147).
-
-**For the owner to decide.** Nothing blocks.
-
-## 15 November 2026, release 0.8.0, step 5 (a parameter where a term is expected)
-
-**Done.** Step 5 `[engine]`: inside a function, a parameter or binding that holds a variable or text is the term it names where a term of a fit is expected, so `data.reg(outcome ~ on).coef(on)` reads the coefficient of the variable the parameter holds; a name the function does not bind, and every name in a script, is the term of that name as before. The table of section 3.7 follows, logged; the page of Z0414 says so; the conformance case `control/term_parameters` holds it; the known-issues entry is reduced to what is left (a loop variable in a script).
-
-**Green.** Format, clippy with warnings denied, the tier and message checks, every test of the workspace; CI read after the push.
-
-**Next.** Step 6 `[engine]`: the type of a column checked against the parameter when the statement runs (#108).
-
-**For the owner to decide.** Nothing blocks.
-
-## 15 November 2026, release 0.8.0, step 6 (a column of the wrong type refused)
-
-**Done.** Step 6 `[engine]`: a numeric function of `core`, or a function of `time` or `text`, given a column of a type it does not take is refused when the statement runs, with Z0401 in the checker's words and the conversion to use, in `add`, `update`, `where`, a plot's mapping and a formula alike; until now `log(industry)` gave `NA` in every row without a word and `year(industry)` ended in an internal error. A category still fits where text is taken, since its rows are its labels (`is_in(industry, [...])`). Section 3.7 follows, logged; the known-issues entry is resolved; the conformance case `control/column_types` holds it. A breaking change for the notes: a script that relied on the silent `NA` now stops.
-
-**Green.** Format, clippy with warnings denied, the tier and message checks, every test of the workspace; CI read after the push.
-
-**Next.** Step 7a `[engine]`: a coded error from a built-in written in Zeff (#89).
-
-**For the owner to decide.** Nothing blocks.
-
-## 15 November 2026, release 0.8.0, step 7a (a coded error from a built-in written in Zeff)
-
-**Done.** Step 7a `[engine]`: in a built-in's file `error` takes `code:` and `argument:`, so that a function written in Zeff refuses an argument under the code a function written in Rust gives, with the mark on the argument; a script's error stays Z0001 and the two options are refused there (Z0404). `quantile_group` and `winsorize` give Z0401 and Z0406 where they gave Z0001; their pages list the codes and a test raises each. The catalogue row of `error` and both volumes follow, logged; the conformance case `control/coded_errors` holds it.
-
-**Green.** Format, clippy with warnings denied, the tier and message checks, every test of the workspace; CI read after the push.
-
-**Next.** Step 7b `[engine]`: variable ranges in a built-in written in Zeff (#90), and `drop_missing` in Zeff if the two pieces suffice.
-
-**For the owner to decide.** Nothing blocks.
-
-## 15 November 2026, release 0.8.0, step 7b (variable ranges in a Zeff-written built-in; `drop_missing` in Zeff)
-
-**Done.** Step 7b `[engine]`: a list of variables given to a built-in written in Zeff is resolved against the frame before the body sees it, by the Rust verbs' own resolver, so a range and a misspelt name are refused in the same words. With it and step 7a, `drop_missing` is written in Zeff: every note and every digest as its Rust form gave them; an empty frame, found by its edge case, handled before the commit. Sixteen functions are written in Zeff; the catalogue and section 8.2 say so, logged.
-
-**Green.** Format, clippy with warnings denied, the tier and message checks, every test of the workspace; CI read after the push.
-
-**Next.** Step 8a `[engine]`: the notes of a plot chain, and the legend titles of `labels` (#130 B, #131 B).
-
-**For the owner to decide.** Nothing blocks.
-
-## 15 November 2026, release 0.8.0, step 8a1 (the notes of a plot chain) and the weekly job's second pass
-
-**Done.** Step 8a1 `[engine]`: the notes of a statement are those of the plot it ends with, so a layer followed by the `scale` that mends it prints no stale note; a plot function leaves a mark and the interpreter resolves it when the statement ends, without shifting any position it holds. Step 8a was split in two; 8a2 is the legend titles of `labels`. The weekly job's second pass, read from the run started by hand, tested the wrong mutants (the tool cuts its shards afresh after skipping the caught ones); it is corrected to retest exactly the shard's leftovers, with the conformance suite among the tests of every package, and tried on this machine.
-
-**Green.** Format, clippy with warnings denied, the tier and message checks, every test of the workspace; CI read after the push.
-
-**Next.** Step 8a2 `[function]`: `labels(size:, shape:, fill:)`.
-
-**For the owner to decide.** Nothing blocks.
-
-## 15 November 2026, release 0.8.0, step 8a2 (the legend titles of `labels`)
-
-**Done.** Step 8a2 `[function]`: `labels(fill:, size:, shape:)` title the legends of those aesthetics, as ggplot2's `labs` does (the same titles on the same plot, 4.0.3); `fill:` comes before `color:` for a legend of fills; an empty text takes a title away. The catalogue row and section 7.6 follow, logged; the page has the arguments and an example; the conformance case `plots/labels` holds the printed plot and the figure's bytes; the figure was read by eye.
-
-**Green.** Format, clippy with warnings denied, the tier and message checks, every test of the workspace; CI read after the push.
-
-**Next.** Step 8b `[engine]`: folding, snippets and the statement ranges behind Run (#86).
-
-**For the owner to decide.** Nothing blocks.
+Step 2: the help contract of 0.8.0 (#103) in section 9.1 and in the registry, with the pages of `add` and `tabulate` revised as the first two and the list of unrevised pages that must be empty at 0.10.0. Step 3: the weekly mutation job in two passes, a mutant against its own package's tests and then against the tests of the packages that use it; its second pass, read from a run, was corrected to retest exactly a shard's leftovers. Step 4 (#87): a list of one variable, `vars(firm)`, accepted where a function takes one variable, so an option record can be named once and spread. Step 5 (#147): inside a function, a parameter that holds a variable is the term it names. Step 6 (#108): a function given a column of a type it does not take is refused when the statement runs (Z0401), where it gave `NA` without a word. Steps 7a and 7b (#89, #90): a built-in written in Zeff raises the engine's own error codes and receives its lists of variables resolved, and with both `drop_missing` is written in Zeff (16 functions are). Step 8a1 (#130): the notes of a statement are those of the plot it ends with. Step 8a2 (#131): `labels(fill:, size:, shape:)` title those legends, as ggplot2's `labs` does. Each step green and pushed; nothing was left for the owner to decide.
 
 ## 15 November 2026, release 0.8.0, step 8b (folding, templates and the statement ranges behind Run)
 
@@ -165,4 +79,14 @@ Tests, plots and the language server: 72 functions in 258 commits over 40 steps,
 **Next.** Step 8c2 `[function]`: the rows of the graphics proposal (#122, #120).
 
 **For the owner to decide.** Nothing blocks. To settle when each release is planned: five methods the owner's table spells differently from their catalogue rows (`polychoric`, `meta_3level`, `alignment`, `effect_convert`, `spec.logistic`), the placement of the rows the plan does not list, and the deadlines of the open decisions written against the earlier plan (the register's status paragraph of this date lists them).
+
+## 15 November 2026, release 0.8.0, step 8c2 (the rows of the graphics proposal), and the owner's ruling on Zemp's repositories
+
+**Done.** Step 8c2 `[function]`: the capabilities of the graphics proposal that #122 places on a release are roadmap rows of the catalogue, 100 functions and 35 option rows (662 rows in all, 383 on the roadmap), with the result plots named as #120 decides; the lists of sections 8.2 and 9.2 and the table of section 14 follow. The 22 cells of the owner's table of models that wrote a plot as `plot(type: …)` are renamed in its three copies, the old copies kept beside them. Between the steps, the owner's ruling of the same day was recorded as #148 at the request of the session that created the repository: Zemp Lite public under Apache 2.0, Zemp Studio private and proprietary in a repository of its own; the Zemp Specification is amended.
+
+**Green.** Format, clippy with warnings denied, the tier and message checks, every test of the workspace; CI read after the push.
+
+**Next.** Step 8c3 `[function]`: the rows of the diagram proposal (#121, #122).
+
+**For the owner to decide.** Nothing blocks. To confirm when each release is planned: the plot names chosen in applying #120 (`docs/decisions.md` of this date lists them).
 
