@@ -5386,3 +5386,13 @@ Done before parts 1 and 2 are read, because those wait for jobs that run for hou
 
 **Reason.** Open decisions #122 and #120; the checklist's step 8c2.
 
+## 15 November 2026: the rows of the diagram proposal (release 0.8.0, step 8c3; open decisions #121 and #122)
+
+**Choice.** Thirteen rows and three notes, by the conventions of step 8c2; `docs/spec_changes.md` of this date lists them. Three points were mine. (1) `sample_flow` is two rows, one on a frame and one on a fit, as the catalogue writes a name that has a home on two types. (2) `path_plot` has two homes, the path diagram of a fitted model in `latent` and the conceptual and statistical figures of a mediation in `mediate`; both are path diagrams, so the name means one thing, which is why the coefficient path of a penalized regression was named `penalty_plot` at step 8c2. (3) `zeff graph` is a command, as the proposal says, so it is in the row of release 1.1 in section 14 and in no catalogue row; the command table of section 2 gains it when 1.1 is planned.
+
+**Step 8c is complete with this step.** Every roadmap row of the catalogue names a release of the owner's plan, except `levene_test` and `bartlett_test`, which step 8j merges into `variance_test`; the catalogue, section 14 of the Engine Specification and section 15 of the Zemp Specification agree on every release after 1.0.
+
+**Held by.** The registry's catalogue tests (675 rows, each id once) and the checks of the routine.
+
+**Reason.** Open decisions #121 and #122; the checklist's step 8c3.
+

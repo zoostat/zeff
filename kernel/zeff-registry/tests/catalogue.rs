@@ -7,11 +7,12 @@ fn the_compiled_catalogue_reads_in_full() {
     let catalogue = Catalogue::compiled().unwrap();
     // 545 until step 8c1 of release 0.8.0, where the merges of open decision #113 took 18 rows;
     // 527 until step 8c2, which added the 135 rows of the graphics proposal (#122).
-    assert_eq!(catalogue.rows().len(), 662);
+    // 662 until step 8c3, which added the 13 rows of the diagram proposal (#121).
+    assert_eq!(catalogue.rows().len(), 675);
     let mut ids: Vec<u32> = catalogue.rows().iter().map(|r| r.id).collect();
     ids.sort_unstable();
     ids.dedup();
-    assert_eq!(ids.len(), 662, "ids are distinct");
+    assert_eq!(ids.len(), 675, "ids are distinct");
 }
 
 #[test]

@@ -90,3 +90,13 @@ Step 2: the help contract of 0.8.0 (#103) in section 9.1 and in the registry, wi
 
 **For the owner to decide.** Nothing blocks. To confirm when each release is planned: the plot names chosen in applying #120 (`docs/decisions.md` of this date lists them).
 
+## 15 November 2026, release 0.8.0, step 8c3 (the rows of the diagram proposal); step 8c complete
+
+**Done.** Step 8c3 `[function]`: the capabilities of the diagram proposal that come after 1.0 are roadmap rows at the releases of #121 (the `diagram { }` block, the sample flow and `reason:` at 1.2; the path diagrams at 1.12; CONSORT and PRISMA at 1.17), thirteen rows and three notes, 675 rows in all; `zeff graph` is in release 1.1 of section 14 and the Pipeline view in Zemp 1.1. With it the documentation step of #113, #120 and #122 is done: the catalogue, section 14 and the Zemp release table agree on every release after 1.0.
+
+**Green.** Format, clippy with warnings denied, the tier and message checks, every test of the workspace; CI read after the push.
+
+**Next.** Step 8d `[function]`: `time_between(start, end, unit:)` in the place of `days_between` and `months_between` (#96).
+
+**For the owner to decide.** Nothing blocks.
+
