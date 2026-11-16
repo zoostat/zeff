@@ -386,3 +386,78 @@ fn first_stage_in_each_form() {
     assert!(out.contains("F(1, 3,002) = 3.87   p = 0.049"), "{out}");
     insta::assert_snapshot!("first_stage_card", out);
 }
+
+/// `ar_test` (catalogue row 256; step 16): the test with its hypotheses, statistic, p-value and
+/// decision, and the confidence set in words for each shape it takes, on Card's data: an
+/// interval; the empty set at a level of 0.6; two rays with the weaker instrument; every value
+/// on the first 400 rows; robust and clustered errors; the region absorbed; two instrumented
+/// regressors, the joint test alone. The ends are those of `ar.json`, held at step 15.
+#[test]
+fn ar_test_in_each_form() {
+    let card = "let card = import(\"data/card.csv\")\n";
+    let cases = [
+        (
+            "an interval",
+            "let iv = card.ivreg(lwage ~ exper + expersq + black + south + smsa + educ, instruments: educ ~ nearc4 + nearc2)\niv.ar_test()",
+        ),
+        (
+            "the empty set, at a level of 0.6",
+            "card.ivreg(lwage ~ exper + expersq + black + south + smsa + educ, instruments: educ ~ nearc4 + nearc2).ar_test(level: 0.6)",
+        ),
+        (
+            "two rays: the weaker instrument alone",
+            "card.ivreg(lwage ~ exper + expersq + black + south + smsa + educ, instruments: educ ~ nearc2).ar_test()",
+        ),
+        (
+            "every value: the weaker instrument on the first 400 rows",
+            "card.head(400).ivreg(lwage ~ exper + expersq + black + south + smsa + educ, instruments: educ ~ nearc2).ar_test()",
+        ),
+        (
+            "robust errors",
+            "card.ivreg(lwage ~ exper + expersq + black + south + smsa + educ, instruments: educ ~ nearc4 + nearc2, se: robust).ar_test()",
+        ),
+        (
+            "clustered errors, the region absorbed",
+            "card.ivreg(lwage ~ exper + expersq + black + smsa + educ, fe: region, instruments: educ ~ nearc4 + nearc2, cluster: age).ar_test()",
+        ),
+        (
+            "two instrumented regressors: the joint test, no set",
+            "card.ivreg(lwage ~ black + south + smsa + educ + KWW, instruments: educ + KWW ~ nearc4 + nearc2 + fatheduc + motheduc).ar_test()",
+        ),
+        (
+            "its parts read by the methods of a test",
+            "let t = card.ivreg(lwage ~ exper + expersq + black + south + smsa + educ, instruments: educ ~ nearc4 + nearc2).ar_test()\nt.statistic()\nt.df()\nt.p_values()\ntype_of(t)",
+        ),
+    ];
+    let scripts: Vec<(&str, String)> = cases
+        .iter()
+        .map(|(what, call)| (*what, format!("{card}{call}\n")))
+        .collect();
+    let borrowed: Vec<(&str, &str)> = scripts.iter().map(|(w, s)| (*w, s.as_str())).collect();
+    let out = all_of(&borrowed, true);
+    assert!(out.contains("from 0.0863 to 0.3166"), "{out}");
+    assert!(
+        out.contains("every value up to -1.4606 and every value from 0.1189 on"),
+        "{out}"
+    );
+    insta::assert_snapshot!("ar_test_card", out);
+    let staff = [
+        (
+            "a strong instrument on staff",
+            "let staff = dataset(staff)\nlet iv = staff.ivreg(productivity ~ training, fe: site, instruments: training ~ offer)\niv.ar_test()\niv.ci(training)\n",
+        ),
+        (
+            "a fit by reg has no such test",
+            "let staff = dataset(staff)\nstaff.reg(productivity ~ training).ar_test()\n",
+        ),
+        (
+            "a level that is not a probability",
+            "let staff = dataset(staff)\nstaff.ivreg(productivity ~ training, instruments: training ~ offer).ar_test(level: 95)\n",
+        ),
+        (
+            "nothing left to instrument",
+            "let staff = dataset(staff).add(both = age + distance)\nstaff.ivreg(productivity ~ age + distance + both, instruments: both ~ offer).ar_test()\n",
+        ),
+    ];
+    insta::assert_snapshot!("ar_test_staff", all_of(&staff, false));
+}

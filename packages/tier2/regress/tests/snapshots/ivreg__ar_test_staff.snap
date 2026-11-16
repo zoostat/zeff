@@ -1,0 +1,61 @@
+---
+source: packages/tier2/regress/tests/ivreg.rs
+expression: "all_of(&staff, false)"
+---
+## a strong instrument on staff
+let staff = dataset(staff)
+let iv = staff.ivreg(productivity ~ training, fe: site, instruments: training ~ offer)
+iv.ar_test()
+iv.ci(training)
+
+---
+ar_test · iv · training
+  H0: the coefficient of training is zero          β = 0
+  H1: the coefficient of training is not zero      β ≠ 0
+F(1, 2,387) = 90.24   p < 0.001
+decision at α = 0.05: reject H0 (p < 0.001)
+95% confidence set for the coefficient of training: from 3.7492 to 5.4380
+Anderson–Rubin test on the instrument offer; valid however weak the instruments
+3.76049
+5.44481
+
+## a fit by reg has no such test
+let staff = dataset(staff)
+staff.reg(productivity ~ training).ar_test()
+
+---
+error[Z0401]: `ar_test` cannot be called on a RegFit
+ --> scripts/main.zeff:2:1
+  |
+2 | staff.reg(productivity ~ training).ar_test()
+  | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ this is a RegFit
+  |
+  = help: `ar_test` takes an IvFit first; `x.ar_test(...)` is `ar_test(x, ...)`
+
+## a level that is not a probability
+let staff = dataset(staff)
+staff.ivreg(productivity ~ training, instruments: training ~ offer).ar_test(level: 95)
+
+---
+error[Z0401]: `level:` is a probability strictly between 0 and 1, but this is 95
+ --> scripts/main.zeff:2:84
+  |
+2 | staff.ivreg(productivity ~ training, instruments: training ~ offer).ar_test(level: 95)
+  |                                                                                    ^^ not a confidence level
+  |
+  = help: the usual levels are 0.9, 0.95 and 0.99
+
+## nothing left to instrument
+let staff = dataset(staff).add(both = age + distance)
+staff.ivreg(productivity ~ age + distance + both, instruments: both ~ offer).ar_test()
+
+---
+note: `both` is collinear with the columns before it and was dropped (line 2)
+note: `both` was dropped, so nothing is instrumented and the estimates are those of least squares (line 2)
+error[Z0802]: nothing is instrumented in this fit, so there is no coefficient for the Anderson–Rubin test
+ --> scripts/main.zeff:2:1
+  |
+2 | staff.ivreg(productivity ~ age + distance + both, instruments: both ~ offer).ar_test()
+  | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ a fit whose instrumented regressors were all dropped
+  |
+  = help: the fit dropped every instrumented regressor as collinear; its notes say which

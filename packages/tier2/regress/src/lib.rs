@@ -229,6 +229,35 @@ pub fn functions() -> Vec<Function> {
         },
         Function {
             spec: FunctionSpec {
+                name: "ar_test",
+                package: "regress",
+                method: true,
+                params: vec![
+                    ParamSpec::required("iv", "IvFit"),
+                    ParamSpec::option_with_default("level", "Float", "0.95"),
+                ],
+                rest: None,
+                returns: "TestResult",
+                diagnostics: vec![
+                    DiagnosticDecl::new(
+                        "Z0401",
+                        "the receiver is not a fit by `ivreg`, or a level outside 0 to 1",
+                    ),
+                    DiagnosticDecl::new(
+                        "Z0802",
+                        "nothing is instrumented in the fit, or the test cannot be computed for it",
+                    ),
+                ],
+                help: include_str!("../help/ar_test.md"),
+                accuracy: Some(AccuracyRecord {
+                    reference: "R 4.6.0, the Anderson-Rubin test and set written out in base R two ways (tests/reference/r/ar.R)".to_string(),
+                    last_run: None,
+                }),
+            },
+            body: ivreg::ar_test,
+        },
+        Function {
+            spec: FunctionSpec {
                 name: "interact",
                 package: "regress",
                 method: false,

@@ -615,3 +615,126 @@ fn two_stage_least_squares_recovers_the_effect_of_the_course() {
     );
     assert!(failures.is_empty(), "{}", failures.join("\n"));
 }
+
+/// One draw of a weak-instrument version of the `staff` model: 300 employees, no sites, an
+/// offer that barely moves the take-up of the course, and ability that drives both the take-up
+/// and productivity strongly, so that least squares is far off; the effect is still 4.5.
+fn draw_weak(seed: u64) -> Table {
+    let mut stream = Stream::new(20_261_117 + seed, 1, 0);
+    let rows = 300;
+    let (mut offer, mut training, mut productivity) = (
+        Vec::with_capacity(rows),
+        Vec::with_capacity(rows),
+        Vec::with_capacity(rows),
+    );
+    for _ in 0..rows {
+        let ability = normal(&mut stream);
+        let offered = if stream.uniform() < 0.5 { 1.0 } else { 0.0 };
+        let u = -0.4 + 0.8 * offered + 4.0 * ability;
+        let took = if stream.uniform() < 1.0 / (1.0 + zeff_numeric::maths::exp(-u)) {
+            1.0
+        } else {
+            0.0
+        };
+        let y = 50.0 + COURSE_EFFECT * took + 6.0 * ability + normal(&mut stream);
+        offer.push(Some(offered));
+        training.push(Some(took));
+        productivity.push(Some(y));
+    }
+    Table::new(vec![
+        ("offer".to_string(), Column::floats(offer).0),
+        ("training".to_string(), Column::floats(training).0),
+        ("productivity".to_string(), Column::floats(productivity).0),
+    ])
+    .expect("columns of one length")
+}
+
+/// Under a weak instrument the Anderson–Rubin set keeps its level and the usual interval does
+/// not (release 0.8.0, step 16): over four hundred draws the 95 per cent Anderson–Rubin set
+/// holds the true effect about 95 per cent of the time, and the interval of the two-stage
+/// estimate and its standard error holds it less often than the set does.
+#[test]
+#[ignore = "nightly: 400 draws of a weak-instrument model, the Anderson-Rubin set against the usual interval"]
+fn the_anderson_rubin_set_covers_under_a_weak_instrument() {
+    use zeff_regress::iv::{Designs, estimate};
+    use zeff_results::variance::Kind;
+    let draws = 400u64;
+    let (mut by_set, mut by_interval, mut unbounded) = (0usize, 0usize, 0usize);
+    for seed in 0..draws {
+        let table = draw_weak(seed);
+        let mut output = String::new();
+        let mut messages: Vec<Diagnostic> = Vec::new();
+        let mut random = Randomness::default();
+        let mut ctx = CallContext {
+            files: &NoFiles,
+            script: "t.zeff",
+            text: "",
+            columns_used: Vec::new(),
+            frame: None,
+            group_rows: None,
+            callee_span: Span::new(0, 1),
+            arg_spans: Vec::new(),
+            rest_spans: Vec::new(),
+            definition_spans: Vec::new(),
+            output: &mut output,
+            messages: &mut messages,
+            random: &mut random,
+            statement: 1,
+        };
+        let designs = Designs::build(
+            &mut ctx,
+            &Frame::new(table),
+            &formula("productivity ~ training"),
+            &zeff_testkit::terms("training"),
+            &zeff_testkit::terms("offer"),
+            &[],
+            None,
+        )
+        .unwrap_or_else(|e| panic!("seed {seed}: {}", e.message));
+        let two =
+            estimate(&mut ctx, designs).unwrap_or_else(|e| panic!("seed {seed}: {}", e.message));
+        let test = two
+            .anderson_rubin(&mut ctx, Kind::Classical, None, None, 0.95)
+            .unwrap_or_else(|e| panic!("seed {seed}: {}", e.message));
+        let set = test.set.unwrap_or_else(|| panic!("seed {seed}: no set"));
+        if set
+            .pieces
+            .iter()
+            .any(|(lo, hi)| *lo <= COURSE_EFFECT && COURSE_EFFECT <= *hi)
+        {
+            by_set += 1;
+        }
+        if set
+            .pieces
+            .iter()
+            .any(|(lo, hi)| lo.is_infinite() || hi.is_infinite())
+        {
+            unbounded += 1;
+        }
+        let (vcov, df) = two.variance(Kind::Classical, None, 0).unwrap();
+        let at = two.fitted.kept.iter().position(|&c| c == 1).unwrap();
+        let (estimate, se) = (two.fitted.estimates[at], vcov.get(at, at).sqrt());
+        let t = families::quantile(
+            &Distribution::Family {
+                name: "t",
+                params: vec![("df", df as f64)],
+            },
+            0.975,
+        );
+        if (estimate - COURSE_EFFECT).abs() <= t * se {
+            by_interval += 1;
+        }
+    }
+    let n = draws as f64;
+    let (set, interval) = (by_set as f64 / n, by_interval as f64 / n);
+    println!(
+        "weak instrument: the Anderson-Rubin set covers {set:.3}, the usual interval {interval:.3}; {unbounded} of {draws} sets are unbounded"
+    );
+    // Four hundred sets at 95 per cent: between 91.5 and 98 per cent with room for the Monte
+    // Carlo error; and the usual interval covers less often than the set.
+    assert!((0.915..=0.98).contains(&set), "the set covers {set:.3}");
+    assert!(
+        interval < set,
+        "the interval covers {interval:.3}, the set {set:.3}"
+    );
+}

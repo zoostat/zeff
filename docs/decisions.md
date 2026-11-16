@@ -5861,3 +5861,21 @@ Done before parts 1 and 2 are read, because those wait for jobs that run for hou
 **Held by.** `packages/tier2/regress/tests/iv.rs`: the ten cases with a stored text of every set; the shipped `staff`, whose strong instrument gives an interval close to the usual one; and a property that the set follows the units of the outcome and of the regressor, widens with the level, and holds the estimate when the instruments are strong and agree.
 
 **Reason.** The release's ruling on the Anderson–Rubin set; the owner's answer to question 3(c); the checklist's step 15.
+
+## 16 November 2026 — `ar_test` (release 0.8.0, step 16)
+
+**Choice.** `iv.ar_test(level: Float = 0.95)` in `regress/src/ivreg.rs`, a method of an `IvFit` that returns a `TestResult`. The fit is computed again from what it keeps, and the test stands on the standard errors the fit was given.
+
+**The printed form (a layout, the owner's to change).** The title `ar_test · iv · educ`; the hypotheses in words and symbols, "the coefficient of educ is zero", β = 0; the statistic line `F(2, 3,002) = 7.16   p = 0.001`; the decision line of open decision #91 at α = 1 − level; then the confidence set in words, one sentence per shape: "from 0.0863 to 0.3166"; "every value up to -1.4606 and every value from 0.1189 on; the instruments are too weak to bound it on both sides"; "every value; the instruments are too weak to say anything about it"; "empty; no value agrees with all the instruments at this level, which says the instruments disagree"; and each piece in turn for a set of more pieces. A last line names the instruments and the kind of errors and says that the test is valid however weak the instruments. With several instrumented regressors the hypotheses are about all their coefficients and the line says that there is no set.
+
+**What it reads back.** `statistic()`, `df()` and `p_values()` as for any test. The set is printed and not returned as numbers at this release: `ci()` of a test reads an estimate's interval, and a set that may be two rays or empty is not one. A method that returns the pieces can be added when a script needs them; recorded here, not as an open decision, since nothing in the specification promises it.
+
+**Refusals.** A fit that is not `ivreg`'s (the checker, Z0401); a level outside 0 to 1 (Z0401, in `reg`'s words); a fit whose instrumented regressors were all dropped, or a test that cannot be computed (Z0802).
+
+**The page.** Under the 0.8.0 contract, its examples on `staff`: a strong instrument, whose set is 3.75 to 5.44 beside the usual 3.76 to 5.44, and a weak one on 300 rows, whose set is every value. The pages of `ivreg` and `first_stage` now name `ar_test`, which the help line of W1007 has pointed to since step 12c.
+
+**Truth recovery (nightly).** Four hundred draws of a weak-instrument model with strong endogeneity: the 95 per cent Anderson–Rubin set must hold the true effect between 91.5 and 98 per cent of the time, and the usual interval less often than the set. Run once by hand: the set 0.953, the interval 0.927; 321 of the 400 sets are unbounded, which is the test doing its work. A first design, with a weaker instrument and mild endogeneity, had the usual interval over-covering at 0.99: its standard error was enormous. The design was changed, not the threshold.
+
+**Held by.** `packages/tier2/regress/tests/ivreg.rs`: a stored snapshot of eight forms on Card's data (every shape, robust and clustered errors with the region absorbed, two instrumented regressors, the parts read back), with the ends of `ar.json` asserted, and of four on `staff` (a strong instrument and three refusals); the conformance case `models/ar_test`; `nightly_truth.rs`; the page's examples.
+
+**Reason.** Catalogue row 256, now implemented; the owner's answer to question 3(c); open decision #91 for the layout of a test; the checklist's step 16.

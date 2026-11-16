@@ -145,3 +145,13 @@ Step 9: the checker reads `instruments: educ ~ nearc4` and refuses its mistakes 
 **Next.** Step 16 `[function]`: `ar_test`, the function, its printed result and its page.
 
 **For the owner to decide.** The printed form of `first_stage` and the `Instruments` row of `report`. Open decisions #149 and #150. The story of `staff`. Whether to add `ivDiag` and `ivmodel` by hand.
+
+## 16 November 2026, release 0.8.0, step 16 (`ar_test`)
+
+**Done.** Step 16 `[function]`: `iv.ar_test()` prints the Anderson–Rubin test and its confidence set in words. On Card's data with both proximity indicators: F(2, 3,002) = 7.16, p = 0.001, and the set "from 0.0863 to 0.3166"; with the weaker indicator alone, "every value up to -1.4606 and every value from 0.1189 on"; on 400 rows, "every value". The nightly test draws a weak-instrument model four hundred times: the set holds the truth 95.3 per cent of the time, the usual interval 92.7 per cent. The three functions of the release's row, `ivreg`, `first_stage` and `ar_test`, are now all in, each with its page.
+
+**Green.** Format, clippy with warnings denied, the tier, message and grammar checks, every test of the workspace; CI read after the push.
+
+**Next.** Step 17 `[engine]`: leverage under one absorbed effect, which opens `se: hc2`, `hc3` and `influence` with one effect in `fe:`.
+
+**For the owner to decide.** The printed forms of `first_stage` and `ar_test` and the `Instruments` row of `report`. Open decisions #149 and #150. The story of `staff`. Whether to add `ivDiag` and `ivmodel` by hand.

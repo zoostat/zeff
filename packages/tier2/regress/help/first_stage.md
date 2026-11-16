@@ -96,6 +96,7 @@ ones printed here.
 
 ## Related tasks
 - To fit the model whose first stage this is, use `ivreg`.
+- When the instruments are weak, for a test and a confidence set that still hold, use `ar_test`.
 - To set the instrumented fit beside a least-squares one, use `report`.
 - To see the instruments and the regressors row by row, use `design`.
 - To write the tables to a file, use `export`.
@@ -123,7 +124,7 @@ Montiel Olea, J. L. and Pflueger, C. (2013), A robust test for weak instruments,
 Business and Economic Statistics 31(3), 358–369.
 
 ## See also
-ivreg, report, design, export
+ivreg, ar_test, report, design, export
 
 ## Examples
 // One regressor instrumented by two instruments, with robust errors: the first stage and the three lines for the model.

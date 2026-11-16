@@ -799,3 +799,217 @@ pub fn first_stage(ctx: &mut CallContext<'_>, args: Args) -> Result<Value, Fail>
     main.more.push(whole);
     Ok(Value::Table(main))
 }
+
+/// A coefficient as the lines of a test write it.
+fn four_decimals(value: f64) -> String {
+    zeff_core::display::fixed(value, 4)
+}
+
+/// `iv.ar_test(level:)` (catalogue row 256; the owner's answer to question 3(c) of release
+/// 0.8.0): the Anderson–Rubin test that the coefficient of the instrumented regressor is zero,
+/// valid however weak the instruments, and the confidence set at `level:` of the values the
+/// test does not reject, said in words for each shape it takes. With several instrumented
+/// regressors, the test of all their coefficients at once and no set. On the standard errors
+/// the fit was given.
+pub fn ar_test(ctx: &mut CallContext<'_>, args: Args) -> Result<Value, Fail> {
+    let Some(Value::Fit(fit)) = args.get(0) else {
+        return Err(internal(ctx, "ar_test was called without a fit"));
+    };
+    let fit = Rc::clone(fit);
+    let level = match args.get(1) {
+        Some(Value::Float(level)) => *level,
+        Some(Value::Int(level)) => *level as f64,
+        _ => 0.95,
+    };
+    if !(level > 0.0 && level < 1.0) {
+        return Err(fail(
+            Diagnostic::error(
+                "Z0401",
+                format!("`level:` is a probability strictly between 0 and 1, but this is {level}"),
+            )
+            .in_file(ctx.script)
+            .primary(ctx.span_of(1), "not a confidence level")
+            .help("the usual levels are 0.9, 0.95 and 0.99"),
+        ));
+    }
+    let unbuilt = |ctx: &CallContext<'_>, why: &str| {
+        internal(ctx, &format!("the Anderson–Rubin test of the fit: {why}"))
+    };
+    let Some(again) = refit(ctx, &fit) else {
+        return Err(unbuilt(ctx, "the fit keeps no frame or no instruments"));
+    };
+    let (two, projection) = again?;
+    let (Some(source), Some(instrumented)) = (&fit.source, &fit.instrumented) else {
+        return Err(unbuilt(ctx, "the fit keeps no frame"));
+    };
+    let names = &instrumented.instrumented_columns;
+    if names.is_empty() {
+        return Err(fail(
+            Diagnostic::error(
+                "Z0802",
+                "nothing is instrumented in this fit, so there is no coefficient for the Anderson–Rubin test",
+            )
+            .in_file(ctx.script)
+            .primary(ctx.span_of(0), "a fit whose instrumented regressors were all dropped")
+            .help("the fit dropped every instrumented regressor as collinear; its notes say which"),
+        ));
+    }
+    let kind = if fit.se_kind.starts_with("clustered") {
+        Kind::Cluster
+    } else if fit.se_kind.starts_with("robust") {
+        Kind::Hc1
+    } else if fit.se_kind == "hc2" {
+        Kind::Hc2
+    } else if fit.se_kind == "hc3" {
+        Kind::Hc3
+    } else {
+        Kind::Classical
+    };
+    let cluster = if kind == Kind::Cluster {
+        source.cluster.as_deref()
+    } else {
+        None
+    };
+    let clusters = clusters_for(
+        ctx,
+        &source.frame,
+        cluster,
+        projection.as_ref(),
+        &two.designs.structural.rows,
+    )?;
+    let found = two.anderson_rubin(ctx, kind, clusters.as_ref(), projection.as_ref(), level)?;
+    let Some(statistic) = found.statistic else {
+        return Err(fail(
+            Diagnostic::error(
+                "Z0802",
+                "the Anderson–Rubin test cannot be computed for this fit: the regression of the outcome on the instruments has no residual degrees of freedom, or its variance cannot be inverted",
+            )
+            .in_file(ctx.script)
+            .primary(ctx.span_of(0), "no test for this fit")
+            .help("with clustered errors the test needs more clusters than instruments outside the equation; otherwise more rows than instruments"),
+        ));
+    };
+    let (d1, d2) = (found.df1 as f64, found.df2 as f64);
+    let p_value =
+        zeff_numeric::special::incomplete_beta(d2 / 2.0, d1 / 2.0, d2 / (d2 + d1 * statistic))
+            .lower;
+    let one = names.len() == 1;
+    let listed = match names.as_slice() {
+        [one] => one.clone(),
+        [first, second] => format!("{first} and {second}"),
+        many => format!(
+            "{} and {}",
+            many[..many.len() - 1].join(", "),
+            many[many.len() - 1]
+        ),
+    };
+    let hypotheses = if one {
+        zeff_core::value::Hypotheses {
+            h0: format!("the coefficient of {listed} is zero"),
+            h1: format!("the coefficient of {listed} is not zero"),
+            symbols: Some(("β = 0".to_string(), "β ≠ 0".to_string())),
+        }
+    } else {
+        zeff_core::value::Hypotheses {
+            h0: format!("the coefficients of {listed} are all zero"),
+            h1: format!("at least one of the coefficients of {listed} is not zero"),
+            symbols: None,
+        }
+    };
+    // The set, in words.
+    let percent = {
+        let p = level * 100.0;
+        if (p - p.round()).abs() < 1e-9 {
+            format!("{}", p.round() as i64)
+        } else {
+            zeff_core::display::fixed(p, 1)
+        }
+    };
+    let mut after: Vec<String> = Vec::new();
+    match (&found.set, one) {
+        (Some(set), true) => {
+            use crate::iv::Shape;
+            let start = format!("{percent}% confidence set for the coefficient of {listed}:");
+            after.push(match set.shape() {
+                Shape::Interval => {
+                    let (lo, hi) = set.pieces[0];
+                    format!("{start} from {} to {}", four_decimals(lo), four_decimals(hi))
+                }
+                Shape::TwoRays => format!(
+                    "{start} every value up to {} and every value from {} on; the instruments are too weak to bound it on both sides",
+                    four_decimals(set.pieces[0].1),
+                    four_decimals(set.pieces[1].0)
+                ),
+                Shape::WholeLine => format!(
+                    "{start} every value; the instruments are too weak to say anything about it"
+                ),
+                Shape::Empty => format!(
+                    "{start} empty; no value agrees with all the instruments at this level, which says the instruments disagree"
+                ),
+                Shape::Other => {
+                    let pieces: Vec<String> = set
+                        .pieces
+                        .iter()
+                        .map(|&(lo, hi)| match (lo.is_finite(), hi.is_finite()) {
+                            (true, true) => {
+                                format!("from {} to {}", four_decimals(lo), four_decimals(hi))
+                            }
+                            (false, true) => format!("every value up to {}", four_decimals(hi)),
+                            (true, false) => format!("every value from {} on", four_decimals(lo)),
+                            (false, false) => "every value".to_string(),
+                        })
+                        .collect();
+                    format!("{start} {}", pieces.join("; and "))
+                }
+            });
+        }
+        (None, true) => after.push(format!(
+            "{percent}% confidence set for the coefficient of {listed}: not available"
+        )),
+        (_, false) => after.push(
+            "no confidence set: with several instrumented regressors the test is of all their coefficients at once"
+                .to_string(),
+        ),
+    }
+    after.push(format!(
+        "Anderson–Rubin test on the {} {}{}; valid however weak the instruments",
+        if instrumented.instruments_kept.len() == 1 {
+            "instrument"
+        } else {
+            "instruments"
+        },
+        instrumented.instruments_kept.join(", "),
+        match kind {
+            Kind::Classical => String::new(),
+            Kind::Hc1 => ", with robust errors".to_string(),
+            Kind::Hc2 => ", with robust errors (hc2)".to_string(),
+            Kind::Hc3 => ", with robust errors (hc3)".to_string(),
+            Kind::Cluster => format!(", with errors clustered by {}", cluster.unwrap_or("")),
+        }
+    ));
+    let name = fit.name.clone().unwrap_or_else(|| fit.formula.clone());
+    Ok(Value::TestResult(Rc::new(zeff_core::value::TestResult {
+        method: "ar_test".to_string(),
+        title: format!("ar_test · {name} · {listed}"),
+        hypotheses: Some(hypotheses),
+        alternative: zeff_core::value::Alternative::TwoSided,
+        header: Vec::new(),
+        table: None,
+        estimate: None,
+        statistic: zeff_core::value::Statistic {
+            name: "F".to_string(),
+            value: statistic,
+            df: vec![d1, d2],
+        },
+        p_value,
+        terms: Vec::new(),
+        effect: None,
+        level,
+        alpha: Some(1.0 - level),
+        after,
+        notes: Vec::new(),
+        n: fit.n,
+        dropped: fit.dropped,
+        follow_up: None,
+    })))
+}

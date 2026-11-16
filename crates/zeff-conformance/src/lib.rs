@@ -1040,7 +1040,20 @@ fn regress_cases() -> Vec<Line> {
     // runs; each script stops at its refusal, so the case is several scripts, their output
     // digested together.
     let staff = "let staff = dataset(staff)\n";
-    let models: [(&str, &[&str]); 3] = [
+    let models: [(&str, &[&str]); 4] = [
+        // `models/ar_test` (step 16): the Anderson–Rubin test and its set on the shipped
+        // `staff`, an interval under each kind of error, an unbounded set from a weak
+        // instrument on few rows, and the joint test of two instrumented regressors.
+        (
+            "ar_test",
+            &[
+                "staff.ivreg(productivity ~ training, fe: site, instruments: training ~ offer).ar_test()\n",
+                "staff.ivreg(productivity ~ age + training, instruments: training ~ offer + distance, se: robust).ar_test(level: 0.9)\n",
+                "staff.ivreg(productivity ~ age + training, instruments: training ~ offer + distance, cluster: site).ar_test()\n",
+                "staff.where(employee <= 300).ivreg(productivity ~ training, instruments: training ~ distance).ar_test(level: 0.99)\n",
+                "staff.ivreg(productivity ~ training + tenure, instruments: training + tenure ~ offer + distance + age).ar_test()\n",
+            ],
+        ),
         // `models/first_stage` (step 14b): the first-stage tables and the three lines for the
         // model under classical, robust and clustered errors, exactly identified and with two
         // instrumented regressors.
