@@ -549,6 +549,162 @@ agree(s$wald$hc1, of_stat(f, ~ivwald, "hetero"))
 agree(s$wald$age, of_stat(f, ~ivwald, ~age))
 weak_case("wage2_siblings", "wage2", "lwage ~ exper + tenure + educ", "educ", "sibs + brthord", s, clusters = "age")
 
+# The diagnostics of the first stage (release 0.8.0, step 14a), on the same partialled and
+# weighted columns as the weak-instrument statistics, the outcome among them. With y the
+# outcome, X the p instrumented regressors and Z the m excluded instruments, the exogenous
+# regressors (and the fixed effects) projected out of all three:
+#   the partial R2 of a first stage is the share of the regressor that the instruments explain;
+#   Shea's partial R2 is the squared correlation of the regressor, cleared of the other
+#   instrumented regressors, with its fitted values cleared of theirs; it is also the ratio of
+#   the regressor's diagonal entries of (X'X)^-1 and (Xhat'Xhat)^-1 (Godfrey), and both are
+#   computed and held to each other; with one instrumented regressor it is the partial R2;
+#   Sargan's statistic is e'Pz e / (e'e / N), chi-square on m - p degrees of freedom;
+#   Hansen's J is the minimised criterion of the efficient two-step estimator, g' S^-1 g with
+#   g = Z'(y - X b_gmm) and S the sum of the squared scores Z'e of the two-stage residuals
+#   (summed within clusters first when clustered); with S proportional to Z'Z it is Sargan's;
+#   the Durbin-Wu-Hausman test adds the first-stage residuals to the equation and tests their
+#   coefficients: an F on p and N - k - p - absorbed degrees of freedom, or the Wald form on
+#   the robust or clustered variance.
+# fixest's `sargan` and `wh` are held to the classical forms.
+diagnose <- function(y, X, Z2, W, w = NULL, weight_type = NULL, fe = NULL, absorbed = 0, clusters = list()) {
+  rows_n <- nrow(X)
+  ww <- if (is.null(w)) rep(1, rows_n) else w
+  if (identical(weight_type, "analytic") || identical(weight_type, "sampling")) ww <- ww * rows_n / sum(ww)
+  N <- if (identical(weight_type, "frequency")) sum(ww) else rows_n
+  y <- cbind(y)
+  if (!is.null(fe)) {
+    centre <- function(v) v - ave(v * ww, fe, FUN = sum) / ave(ww, fe, FUN = sum)
+    X <- apply(X, 2, centre); Z2 <- apply(Z2, 2, centre); y <- apply(y, 2, centre)
+    if (!is.null(W)) W <- apply(W, 2, centre)
+  }
+  if (!is.null(W)) {
+    X <- apply(X, 2, partial_out, A = W, w = ww); Z2 <- apply(Z2, 2, partial_out, A = W, w = ww)
+    y <- apply(y, 2, partial_out, A = W, w = ww)
+  }
+  sw <- sqrt(ww)
+  Xp <- X * sw; Zp <- Z2 * sw; yp <- drop(y) * sw
+  p <- ncol(Xp); m <- ncol(Zp)
+  k <- p + if (is.null(W)) 0 else ncol(W)
+  copies <- if (identical(weight_type, "frequency")) ww else rep(1, rows_n)
+  ZZ <- crossprod(Zp)
+  Pi <- solve(ZZ, crossprod(Zp, Xp))
+  Xh <- Zp %*% Pi
+  V <- Xp - Xh
+  b <- solve(crossprod(Xh), crossprod(Xh, yp))
+  e <- drop(yp - Xp %*% b)
+  out <- list(n = N, p = p, m = m)
+  out$partial <- unname(1 - colSums(V^2) / colSums(Xp^2))
+  clear <- function(v, A) if (ncol(A) == 0) v else v - A %*% solve(crossprod(A), crossprod(A, v))
+  shea <- sapply(seq_len(p), function(j) {
+    xt <- clear(Xp[, j], Xp[, -j, drop = FALSE]); xht <- clear(Xh[, j], Xh[, -j, drop = FALSE])
+    sum(xt * xht)^2 / (sum(xt^2) * sum(xht^2))
+  })
+  godfrey <- diag(solve(crossprod(Xp))) / diag(solve(crossprod(Xh)))
+  agree(shea, godfrey, 1e-7)
+  if (p == 1) agree(shea, out$partial)
+  out$shea <- unname(shea)
+  out$df_over <- m - p
+  if (m > p) {
+    out$sargan <- sum((Zp %*% solve(ZZ, crossprod(Zp, e))) * e) / (sum(e^2) / N)
+    g <- Zp * e
+    j_of <- function(S) {
+      Si <- solve(S); XZ <- crossprod(Xp, Zp)
+      bg <- solve(XZ %*% Si %*% t(XZ), XZ %*% Si %*% crossprod(Zp, yp))
+      gb <- crossprod(Zp, yp - Xp %*% bg)
+      drop(t(gb) %*% Si %*% gb)
+    }
+    # With S proportional to Z'Z the criterion is Sargan's statistic.
+    agree(j_of(ZZ * sum(e^2) / N), out$sargan)
+    out$hansen <- list(hc1 = j_of(crossprod(g / copies, g)))
+    for (name in names(clusters)) out$hansen[[name]] <- j_of(crossprod(rowsum(g, clusters[[name]])))
+  }
+  # The Durbin-Wu-Hausman test: the first-stage residuals beside the regressors.
+  A <- cbind(Xp, V); idx <- p + seq_len(p)
+  Ai <- solve(crossprod(A)); ba <- Ai %*% crossprod(A, yp); ea <- drop(yp - A %*% ba)
+  df <- N - k - p - absorbed
+  wald <- function(Va) drop(t(ba[idx]) %*% solve(Va[idx, idx]) %*% ba[idx]) / p
+  out$dwh <- wald(Ai * sum(ea^2) / df)
+  out$dwh_df2 <- df
+  Sa <- A * ea
+  out$dwh_wald <- list(hc1 = wald(Ai %*% crossprod(Sa / copies, Sa) %*% Ai * N / df))
+  for (name in names(clusters)) {
+    Sc <- rowsum(Sa, clusters[[name]]); G <- nrow(Sc)
+    nested <- attr(clusters[[name]], "absorbed")
+    dfc <- if (is.null(nested)) df else N - k - p - nested
+    out$dwh_wald[[name]] <- wald(Ai %*% crossprod(Sc) %*% Ai * G / (G - 1) * (N - 1) / dfc)
+  }
+  out
+}
+diagnostic_cases <- list()
+diagnostic_case <- function(name, data_name, formula, endogenous, instruments, stats, fe = NULL, weights = NULL,
+                            weight_type = NULL, clusters = character(0)) {
+  out <- list(data = data_name, formula = formula, endogenous = endogenous, instruments = instruments,
+              partial = as.list(num17(stats$partial)), shea = as.list(num17(stats$shea)),
+              df_over = as.integer(stats$df_over),
+              dwh = num17(stats$dwh), dwh_df1 = as.integer(stats$p), dwh_df2 = num17(stats$dwh_df2),
+              dwh_hc1 = num17(stats$dwh_wald$hc1), dwh_cluster = list(), hansen_cluster = list())
+  if (stats$df_over > 0) { out$sargan <- num17(stats$sargan); out$hansen_hc1 <- num17(stats$hansen$hc1) }
+  for (cluster in clusters) {
+    out$dwh_cluster[[cluster]] <- num17(stats$dwh_wald[[cluster]])
+    if (stats$df_over > 0) out$hansen_cluster[[cluster]] <- num17(stats$hansen[[cluster]])
+  }
+  if (!is.null(fe)) out$fe <- fe
+  if (!is.null(weights)) { out$weights <- weights; out$weight_type <- weight_type }
+  diagnostic_cases[[name]] <<- out
+}
+
+d <- card
+s <- diagnose(d$lwage, columns(d, "educ"), columns(d, c("nearc4", "nearc2")), cbind(ones(d), columns(d, exog)),
+              clusters = list(age = d$age))
+f <- feols(lwage ~ exper + expersq + black + south + smsa | educ ~ nearc4 + nearc2, d)
+agree(s$sargan, of_stat(f, ~sargan))
+agree(s$dwh, of_stat(f, ~wh))
+diagnostic_case("card_over", "card", card_text, "educ", "nearc4 + nearc2", s, clusters = "age")
+s <- diagnose(d$lwage, columns(d, "educ"), columns(d, "nearc4"), cbind(ones(d), columns(d, exog)),
+              clusters = list(age = d$age))
+f <- feols(lwage ~ exper + expersq + black + south + smsa | educ ~ nearc4, d)
+agree(s$dwh, of_stat(f, ~wh))
+diagnostic_case("card_just", "card", card_text, "educ", "nearc4", s, clusters = "age")
+s <- diagnose(d2$lwage, columns(d2, c("educ", "KWW")), columns(d2, c("nearc4", "nearc2", "fatheduc", "motheduc")),
+              cbind(ones(d2), columns(d2, both)), clusters = list(age = d2$age))
+f <- feols(lwage ~ black + south + smsa | educ + KWW ~ nearc4 + nearc2 + fatheduc + motheduc, d2)
+agree(s$sargan, of_stat(f, ~sargan))
+agree(s$dwh, of_stat(f, ~wh))
+diagnostic_case("card_two_endogenous", "card", "lwage ~ black + south + smsa + educ + KWW", "educ + KWW",
+                "nearc4 + nearc2 + fatheduc + motheduc", s, clusters = "age")
+s <- diagnose(d$lwage, columns(d, "educ"), columns(d, c("nearc4", "nearc2")), cbind(ones(d), columns(d, exog)),
+              w = d$weight, weight_type = "analytic", clusters = list(age = d$age))
+f <- feols(lwage ~ exper + expersq + black + south + smsa | educ ~ nearc4 + nearc2, d, weights = ~weight)
+agree(s$dwh, of_stat(f, ~wh))
+diagnostic_case("card_analytic", "card", card_text, "educ", "nearc4 + nearc2", s, weights = "weight",
+                weight_type = "analytic", clusters = "age")
+s <- diagnose(dk$lwage, columns(dk, "educ"), columns(dk, c("nearc4", "nearc2")), cbind(ones(dk), columns(dk, exog)),
+              w = dk$fatheduc, weight_type = "frequency")
+s_written <- diagnose(written$lwage, columns(written, "educ"), columns(written, c("nearc4", "nearc2")),
+                      cbind(ones(written), columns(written, exog)))
+agree(s$sargan, s_written$sargan)
+agree(s$hansen$hc1, s_written$hansen$hc1)
+agree(s$dwh, s_written$dwh)
+agree(s$dwh_wald$hc1, s_written$dwh_wald$hc1)
+agree(s$shea, s_written$shea)
+diagnostic_case("card_frequency", "card", card_text, "educ", "nearc4 + nearc2", s, weights = "fatheduc",
+                weight_type = "frequency")
+s <- diagnose(d$lwage, columns(d, "educ"), columns(d, c("nearc4", "nearc2")),
+              columns(d, c("exper", "expersq", "black", "smsa")), fe = d$region, absorbed = 9,
+              clusters = list(age = d$age, region = region_clusters))
+f <- feols(lwage ~ exper + expersq + black + smsa | region | educ ~ nearc4 + nearc2, d)
+agree(s$sargan, of_stat(f, ~sargan))
+agree(s$dwh, of_stat(f, ~wh))
+diagnostic_case("card_fe", "card", "lwage ~ exper + expersq + black + smsa + educ", "educ", "nearc4 + nearc2", s,
+                fe = "region", clusters = c("age", "region"))
+s <- diagnose(w2k$lwage, columns(w2k, "educ"), columns(w2k, c("sibs", "brthord")),
+              cbind(ones(w2k), columns(w2k, c("exper", "tenure"))), clusters = list(age = w2k$age))
+f <- feols(lwage ~ exper + tenure | educ ~ sibs + brthord, w2)
+agree(s$sargan, of_stat(f, ~sargan))
+agree(s$dwh, of_stat(f, ~wh))
+diagnostic_case("wage2_siblings", "wage2", "lwage ~ exper + tenure + educ", "educ", "sibs + brthord", s,
+                clusters = "age")
+
 # The upper 5% points of non-central chi-square distributions over their degrees of freedom, as
 # the critical value of the effective F needs them: degrees of freedom from 1 to 40, some
 # fractional, with non-centrality ten times the degrees of freedom.
@@ -559,5 +715,6 @@ critical_points <- lapply(c(1, 1.184778, 1.5, 2, 2.75, 5, 10, 17.3, 40), functio
 out <- list(reference = list(software = R.version.string, fixest = as.character(packageVersion("fixest")),
                              wooldridge = as.character(packageVersion("wooldridge")),
                              note = "two-stage least squares by hand in base R, held to fixest inside the script; 17 significant digits"),
-            cases = cases, fixed_effects = fe_cases, weak = weak_cases, critical_points = critical_points)
+            cases = cases, fixed_effects = fe_cases, weak = weak_cases, diagnostics = diagnostic_cases,
+            critical_points = critical_points)
 write_json(out, file.path(here(), "iv.json"))

@@ -68,67 +68,9 @@ Step 8b `[engine]`: the language server folds chains, blocks and functions, offe
 
 The merges decided during 0.7.0, each old name refused with its rewrite: step 8g `add_time(d, n, unit:)` for `add_days` and `add_months`; 8h `bin(x, n: | breaks:)` taking in `quantile_group` (quantile groups are now an ordered category); 8i `fill_missing(x, value | method:)` taking in `fill_forward`, now in `data`; 8j `variance_test` with Levene's, Bartlett's and the F test; 8k `running(x, stat:)` and `row(vars, stat:, min_valid:)`, `stat:` without a default. Two faults of mine at 8j and 8k, both mended: CI's `reference` job failed because the new R script did not look in the reference library folder, and the one-line fix (commit 3edc22e) also carried four staged page renames of step 8k without their code, so `main` does not build at that one commit; history is not rewritten, and anyone bisecting should skip 3edc22e. Then the language pieces found while the manuals for 0.7.0 were written: 8l a comparison with `NA` refused under its own code (Z0226); 8m a range of variables `a..b` wherever a list of variables is taken; 8n a function chosen by its first argument whatever its form (`dist.t(10).mean()`); 8o three messages that now name what the script wrote, and a note repeated in the passes of a loop said once with the count (open decision #149 asks the same for warnings; recommended yes, deadline 0.9.0); 8p `print("Mean wage:", 24.35)` on one line, with `sep:`. Each step green locally and on CI.
 
-## 16 November 2026, release 0.8.0, step 9 (`instruments:` in the checker)
+## 16 November 2026, release 0.8.0, steps 9 to 12c (folded)
 
-**Done.** Step 9 `[engine]`: the checker reads `instruments: educ ~ nearc4` and refuses the mistakes the Language Reference names, before anything runs: an instrumented variable that is not in the formula (Z0504), a variable on both sides (Z0505), fewer instruments than instrumented regressors (Z0804), the outcome used as an instrument. An instrument that is already a regressor is set aside as an included instrument. The function `ivreg` itself arrives at step 13; two of this step's tests that need it moved there.
-
-**Green.** Format, clippy with warnings denied, the tier, message and grammar checks, every test of the workspace; CI read after the push.
-
-**Next.** Step 10 `[engine]`: two-stage least squares, the estimator itself.
-
-**For the owner to decide.** Open decision #149 (a warning repeated in the passes of a loop); nothing blocks.
-
-## 16 November 2026, release 0.8.0, step 10 (two-stage least squares)
-
-**Done.** Step 10 `[engine]`: the estimator behind `ivreg`. The first stages by one QR of the instruments, the second stage by least squares on the fitted regressors, the structural residuals, and every kind of standard error (classical, robust, HC2, HC3, clustered) from the variance layer unchanged, with weights of the three kinds. Card's return to schooling comes out at 0.1323, as the textbooks print it. Eleven cases agree with R (base R held to fixest) within 1e-8. An instrument that is constant, zero or a combination of the regressors is dropped with a note; a model the remaining instruments cannot identify is refused (Z0804) in words that say why. The function `ivreg` itself is step 13: nothing a script can call changed at this step.
-
-**Green.** Format, clippy with warnings denied, the tier, message and grammar checks, every test of the workspace; CI read after the push.
-
-**Next.** Step 11 `[engine]`: two-stage least squares with `fe:`.
-
-**For the owner to decide.** Open decision #150, new: Stata's `ivregress 2sls` prints large-sample standard errors unless `small` is given; Zeff prints the small-sample ones, as R, fixest and `reg` do. Recommended: one form at 1.0, the page saying how Stata's default differs. #149 stays open; nothing blocks.
-
-## 16 November 2026, release 0.8.0, step 11 (two-stage least squares with `fe:`)
-
-**Done.** Step 11 `[engine]`: the fixed effects are projected out of the outcome, the regressors and the instruments together, then the two stages run. The model of the specification's sample script (`fe: region`, schooling instrumented by proximity to a college) gives 0.2252 for schooling, fixest's figure; seven cases agree with fixest within 1e-7, with one and two effects, an interacted effect, singletons, weights and clusters. An instrument that does not vary within the effects' levels is dropped with a note that says so. `reg` and `ivreg` now share one projection; `reg`'s results are unchanged.
-
-**Green.** Format, clippy with warnings denied, the tier, message and grammar checks, every test of the workspace; CI read after the push.
-
-**Next.** Step 12 `[engine]`: the weak-instrument statistics, with a symmetric eigenvalue routine in the kernels.
-
-**For the owner to decide.** Open decisions #149 and #150; nothing blocks.
-
-## 16 November 2026, release 0.8.0, step 12a (the symmetric eigenvalue routine)
-
-**Done.** Step 12 was too large for one step and is three in the checklist: 12a the kernel, 12b the first-stage F and the Cragg–Donald F, 12c the Kleibergen–Paap F, the effective F and the weak-instrument warning. Step 12a `[engine]`: the eigenvalues and eigenvectors of a symmetric matrix, by Jacobi rotations in a fixed order, in the engine's own arithmetic. It agrees with R's `eigen` on 23 matrices within LAPACK's own accuracy, and its values are compared bit for bit across the four targets. Nothing a script can call changed.
-
-**Green.** Format, clippy with warnings denied, the tier, message and grammar checks, every test of the workspace; CI read after the push.
-
-**Next.** Step 12b `[engine]`: the first-stage F and the Cragg–Donald F.
-
-**For the owner to decide.** Open decisions #149 and #150; nothing blocks.
-
-## 16 November 2026, release 0.8.0, step 12b (the first-stage F and the Cragg–Donald F)
-
-**Done.** Step 12b `[engine]`: for each instrumented regressor the F of its excluded instruments, classical and on the robust or clustered variance of the fit, and the Cragg–Donald F of them all together. On Card's data with both proximity indicators the first-stage F is 9.45 (robust 9.72), fixest's figures; with schooling and the test score both instrumented each first stage is strong (149 and 40) and the Cragg–Donald F is 0.12, which is what the statistic is for. Seven cases agree with R within 1e-7. The Cragg–Donald F is Stock and Yogo's, the one Stata prints; fixest's own divides by other degrees of freedom and is held after conversion. Nothing a script can call changed.
-
-**Green.** Format, clippy with warnings denied, the tier, message and grammar checks, every test of the workspace; CI read after the push.
-
-**Next.** Step 12c `[engine]`: the Kleibergen–Paap rk Wald F, the effective F and the weak-instrument warning.
-
-**For the owner to decide.** Open decisions #149 and #150; nothing blocks.
-
-## 16 November 2026, release 0.8.0, step 12c (the Kleibergen–Paap F, the effective F, the warning)
-
-**Done.** Step 12c `[engine]`: the Kleibergen–Paap rk Wald F on the robust or clustered variance of the fit; the effective F of Montiel Olea and Pflueger for one instrumented regressor, with its critical value (23.1 with one instrument, lower with several); and the warning for weak instruments, W1007, with its row in the Language Reference, its page and its stored wording. On Card's data with both proximity indicators under robust errors: Kleibergen–Paap F 9.72, effective F 9.64 against a critical value of 19.44, and the warning says both. All of step 12 is now in. Nothing a script can call changed: `ivreg` is next.
-
-**Not done, and why.** `ivDiag` was to hold the effective F a second way. The session's permissions declined the installation of the package, so the effective F is held to its formula written two ways in base R instead. The Kleibergen–Paap F with several instrumented regressors under robust errors has no package to check it in the reference library; it is held to its formula and to two identities. A Stata run would settle both to the digit.
-
-**Green.** Format, clippy with warnings denied, the tier, message and grammar checks, every test of the workspace; CI read after the push.
-
-**Next.** Step 13 `[function]`: `ivreg`, the function itself, with its printed result, its help page and the dataset of question 2.
-
-**For the owner to decide.** Open decisions #149 and #150. Whether to add `ivDiag` to the reference library by hand. The thresholds of the warning (10 for the F; a tenth of the worst-case bias at 5% for the effective F) are the conventional ones and his to change.
+Step 9: the checker reads `instruments: educ ~ nearc4` and refuses its mistakes before anything runs (Z0504, Z0505, Z0804). Step 10: two-stage least squares on the kernels and the variance layer, Card's return to schooling 0.1323, eleven cases within 1e-8 of R. Step 11: the same with fixed effects projected out of both stages, 0.2252 on the specification's sample model, seven cases within 1e-7 of fixest. Step 12, split in three: 12a the eigenvalues of a symmetric matrix in the kernels, bit for bit on the four targets; 12b the first-stage F and the Cragg–Donald F (Stock and Yogo's, which Stata prints; fixest's divides by other degrees of freedom); 12c the Kleibergen–Paap F, the effective F with its critical value, and the warning W1007. `ivDiag` was not installed: the session's permissions declined it, and the effective F is held to its formula written two ways. Open decision #150 was raised at step 10 (Stata's large-sample standard errors; recommended: one form at 1.0, the page says how Stata differs). Each step green locally and on CI.
 
 ## 16 November 2026, release 0.8.0, step 13a (the dataset `staff`)
 
@@ -171,3 +113,13 @@ The merges decided during 0.7.0, each old name refused with its rewrite: step 8g
 **Next.** Step 14 `[function]`: `first_stage`, the first-stage tables with the partial R², the F statistics, Hansen's J and the Durbin–Wu–Hausman test.
 
 **For the owner to decide.** The `Instruments` row of `report` and the empty R² cell are a printed layout, yours to change. Open decisions #149 and #150. The story of `staff`. Whether to add `ivDiag` by hand.
+
+## 16 November 2026, release 0.8.0, step 14a (the diagnostics of the first stage)
+
+**Done.** Step 14 is two steps in the checklist: 14a the statistics, 14b the function `first_stage`. Step 14a `[engine]`: the partial R² of each first stage and Shea's; the test of the over-identifying restrictions, Sargan's under classical errors and Hansen's J under robust or clustered ones; and the Durbin–Wu–Hausman test of whether the regressor needed instrumenting. On Card's data with both proximity indicators: partial R² 0.0063, Sargan 2.651 on one degree of freedom, Wu–Hausman F 3.868, fixest's figures. Seven cases agree with R within 1e-7. Nothing a script can call changed.
+
+**Green.** Format, clippy with warnings denied, the tier, message and grammar checks, every test of the workspace; CI read after the push.
+
+**Next.** Step 14b `[function]`: `first_stage`, its printed form and its page.
+
+**For the owner to decide.** The `Instruments` row of `report`. Open decisions #149 and #150. The story of `staff`. Whether to add `ivDiag` by hand.

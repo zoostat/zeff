@@ -5806,3 +5806,22 @@ Done before parts 1 and 2 are read, because those wait for jobs that run for hou
 **Held by.** `packages/tier2/regress/tests/ivreg.rs` (the interface and the checks at the run, stored); `crates/zeff-engine/tests/export.rs` (the LaTeX of a report beside an instrumented fit); the two conformance cases; `nightly_truth.rs`; the pages of `ivreg` and `design`, each with a new example.
 
 **Reason.** The checklist's step 13c; Language Reference, sections 7.1 and 10.2; open decision #71 for `design`.
+
+## 16 November 2026 — The diagnostics of the first stage, and step 14 split in two (release 0.8.0, step 14a)
+
+**The split.** Step 14 asked for four further statistics with their references and for the function `first_stage` with its printed form and page. It is two steps: 14a the statistics in the estimator, 14b the function.
+
+**Choice.** `TwoStage::diagnostics` in `regress/src/iv.rs`, on the variance asked for, with the fit's weights, clusters and absorbed effects, each figure an optional value.
+
+- *The partial R² of a first stage*: what the excluded instruments explain of the instrumented regressor, once the other instruments are projected out of both, over that and what they leave.
+- *Shea's partial R²*: the ratio of the regressor's diagonal entries of (XᵀX)⁻¹ and (X̂ᵀX̂)⁻¹, the regressors as observed and with the instrumented ones fitted (Godfrey's form of Shea's measure). With one instrumented regressor it is the partial R². The reference computes it from Shea's own definition as well and holds the two to each other.
+- *The over-identifying restrictions*: none to test when the excluded instruments kept equal the instrumented regressors in number. Under classical errors Sargan's statistic, N times the share of the two-stage residuals that the instruments explain. Under robust or clustered errors Hansen's J, the minimised criterion of the efficient two-step estimator, gᵀS⁻¹g with S the sum of the squared scores of the two-stage residuals, summed within clusters first when clustered, and under frequency weights each row's square over its weight. Both are chi-square on the number of excluded instruments less the number of instrumented regressors. J carries no small-sample factor, as `ivreg2` reports it. Under `hc2` and `hc3` it is the same J as under `robust`: the statistic has no leverage form.
+- *The Durbin–Wu–Hausman test*, in its regression form as the owner's answer to question 3(b) has it: the first-stage residuals of the instrumented regressors are added to the equation and their coefficients tested, by the F on the classical variance, or by the Wald statistic over their number on the robust or clustered variance of that regression, from the variance layer. Stata's `estat endogenous` after robust errors reports a score test of the same hypothesis; the figures are close and not equal, which the page of `first_stage` will say.
+
+**What cannot be computed.** First-stage residuals that are collinear leave fewer coefficients to the endogeneity test, and its degrees of freedom say so; fewer clusters than instruments leave Hansen's J without a variance to invert; a model least squares refuses on the way has no diagnostics. Nothing these regressions say reaches the script.
+
+**Against R.** Seven cases under `diagnostics` in `tests/reference/r/iv.json`, in base R on the partialled and weighted columns, held inside the script to fixest's `sargan` and `wh` (with weights and with the region absorbed), Hansen's J to Sargan's statistic when its S is proportional to ZᵀZ, and frequency weights to the rows written out. Hansen's J and the robust Wu–Hausman statistic have no package behind them in the reference library and are held to their formulas. The engine agrees within 1e-7.
+
+**Held by.** `packages/tier2/regress/tests/iv.rs`: the seven cases; the four situations where a figure is not available; and a property that no diagnostic depends on the units of a variable.
+
+**Reason.** The owner's answer to question 3(b) of the release; the checklist's step 14a.

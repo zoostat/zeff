@@ -13,7 +13,9 @@ use zeff_core::value::{Frame, Term};
 use zeff_data::csv::{CsvOptions, read_csv};
 use zeff_diagnostics::{Diagnostic, Source, Sources, Span};
 use zeff_numeric::order::WeightKind;
-use zeff_regress::iv::{Column as ModelColumn, Designs, Projection, TwoStage, Weak, estimate};
+use zeff_regress::iv::{
+    Column as ModelColumn, Designs, Diagnostics, Projection, TwoStage, Weak, estimate,
+};
 use zeff_regress::ols::Ols;
 use zeff_results::absorb::EffectGroups;
 use zeff_results::design::Design;
@@ -160,6 +162,21 @@ fn clusters_of(table: &Table, fit: &TwoStage, name: &str) -> Clusters {
         &fit.designs.structural.rows,
     );
     Clusters::from_groups(&groups.group_of_row, groups.levels())
+}
+
+/// The diagnostics of the first stage of a model, on the variance of `kind`.
+fn diagnostics_of(
+    table: &Table,
+    model: &Model<'_>,
+    kind: Kind,
+    cluster: Option<&str>,
+) -> Diagnostics {
+    in_context(table, model, |ctx, fit, projection| {
+        let clusters = cluster.map(|name| clusters_of(table, &fit, name));
+        fit.diagnostics(ctx, kind, clusters.as_ref(), projection.as_ref())
+    })
+    .unwrap_or_else(|e| panic!("{e}"))
+    .0
 }
 
 /// The weak-instrument statistics of a model, with the Wald form on the variance of `kind`.
@@ -1115,6 +1132,141 @@ fn a_statistic_that_cannot_be_computed_is_not() {
     assert_eq!(found.wald, vec![None]);
 }
 
+// ----- the diagnostics of the first stage -----
+
+/// The partial R² of each first stage and Shea's, the test of the over-identifying
+/// restrictions (Sargan's under classical errors, Hansen's J under robust and clustered ones)
+/// and the Durbin–Wu–Hausman test, against `iv.json` (base R, held there to fixest's `sargan`
+/// and `wh`): one and two instrumented regressors, a just-identified model, weights of two
+/// kinds, an absorbed effect with the clusters outside it and on it, rows with `NA`.
+#[test]
+fn the_diagnostics_of_the_first_stage_agree_with_r() {
+    let text = std::fs::read_to_string(root().join("tests/reference/r/iv.json")).unwrap();
+    let reference: Json = serde_json::from_str(&text).unwrap();
+    let cases = reference["diagnostics"].as_object().unwrap();
+    assert_eq!(cases.len(), 7);
+    for (name, case) in cases {
+        let data = reference_data(case["data"].as_str().unwrap());
+        let weights = case["weights"].as_str().map(|w| {
+            let kind = match case["weight_type"].as_str().unwrap() {
+                "analytic" => WeightKind::Analytic,
+                "sampling" => WeightKind::Sampling,
+                _ => WeightKind::Frequency,
+            };
+            (w, kind)
+        });
+        let asked = Model {
+            formula: case["formula"].as_str().unwrap(),
+            endogenous: case["endogenous"].as_str().unwrap(),
+            instruments: case["instruments"].as_str().unwrap(),
+            fe: case["fe"].as_str(),
+            weights,
+            ..Model::default()
+        };
+        let tolerance = 1e-7;
+        let near = |ours: Option<f64>, theirs: &Json, what: &str| {
+            let a = ours.unwrap_or_else(|| panic!("{name}: {what} is not available"));
+            let b = number(theirs);
+            assert!(
+                close(a, b, tolerance, 0.0),
+                "{name}: {what}: {a} against {b}"
+            );
+        };
+        let classical = diagnostics_of(&data, &asked, Kind::Classical, None);
+        for (j, theirs) in case["partial"].as_array().unwrap().iter().enumerate() {
+            near(classical.partial[j], theirs, "partial R²");
+            near(classical.shea[j], &case["shea"][j], "Shea's partial R²");
+        }
+        let over = case["df_over"].as_u64().unwrap() as usize;
+        match classical.over_identification {
+            None => assert_eq!(over, 0, "{name}: just identified"),
+            Some(test) => {
+                assert!(!test.hansen, "{name}: Sargan under classical errors");
+                assert_eq!(test.df, over, "{name}: degrees of freedom");
+                near(test.statistic, &case["sargan"], "Sargan's statistic");
+            }
+        }
+        let dwh = classical.endogeneity.unwrap();
+        near(Some(dwh.statistic), &case["dwh"], "Durbin-Wu-Hausman F");
+        assert_eq!(dwh.df1 as u64, case["dwh_df1"].as_u64().unwrap(), "{name}");
+        assert_eq!(dwh.df2 as f64, number(&case["dwh_df2"]), "{name}");
+        let robust = diagnostics_of(&data, &asked, Kind::Hc1, None);
+        assert_eq!(robust.partial, classical.partial, "{name}");
+        assert_eq!(robust.shea, classical.shea, "{name}");
+        near(
+            robust.endogeneity.map(|e| e.statistic),
+            &case["dwh_hc1"],
+            "robust Durbin-Wu-Hausman",
+        );
+        if over > 0 {
+            let test = robust.over_identification.unwrap();
+            assert!(test.hansen && test.df == over, "{name}");
+            near(test.statistic, &case["hansen_hc1"], "Hansen's J");
+        } else {
+            assert_eq!(robust.over_identification, None, "{name}");
+        }
+        if let Some(clustered) = case["dwh_cluster"].as_object() {
+            for (cluster, theirs) in clustered {
+                let with = Model {
+                    cluster: Some(cluster),
+                    ..asked.clone()
+                };
+                let found = diagnostics_of(&data, &with, Kind::Cluster, Some(cluster));
+                near(
+                    found.endogeneity.map(|e| e.statistic),
+                    theirs,
+                    &format!("Durbin-Wu-Hausman clustered by {cluster}"),
+                );
+                if over > 0 {
+                    near(
+                        found.over_identification.unwrap().statistic,
+                        &case["hansen_cluster"][cluster],
+                        &format!("Hansen's J clustered by {cluster}"),
+                    );
+                }
+            }
+        }
+    }
+}
+
+/// What the diagnostics cannot say they do not: a just-identified model has no restriction to
+/// test; first-stage residuals that are collinear (Card's schooling and experience with age
+/// among the instruments) leave one coefficient to the endogeneity test, not two; fewer
+/// clusters than instruments leave Hansen's J without a variance to invert; and with nothing
+/// instrumented there is nothing to diagnose.
+#[test]
+fn a_diagnostic_that_cannot_be_computed_is_not() {
+    let t = small();
+    let just = diagnostics_of(&t, &model("y ~ w + x", "x", "z1"), Kind::Hc1, None);
+    assert_eq!(just.over_identification, None);
+    assert!(just.endogeneity.is_some() && just.partial[0].is_some());
+    let none = diagnostics_of(&t, &model("y ~ w + x", "", ""), Kind::Classical, None);
+    assert_eq!(none.partial, Vec::<Option<f64>>::new());
+    assert_eq!((none.over_identification, none.endogeneity), (None, None));
+    let card = reference_data("card");
+    let asked = model(
+        "lwage ~ black + south + smsa + educ + exper",
+        "educ + exper",
+        "nearc4 + nearc2 + age",
+    );
+    let found = diagnostics_of(&card, &asked, Kind::Classical, None);
+    assert_eq!(found.endogeneity.unwrap().df1, 1);
+    assert_eq!(found.over_identification.unwrap().df, 1);
+    // Three clusters and four instruments.
+    let groups: Vec<f64> = (0..12).map(|i| f64::from(i % 3)).collect();
+    let z3: Vec<f64> = (0..12u32).map(|i| f64::from((i * 7 + 3) % 13)).collect();
+    let z4: Vec<f64> = (0..12u32).map(|i| f64::from((i * 5 + 1) % 11)).collect();
+    let t = with(&with(&with(&t, "g", groups), "z3", z3), "z4", z4);
+    let asked = Model {
+        cluster: Some("g"),
+        ..model("y ~ w + x", "x", "z1 + z2 + z3 + z4")
+    };
+    let found = diagnostics_of(&t, &asked, Kind::Cluster, Some("g"));
+    let test = found.over_identification.unwrap();
+    assert!(test.hansen && test.df == 3);
+    assert_eq!(test.statistic, None);
+}
+
 // ----- the edge cases of the handbook -----
 
 /// A small frame with a regressor that needs an instrument: `x` moves with `z1` and `z2` and
@@ -1699,6 +1851,33 @@ proptest! {
                 prop_assert!(x.degrees >= 1.0 - 1e-9 && x.degrees <= 2.0 + 1e-9, "{}", x.degrees);
             }
             prop_assert!(close(a.f[0].unwrap(), a.cragg_donald.unwrap(), 1e-10, 1e-12));
+        }
+    }
+
+    /// The diagnostics of the first stage do not depend on the units of any variable.
+    #[test]
+    fn the_diagnostics_do_not_depend_on_units(values in rows()) {
+        let t = frame_of(&values);
+        let (base, _) = fit(&t, &model("y ~ w + x", "x", "z1 + z2")).unwrap();
+        prop_assume!(well_identified(&base));
+        let plain = model("y ~ w + x", "x", "z1 + z2");
+        let scaled = model("(y * 7) ~ (w * 1e3) + (x * 1e-4)", "(x * 1e-4)", "(z1 * 1e5) + (z2 * 3)");
+        for kind in [Kind::Classical, Kind::Hc1] {
+            let a = diagnostics_of(&t, &plain, kind, None);
+            let b = diagnostics_of(&t, &scaled, kind, None);
+            let pairs = [
+                (a.partial[0], b.partial[0]),
+                (a.shea[0], b.shea[0]),
+                (a.over_identification.unwrap().statistic, b.over_identification.unwrap().statistic),
+                (a.endogeneity.map(|e| e.statistic), b.endogeneity.map(|e| e.statistic)),
+            ];
+            for (x, y) in pairs {
+                let (x, y) = (x.unwrap(), y.unwrap());
+                prop_assert!(close(x, y, 1e-6, 1e-9), "{:?}: {} against {}", kind, x, y);
+            }
+            // With one instrumented regressor Shea's partial R² is the partial R².
+            prop_assert!(close(a.partial[0].unwrap(), a.shea[0].unwrap(), 1e-8, 1e-12));
+            prop_assert_eq!(a.over_identification.unwrap().hansen, kind != Kind::Classical);
         }
     }
 

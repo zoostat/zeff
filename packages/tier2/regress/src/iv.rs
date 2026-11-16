@@ -1291,6 +1291,389 @@ impl TwoStage {
     }
 }
 
+/// The diagnostics of the first stage beside the F statistics (release 0.8.0, step 14a; the
+/// owner's answer to question 3(b)): how much of each instrumented regressor the instruments
+/// explain, whether the instruments beyond the needed number agree with the others, and whether
+/// the instrumented regressors needed instrumenting. A figure that cannot be computed is `None`.
+#[derive(Debug, Clone, PartialEq)]
+pub struct Diagnostics {
+    /// For each instrumented regressor, the partial R² of its first stage: the share of the
+    /// regressor, cleared of the other instruments, that the excluded instruments explain.
+    pub partial: Vec<Option<f64>>,
+    /// Shea's partial R², which also clears each regressor of the other instrumented ones;
+    /// with one instrumented regressor it is `partial`.
+    pub shea: Vec<Option<f64>>,
+    /// The test of the over-identifying restrictions; `None` for a model with as many excluded
+    /// instruments as instrumented regressors, which has none to test.
+    pub over_identification: Option<OverIdentification>,
+    /// The Durbin–Wu–Hausman test that the instrumented regressors are exogenous.
+    pub endogeneity: Option<Endogeneity>,
+}
+
+/// The test of the over-identifying restrictions: Sargan's statistic under classical errors,
+/// Hansen's J under robust or clustered ones; chi-square on `df` degrees of freedom.
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub struct OverIdentification {
+    pub hansen: bool,
+    pub statistic: Option<f64>,
+    pub df: usize,
+}
+
+/// The Durbin–Wu–Hausman test in its regression form: the F of the first-stage residuals added
+/// to the equation, on `df1` and `df2` degrees of freedom; the Wald form over `df1` on the
+/// variance asked for when that is robust or clustered.
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub struct Endogeneity {
+    pub statistic: f64,
+    pub df1: usize,
+    pub df2: usize,
+}
+
+impl TwoStage {
+    /// The diagnostics of the first stage, on the variance of `kind` (with `clusters` when
+    /// clustered); `projection` when the model has fixed effects.
+    pub fn diagnostics(
+        &self,
+        ctx: &mut CallContext<'_>,
+        kind: Kind,
+        clusters: Option<&Clusters>,
+        projection: Option<&Projection>,
+    ) -> Result<Diagnostics, Fail> {
+        let designs = &self.designs;
+        let p = designs.endogenous.len();
+        let nothing = Diagnostics {
+            partial: vec![None; p],
+            shea: vec![None; p],
+            over_identification: None,
+            endogeneity: None,
+        };
+        let Some(first) = &self.first else {
+            return Ok(nothing);
+        };
+        let excluded: Vec<usize> = (0..first.kept.len())
+            .filter(|&e| matches!(designs.instruments[first.kept[e]], Column::Excluded(_)))
+            .collect();
+        let m = excluded.len();
+        let plain = projection.map_or(0, |p| p.parameters(None));
+        let absorbed = projection.map_or(0, |p| p.parameters(clusters));
+        let n = match designs.structural.weight_kind {
+            Some(WeightKind::Frequency) => designs.structural.weight_total(),
+            _ => designs.structural.n() as f64,
+        };
+        // A model least squares refuses somewhere on the way has no diagnostics; an internal
+        // error is still one, and nothing said on the way is said to the script.
+        let said = ctx.messages.len();
+        let quietly =
+            |ctx: &mut CallContext<'_>, design: &Design| -> Result<Option<Fitted>, Fail> {
+                let fitted = match Ols.fit(ctx, design) {
+                    Ok(fitted) => Some(fitted),
+                    Err(e) if e.code == "Z9001" => return Err(e),
+                    Err(_) => None,
+                };
+                ctx.messages.truncate(said);
+                Ok(fitted)
+            };
+        let stages = match self.first_stages(ctx) {
+            Ok(stages) => stages,
+            Err(e) if e.code == "Z9001" => return Err(e),
+            Err(_) => {
+                ctx.messages.truncate(said);
+                return Ok(nothing);
+            }
+        };
+        // The partial R²: what the excluded instruments explain of the regressor once the
+        // other instruments are projected out of both, over that and what they leave.
+        let own_bread = stages
+            .first()
+            .map(|s| block(&Ols.bread(&s.fitted), &excluded));
+        let partial: Vec<Option<f64>> = stages
+            .iter()
+            .map(|stage| {
+                let pi: Vec<f64> = excluded
+                    .iter()
+                    .map(|&e| stage.fitted.estimates[e])
+                    .collect();
+                let explained = quadratic_form(own_bread.as_ref()?, &pi)?;
+                let total = explained + stage.fitted.residual_sum_of_squares;
+                (total > 0.0).then(|| explained / total)
+            })
+            .collect();
+        // Shea's partial R², by the ratio of the regressor's entries of (XᵀX)⁻¹ and
+        // (X̂ᵀX̂)⁻¹: the regressors as observed, and with the instrumented ones fitted.
+        let observed = quietly(ctx, &designs.structural)?;
+        let shea: Vec<Option<f64>> = match &observed {
+            Some(observed) if observed.kept == self.fitted.kept => {
+                let (as_observed, as_fitted) = (Ols.bread(observed), Ols.bread(&self.fitted));
+                designs
+                    .endogenous
+                    .iter()
+                    .map(|c| {
+                        let at = self.fitted.kept.iter().position(|k| k == c)?;
+                        let ratio = as_observed.get(at, at) / as_fitted.get(at, at);
+                        ratio.is_finite().then_some(ratio)
+                    })
+                    .collect()
+            }
+            _ => vec![None; p],
+        };
+        // The instruments kept, as columns, for the regressions on them.
+        let names: Vec<String> = first
+            .kept
+            .iter()
+            .map(|&i| designs.name(designs.instruments[i]).to_string())
+            .collect();
+        let instrument_columns: Vec<Rc<Vec<f64>>> = first
+            .kept
+            .iter()
+            .map(|&i| Rc::new(designs.values(designs.instruments[i])))
+            .collect();
+        let leverage = designs.structural.leverage_available();
+        let roots: Vec<f64> = match &designs.structural.weights {
+            Some(w) => w.iter().map(|w| w.sqrt()).collect(),
+            None => vec![1.0; designs.structural.n()],
+        };
+        // The over-identifying restrictions: the excluded instruments beyond one for each
+        // instrumented regressor the fit kept.
+        let instrumented: Vec<usize> = designs
+            .endogenous
+            .iter()
+            .copied()
+            .filter(|c| self.fitted.kept.contains(c))
+            .collect();
+        let over = m.saturating_sub(instrumented.len());
+        let over_identification = if over == 0 || instrumented.is_empty() {
+            None
+        } else if kind == Kind::Classical {
+            // Sargan: the share of the residuals the instruments explain, times N.
+            let residuals: Vec<f64> = self
+                .fitted
+                .residuals
+                .iter()
+                .zip(&roots)
+                .map(|(e, r)| e / r)
+                .collect();
+            let on_instruments = designs.structural.with_model(
+                names.clone(),
+                instrument_columns.clone(),
+                Rc::new(residuals),
+                "the residuals",
+                leverage,
+            );
+            let total = self.fitted.residual_sum_of_squares;
+            let statistic = quietly(ctx, &on_instruments)?.and_then(|aux| {
+                let value = n * (total - aux.residual_sum_of_squares) / total;
+                (total > 0.0 && value.is_finite()).then_some(value.max(0.0))
+            });
+            Some(OverIdentification {
+                hansen: false,
+                statistic,
+                df: over,
+            })
+        } else {
+            Some(OverIdentification {
+                hansen: true,
+                statistic: self.hansen_j(first, kind, clusters),
+                df: over,
+            })
+        };
+        // The Durbin–Wu–Hausman test: the first-stage residuals of the instrumented regressors
+        // beside the regressors the fit kept, and the Wald test of their coefficients.
+        let endogeneity = (|| -> Result<Option<Endogeneity>, Fail> {
+            if instrumented.is_empty() {
+                return Ok(None);
+            }
+            let Some(outcome) = designs.structural.outcome() else {
+                return Ok(None);
+            };
+            let mut names: Vec<String> = Vec::new();
+            let mut columns: Vec<Rc<Vec<f64>>> = Vec::new();
+            for &c in &self.fitted.kept {
+                names.push(designs.structural.names[c].clone());
+                columns.push(Rc::new(designs.structural.column_values(c)));
+            }
+            let regressors = names.len();
+            for &c in &instrumented {
+                let observed = designs.structural.column_values(c);
+                let fitted = self.second.column_values(c);
+                names.push(format!("residual of {}", designs.structural.names[c]));
+                columns.push(Rc::new(
+                    observed.iter().zip(&fitted).map(|(x, f)| x - f).collect(),
+                ));
+            }
+            let augmented = designs.structural.with_model(
+                names,
+                columns,
+                Rc::new(outcome),
+                &designs.structural.outcome_name().unwrap_or_default(),
+                leverage,
+            );
+            let Some(fit) = quietly(ctx, &augmented)? else {
+                return Ok(None);
+            };
+            // The residuals' columns the fit kept, by their position among its estimates.
+            let tested: Vec<usize> = fit
+                .kept
+                .iter()
+                .enumerate()
+                .filter(|(_, c)| **c >= regressors)
+                .map(|(at, _)| at)
+                .collect();
+            if tested.is_empty() {
+                return Ok(None);
+            }
+            let bread = Ols.bread(&fit);
+            let computed = if kind == Kind::Classical {
+                variance::variance(kind, &Ols, &augmented, &fit, &bread, None, plain)
+            } else {
+                variance::variance(kind, &Ols, &augmented, &fit, &bread, clusters, absorbed)
+            };
+            let (v, df2) = match computed {
+                Ok(pair) => pair,
+                Err(VarianceError::Asymmetric) => {
+                    return Err(internal(
+                        ctx,
+                        "an asymmetric variance of the endogeneity test",
+                    ));
+                }
+                Err(_) => return Ok(None),
+            };
+            let coefficients: Vec<f64> = tested.iter().map(|&at| fit.estimates[at]).collect();
+            Ok(
+                quadratic_form(&block(&v, &tested), &coefficients).map(|wald| Endogeneity {
+                    statistic: wald / tested.len() as f64,
+                    df1: tested.len(),
+                    df2,
+                }),
+            )
+        })()?;
+        Ok(Diagnostics {
+            partial,
+            shea,
+            over_identification,
+            endogeneity,
+        })
+    }
+
+    /// Hansen's J: the minimised criterion of the efficient two-step estimator, gᵀS⁻¹g with
+    /// g = Zᵀ(y − Xb) at that estimator's b and S the sum over the rows (or over the clusters,
+    /// of the sums within each) of the squared scores Zᵀe of the two-stage residuals. Every
+    /// column is scaled to unit norm first, which changes nothing of the statistic. `None`
+    /// when S cannot be inverted (fewer clusters than instruments).
+    fn hansen_j(&self, first: &FirstStage, kind: Kind, clusters: Option<&Clusters>) -> Option<f64> {
+        let designs = &self.designs;
+        let l = first.kept.len();
+        let kept = &self.fitted.kept;
+        let k = kept.len();
+        let instruments: Vec<Column> = first.kept.iter().map(|&i| designs.instruments[i]).collect();
+        let frequency = designs.structural.weight_kind == Some(WeightKind::Frequency);
+        // The norms of the regressors and of the outcome, for their scales.
+        let mut squares: Vec<LaneSum> = (0..=k).map(|_| LaneSum::new()).collect();
+        for block in designs.structural.blocks() {
+            for (p, &c) in kept.iter().enumerate() {
+                squares[p].push_squares(block.x.column(c));
+            }
+            squares[k].push_squares(&block.y);
+        }
+        let scale = |sum: f64| {
+            if sum > 0.0 && sum.is_finite() {
+                Some(1.0 / sum.sqrt())
+            } else {
+                None
+            }
+        };
+        let x_scales: Vec<f64> = squares[..k]
+            .iter()
+            .map(|s| scale(s.value()))
+            .collect::<Option<_>>()?;
+        let y_scale = scale(squares[k].value())?;
+        let mut zx = Matrix::zeros(l, k);
+        let mut zy = vec![0.0; l];
+        let mut meat = Matrix::zeros(l, l);
+        let groups = if kind == Kind::Cluster {
+            clusters.map(|c| c.count)
+        } else {
+            None
+        };
+        let mut sums: Vec<Vec<f64>> = vec![vec![0.0; l]; groups.unwrap_or(0)];
+        for (bx, bz) in designs.structural.blocks().zip(designs.excluded.blocks()) {
+            let rows = bx.x.rows();
+            let z = Matrix::from_fn(rows, l, |r, i| {
+                column_of(&bx, &bz, instruments[i])[r] * first.scales[i]
+            });
+            let x = Matrix::from_fn(rows, k, |r, p| bx.x.get(r, kept[p]) * x_scales[p]);
+            let part = transpose_matmul(&z, &x);
+            zx = Matrix::from_fn(l, k, |i, p| zx.get(i, p) + part.get(i, p));
+            for r in 0..rows {
+                let row = bx.start + r;
+                let e = self.fitted.residuals[row] * y_scale;
+                let y = bx.y[r] * y_scale;
+                for (i, total) in zy.iter_mut().enumerate() {
+                    *total += z.get(r, i) * y;
+                }
+                match (&groups, clusters) {
+                    (Some(_), Some(c)) => {
+                        let sum = &mut sums[c.of_row[row]];
+                        for (i, s) in sum.iter_mut().enumerate() {
+                            *s += z.get(r, i) * e;
+                        }
+                    }
+                    _ => {
+                        // Under frequency weights a row stands for as many observations as
+                        // its weight, whose squared scores sum to the row's over the weight.
+                        let copies = match (&designs.structural.weights, frequency) {
+                            (Some(w), true) => w[row],
+                            _ => 1.0,
+                        };
+                        for i in 0..l {
+                            for j in 0..l {
+                                let term = z.get(r, i) * e * z.get(r, j) * e / copies;
+                                meat.set(i, j, meat.get(i, j) + term);
+                            }
+                        }
+                    }
+                }
+            }
+        }
+        if groups.is_some() {
+            for sum in &sums {
+                for i in 0..l {
+                    for j in 0..l {
+                        meat.set(i, j, meat.get(i, j) + sum[i] * sum[j]);
+                    }
+                }
+            }
+        }
+        // S⁻¹ applied to the columns of ZᵀX and to Zᵀy, through the factor of S scaled by its
+        // diagonal.
+        let by: Vec<f64> = (0..l).map(|i| meat.get(i, i)).collect();
+        if by.iter().any(|d| !(*d > 0.0 && d.is_finite())) {
+            return None;
+        }
+        let by: Vec<f64> = by.iter().map(|d| 1.0 / d.sqrt()).collect();
+        let factor = cholesky(&Matrix::from_fn(l, l, |i, j| {
+            meat.get(i, j) * by[i] * by[j]
+        }))
+        .ok()?;
+        let apply = |v: &[f64]| -> Option<Vec<f64>> {
+            let scaled: Vec<f64> = v.iter().zip(&by).map(|(x, s)| x * s).collect();
+            let solved = solve_with_factor(&factor, &scaled).ok()?;
+            Some(solved.iter().zip(&by).map(|(x, s)| x * s).collect())
+        };
+        let solved_columns: Vec<Vec<f64>> =
+            (0..k).map(|p| apply(zx.column(p))).collect::<Option<_>>()?;
+        let solved_y = apply(&zy)?;
+        // (XᵀZ S⁻¹ ZᵀX) b = XᵀZ S⁻¹ Zᵀy.
+        let normal = Matrix::from_fn(k, k, |p, q| dot(zx.column(p), &solved_columns[q]));
+        let right: Vec<f64> = (0..k).map(|p| dot(zx.column(p), &solved_y)).collect();
+        let b = solve_with_factor(&cholesky(&normal).ok()?, &right).ok()?;
+        let g: Vec<f64> = (0..l)
+            .map(|i| zy[i] - (0..k).map(|p| zx.get(i, p) * b[p]).sum::<f64>())
+            .collect();
+        let j = dot(&g, &apply(&g)?);
+        (j.is_finite() && j >= -1e-9).then_some(j.max(0.0))
+    }
+}
+
 /// First-stage residuals whose scaled covariance has an eigenvalue below this share of its
 /// largest are collinear: the instrumented regressors differ by a combination of the
 /// instruments, and the statistics that invert the covariance are not computed.

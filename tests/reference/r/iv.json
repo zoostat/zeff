@@ -1440,6 +1440,184 @@
    }
   }
  },
+ "diagnostics": {
+  "card_over": {
+   "data": "card",
+   "formula": "lwage ~ exper + expersq + black + south + smsa + educ",
+   "endogenous": "educ",
+   "instruments": "nearc4 + nearc2",
+   "partial": [
+    "0.0062581824633597405"
+   ],
+   "shea": [
+    "0.0062581824633610441"
+   ],
+   "df_over": 1,
+   "dwh": "3.8684986053878769",
+   "dwh_df1": 1,
+   "dwh_df2": "3002",
+   "dwh_hc1": "3.9778610848350073",
+   "dwh_cluster": {
+    "age": "3.4786018043087941"
+   },
+   "hansen_cluster": {
+    "age": "3.1667953752782143"
+   },
+   "sargan": "2.6508122448169278",
+   "hansen_hc1": "2.6532112381050585"
+  },
+  "card_just": {
+   "data": "card",
+   "formula": "lwage ~ exper + expersq + black + south + smsa + educ",
+   "endogenous": "educ",
+   "instruments": "nearc4",
+   "partial": [
+    "0.0055361440036195697"
+   ],
+   "shea": [
+    "0.0055361440036182435"
+   ],
+   "df_over": 0,
+   "dwh": "1.5390377957953842",
+   "dwh_df1": 1,
+   "dwh_df2": "3002",
+   "dwh_hc1": "1.606091559507637",
+   "dwh_cluster": {
+    "age": "1.2829503878875832"
+   },
+   "hansen_cluster": []
+  },
+  "card_two_endogenous": {
+   "data": "card",
+   "formula": "lwage ~ black + south + smsa + educ + KWW",
+   "endogenous": "educ + KWW",
+   "instruments": "nearc4 + nearc2 + fatheduc + motheduc",
+   "partial": [
+    "0.21459657565617818",
+    "0.067799024184387879"
+   ],
+   "shea": [
+    "0.00071418241793917692",
+    "0.00022563673664354435"
+   ],
+   "df_over": 2,
+   "dwh": "6.1628736412356098",
+   "dwh_df1": 2,
+   "dwh_df2": "2183",
+   "dwh_hc1": "5.8306673386392083",
+   "dwh_cluster": {
+    "age": "11.090429521081518"
+   },
+   "hansen_cluster": {
+    "age": "0.036482988729731804"
+   },
+   "sargan": "0.021292217380028122",
+   "hansen_hc1": "0.020845068472259542"
+  },
+  "card_analytic": {
+   "data": "card",
+   "formula": "lwage ~ exper + expersq + black + south + smsa + educ",
+   "endogenous": "educ",
+   "instruments": "nearc4 + nearc2",
+   "partial": [
+    "0.007304148995639248"
+   ],
+   "shea": [
+    "0.0073041489956421944"
+   ],
+   "df_over": 1,
+   "dwh": "9.7959911615200497",
+   "dwh_df1": 1,
+   "dwh_df2": "3002",
+   "dwh_hc1": "7.708990281841114",
+   "dwh_cluster": {
+    "age": "13.703037864458427"
+   },
+   "hansen_cluster": {
+    "age": "2.5008025935195786"
+   },
+   "sargan": "2.2101876097965647",
+   "hansen_hc1": "1.8728118371405253",
+   "weights": "weight",
+   "weight_type": "analytic"
+  },
+  "card_frequency": {
+   "data": "card",
+   "formula": "lwage ~ exper + expersq + black + south + smsa + educ",
+   "endogenous": "educ",
+   "instruments": "nearc4 + nearc2",
+   "partial": [
+    "0.0067020628049431208"
+   ],
+   "shea": [
+    "0.0067020628049410747"
+   ],
+   "df_over": 1,
+   "dwh": "53.863612331726756",
+   "dwh_df1": 1,
+   "dwh_df2": "23200",
+   "dwh_hc1": "54.634789310542914",
+   "dwh_cluster": [],
+   "hansen_cluster": [],
+   "sargan": "38.199426648735354",
+   "hansen_hc1": "40.031402252918333",
+   "weights": "fatheduc",
+   "weight_type": "frequency"
+  },
+  "card_fe": {
+   "data": "card",
+   "formula": "lwage ~ exper + expersq + black + smsa + educ",
+   "endogenous": "educ",
+   "instruments": "nearc4 + nearc2",
+   "partial": [
+    "0.0058399019194107504"
+   ],
+   "shea": [
+    "0.0058399019194096567"
+   ],
+   "df_over": 1,
+   "dwh": "4.1813602486500994",
+   "dwh_df1": 1,
+   "dwh_df2": "2995",
+   "dwh_hc1": "4.3206632968539225",
+   "dwh_cluster": {
+    "age": "4.5981667271712103",
+    "region": "5.1746996524458178"
+   },
+   "hansen_cluster": {
+    "age": "1.9371823484581019",
+    "region": "1.3039870232570774"
+   },
+   "sargan": "1.6113023736698264",
+   "hansen_hc1": "1.6189254943786027",
+   "fe": "region"
+  },
+  "wage2_siblings": {
+   "data": "wage2",
+   "formula": "lwage ~ exper + tenure + educ",
+   "endogenous": "educ",
+   "instruments": "sibs + brthord",
+   "partial": [
+    "0.052195794020731379"
+   ],
+   "shea": [
+    "0.052195794020731733"
+   ],
+   "df_over": 1,
+   "dwh": "5.5362252522608664",
+   "dwh_df1": 1,
+   "dwh_df2": "847",
+   "dwh_hc1": "6.3023478559050963",
+   "dwh_cluster": {
+    "age": "8.0522513498357746"
+   },
+   "hansen_cluster": {
+    "age": "0.47634771498083817"
+   },
+   "sargan": "0.32913916649188296",
+   "hansen_hc1": "0.33443009638770188"
+  }
+ },
  "critical_points": [
   {
    "k": "1",
