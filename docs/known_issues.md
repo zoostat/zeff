@@ -156,8 +156,8 @@ is never listed here as accepted: it is fixed or the function is withdrawn.
   `influence` is refused (Z0304, until 0.8.0) and W1006 is not judged, because an observation's
   leverage in the full design cannot be had from the demeaned columns. `fe:` takes variables and
   interactions `a:b` joined by `+`; `*`, a range or an expression is refused (Z0401), as is a
-  fixed effect that is also a variable of the formula. `ivreg` with `fe:` arrives at 0.8.0 and
-  two-way clustering at 1.1. (Since 0.6.0.)
+  fixed effect that is also a variable of the formula. Two-way clustering arrives at 1.1.
+  (Since 0.6.0; `ivreg` takes `fe:` from 0.8.0.)
 - **The fixed effects are projected out by an iteration**, to a tolerance of 1e-8 on each
   column, so the estimates agree with fixest on the reference fits within 1e-7 rather than to
   the last digits of a closed form. A projection that has not converged in 10,000 passes stops

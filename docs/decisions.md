@@ -5656,3 +5656,21 @@ Done before parts 1 and 2 are read, because those wait for jobs that run for hou
 **The step was not split.** The plan was to split it in three if it grew; the variance layer and least squares carried it whole.
 
 **Reason.** Engine and Project Specification, sections 8.3 (point 2) and 13; Language Reference, sections 7.1 and 7.2; the release's ruling on the IV fit; the checklist's step 10.
+
+## 16 November 2026 — Two-stage least squares with fixed effects (release 0.8.0, step 11)
+
+**Choice.** `Designs::build_absorbing` in `regress/src/iv.rs` projects the fixed effects out of the outcome, the regressors and the excluded instruments together, and the two stages of step 10 then run unchanged on what remains. Both designs are built as `reg` builds a design under `fe:` (no intercept column, every category by K − 1 indicators, the rows with `NA` in an effect dropped and counted). The projection of the structural design decides the rows kept, the singletons dropped and counted; the instruments' design is projected over the same groups and must keep the same rows, which is checked (an internal error otherwise). The degrees of freedom are the ruling of release 0.6.0, through the same function as `reg`: the levels of every effect, less one for each effect after the first, an effect nested within the clusters left out.
+
+**Shared with `reg`.** The projection itself (the groups, reused over the same frame, effects, rows and weights; the kernel; the check that it converged; the refusal when every row is a singleton) is now one function in `reg.rs`, `project`, called by both models, with the refusal of a model whose every regressor is absorbed beside it. `reg`'s results are unchanged to the bit: its tests and snapshots pass untouched.
+
+**What is absorbed.** An instrument that does not vary within the effects' levels is zeroed by the projection and dropped by the first stage, with a note that names the effects ("absorbed by fe: region and was dropped from the instruments"), not as a zero column; when no instrument is left the model is under-identified (Z0804), the note in the help. A regressor absorbed by the effects is dropped as under `reg`.
+
+**Refusals.** A fixed effect that is a variable of the formula is refused in `reg`'s words (Z0401); one that is a variable of the instruments in the same form, naming the instruments.
+
+**Leverage.** The design of the fitted regressors carries the structural design's answer to whether its leverage is its own: under `fe:` it is not, so HC2, HC3 and `influence` stay closed until step 17.
+
+**Against R.** Seven cases in `tests/reference/r/iv.json` under `fixed_effects`, fixest's own figures (`feols(y ~ exog | fe | endog ~ instr)`, projections to 1e-11, singletons removed, its small-sample defaults): the model of the specification's sample script (`lwage ~ exper + exper^2 + black + educ`, `fe: region`, `educ ~ nearc4`), an over-identified one, two effects with the clusters on one of them, an interacted effect, an effect with missing values and thirteen singletons, two instrumented regressors, and analytic weights. The first is also written out in base R with the within transformation in closed form and held to fixest inside the script, clustered both by a variable outside the effects and by the effect itself. `card.csv` gains `region`, one variable made from the extract's nine region indicators. The engine agrees within 1e-7 on estimates, residual sum of squares and classical, robust and clustered errors.
+
+**Held by.** `packages/tier2/regress/tests/iv.rs`: the seven cases; an effect by `fe:` against its indicators written out with `category(region)`, on Card's data and as a property over random frames; a stored snapshot of the note for an absorbed instrument and of six refusals.
+
+**Reason.** Language Reference, section 7.2 ("Fixed effects", "Rows"); the release's ruling on the IV fit; the checklist's step 11.

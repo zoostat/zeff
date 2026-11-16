@@ -1,0 +1,69 @@
+---
+source: packages/tier2/regress/tests/iv.rs
+expression: all
+---
+## an instrument constant within every level, beside one that varies
+y ~ w + x with fe: g and instruments: x ~ zg + z1
+note: `zg` is absorbed by fe: g and was dropped from the instruments
+fitted: 2 estimates on 12 rows, 0 singletons
+
+## the only instrument constant within every level
+y ~ w + x with fe: g and instruments: x ~ zg
+error[Z0804]: the model is under-identified: 0 excluded instruments remain for 1 instrumented regressor
+ --> t.zeff:1:11
+  |
+1 | let m = d.ivreg(y ~ w + x, fe: g, instruments: x ~ zg)
+  |           ^^^^^ fewer instruments than instrumented regressors
+  |
+  = help: each instrumented regressor needs at least one instrument that is not a regressor of the formula
+  = help: `zg` is absorbed by fe: g and was dropped from the instruments
+
+## a fixed effect that is a regressor
+y ~ w + x with fe: w and instruments: x ~ z1
+error[Z0401]: `w` is a fixed effect of `fe:` and a variable of the formula too
+ --> t.zeff:1:11
+  |
+1 | let m = d.ivreg(y ~ w + x, fe: w, instruments: x ~ z1)
+  |           ^^^^^ absorbed and in the model
+  |
+  = help: an absorbed effect cannot be a regressor or the outcome as well; drop it from `fe:` or from the formula
+
+## a fixed effect that is an instrument
+y ~ w + x with fe: g + z1 and instruments: x ~ z1 + z2
+error[Z0401]: `z1` is a fixed effect of `fe:` and an instrument too
+ --> t.zeff:1:11
+  |
+1 | let m = d.ivreg(y ~ w + x, fe: g + z1, instruments: x ~ z1 + z2)
+  |           ^^^^^ absorbed and an instrument
+  |
+  = help: an absorbed effect cannot be an instrument as well; drop it from `fe:` or from the instruments
+
+## a fixed effect that is instrumented
+y ~ w + x with fe: x and instruments: x ~ z1
+error[Z0401]: `x` is a fixed effect of `fe:` and a variable of the formula too
+ --> t.zeff:1:11
+  |
+1 | let m = d.ivreg(y ~ w + x, fe: x, instruments: x ~ z1)
+  |           ^^^^^ absorbed and in the model
+  |
+  = help: an absorbed effect cannot be a regressor or the outcome as well; drop it from `fe:` or from the formula
+
+## every row a singleton
+y ~ w + x with fe: id and instruments: x ~ z1
+error[Z0801]: no row remains to fit the model: every row is a singleton of fe: id
+ --> t.zeff:1:11
+  |
+1 | let m = d.ivreg(y ~ w + x, fe: id, instruments: x ~ z1)
+  |           ^^^^^ nothing to estimate within the effects
+  |
+  = help: an effect whose every level has one row absorbs every row; use a coarser effect, or leave it out
+
+## a fixed effect that is not a variable
+y ~ w + x with fe: nowhere and instruments: x ~ z1
+error[Z0101]: no variable `nowhere` in `the frame`
+ --> t.zeff:1:11
+  |
+1 | let m = d.ivreg(y ~ w + x, fe: nowhere, instruments: x ~ z1)
+  |           ^^^^^ not a variable of the frame
+  |
+  = help: the variables of `the frame` are: y, x, w, z1, z2, g, zg, id

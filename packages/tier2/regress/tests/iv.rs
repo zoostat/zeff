@@ -13,7 +13,7 @@ use zeff_core::value::{Frame, Term};
 use zeff_data::csv::{CsvOptions, read_csv};
 use zeff_diagnostics::{Diagnostic, Source, Sources, Span};
 use zeff_numeric::order::WeightKind;
-use zeff_regress::iv::{Column as ModelColumn, Designs, TwoStage, estimate};
+use zeff_regress::iv::{Column as ModelColumn, Designs, Projection, TwoStage, estimate};
 use zeff_regress::ols::Ols;
 use zeff_results::absorb::EffectGroups;
 use zeff_results::design::Design;
@@ -38,6 +38,7 @@ struct Model<'a> {
     weights: Option<(&'a str, WeightKind)>,
     cluster: Option<&'a str>,
     block_rows: Option<usize>,
+    fe: Option<&'a str>,
 }
 
 fn model<'a>(formula: &'a str, endogenous: &'a str, instruments: &'a str) -> Model<'a> {
@@ -59,9 +60,21 @@ fn terms_of(text: &str) -> Vec<Term> {
 
 /// The fit with the messages of building it, or the error rendered.
 fn fit(table: &Table, model: &Model<'_>) -> Result<(TwoStage, Vec<String>), String> {
+    fit_projected(table, model).map(|(fit, _, messages)| (fit, messages))
+}
+
+/// The fit, what projecting the fixed effects out found when the model has `fe:`, and the
+/// messages; or the error rendered.
+fn fit_projected(
+    table: &Table,
+    model: &Model<'_>,
+) -> Result<(TwoStage, Option<Projection>, Vec<String>), String> {
     let script = format!(
-        "let m = d.ivreg({}, instruments: {} ~ {})\n",
-        model.formula, model.endogenous, model.instruments
+        "let m = d.ivreg({}, {}instruments: {} ~ {})\n",
+        model.formula,
+        model.fe.map_or(String::new(), |fe| format!("fe: {fe}, ")),
+        model.endogenous,
+        model.instruments
     );
     let mut sources = Sources::new();
     sources.add(Source::new("t.zeff", &script));
@@ -88,31 +101,56 @@ fn fit(table: &Table, model: &Model<'_>) -> Result<(TwoStage, Vec<String>), Stri
     let mut extra: Vec<&str> = Vec::new();
     extra.extend(model.weights.map(|(name, _)| name));
     extra.extend(model.cluster);
-    let result = Designs::build(
-        &mut ctx,
-        &frame,
-        &formula(model.formula),
-        &terms_of(model.endogenous),
-        &terms_of(model.instruments),
-        &extra,
-        model.weights,
-    )
-    .and_then(|mut designs| {
+    let built = match model.fe {
+        Some(fe) => Designs::build_absorbing(
+            &mut ctx,
+            &frame,
+            &formula(model.formula),
+            &terms_of(model.endogenous),
+            &terms_of(model.instruments),
+            &extra,
+            model.weights,
+            &terms(fe),
+        )
+        .map(|(designs, projection)| (designs, Some(projection))),
+        None => Designs::build(
+            &mut ctx,
+            &frame,
+            &formula(model.formula),
+            &terms_of(model.endogenous),
+            &terms_of(model.instruments),
+            &extra,
+            model.weights,
+        )
+        .map(|designs| (designs, None)),
+    };
+    let result = built.and_then(|(mut designs, projection)| {
         if let Some(rows) = model.block_rows {
             designs.structural = designs.structural.with_block_rows(rows);
             designs.excluded = designs.excluded.with_block_rows(rows);
         }
-        estimate(&mut ctx, designs)
+        estimate(&mut ctx, designs).map(|fit| (fit, projection))
     });
     let rendered: Vec<String> = messages.iter().map(|m| m.render(&sources)).collect();
     match result {
-        Ok(fit) => Ok((fit, rendered)),
+        Ok((fit, projection)) => Ok((fit, projection, rendered)),
         Err(e) => Err(e.render(&sources)),
     }
 }
 
 /// The standard errors of the kept columns under `kind`.
 fn std_errors(table: &Table, fit: &TwoStage, kind: Kind, cluster: Option<&str>) -> Vec<f64> {
+    std_errors_projected(table, fit, None, kind, cluster)
+}
+
+/// The standard errors with the parameters of the absorbed effects in every N − k.
+fn std_errors_projected(
+    table: &Table,
+    fit: &TwoStage,
+    projection: Option<&Projection>,
+    kind: Kind,
+    cluster: Option<&str>,
+) -> Vec<f64> {
     let clusters = cluster.map(|name| {
         let column = table.column(name).unwrap();
         let groups = EffectGroups::over(
@@ -123,8 +161,9 @@ fn std_errors(table: &Table, fit: &TwoStage, kind: Kind, cluster: Option<&str>) 
         );
         Clusters::from_groups(&groups.group_of_row, groups.levels())
     });
+    let absorbed = projection.map_or(0, |p| p.parameters(clusters.as_ref()));
     let (vcov, _) = fit
-        .variance(kind, clusters.as_ref(), 0)
+        .variance(kind, clusters.as_ref(), absorbed)
         .unwrap_or_else(|e| panic!("{kind:?}: {e:?}"));
     (0..vcov.rows()).map(|i| vcov.get(i, i).sqrt()).collect()
 }
@@ -217,7 +256,7 @@ fn fits_agree_with_r() {
             instruments: case["instruments"].as_str().unwrap(),
             weights,
             cluster,
-            block_rows: None,
+            ..Model::default()
         };
         let (fit, _) = fit(&data, &asked).unwrap_or_else(|e| panic!("{name}: {e}"));
         let design = &fit.designs.structural;
@@ -321,6 +360,245 @@ fn the_return_to_schooling_of_card() {
         Some(&ModelColumn::Excluded(1))
     );
     assert_eq!(fit.designs.excluded_instruments(), vec![6]);
+}
+
+// ----- with fixed effects: fixest -----
+
+/// The cases with `fe:` against fixest: the estimates, the residual sum of squares, and the
+/// classical, robust and clustered errors with the degrees of freedom of the ruling of 0.6.0;
+/// the rows dropped for `NA` and as singletons counted. The first case is the model of the
+/// specification's sample script.
+#[test]
+fn fits_with_fixed_effects_agree_with_fixest() {
+    let text = std::fs::read_to_string(root().join("tests/reference/r/iv.json")).unwrap();
+    let reference: Json = serde_json::from_str(&text).unwrap();
+    let cases = reference["fixed_effects"].as_object().unwrap();
+    assert_eq!(cases.len(), 7);
+    let card = reference_data("card");
+    for (name, case) in cases {
+        let weights = case["weights"].as_str().map(|w| (w, WeightKind::Analytic));
+        let asked = Model {
+            formula: case["formula"].as_str().unwrap(),
+            endogenous: case["endogenous"].as_str().unwrap(),
+            instruments: case["instruments"].as_str().unwrap(),
+            fe: case["fe"].as_str(),
+            weights,
+            ..Model::default()
+        };
+        let (fit, projection, _) =
+            fit_projected(&card, &asked).unwrap_or_else(|e| panic!("{name}: {e}"));
+        let projection = projection.unwrap();
+        let design = &fit.designs.structural;
+        // The effects are projected out by an iteration to 1e-8 on each column; one effect is
+        // exact in a pass.
+        let tolerance = 1e-7;
+        assert_eq!(design.names, texts(&case["names"]), "{name}: names");
+        assert_eq!(design.n() as u64, case["n"].as_u64().unwrap(), "{name}: n");
+        assert_eq!(
+            projection.original.dropped as u64,
+            case["dropped"].as_u64().unwrap(),
+            "{name}: dropped"
+        );
+        assert_eq!(
+            projection.absorbed.singletons as u64,
+            case["singletons"].as_u64().unwrap(),
+            "{name}: singletons"
+        );
+        let levels: Vec<u64> = projection
+            .absorbed
+            .effects
+            .iter()
+            .map(|e| e.levels() as u64)
+            .collect();
+        let theirs: Vec<u64> = case["fixef_sizes"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .map(|v| v.as_u64().unwrap())
+            .collect();
+        assert_eq!(levels, theirs, "{name}: levels");
+        assert!(fit.fitted.omitted.is_empty(), "{name}: nothing is dropped");
+        let all = |ours: &[f64], theirs: &Json, what: &str| {
+            let theirs = numbers(theirs);
+            assert_eq!(ours.len(), theirs.len(), "{name}: {what}");
+            for (i, (a, b)) in ours.iter().zip(&theirs).enumerate() {
+                assert!(
+                    close(*a, *b, tolerance, 0.0),
+                    "{name}: {what} of `{}`: {a} against {b}",
+                    design.names[i]
+                );
+            }
+        };
+        all(&fit.fitted.estimates, &case["coefficients"], "estimate");
+        assert!(
+            close(
+                fit.fitted.residual_sum_of_squares,
+                number(&case["rss"]),
+                tolerance,
+                0.0
+            ),
+            "{name}: rss {} against {}",
+            fit.fitted.residual_sum_of_squares,
+            number(&case["rss"])
+        );
+        for (kind, key) in [(Kind::Classical, "se_classical"), (Kind::Hc1, "se_hc1")] {
+            let ours = std_errors_projected(&card, &fit, Some(&projection), kind, None);
+            all(&ours, &case[key], key);
+        }
+        if let Some(clustered) = case["se_cluster"].as_object() {
+            for (cluster, theirs) in clustered {
+                let ours = std_errors_projected(
+                    &card,
+                    &fit,
+                    Some(&projection),
+                    Kind::Cluster,
+                    Some(cluster),
+                );
+                all(&ours, theirs, &format!("se clustered by {cluster}"));
+            }
+        }
+        // Under absorbed effects an observation's leverage is not the design's to give.
+        assert!(!fit.second.leverage_available(), "{name}");
+    }
+}
+
+/// An effect by `fe:` is its indicators written out: the same estimates and the same classical
+/// and robust errors, on a frame with an instrument that varies within the groups.
+#[test]
+fn one_effect_by_fe_is_its_indicators_written_out() {
+    let card = reference_data("card");
+    let by_fe = Model {
+        fe: Some("region"),
+        ..model("lwage ~ exper + black + educ", "educ", "nearc4 + nearc2")
+    };
+    let (absorbed, projection, _) = fit_projected(&card, &by_fe).unwrap();
+    let written = model(
+        "lwage ~ exper + black + educ + category(region)",
+        "educ",
+        "nearc4 + nearc2",
+    );
+    let (indicators, _) = fit(&card, &written).unwrap();
+    let theirs = estimates(&indicators);
+    for (name, ours) in estimates(&absorbed) {
+        let other = theirs.iter().find(|(n, _)| *n == name).unwrap().1;
+        assert!(
+            close(ours, other, 1e-9, 0.0),
+            "{name}: {ours} against {other}"
+        );
+    }
+    for kind in [Kind::Classical, Kind::Hc1] {
+        let ours = std_errors_projected(&card, &absorbed, projection.as_ref(), kind, None);
+        let other = std_errors(&card, &indicators, kind, None);
+        for (i, a) in ours.iter().enumerate() {
+            let name = &absorbed.designs.structural.names[i];
+            let j = indicators
+                .designs
+                .structural
+                .names
+                .iter()
+                .position(|n| n == name)
+                .unwrap();
+            assert!(
+                close(*a, other[j], 1e-8, 0.0),
+                "{kind:?} of {name}: {a} against {}",
+                other[j]
+            );
+        }
+    }
+}
+
+/// With `fe:`: an instrument that does not vary within the effects' levels is absorbed with a
+/// note, and alone it identifies nothing; a fixed effect that is a variable of the formula or
+/// an instrument is refused; every row a singleton leaves nothing.
+#[test]
+fn the_notes_and_the_errors_with_fixed_effects() {
+    let t = small();
+    let g: Vec<f64> = (0..12).map(|i| f64::from(i % 3)).collect();
+    let by_group: Vec<f64> = g.iter().map(|g| 10.0 * g + 1.0).collect();
+    let each: Vec<f64> = (0..12).map(f64::from).collect();
+    let t = with(&t, "g", g);
+    let t = with(&t, "zg", by_group);
+    let t = with(&t, "id", each);
+    let cases: Vec<(&str, Model<'_>)> = vec![
+        (
+            "an instrument constant within every level, beside one that varies",
+            Model {
+                fe: Some("g"),
+                ..model("y ~ w + x", "x", "zg + z1")
+            },
+        ),
+        (
+            "the only instrument constant within every level",
+            Model {
+                fe: Some("g"),
+                ..model("y ~ w + x", "x", "zg")
+            },
+        ),
+        (
+            "a fixed effect that is a regressor",
+            Model {
+                fe: Some("w"),
+                ..model("y ~ w + x", "x", "z1")
+            },
+        ),
+        (
+            "a fixed effect that is an instrument",
+            Model {
+                fe: Some("g + z1"),
+                ..model("y ~ w + x", "x", "z1 + z2")
+            },
+        ),
+        (
+            "a fixed effect that is instrumented",
+            Model {
+                fe: Some("x"),
+                ..model("y ~ w + x", "x", "z1")
+            },
+        ),
+        (
+            "every row a singleton",
+            Model {
+                fe: Some("id"),
+                ..model("y ~ w + x", "x", "z1")
+            },
+        ),
+        (
+            "a fixed effect that is not a variable",
+            Model {
+                fe: Some("nowhere"),
+                ..model("y ~ w + x", "x", "z1")
+            },
+        ),
+    ];
+    let mut all = String::new();
+    for (what, asked) in cases {
+        all.push_str(&format!(
+            "## {what}\n{} with fe: {} and instruments: {} ~ {}\n",
+            asked.formula,
+            asked.fe.unwrap(),
+            asked.endogenous,
+            asked.instruments
+        ));
+        match fit_projected(&t, &asked) {
+            Ok((fit, projection, messages)) => {
+                for m in messages {
+                    all.push_str(&m);
+                }
+                for note in &fit.notes {
+                    all.push_str(&format!("note: {note}\n"));
+                }
+                all.push_str(&format!(
+                    "fitted: {} estimates on {} rows, {} singletons\n",
+                    fit.fitted.estimates.len(),
+                    fit.designs.structural.n(),
+                    projection.unwrap().absorbed.singletons
+                ));
+            }
+            Err(e) => all.push_str(&e),
+        }
+        all.push('\n');
+    }
+    insta::assert_snapshot!("iv_notes_and_errors_with_fixed_effects", all);
 }
 
 // ----- the edge cases of the handbook -----
@@ -878,6 +1156,29 @@ proptest! {
             prop_assert_eq!(a.to_bits(), b.to_bits());
         }
         prop_assert_eq!(whole.fitted.residual_sum_of_squares.to_bits(), blocked.fitted.residual_sum_of_squares.to_bits());
+    }
+
+    /// An effect by `fe:` gives the estimates of its indicators written out, whatever the data.
+    #[test]
+    fn an_effect_by_fe_is_its_indicators(values in rows()) {
+        let groups: Vec<Option<i64>> = (0..values.len()).map(|i| Some((i % 3) as i64)).collect();
+        let t = frame_of(&values).with_column("g", Column::ints(groups)).unwrap();
+        let written = model("y ~ w + x + category(g)", "x", "z1 + z2");
+        let (indicators, _) = fit(&t, &written).unwrap();
+        prop_assume!(well_identified(&indicators));
+        let by_fe = Model { fe: Some("g"), ..model("y ~ w + x", "x", "z1 + z2") };
+        let (absorbed, projection, _) = fit_projected(&t, &by_fe).unwrap();
+        let theirs = estimates(&indicators);
+        for (name, ours) in estimates(&absorbed) {
+            let other = theirs.iter().find(|(n, _)| *n == name).unwrap().1;
+            prop_assert!(close(ours, other, 1e-8, 1e-10), "{}: {} against {}", name, ours, other);
+        }
+        let ours = std_errors_projected(&t, &absorbed, projection.as_ref(), Kind::Hc1, None);
+        let other = std_errors(&t, &indicators, Kind::Hc1, None);
+        // `w` and `x` are the first two columns under `fe:` and follow the intercept without.
+        for (i, a) in ours.iter().enumerate() {
+            prop_assert!(close(*a, other[i + 1], 1e-7, 1e-10), "{} against {}", a, other[i + 1]);
+        }
     }
 
     /// What two-stage least squares is: the first stage's residuals are orthogonal to every

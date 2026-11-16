@@ -12,16 +12,20 @@
 //! regressors themselves are not is under-identified (Z0804).
 
 use crate::ols::{Ols, PIVOT_TOLERANCE, internal, scaled_norm};
-use crate::reg::formula_variables;
-use std::collections::BTreeSet;
+use crate::reg::{
+    absorbed_parameters, effect_specs, formula_variables, project, refuse_all_absorbed,
+};
+use std::collections::{BTreeMap, BTreeSet};
 use zeff_core::runtime::{CallContext, Fail, fail};
-use zeff_core::value::{Formula, Frame, Term, TermKind};
+use zeff_core::value::{Formula, Frame, Term, TermKind, terms_text};
 use zeff_diagnostics::Diagnostic;
+use zeff_kernels::demean::Options;
 use zeff_kernels::qr::{TallSkinnyQr, pivoted_qr};
 use zeff_kernels::svd::condition_number;
 use zeff_kernels::triangular::solve_upper;
 use zeff_kernels::{LaneSum, Matrix, dot, sum_of_squares};
 use zeff_numeric::order::WeightKind;
+use zeff_results::absorb::Absorbed;
 use zeff_results::design::{Block, Design};
 use zeff_results::estimator::{Estimator, Fitted};
 use zeff_results::variance::{self, Clusters, Kind, VarianceError};
@@ -52,6 +56,30 @@ pub struct Designs {
     /// The instruments given that are regressors of the formula already, by name: included
     /// instruments, which identify nothing and are not among the excluded ones.
     pub included: Vec<String>,
+    /// With fixed effects projected out: the effects as written, and the columns of the
+    /// excluded instruments' design that the effects absorbed (an instrument that does not
+    /// vary within the effects' levels).
+    pub effects: Option<(String, Vec<usize>)>,
+}
+
+/// What projecting the fixed effects out of an instrumental-variables model found, beside the
+/// designs.
+pub struct Projection {
+    /// The structural design before the projection, on the rows before the singletons were
+    /// dropped: the effects' estimates and the levels of its categories are read from it.
+    pub original: Design,
+    /// What the projection of the structural design found: the effects over the rows kept, the
+    /// singletons dropped, the regressors absorbed.
+    pub absorbed: Absorbed,
+}
+
+impl Projection {
+    /// The parameters the absorbed effects stand for in every N − k (the ruling of release
+    /// 0.6.0): the levels of every effect, less one for each effect after the first, an effect
+    /// nested within the clusters left out.
+    pub fn parameters(&self, clusters: Option<&Clusters>) -> usize {
+        absorbed_parameters(&self.absorbed.effects, clusters)
+    }
 }
 
 impl Designs {
@@ -94,6 +122,55 @@ impl Designs {
         extra: &[&str],
         weights: Option<(&str, WeightKind)>,
     ) -> Result<Designs, Fail> {
+        Designs::build_full(
+            ctx, frame, formula, endogenous, excluded, extra, weights, None,
+        )
+        .map(|(designs, _)| designs)
+    }
+
+    /// The designs with the fixed effects `effects` (as `fe:` gives them) projected out of the
+    /// outcome, the regressors and the instruments together (section 7.2, "Fixed effects"): the
+    /// rows with `NA` in an effect dropped with the model variables', singletons dropped and
+    /// counted, the intercept absorbed. A fixed effect that is a variable of the formula or of
+    /// the instruments is refused, as `reg` refuses it; a regressor or an instrument that does
+    /// not vary within the effects' levels is absorbed.
+    #[allow(clippy::too_many_arguments)]
+    pub fn build_absorbing(
+        ctx: &mut CallContext<'_>,
+        frame: &Frame,
+        formula: &Formula,
+        endogenous: &[Term],
+        excluded: &[Term],
+        extra: &[&str],
+        weights: Option<(&str, WeightKind)>,
+        effects: &[Term],
+    ) -> Result<(Designs, Projection), Fail> {
+        let (designs, projection) = Designs::build_full(
+            ctx,
+            frame,
+            formula,
+            endogenous,
+            excluded,
+            extra,
+            weights,
+            Some(effects),
+        )?;
+        let projection =
+            projection.ok_or_else(|| internal(ctx, "fixed effects without a projection"))?;
+        Ok((designs, projection))
+    }
+
+    #[allow(clippy::too_many_arguments)]
+    fn build_full(
+        ctx: &mut CallContext<'_>,
+        frame: &Frame,
+        formula: &Formula,
+        endogenous: &[Term],
+        excluded: &[Term],
+        extra: &[&str],
+        weights: Option<(&str, WeightKind)>,
+        effects: Option<&[Term]>,
+    ) -> Result<(Designs, Option<Projection>), Fail> {
         let columns: Vec<String> = frame.table.names().to_vec();
         // Each design drops the rows with `NA` in the other's variables too.
         let of_terms = |terms: &[Term], outcome: Option<&Term>| -> Vec<String> {
@@ -121,13 +198,62 @@ impl Designs {
         let excluded_extra = with(&structural_variables);
         let structural_extra: Vec<&str> = structural_extra.iter().map(String::as_str).collect();
         let excluded_extra: Vec<&str> = excluded_extra.iter().map(String::as_str).collect();
-        let mut structural = Design::build(ctx, frame, formula, &structural_extra)?;
+        // A fixed effect that is a variable of the model or of the instruments is refused.
+        let specs = effects.map(effect_specs).unwrap_or_default();
+        let effects_text = effects.map(terms_text);
+        let effect_variables: Vec<&str> = specs
+            .iter()
+            .flat_map(|(_, vars)| vars.iter().map(String::as_str))
+            .collect();
+        for name in &effect_variables {
+            let role = if structural_variables.iter().any(|v| v == name) {
+                Some(("a variable of the formula", "a regressor or the outcome"))
+            } else if excluded_variables.iter().any(|v| v == name) {
+                Some(("an instrument", "an instrument"))
+            } else {
+                None
+            };
+            if let Some((what, cannot)) = role {
+                return Err(fail(
+                    Diagnostic::error(
+                        "Z0401",
+                        format!("`{name}` is a fixed effect of `fe:` and {what} too"),
+                    )
+                    .in_file(ctx.script)
+                    .primary(
+                        ctx.callee_span,
+                        if what == "an instrument" {
+                            "absorbed and an instrument"
+                        } else {
+                            "absorbed and in the model"
+                        },
+                    )
+                    .help(format!("an absorbed effect cannot be {cannot} as well; drop it from `fe:` or from the {}", if what == "an instrument" { "instruments" } else { "formula" })),
+                ));
+            }
+        }
         let instruments_formula = Formula {
             outcome: None,
             terms: excluded.to_vec(),
             intercept: formula.intercept,
         };
-        let mut instruments = Design::build(ctx, frame, &instruments_formula, &excluded_extra)?;
+        let (mut structural, mut instruments) = if effects.is_some() {
+            (
+                Design::build_absorbing(ctx, frame, formula, &structural_extra, &effect_variables)?,
+                Design::build_absorbing(
+                    ctx,
+                    frame,
+                    &instruments_formula,
+                    &excluded_extra,
+                    &effect_variables,
+                )?,
+            )
+        } else {
+            (
+                Design::build(ctx, frame, formula, &structural_extra)?,
+                Design::build(ctx, frame, &instruments_formula, &excluded_extra)?,
+            )
+        };
         // The rows of both: a term computed from its variables (`log(x)`) may be `NA` where
         // they are not, in one design alone.
         if structural.rows != instruments.rows {
@@ -215,13 +341,57 @@ impl Designs {
                 None => listed.push(Column::Excluded(c)),
             }
         }
-        Ok(Designs {
-            structural,
-            excluded: instruments,
-            endogenous: instrumented,
-            instruments: listed,
-            included,
-        })
+        let Some(effects_text) = effects_text else {
+            return Ok((
+                Designs {
+                    structural,
+                    excluded: instruments,
+                    endogenous: instrumented,
+                    instruments: listed,
+                    included,
+                    effects: None,
+                },
+                None,
+            ));
+        };
+        // The effects out of both designs, on the same rows: the projection of the structural
+        // design decides the rows kept (the singletons go), and the instruments' design, over
+        // the same groups, keeps the same.
+        if structural.n() == 0 {
+            // The design's own refusal (Z0801) comes from the fit.
+            Ols.fit(ctx, &structural)?;
+        }
+        let (projected, absorbed, groups) =
+            project(ctx, frame, &structural, &specs, &effects_text)?;
+        refuse_all_absorbed(ctx, &projected, &absorbed, &effects_text)?;
+        let (projected_instruments, found) =
+            instruments.absorb(&groups, Options::default(), &BTreeMap::new());
+        if !found.converged {
+            return Err(internal(
+                ctx,
+                "the demeaning of the instruments did not converge",
+            ));
+        }
+        if found.kept != absorbed.kept {
+            return Err(internal(
+                ctx,
+                "the instruments and the regressors kept different rows under the effects",
+            ));
+        }
+        Ok((
+            Designs {
+                structural: projected,
+                excluded: projected_instruments,
+                endogenous: instrumented,
+                instruments: listed,
+                included,
+                effects: Some((effects_text, found.absorbed_columns)),
+            },
+            Some(Projection {
+                original: structural,
+                absorbed,
+            }),
+        ))
     }
 }
 
@@ -577,7 +747,9 @@ pub fn estimate(ctx: &mut CallContext<'_>, designs: Designs) -> Result<TwoStage,
         let columns: Vec<Vec<f64>> = (0..k)
             .map(|c| designs.structural.column_values(c))
             .collect();
-        let second = designs.structural.with_columns(columns, true);
+        let second = designs
+            .structural
+            .with_columns(columns, designs.structural.leverage_available());
         return Ok(TwoStage {
             designs,
             first: None,
@@ -609,7 +781,9 @@ pub fn estimate(ctx: &mut CallContext<'_>, designs: Designs) -> Result<TwoStage,
             }
         }
     }
-    let second = designs.structural.with_columns(columns, true);
+    let second = designs
+        .structural
+        .with_columns(columns, designs.structural.leverage_available());
     let estimator = SecondStage {
         structural: &designs.structural,
         first_condition: first.condition_number,
@@ -629,8 +803,23 @@ pub fn estimate(ctx: &mut CallContext<'_>, designs: Designs) -> Result<TwoStage,
         1 => notes.push(format!("`{}` {one}", names[0])),
         _ => notes.push(format!("{} {several}", listed(&names))),
     };
+    // An instrument the fixed effects absorbed is zeroed by the projection; it is named so, and
+    // not as a zero column.
+    let absorbed_by_effects = |i: &usize| match (&designs.effects, designs.instruments[*i]) {
+        (Some((_, columns)), Column::Excluded(c)) => columns.contains(&c),
+        _ => false,
+    };
+    let (absorbed, zeros): (Vec<usize>, Vec<usize>) =
+        first.zero.iter().partition(|i| absorbed_by_effects(i));
+    if let Some((effects_text, _)) = &designs.effects {
+        note(
+            names_of(&absorbed),
+            &format!("is absorbed by fe: {effects_text} and was dropped from the instruments"),
+            &format!("are absorbed by fe: {effects_text} and were dropped from the instruments"),
+        );
+    }
     note(
-        names_of(&first.zero),
+        names_of(&zeros),
         "is zero in every row used and was dropped from the instruments",
         "are zero in every row used and were dropped from the instruments",
     );

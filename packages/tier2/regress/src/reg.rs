@@ -89,7 +89,7 @@ pub fn reset_fixed_effect_work() {
 
 /// A fixed effect as written: its name and the variables it groups by, from a `Terms` value
 /// (a variable, or an interaction of variables; the checker admits nothing else).
-fn effect_specs(terms: &[Term]) -> Vec<(String, Vec<String>)> {
+pub(crate) fn effect_specs(terms: &[Term]) -> Vec<(String, Vec<String>)> {
     terms
         .iter()
         .map(|term| match &term.kind {
@@ -181,7 +181,7 @@ pub(crate) fn formula_variables(formula: &Formula, columns: &[String]) -> Vec<St
 /// effect, less one for each effect after the first; an effect nested within the cluster
 /// variable (every level inside one cluster) is left out, and when every effect is nested one
 /// parameter remains for the grand mean.
-fn absorbed_parameters(groups: &[EffectGroups], clusters: Option<&Clusters>) -> usize {
+pub(crate) fn absorbed_parameters(groups: &[EffectGroups], clusters: Option<&Clusters>) -> usize {
     let nested = |effect: &EffectGroups| -> bool {
         let Some(clusters) = clusters else {
             return false;
@@ -894,36 +894,19 @@ const WEIGHTS: usize = 5;
 const WEIGHT_TYPE: usize = 6;
 const LEVEL: usize = 7;
 
-/// The design with the fixed effects projected out, and its fit (section 7.2, "Fixed effects"
-/// and "Rows"): the rows with `NA` in an effect dropped with the model variables', the effects'
-/// groups over the rows used (reused from the last set of effects over the same frame, rows and
-/// weights, with every demeaned column they share), the kernel of step 17 on the columns and the
-/// outcome, singletons dropped and counted, the intercept absorbed, and the effects' estimates
-/// recovered for `predict`.
-#[allow(clippy::too_many_arguments)]
-fn fit_with_effects(
+/// The fixed effects projected out of a design (section 7.2, "Fixed effects" and "Rows"): the
+/// effects' groups over the rows used (reused from the last set of effects over the same frame,
+/// rows and weights, with every demeaned column they share), the kernel of step 17 on the
+/// columns and the outcome, singletons dropped and counted. With the transformed design, what
+/// the projection found and the groups over the design's rows, for another design on the same
+/// rows (the instruments of a two-stage fit).
+pub(crate) fn project(
     ctx: &mut CallContext<'_>,
     frame: &zeff_core::value::Frame,
-    formula: &Formula,
-    extra: &[&str],
+    design: &Design,
     specs: &[(String, Vec<String>)],
     effects_text: &str,
-    weights: Option<&str>,
-    weight_kind: WeightKind,
-) -> Result<(Design, Fitted, FixedEffectWork), Fail> {
-    let effect_variables: Vec<&str> = specs
-        .iter()
-        .flat_map(|(_, vars)| vars.iter().map(String::as_str))
-        .collect();
-    let mut design = Design::build_absorbing(ctx, frame, formula, extra, &effect_variables)?;
-    if let Some(name) = weights {
-        design = design.weighted(ctx, frame, name, weight_kind)?;
-    }
-    if design.n() == 0 {
-        // The design's own refusal (Z0801) comes from the fit; the projection cannot run on no
-        // rows, so the fit is asked first.
-        Ols.fit(ctx, &design)?;
-    }
+) -> Result<(Design, Absorbed, Rc<Vec<EffectGroups>>), Fail> {
     // The group indexes, reused when the last ones were built over this frame, these effects,
     // these rows and these weights; the demeaned columns they share come with them.
     let reused = GROUPS.with(|kept| {
@@ -995,6 +978,16 @@ fn fit_with_effects(
             .help("an effect whose every level has one row absorbs every row; use a coarser effect, or leave it out"),
         ));
     }
+    Ok((absorbed_design, absorbed, groups))
+}
+
+/// Every regressor absorbed by the effects is refused (Z0802): nothing is left to estimate.
+pub(crate) fn refuse_all_absorbed(
+    ctx: &CallContext<'_>,
+    absorbed_design: &Design,
+    absorbed: &Absorbed,
+    effects_text: &str,
+) -> Result<(), Fail> {
     // Every regressor absorbed: nothing varies within the effects' levels (the indicators of
     // units all treated at once under time effects, a group-level regressor under its group).
     if absorbed_design.k() > 0 && absorbed.absorbed_columns.len() == absorbed_design.k() {
@@ -1014,6 +1007,41 @@ fn fit_with_effects(
             .help("a regressor must vary within the levels of every effect; the leads and lags of units all treated at once are the time effects themselves, so drop the time effect or add never-treated units"),
         ));
     }
+    Ok(())
+}
+
+/// The design with the fixed effects projected out, and its fit (section 7.2, "Fixed effects"
+/// and "Rows"): the rows with `NA` in an effect dropped with the model variables', the effects'
+/// groups over the rows used (reused from the last set of effects over the same frame, rows and
+/// weights, with every demeaned column they share), the kernel of step 17 on the columns and the
+/// outcome, singletons dropped and counted, the intercept absorbed, and the effects' estimates
+/// recovered for `predict`.
+#[allow(clippy::too_many_arguments)]
+fn fit_with_effects(
+    ctx: &mut CallContext<'_>,
+    frame: &zeff_core::value::Frame,
+    formula: &Formula,
+    extra: &[&str],
+    specs: &[(String, Vec<String>)],
+    effects_text: &str,
+    weights: Option<&str>,
+    weight_kind: WeightKind,
+) -> Result<(Design, Fitted, FixedEffectWork), Fail> {
+    let effect_variables: Vec<&str> = specs
+        .iter()
+        .flat_map(|(_, vars)| vars.iter().map(String::as_str))
+        .collect();
+    let mut design = Design::build_absorbing(ctx, frame, formula, extra, &effect_variables)?;
+    if let Some(name) = weights {
+        design = design.weighted(ctx, frame, name, weight_kind)?;
+    }
+    if design.n() == 0 {
+        // The design's own refusal (Z0801) comes from the fit; the projection cannot run on no
+        // rows, so the fit is asked first.
+        Ols.fit(ctx, &design)?;
+    }
+    let (absorbed_design, absorbed, _) = project(ctx, frame, &design, specs, effects_text)?;
+    refuse_all_absorbed(ctx, &absorbed_design, &absorbed, effects_text)?;
     let fitted = Ols.fit(ctx, &absorbed_design)?;
     let values = effect_values(&design, &absorbed_design, &fitted, &absorbed);
     let effects: Vec<FixedEffect> = absorbed

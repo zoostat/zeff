@@ -64,107 +64,9 @@ Step 2: the help contract of 0.8.0 (#103) in section 9.1 and in the registry, wi
 
 Step 8b `[engine]`: the language server folds chains, blocks and functions, offers templates of common analyses where a statement may begin, and tells an interface which statement stands at a place or which a selection touches. Step 8c, in three parts: the owner's plan of 29 releases after 1.0 written into the catalogue and the three volumes (#113; 545 rows became 527), the 135 rows of the graphics proposal (#122) with the plots of a result named `<kind>_plot` (#120), and the 13 rows of the diagram proposal (#121); the owner's ruling on Zemp's repositories recorded as #148 at another session's request. Step 8d `[function]`: `time_between(start, end, unit:)` in the place of `days_between` and `months_between`. Between 8d and 8e the nightly fuzzing run showed six small strings leaked since step 7a; mended. Step 8e `[function]`: `hour`, `minute`, `second`, `datetime(x, epoch:)`, and `min` and `max` of dates and times. Step 8f `[function]`: `date(year, month, day)` and `start_of(d, unit:)`; before it, a miscount of missing rows in `aggregate` and the editor grammar's stale option words (which failed CI's grammar job on three pushes) were mended, and the grammar check joined the local routine. Every value agreed with R. For the owner, recorded in docs/decisions.md and his to overturn: whole months between two times now count the time of day; the plot names chosen under #120; the releases given to rows the plan does not list.
 
-## 15 November 2026, release 0.8.0, step 8g (`add_time`)
+## 15 and 16 November 2026, release 0.8.0, steps 8g to 8p (folded)
 
-**Done.** Step 8g `[function]`: `add_time(d, n, unit: day | week | month | year = day)` moves a date or a time by days, weeks, months or years, in the place of `add_days` and `add_months`, which are now refused with the rewrite to use. Months and years clamp to the last day of a shorter month as before. Every value agrees with R.
-
-**Green.** Format, clippy with warnings denied, the tier, message and grammar checks, every test of the workspace; CI read after the push.
-
-**Next.** Step 8h `[function]`: `bin(x, n: | breaks:, …)` absorbing `quantile_group` (#97).
-
-**For the owner to decide.** Nothing blocks.
-
-## 15 November 2026, release 0.8.0, step 8h (`bin` takes in `quantile_group`)
-
-**Done.** Step 8h `[function]`: `bin(x, n: 4)` gives the quantile groups that `quantile_group(x, n: 4)` gave, as an ordered category with levels `1` to `4`; `to(bin(x, n: 4), Int)` gives the same numbers as before, value for value. `labels:` and `closed:` now apply to quantile groups too. The old name is refused with the rewrite. Every value agrees with R, closed on either side.
-
-**Green.** Format, clippy with warnings denied, the tier, message and grammar checks, every test of the workspace; CI read after the push.
-
-**Next.** Step 8i `[function]`: `fill_missing(x, value | method:)` taking in `fill_forward` (#97).
-
-**For the owner to decide.** Nothing blocks. Two things to know: a call of `bin` with neither `n:` nor `breaks:` is refused under Z0406 (an argument missing), not Z0410 as the decision's parenthesis reads; and `bin(x, [0, 10])` without the word `breaks:` is no longer accepted.
-
-## 15 November 2026, release 0.8.0, step 8i (`fill_missing` takes in `fill_forward`)
-
-**Done.** Step 8i `[function]`: `fill_missing(x, method: forward)` carries the last value down, as `fill_forward(x)` did, and `method: backward` carries the next value up; `fill_missing(x, 0)` is unchanged, in scripts, plot mappings and formulas. The function now lives in `data`. The old name is refused with the rewrite. Both directions agree with R.
-
-**Green.** Format, clippy with warnings denied, the tier, message and grammar checks, every test of the workspace; CI read after the push.
-
-**Next.** Step 8j `[function]`: `variance_test(var, group:, method: f | levene | bartlett)` (#97).
-
-**For the owner to decide.** Nothing blocks.
-
-## 15 November 2026, release 0.8.0, step 8j (`variance_test`)
-
-**Done.** Step 8j `[function]`: `variance_test(var, group:, method: f | levene | bartlett, center: median | mean)` tests whether a variable has the same variance in every group: Levene's test (centred on the median unless told the mean), Bartlett's test, or for two groups the ratio of the variances with its 95% interval. Every statistic, p-value and interval agrees with R (`car::leveneTest`, `bartlett.test`, `var.test`) on fourteen cases and the two shipped datasets.
-
-**Green.** Format, clippy with warnings denied, the tier, message and grammar checks, every test of the workspace; CI read after the push.
-
-**Next.** Step 8k `[function]`: `running(x, stat:)` and `row(vars, stat:, min_valid:)` in the place of four names (#99).
-
-**For the owner to decide.** Nothing blocks.
-
-## 15 November 2026, release 0.8.0, step 8k (`running` and `row`)
-
-**Done.** Step 8k `[function]`: `running(x, stat: sum | product)` in the place of `running_sum` and `running_product`, and `row(vars, stat: mean | sum, min_valid:)` in the place of `row_mean` and `row_sum`. The values are the ones the old functions gave; the old names are refused with the rewrite. `stat:` has no default, as the decision writes it. Block B3's merges (8d, 8g, 8h, 8i, 8j, 8k) are now all in.
-
-**Two faults of mine on the way, both mended.** CI's `reference` job failed on step 8j: the new R script did not look in the reference library folder for the `car` package, which the Mac has in its main library and CI does not. One line mends it (commit 3edc22e); the stored values are unchanged. That commit also carried four help-page renames of step 8k that were already staged, without the code that goes with them, so `main` does not build at that one commit and every CI job failed on it. This step's commit makes the branch whole; history is not rewritten, so anyone bisecting should skip 3edc22e.
-
-**Green.** Format, clippy with warnings denied, the tier, message and grammar checks, every test of the workspace; CI read after the push.
-
-**Next.** Step 8l `[engine]`: a comparison with `NA` refused under a code of its own.
-
-**For the owner to decide.** Nothing blocks.
-
-## 16 November 2026, release 0.8.0, step 8l (a comparison with `NA`)
-
-**Done.** Step 8l `[engine]`: `x == NA` and `x != NA`, written with the literal `NA`, are refused before the script runs (the new code Z0226), and the message gives the test that was meant, `is_missing(x)` or `!is_missing(x)`. Before, `where(score == NA)` silently kept no row. A value that turns out to be `NA` when the script runs compares as it always did.
-
-**Green.** Format, clippy with warnings denied, the tier, message and grammar checks, every test of the workspace; CI read after the push.
-
-**Next.** Step 8m `[engine]`: variable ranges, `[educ..age]`, in every parameter that takes a list of variables.
-
-**For the owner to decide.** Nothing blocks.
-
-## 16 November 2026, release 0.8.0, step 8m (ranges of variables everywhere)
-
-**Done.** Step 8m `[engine]`: a range such as `[educ..age]` is now taken wherever a list of variables is: by `summary`, `tabulate`, `correlation`, `covariance`, `heatmap`, and every `by:`, `on:` and `id:`, as `select` always took it. Before, `w.summary([educ..age])` was refused. A test covers all 37 such parameters and fails if a new function is left out.
-
-**Green.** Format, clippy with warnings denied, the tier, message and grammar checks, every test of the workspace; CI read after the push.
-
-**Next.** Step 8n `[engine]`: a distribution written inside a call, `quantile(dist.t(df: 24), 0.975)`.
-
-**For the owner to decide.** Nothing blocks.
-
-## 16 November 2026, release 0.8.0, step 8n (a distribution written inside a call)
-
-**Done.** Step 8n `[engine]`: `quantile(dist.t(df: 24), 0.975)` now gives 2.0639, as it did only when the distribution was first given a name; before, the engine took the distribution for a frame and refused the call. The checker now reads the type of a function's first argument whatever its form. Every family gives the same bits written inline or bound, with `pdf`, `cdf`, `quantile` and `draw`.
-
-**Green.** Format, clippy with warnings denied, the tier, message and grammar checks, every test of the workspace; CI read after the push.
-
-**Next.** Step 8o `[engine]`: three messages that name a variable or a seed the user did not write (`winsorize`, `qq_plot`, `sample`).
-
-**For the owner to decide.** Nothing blocks.
-
-## 16 November 2026, release 0.8.0, step 8o (messages that name what the script wrote)
-
-**Done.** Step 8o `[engine]`: `winsorize(wage)` warns once of rows with NA in `wage` (it said `value`, twice); `qq_plot(wage)` notes rows with NA in `wage` (it added `theoretical`, a column of its own); and `sample` in a loop of 1,000 passes prints one note that says each pass has a seed of its own derived from the run's (it printed 1,000, each giving the run's seed). No value changes.
-
-**Green.** Format, clippy with warnings denied, the tier, message and grammar checks, every test of the workspace; CI read after the push.
-
-**Next.** Step 8p `[engine]`: `print` puts several plain values on one line (#95).
-
-**For the owner to decide.** Open decision #149, new: whether a *warning* repeated word for word in the passes of a loop should also print once with the count. Recommended yes; deadline 0.9.0.
-
-## 16 November 2026, release 0.8.0, step 8p (`print` with several values)
-
-**Done.** Step 8p `[engine]`: `print("Mean wage:", 24.35)` prints one line, `Mean wage: 24.35`; plain values share a line with a space, or with `sep:`, between them; a frame, a list or a result still prints as its own block. One value prints exactly as before. `print(1, 2)` now prints `1 2` where it printed two lines. Blocks B4 and B5 of the checklist are done.
-
-**Green.** Format, clippy with warnings denied, the tier, message and grammar checks, every test of the workspace; CI read after the push.
-
-**Next.** Step 9 `[engine]`: the first of the instrumental-variables steps.
-
-**For the owner to decide.** Open decision #149 (a warning repeated in the passes of a loop), raised at step 8o; nothing blocks.
+The merges decided during 0.7.0, each old name refused with its rewrite: step 8g `add_time(d, n, unit:)` for `add_days` and `add_months`; 8h `bin(x, n: | breaks:)` taking in `quantile_group` (quantile groups are now an ordered category); 8i `fill_missing(x, value | method:)` taking in `fill_forward`, now in `data`; 8j `variance_test` with Levene's, Bartlett's and the F test; 8k `running(x, stat:)` and `row(vars, stat:, min_valid:)`, `stat:` without a default. Two faults of mine at 8j and 8k, both mended: CI's `reference` job failed because the new R script did not look in the reference library folder, and the one-line fix (commit 3edc22e) also carried four staged page renames of step 8k without their code, so `main` does not build at that one commit; history is not rewritten, and anyone bisecting should skip 3edc22e. Then the language pieces found while the manuals for 0.7.0 were written: 8l a comparison with `NA` refused under its own code (Z0226); 8m a range of variables `a..b` wherever a list of variables is taken; 8n a function chosen by its first argument whatever its form (`dist.t(10).mean()`); 8o three messages that now name what the script wrote, and a note repeated in the passes of a loop said once with the count (open decision #149 asks the same for warnings; recommended yes, deadline 0.9.0); 8p `print("Mean wage:", 24.35)` on one line, with `sep:`. Each step green locally and on CI.
 
 ## 16 November 2026, release 0.8.0, step 9 (`instruments:` in the checker)
 
@@ -185,3 +87,13 @@ Step 8b `[engine]`: the language server folds chains, blocks and functions, offe
 **Next.** Step 11 `[engine]`: two-stage least squares with `fe:`.
 
 **For the owner to decide.** Open decision #150, new: Stata's `ivregress 2sls` prints large-sample standard errors unless `small` is given; Zeff prints the small-sample ones, as R, fixest and `reg` do. Recommended: one form at 1.0, the page saying how Stata's default differs. #149 stays open; nothing blocks.
+
+## 16 November 2026, release 0.8.0, step 11 (two-stage least squares with `fe:`)
+
+**Done.** Step 11 `[engine]`: the fixed effects are projected out of the outcome, the regressors and the instruments together, then the two stages run. The model of the specification's sample script (`fe: region`, schooling instrumented by proximity to a college) gives 0.2252 for schooling, fixest's figure; seven cases agree with fixest within 1e-7, with one and two effects, an interacted effect, singletons, weights and clusters. An instrument that does not vary within the effects' levels is dropped with a note that says so. `reg` and `ivreg` now share one projection; `reg`'s results are unchanged.
+
+**Green.** Format, clippy with warnings denied, the tier, message and grammar checks, every test of the workspace; CI read after the push.
+
+**Next.** Step 12 `[engine]`: the weak-instrument statistics, with a symmetric eigenvalue routine in the kernels.
+
+**For the owner to decide.** Open decisions #149 and #150; nothing blocks.

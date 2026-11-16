@@ -12,7 +12,8 @@
 # extract and wage2 of Wooldridge's textbook, from the package wooldridge 1.4-7; card is written
 # beside the references as CSV, as wage1 and wage2 are, so that the engine fits the same rows.
 # Inputs scaled by 1e7 to 1e12 stand beside the working cases. Values to 17 significant digits.
-# Run with `Rscript tests/reference/r/iv.R`.
+# The cases with fixed effects (step 11) are fixest's own figures, one of them also written out
+# by hand. Run with `Rscript tests/reference/r/iv.R`.
 source(file.path(dirname(sub("^--file=", "", commandArgs(FALSE)[grepl("^--file=", commandArgs(FALSE))])), "common.R"))
 Sys.setlocale("LC_COLLATE", "C")
 root <- normalizePath(file.path(here(), "..", "..", ".."))
@@ -32,6 +33,9 @@ write_data <- function(data, file) {
   for (col in names(text)) text[[col]] <- ifelse(is.na(data[[col]]), "", sprintf("%.17g", data[[col]]))
   write.csv(text, file, row.names = FALSE, quote = FALSE, na = "")
 }
+# The region of residence in 1966, one variable from the extract's nine indicators, for the
+# cases with fixed effects.
+card$region <- as.integer(as.matrix(card[, paste0("reg66", 1:9)]) %*% 1:9)
 write_data(card, file.path(root, "tests", "reference", "data", "card.csv"))
 
 # Two-stage least squares by hand. `exog` and `endog` are named lists of columns in the order of
@@ -243,8 +247,100 @@ agree(hours$se$classical, of_fixest(se(f, vcov = "iid"), hours$names))
 case("wage2_analytic", "wage2", "lwage ~ exper + tenure + educ", "educ", "sibs + meduc", hours, weights = "hours",
      weight_type = "analytic")
 
+# With fixed effects (release 0.8.0, step 11): the outcome, the regressors and the instruments
+# projected out together, then the two stages. The figures are fixest's own, with its
+# small-sample defaults (`fixef.K = "nested"`, the ruling of release 0.6.0), the projections run
+# to 1e-11 and the singletons removed, as Zeff removes them. `zeff` names the terms as a script
+# writes them and in its order, `theirs` as fixest names them. One case is also written out by
+# hand, with the within transformation in closed form, and held to fixest here.
+TOL <- 1e-11
+fe_cases <- list()
+fe_case <- function(name, data, zeff, endogenous, instruments, fe_text, f, names, theirs, clusters = NULL,
+                    weights = NULL, weight_type = NULL) {
+  args <- list(fml = f, data = data, fixef.tol = TOL, fixef.rm = "singleton")
+  if (!is.null(weights)) args$weights <- as.formula(paste0("~", weights))
+  fit <- suppressMessages(do.call(feols, args))
+  args$fixef.rm <- "none"
+  complete <- suppressMessages(do.call(feols, args))
+  stopifnot(setequal(names(coef(fit)), theirs))
+  e <- resid(fit)
+  w <- if (is.null(weights)) rep(1, length(e)) else weights(fit)
+  w <- w * length(e) / sum(w)
+  out <- list(
+    data = "card", formula = zeff, fe = fe_text, endogenous = endogenous, instruments = instruments,
+    n = as.integer(nobs(fit)), dropped = as.integer(nrow(data) - nobs(complete)),
+    singletons = as.integer(nobs(complete) - nobs(fit)),
+    fixef_sizes = as.list(as.integer(fit$fixef_sizes)),
+    names = as.list(names),
+    coefficients = as.list(num17(coef(fit)[theirs])),
+    rss = num17(sum(w * e^2)),
+    se_classical = as.list(num17(se(fit, vcov = "iid")[theirs])),
+    se_hc1 = as.list(num17(se(fit, vcov = "hetero")[theirs])),
+    se_cluster = list()
+  )
+  for (cluster in clusters) {
+    out$se_cluster[[cluster]] <- as.list(num17(se(fit, vcov = as.formula(paste0("~", cluster)))[theirs]))
+  }
+  if (!is.null(weights)) { out$weights <- weights; out$weight_type <- weight_type }
+  fe_cases[[name]] <<- out
+  invisible(fit)
+}
+
+# The model of the specification's sample script (section 7): the region absorbed.
+f <- fe_case("script", card, "lwage ~ exper + exper^2 + black + educ", "educ", "nearc4", "region",
+             lwage ~ exper + I(exper^2) + black | region | educ ~ nearc4,
+             c("exper", "exper^2", "black", "educ"), c("exper", "I(I(exper^2))", "black", "fit_educ"),
+             clusters = c("age", "region"))
+# The same by hand: every column less its mean within the region, two stages without an
+# intercept, and N - k - 9 for the nine regions (N - k - 1 when the clusters are the regions, in
+# which the effect is nested).
+within <- function(v) v - ave(v, card$region)
+Xd <- cbind(within(card$exper), within(card$exper^2), within(card$black), within(card$educ))
+Zd <- cbind(Xd[, 1:3], within(card$nearc4))
+yd <- within(card$lwage)
+Xh <- Zd %*% qr.solve(Zd, Xd)
+b <- qr.solve(Xh, yd)
+e <- drop(yd - Xd %*% b)
+A <- solve(crossprod(Xh))
+n_rows <- length(yd)
+fixest_order <- c("exper", "I(I(exper^2))", "black", "fit_educ")
+agree(b, coef(f)[fixest_order])
+agree(sqrt(diag(A) * sum(e^2) / (n_rows - 4 - 9)), se(f, vcov = "iid")[fixest_order])
+S <- Xh * e
+agree(sqrt(diag(A %*% crossprod(S) %*% A) * n_rows / (n_rows - 4 - 9)), se(f, vcov = "hetero")[fixest_order])
+Sc <- rowsum(S, card$age)
+agree(sqrt(diag(A %*% crossprod(Sc) %*% A) * 11 / 10 * (n_rows - 1) / (n_rows - 4 - 9)), se(f, vcov = ~age)[fixest_order])
+Sc <- rowsum(S, card$region)
+agree(sqrt(diag(A %*% crossprod(Sc) %*% A) * 9 / 8 * (n_rows - 1) / (n_rows - 4 - 1)), se(f, vcov = ~region)[fixest_order])
+
+fe_case("over", card, "lwage ~ exper + expersq + black + smsa + educ", "educ", "nearc4 + nearc2", "region",
+        lwage ~ exper + expersq + black + smsa | region | educ ~ nearc4 + nearc2,
+        c("exper", "expersq", "black", "smsa", "educ"), c("exper", "expersq", "black", "smsa", "fit_educ"),
+        clusters = "age")
+# Two effects; clustered by one of them, which is then nested in the clusters.
+fe_case("two_way", card, "lwage ~ black + smsa + educ", "educ", "nearc4 + nearc2", "region + age",
+        lwage ~ black + smsa | region + age | educ ~ nearc4 + nearc2,
+        c("black", "smsa", "educ"), c("black", "smsa", "fit_educ"), clusters = "age")
+# An interacted effect.
+fe_case("interacted", card, "lwage ~ black + smsa + educ", "educ", "nearc4 + nearc2", "region:smsa66",
+        lwage ~ black + smsa | region^smsa66 | educ ~ nearc4 + nearc2,
+        c("black", "smsa", "educ"), c("black", "smsa", "fit_educ"))
+# An effect with missing values and with levels of one row: the IQ score.
+fe_case("singletons", card, "lwage ~ black + smsa + educ", "educ", "nearc4 + nearc2", "IQ",
+        lwage ~ black + smsa | IQ | educ ~ nearc4 + nearc2,
+        c("black", "smsa", "educ"), c("black", "smsa", "fit_educ"))
+# Two instrumented regressors under an effect.
+fe_case("two_endogenous", card, "lwage ~ black + smsa + educ + exper", "educ + exper", "nearc4 + nearc2 + age",
+        "region", lwage ~ black + smsa | region | educ + exper ~ nearc4 + nearc2 + age,
+        c("black", "smsa", "educ", "exper"), c("black", "smsa", "fit_educ", "fit_exper"))
+# Weights: fixest's weights are analytic with classical errors and sampling with robust ones.
+fe_case("weighted", card, "lwage ~ exper + expersq + black + smsa + educ", "educ", "nearc4 + nearc2", "region",
+        lwage ~ exper + expersq + black + smsa | region | educ ~ nearc4 + nearc2,
+        c("exper", "expersq", "black", "smsa", "educ"), c("exper", "expersq", "black", "smsa", "fit_educ"),
+        clusters = "age", weights = "weight", weight_type = "analytic")
+
 out <- list(reference = list(software = R.version.string, fixest = as.character(packageVersion("fixest")),
                              wooldridge = as.character(packageVersion("wooldridge")),
                              note = "two-stage least squares by hand in base R, held to fixest inside the script; 17 significant digits"),
-            cases = cases)
+            cases = cases, fixed_effects = fe_cases)
 write_json(out, file.path(here(), "iv.json"))
