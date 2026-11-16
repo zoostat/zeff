@@ -635,6 +635,73 @@ fn the_notes_and_the_errors_with_fixed_effects() {
     insta::assert_snapshot!("iv_notes_and_errors_with_fixed_effects", all);
 }
 
+// ----- the shipped `staff` data -----
+
+/// The synthetic `staff` data (release 0.8.0, step 13a) do what they were made for. The course
+/// raises productivity by 4.5; least squares within the sites gives 5.93, far above it, since
+/// the able take the course more; two-stage least squares with the offer, drawn by lot, gives
+/// 4.60 with a standard error of 0.43 (fixest's figures), within sampling error of the truth,
+/// and so does the model with the distance as a second instrument; the first stage is strong.
+#[test]
+fn the_effect_of_the_course_in_staff_is_recovered() {
+    let staff = zeff_datasets::table("staff").expect("the shipped staff");
+    let by_offer = Model {
+        fe: Some("site"),
+        ..model("productivity ~ training", "training", "offer")
+    };
+    let (iv, projection, messages) = fit_projected(&staff, &by_offer).unwrap();
+    assert!(messages.is_empty(), "{messages:?}");
+    let estimate = iv.fitted.estimates[0];
+    let se = std_errors_projected(&staff, &iv, projection.as_ref(), Kind::Classical, None)[0];
+    assert!(close(estimate, 4.602_651_8, 1e-7, 0.0), "{estimate}");
+    assert!(close(se, 0.429_463_4, 1e-6, 0.0), "{se}");
+    assert!(
+        (estimate - 4.5).abs() < se,
+        "{estimate} with standard error {se}"
+    );
+    let least_squares = Model {
+        fe: Some("site"),
+        ..model("productivity ~ training", "", "")
+    };
+    let (ols, projection, _) = fit_projected(&staff, &least_squares).unwrap();
+    let biased = ols.fitted.estimates[0];
+    let its_se = std_errors_projected(&staff, &ols, projection.as_ref(), Kind::Classical, None)[0];
+    assert!(close(biased, 5.926_464_5, 1e-7, 0.0), "{biased}");
+    assert!(
+        biased - 4.5 > 6.0 * its_se,
+        "{biased} with standard error {its_se}"
+    );
+    let both = Model {
+        fe: Some("site"),
+        ..model(
+            "productivity ~ age + training",
+            "training",
+            "offer + distance",
+        )
+    };
+    let (over, projection, _) = fit_projected(&staff, &both).unwrap();
+    let training = estimates(&over)
+        .iter()
+        .find(|(n, _)| n == "training")
+        .unwrap()
+        .1;
+    let its_se = std_errors_projected(&staff, &over, projection.as_ref(), Kind::Hc1, None)[1];
+    assert!(close(training, 4.581_589_0, 1e-7, 0.0), "{training}");
+    assert!((training - 4.5).abs() < its_se);
+    let strength = weak_of(&staff, &both, Kind::Hc1, None);
+    assert!(
+        close(strength.f[0].unwrap(), 386.049_79, 1e-7, 0.0),
+        "{:?}",
+        strength.f
+    );
+    assert!(
+        close(strength.wald[0].unwrap(), 396.577_86, 1e-7, 0.0),
+        "{:?}",
+        strength.wald
+    );
+    assert_eq!(strength.warning(), None);
+}
+
 // ----- the weak-instrument statistics -----
 
 /// The first-stage F of each instrumented regressor, its Wald form on the robust and the

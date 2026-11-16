@@ -194,10 +194,11 @@ replace 0:5-0:5, 0 offered
 replace 0:10-0:10, 0 offered
 ----
 > let d = dataset(|
-replace 0:16-0:16, 3 offered
-  Dataset (3): firms sleep wages
+replace 0:16-0:16, 4 offered
+  Dataset (4): firms sleep staff wages
     firms | 400 rows, 4 variables | Synthetic firms of the wages panel: industry, size and founding date
     sleep | 20 rows, 3 variables | Student's 1908 data on the extra sleep given by two drugs
+    staff | 2,400 rows, 9 variables | Synthetic staff offered a training course by lot: take-up and productivity
     wages | 18,412 rows, 11 variables | Synthetic hourly wages of 3,911 workers in 397 firms, 2010 to 2021
 ----
 > let d = dataset(wa|)

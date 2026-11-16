@@ -129,3 +129,13 @@ The merges decided during 0.7.0, each old name refused with its rewrite: step 8g
 **Next.** Step 13 `[function]`: `ivreg`, the function itself, with its printed result, its help page and the dataset of question 2.
 
 **For the owner to decide.** Open decisions #149 and #150. Whether to add `ivDiag` to the reference library by hand. The thresholds of the warning (10 for the F; a tenth of the worst-case bias at 5% for the effective F) are the conventional ones and his to change.
+
+## 16 November 2026, release 0.8.0, step 13a (the dataset `staff`)
+
+**Done.** Step 13 was too large for one step and is three in the checklist: 13a the dataset, 13b `ivreg` with its printed result and page, 13c the rest of its interface. Step 13a `[function]`: `dataset(staff)`, 2,400 employees of a firm with twelve sites, half of them offered a training course by lot. The true effect of the course on productivity is 4.5 by construction; least squares gives 5.93, because the able take the course more, and two-stage least squares with the offer as the instrument gives 4.60 (standard error 0.43), fixest's figures. `zeff help staff` prints its page with the generating model. One fault found and fixed on the way: `fe:` with no excluded instrument at all was an internal error.
+
+**Green.** Format, clippy with warnings denied, the tier, message and grammar checks, every test of the workspace; CI read after the push.
+
+**Next.** Step 13b `[function]`: `ivreg` itself, its printed result and its help page.
+
+**For the owner to decide.** The story and the parameters of `staff` are yours to change before 1.0 (the recommendation of question 2 was taken). Open decisions #149 and #150. Whether to add `ivDiag` by hand.

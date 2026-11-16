@@ -27,7 +27,7 @@ pub struct Shipped {
 }
 
 /// The datasets of this release, in the order `datasets()` lists them.
-pub const SHIPPED: [Shipped; 3] = [
+pub const SHIPPED: [Shipped; 4] = [
     Shipped {
         name: "firms",
         kind: "synthetic",
@@ -45,6 +45,15 @@ pub const SHIPPED: [Shipped; 3] = [
         csv: include_bytes!("../data/sleep.csv"),
         arrow: include_bytes!("../data/sleep.arrow"),
         help: include_str!("../help/sleep.md"),
+    },
+    Shipped {
+        name: "staff",
+        kind: "synthetic",
+        licence: "CC0-1.0",
+        source: "generate/staff.py, seed 20261116",
+        csv: include_bytes!("../data/staff.csv"),
+        arrow: include_bytes!("../data/staff.arrow"),
+        help: include_str!("../help/staff.md"),
     },
     Shipped {
         name: "wages",

@@ -398,6 +398,7 @@ jobs:
           python3 -I packages/tier1/datasets/generate/wages.py
           python3 -I packages/tier1/datasets/generate/firms.py
           python3 -I packages/tier1/datasets/generate/sleep.py
+          python3 -I packages/tier1/datasets/generate/staff.py
           cargo run -q -p xtask -- build-datasets
 
       - name: Rebuild the exported sample files and check them with the standard library's zipfile

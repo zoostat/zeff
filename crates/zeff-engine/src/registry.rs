@@ -568,7 +568,7 @@ mod tests {
                 "regress",
             ]
         );
-        assert_eq!(registry.datasets().len(), 3);
+        assert_eq!(registry.datasets().len(), 4);
         let zeff = zeff_bodies();
         for f in registry.functions() {
             let key = (f.spec.package.to_string(), f.spec.name.to_string());

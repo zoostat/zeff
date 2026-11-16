@@ -41,6 +41,9 @@ fn variable(name: &'static str, ty: TypeSpec, label: &'static str) -> Variable {
     }
 }
 
+/// The regions of `staff`, in the order of its sites.
+const REGIONS: [&str; 4] = ["North", "East", "South", "West"];
+
 const INDUSTRIES: [&str; 12] = [
     "Agriculture",
     "Mining",
@@ -119,6 +122,59 @@ fn declarations() -> Vec<Dataset> {
                     ..variable("size", TypeSpec::Int, "Workers observed in wages")
                 },
                 variable("founded", TypeSpec::Date(None), "Date founded"),
+            ],
+        },
+        Dataset {
+            name: "staff",
+            source: "zeff:staff.csv (synthetic; generate/staff.py, seed 20261116)",
+            panel: None,
+            variables: vec![
+                variable("employee", TypeSpec::Int, "Employee identifier"),
+                variable("site", TypeSpec::Int, "Site of work, 1 to 12"),
+                Variable {
+                    levels: &REGIONS,
+                    ..variable("region", TypeSpec::Str, "Region of the site")
+                },
+                Variable {
+                    unit: "years",
+                    ..variable("age", TypeSpec::Int, "Age")
+                },
+                Variable {
+                    value_labels: "{\"0\": \"no\", \"1\": \"yes\"}",
+                    ..variable(
+                        "offer",
+                        TypeSpec::Int,
+                        "Offered the training course, by lot",
+                    )
+                },
+                Variable {
+                    unit: "km",
+                    ..variable(
+                        "distance",
+                        TypeSpec::Float,
+                        "Distance from home to the training centre",
+                    )
+                },
+                Variable {
+                    value_labels: "{\"0\": \"no\", \"1\": \"yes\"}",
+                    ..variable("training", TypeSpec::Int, "Took the training course")
+                },
+                Variable {
+                    unit: "years",
+                    ..variable(
+                        "tenure",
+                        TypeSpec::Float,
+                        "Years with the firm since the course",
+                    )
+                },
+                Variable {
+                    unit: "units per hour",
+                    ..variable(
+                        "productivity",
+                        TypeSpec::Float,
+                        "Output per hour after the course",
+                    )
+                },
             ],
         },
         Dataset {

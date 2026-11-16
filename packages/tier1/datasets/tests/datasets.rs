@@ -51,6 +51,8 @@ fn the_shipped_files_match_their_checksums_and_the_scripts_output() {
             "firms.arrow",
             "sleep.csv",
             "sleep.arrow",
+            "staff.csv",
+            "staff.arrow",
             "wages.csv",
             "wages.arrow"
         ]
@@ -182,4 +184,67 @@ fn unknown_datasets_and_files_are_refused_with_the_list() {
         all.push('\n');
     }
     insta::assert_snapshot!("unknown_datasets", all);
+}
+
+/// `staff` (release 0.8.0, step 13a) has the shape, the labels and the category of its page:
+/// 2,400 employees at twelve sites in four regions, the offer made to about half by lot, and no
+/// missing value.
+#[test]
+fn staff_has_the_shape_labels_and_category_of_its_page() {
+    let staff = zeff_datasets::table("staff").expect("the shipped staff");
+    assert_eq!((staff.rows(), staff.n_cols()), (2400, 9));
+    assert_eq!(
+        staff.names(),
+        [
+            "employee",
+            "site",
+            "region",
+            "age",
+            "offer",
+            "distance",
+            "training",
+            "tenure",
+            "productivity"
+        ]
+    );
+    assert!(staff.metadata().panel.is_none());
+    for (name, column) in staff.columns() {
+        assert_eq!(column.n_missing(), 0, "{name} has no missing value");
+    }
+    let region = staff.column("region").unwrap();
+    assert_eq!(region.levels().unwrap(), ["North", "East", "South", "West"]);
+    let ints = |name: &str| -> Vec<i64> {
+        staff
+            .column(name)
+            .unwrap()
+            .as_ints()
+            .unwrap()
+            .flatten()
+            .collect()
+    };
+    let sites = ints("site");
+    assert_eq!(
+        (*sites.iter().min().unwrap(), *sites.iter().max().unwrap()),
+        (1, 12)
+    );
+    let (offer, training) = (ints("offer"), ints("training"));
+    let offered: i64 = offer.iter().sum();
+    assert_eq!(offered, 1179);
+    // About a quarter take the course without the offer and about three quarters with it.
+    let took = |with: i64| -> f64 {
+        let (taken, of) = offer
+            .iter()
+            .zip(&training)
+            .filter(|(o, _)| **o == with)
+            .fold((0, 0), |(t, n), (_, took)| (t + took, n + 1));
+        taken as f64 / of as f64
+    };
+    assert!((took(0) - 0.256).abs() < 0.001 && (took(1) - 0.742).abs() < 0.001);
+    let offer_column = staff.column("offer").unwrap();
+    assert_eq!(
+        offer_column
+            .metadata()
+            .get(zeff_columns::MetadataKey::Label),
+        Some("Offered the training course, by lot")
+    );
 }

@@ -368,20 +368,35 @@ impl Designs {
         let (projected, absorbed, groups) =
             project(ctx, frame, &structural, &specs, &effects_text)?;
         refuse_all_absorbed(ctx, &projected, &absorbed, &effects_text)?;
-        let (projected_instruments, found) =
-            instruments.absorb(&groups, Options::default(), &BTreeMap::new());
-        if !found.converged {
-            return Err(internal(
-                ctx,
-                "the demeaning of the instruments did not converge",
-            ));
-        }
-        if found.kept != absorbed.kept {
-            return Err(internal(
-                ctx,
-                "the instruments and the regressors kept different rows under the effects",
-            ));
-        }
+        // A model without an excluded instrument has nothing to project there: its design of
+        // no columns stands on the rows the structural design kept.
+        let (projected_instruments, absorbed_instruments) = if instruments.k() == 0 {
+            (
+                projected.with_model(
+                    Vec::new(),
+                    Vec::new(),
+                    Rc::new(vec![0.0; projected.n()]),
+                    "",
+                    false,
+                ),
+                Vec::new(),
+            )
+        } else {
+            let (design, found) = instruments.absorb(&groups, Options::default(), &BTreeMap::new());
+            if !found.converged {
+                return Err(internal(
+                    ctx,
+                    "the demeaning of the instruments did not converge",
+                ));
+            }
+            if found.kept != absorbed.kept {
+                return Err(internal(
+                    ctx,
+                    "the instruments and the regressors kept different rows under the effects",
+                ));
+            }
+            (design, found.absorbed_columns)
+        };
         Ok((
             Designs {
                 structural: projected,
@@ -389,7 +404,7 @@ impl Designs {
                 endogenous: instrumented,
                 instruments: listed,
                 included,
-                effects: Some((effects_text, found.absorbed_columns)),
+                effects: Some((effects_text, absorbed_instruments)),
             },
             Some(Projection {
                 original: structural,
