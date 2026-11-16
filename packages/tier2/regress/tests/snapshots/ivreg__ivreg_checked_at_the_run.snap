@@ -1,0 +1,148 @@
+---
+source: packages/tier2/regress/tests/ivreg.rs
+expression: "all_of(&borrowed, false)"
+---
+## a bound formula without the instrumented regressor
+let staff = dataset(staff)
+let f = productivity ~ age
+staff.ivreg(f, instruments: training ~ offer)
+
+---
+error[Z0504]: `training` is instrumented but is not a regressor
+ --> scripts/main.zeff:3:7
+  |
+3 | staff.ivreg(f, instruments: training ~ offer)
+  |       ^^^^^ instrumented, missing from the formula
+  |
+  = help: add it to the regressors: `productivity ~ age + training`
+
+## a bound formula whose outcome is given as an instrument
+let staff = dataset(staff)
+let f = productivity ~ training
+staff.ivreg(f, instruments: training ~ productivity + offer)
+
+---
+error[Z0401]: `productivity` is the outcome of the formula and cannot be an instrument
+ --> scripts/main.zeff:3:7
+  |
+3 | staff.ivreg(f, instruments: training ~ productivity + offer)
+  |       ^^^^^ the outcome
+  |
+  = help: `instruments:` names regressors of the formula on the left of `~` and variables outside it on the right; the outcome is neither
+
+## a bound formula whose outcome is instrumented
+let staff = dataset(staff)
+let f = productivity ~ training
+staff.ivreg(f, instruments: productivity ~ offer)
+
+---
+error[Z0401]: `productivity` is the outcome of the formula and cannot be instrumented
+ --> scripts/main.zeff:3:7
+  |
+3 | staff.ivreg(f, instruments: productivity ~ offer)
+  |       ^^^^^ the outcome
+  |
+  = help: `instruments:` names regressors of the formula on the left of `~` and variables outside it on the right; the outcome is neither
+
+## a bound formula that holds an instrument already
+let staff = dataset(staff)
+let f = productivity ~ age + training
+staff.ivreg(f, instruments: training ~ age + offer)
+
+---
+ivreg · productivity ~ age + training
+N = 2,400
+standard errors: classical
+
+  term          estimate   std.error   t value   p value   95% CI
+  (intercept)    51.0791      0.5573     91.65    <0.001   [49.9862, 52.1720]
+  age            -0.0007      0.0110     -0.06     0.949   [-0.0222, 0.0208]
+  training        4.3185      0.4955      8.72    <0.001   [3.3468, 5.2902]
+
+instrumented: training · instruments: offer
+Cragg–Donald F 754.29
+note: `age` is already in the formula, so it is an included instrument and not an excluded one (line 3)
+
+## a bound formula with too few instruments once one is found in it
+let staff = dataset(staff)
+let f = productivity ~ age + training
+staff.ivreg(f, instruments: training ~ age)
+
+---
+note: `age` is already in the formula, so it is an included instrument and not an excluded one (line 3)
+error[Z0804]: the model is under-identified: 0 excluded instruments for 1 instrumented regressor
+ --> scripts/main.zeff:3:7
+  |
+3 | staff.ivreg(f, instruments: training ~ age)
+  |       ^^^^^ fewer instruments than instrumented regressors
+  |
+  = help: each instrumented regressor needs at least one instrument that is not a regressor of the formula
+  = help: `age` is already in the formula, so it is an included instrument and identifies nothing
+
+## a range of instruments
+let staff = dataset(staff)
+staff.ivreg(productivity ~ training, instruments: training ~ offer..distance)
+
+---
+ivreg · productivity ~ training
+N = 2,400
+standard errors: classical
+
+  term          estimate   std.error   t value   p value   95% CI
+  (intercept)    51.0781      0.2718    187.92    <0.001   [50.5451, 51.6111]
+  training        4.2622      0.4918      8.67    <0.001   [3.2978, 5.2266]
+
+instrumented: training · instruments: offer, distance
+Cragg–Donald F 382.02
+
+## a range of instruments that holds the instrumented regressor
+let staff = dataset(staff)
+staff.ivreg(productivity ~ training, instruments: training ~ offer..training)
+
+---
+error[Z0505]: `training` is on both sides of `~` in `instruments:`
+ --> scripts/main.zeff:2:7
+  |
+2 | staff.ivreg(productivity ~ training, instruments: training ~ offer..training)
+  |       ^^^^^ instrumented by itself
+  |
+  = help: an instrument is a variable outside the model that moves the instrumented regressor; a regressor cannot instrument itself
+
+## a range of instrumented regressors with one instrument
+let staff = dataset(staff)
+staff.ivreg(productivity ~ training + tenure, instruments: training..tenure ~ offer)
+
+---
+error[Z0804]: the model is under-identified: 1 excluded instrument for 2 instrumented regressors
+ --> scripts/main.zeff:2:7
+  |
+2 | staff.ivreg(productivity ~ training + tenure, instruments: training..tenure ~ offer)
+  |       ^^^^^ fewer instruments than instrumented regressors
+  |
+  = help: each instrumented regressor needs at least one instrument that is not a regressor of the formula
+
+## a name the frame lacks, in an instrument
+let staff = dataset(staff)
+staff.ivreg(productivity ~ training, instruments: training ~ lottery)
+
+---
+error[Z0101]: no variable `lottery` in `staff`
+ --> scripts/main.zeff:2:62
+  |
+2 | staff.ivreg(productivity ~ training, instruments: training ~ lottery)
+  |                                                              ^^^^^^^ not a variable of staff
+  |
+  = help: the variables of `staff` are: employee, site, region, age, offer, distance, training, tenure and 1 more
+
+## a name the frame lacks, instrumented
+let staff = dataset(staff)
+staff.ivreg(productivity ~ course, instruments: course ~ offer)
+
+---
+error[Z0101]: no variable `course` in `staff`
+ --> scripts/main.zeff:2:28
+  |
+2 | staff.ivreg(productivity ~ course, instruments: course ~ offer)
+  |                            ^^^^^^ not a variable of staff
+  |
+  = help: the variables of `staff` are: employee, site, region, age, offer, distance, training, tenure and 1 more

@@ -5784,3 +5784,25 @@ Done before parts 1 and 2 are read, because those wait for jobs that run for hou
 **Held by.** The stored messages of `time` (four new cases: a number and text given to `hour` and to `year`) and of the engine's column-type paths; the stored printed forms of `ivreg` and its page's example.
 
 **Reason.** The owner's request of 16 November 2026.
+
+## 16 November 2026 — The rest of `ivreg`'s interface (release 0.8.0, step 13c)
+
+**The owner approved the printed form of `ivreg`** on 16 November 2026 ("Approve, continue"): the table in `reg`'s layout, the two lines under it, no R², and the first-stage table above with `first: true`, its F labelled when it stands on robust or clustered errors (step 13b2).
+
+**What already held.** `predict`, `fitted`, `residuals`, `estimates`, `export`, `coef_plot` and `plot` take an `IvFit` as they take any fit, because the fit holds the estimates, the formula and the residuals of the equation as written: `predict` multiplies the regressors as observed by the estimates and adds the effects of `fe:`. A test holds `predict` on the fitted frame to `fitted` and the outcome less it to `residuals`, to rounding.
+
+**`design()`.** Now a method of a `RegFit` or an `IvFit`. For an `IvFit` the frame has the regressors as observed, one variable for each term of the table, then the instruments outside the equation that the first stage kept, then `(weights)` for a weighted fit; under `fe:` each is what the effects leave. The fit is computed again from what it keeps (`ivreg::refit`: the frame by its handle, the formula, the instruments and effects as written, the weights and clusters), as `reg`'s design is; `first_stage` and `ar_test` will read the same.
+
+**`report`.** A table with a fit by instrumental variables has a row `Instruments`, under `Fixed effects`, naming the instruments outside the equation that each such fit used, empty for the others; and that fit's `R²`, `R² within`, `AIC` and `BIC` cells are empty, as its own table prints no R² and its residuals are not those of a likelihood. The row is in the exported table too. This is a printed layout and the owner's to change.
+
+**Moved from step 9, now held.** The checker's pass over the frame's variables refuses a name inside `instruments:` that the frame lacks, before anything runs (it needed no change once `ivreg` was registered). The note for an instrument that is a regressor already is step 13b's. With a formula held in a binding, or a side written as a range, the same rules are applied when the statement runs, with the same codes: Z0504, Z0505, Z0804, and Z0401 for the outcome given as an instrument or instrumented, in the checker's words, which the run did not refuse before this step.
+
+**Conformance.** `models/ivreg` (six scripts on `staff` through the whole engine: the printed forms and the fit read by its interface) and `models/instruments_checked` (ten refusals and notes, at the check and at the run), each digested from several scripts since a refusal ends a script; the identity job compares them on the four targets.
+
+**Truth recovery (nightly).** A hundred draws of the generating model of `staff` with the engine's own generator: the mean two-stage estimate must be within four standard errors of the mean of 4.5 and the 95 per cent intervals, classical and robust, must cover between 88 and 99.5 per cent of the time; least squares on the same draws must overstate the effect. Run once by hand at this step: mean 4.5007, coverage 0.96 and 0.96; least squares 6.13, covering never.
+
+**Not built here.** `influence` and `vif` stay methods of a `RegFit`: leverage for `ivreg` is step 17's, and a variance inflation factor of fitted regressors is not a catalogued function. `compare` of an `IvFit` with a `RegFit` says the models have the same terms; a test of endogeneity is `first_stage`'s (step 14).
+
+**Held by.** `packages/tier2/regress/tests/ivreg.rs` (the interface and the checks at the run, stored); `crates/zeff-engine/tests/export.rs` (the LaTeX of a report beside an instrumented fit); the two conformance cases; `nightly_truth.rs`; the pages of `ivreg` and `design`, each with a new example.
+
+**Reason.** The checklist's step 13c; Language Reference, sections 7.1 and 10.2; open decision #71 for `design`.

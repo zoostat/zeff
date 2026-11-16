@@ -186,6 +186,15 @@ pub fn report(ctx: &mut CallContext<'_>, args: Args) -> Result<Value, Fail> {
             }
         });
     }
+    // The `Instruments` row when any model is fitted by instrumental variables: the
+    // instruments outside the equation that its first stage kept (release 0.8.0, step 13c).
+    if fits.iter().any(|f| f.instrumented.is_some()) {
+        statistic_row("Instruments", &|f| {
+            f.instrumented
+                .as_ref()
+                .map_or(String::new(), |i| i.instruments_kept.join(", "))
+        });
+    }
     statistic_row("SEs", &|f| se_label(&f.se_kind));
     // `R²` is the within R² marked `(within)` for a model with fixed effects, as section 10.2
     // prints it, unless `r_squared_within` has its own row, when `R²` is the overall form.
@@ -193,15 +202,31 @@ pub fn report(ctx: &mut CallContext<'_>, args: Args) -> Result<Value, Fail> {
     for stat in &stats {
         match stat.as_str() {
             "n_obs" => statistic_row("N", &|f| count(f.n as u64)),
+            // A fit by instrumental variables has no R² to report, as its own table has none.
             "r_squared" => statistic_row("R²", &|f| match (f.r_squared_within, within_row) {
+                _ if f.instrumented.is_some() => String::new(),
                 (Some(within), false) => format!("{} (within)", fixed(within, 3)),
                 _ => f.r_squared.map_or("NA".to_string(), |r| fixed(r, 3)),
             }),
             "r_squared_within" => statistic_row("R² within", &|f| {
+                if f.instrumented.is_some() {
+                    return String::new();
+                }
                 f.r_squared_within.map_or(String::new(), |r| fixed(r, 3))
             }),
-            "aic" => statistic_row("AIC", &|f| fixed(information_criteria(f).0, 1)),
-            "bic" => statistic_row("BIC", &|f| fixed(information_criteria(f).1, 1)),
+            // Nor a likelihood: its residuals are not those of a least-squares fit.
+            "aic" => statistic_row("AIC", &|f| {
+                if f.instrumented.is_some() {
+                    return String::new();
+                }
+                fixed(information_criteria(f).0, 1)
+            }),
+            "bic" => statistic_row("BIC", &|f| {
+                if f.instrumented.is_some() {
+                    return String::new();
+                }
+                fixed(information_criteria(f).1, 1)
+            }),
             _ => {}
         }
     }

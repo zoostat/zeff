@@ -120,6 +120,10 @@ regress/event/stdout bbbc9cf165258b77
 regress/event/stderr 40ffab6fe4efdfad
 regress/interface/stdout fd7dbbc7c62d6ee7
 regress/interface/stderr cbf29ce484222325
+models/ivreg/stdout 2c6aa8d411f5eca0
+models/ivreg/stderr 01ec1ac5c3294ea7
+models/instruments_checked/stdout 449797f7817b0896
+models/instruments_checked/stderr ba06c4edfe4c3af9
 control/check/stdout cbf29ce484222325
 control/check/stderr 78f09813226bf7ad
 control/schemas/stdout cbf29ce484222325

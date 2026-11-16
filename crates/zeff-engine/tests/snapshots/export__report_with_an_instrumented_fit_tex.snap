@@ -1,0 +1,23 @@
+---
+source: crates/zeff-engine/tests/export.rs
+expression: tex
+---
+% requires \usepackage{booktabs}
+% 
+\begin{tabular}{lrr}
+\toprule
+ & (1)   & (2)   \\
+\midrule
+age & 0.004    & 0.000    \\
+ & (0.009)   & (0.009)   \\
+training & 5.934*** & 4.582*** \\
+ & (0.208)   & (0.423)   \\
+\midrule
+Fixed effects & site & site \\
+Instruments &  & offer, distance \\
+SEs & classical & robust \\
+N & 2,400 & 2,400 \\
+R\textsuperscript{2} & 0.256 (within) &  \\
+\bottomrule
+\multicolumn{3}{@{}l@{}}{\footnotesize * p $<$ 0.05, ** p $<$ 0.01, *** p $<$ 0.001} \\
+\end{tabular}

@@ -414,3 +414,204 @@ fn fifty_seeds_of_the_two_way_panel_recover_the_slopes() {
         );
     }
 }
+
+/// The generating model of the shipped `staff` data (release 0.8.0, steps 13a and 13c), drawn
+/// with the engine's own generator: twelve sites with the effects of the shipped file, ability
+/// that raises both the take-up of the course and productivity and is not observed, an offer
+/// made by lot, and a course whose effect on productivity is 4.5 in all.
+const STAFF_SEEDS: u64 = 100;
+const STAFF_N: usize = 2400;
+const COURSE_EFFECT: f64 = 4.5;
+const SITE_EFFECTS: [f64; 12] = [
+    0.43, 1.68, -4.76, 3.26, -2.2, -0.06, 1.61, 0.13, 3.03, 0.13, -5.35, -5.56,
+];
+const REGION_SHIFTS: [f64; 4] = [0.0, 0.3, -0.2, 0.4];
+
+fn draw_staff(seed: u64) -> Table {
+    let mut stream = Stream::new(20_261_116 + seed, 1, 0);
+    let (mut site, mut age, mut offer, mut distance, mut training, mut productivity) = (
+        Vec::with_capacity(STAFF_N),
+        Vec::with_capacity(STAFF_N),
+        Vec::with_capacity(STAFF_N),
+        Vec::with_capacity(STAFF_N),
+        Vec::with_capacity(STAFF_N),
+        Vec::with_capacity(STAFF_N),
+    );
+    for _ in 0..STAFF_N {
+        let s = ((stream.uniform() * 12.0) as usize).min(11);
+        let a = 22.0 + (stream.uniform() * 39.0).floor();
+        let ability = normal(&mut stream);
+        let offered = if stream.uniform() < 0.5 { 1.0 } else { 0.0 };
+        let km = (12.0 + 6.0 * normal(&mut stream)).clamp(0.5, 40.0);
+        let u = -1.3 + 2.4 * offered + 0.8 * ability - 0.03 * (a - 40.0) - 0.05 * (km - 12.0)
+            + REGION_SHIFTS[s / 3];
+        let took = if stream.uniform() < 1.0 / (1.0 + zeff_numeric::maths::exp(-u)) {
+            1.0
+        } else {
+            0.0
+        };
+        let tenure = 3.0 + took + (4.0 * stream.uniform() - 2.0);
+        let y = 50.0
+            + 4.0 * took
+            + 0.5 * tenure
+            + 3.0 * ability
+            + SITE_EFFECTS[s]
+            + 4.0 * normal(&mut stream);
+        site.push(Some(s as i64 + 1));
+        age.push(Some(a));
+        offer.push(Some(offered));
+        distance.push(Some(km));
+        training.push(Some(took));
+        productivity.push(Some(y));
+    }
+    Table::new(vec![
+        ("site".to_string(), Column::ints(site)),
+        ("age".to_string(), Column::floats(age).0),
+        ("offer".to_string(), Column::floats(offer).0),
+        ("distance".to_string(), Column::floats(distance).0),
+        ("training".to_string(), Column::floats(training).0),
+        ("productivity".to_string(), Column::floats(productivity).0),
+    ])
+    .expect("columns of one length")
+}
+
+/// `productivity ~ training` with the sites absorbed, by `ivreg` with the offer as the
+/// instrument (`instrumented`) or by `reg`, with standard errors of `kind`.
+fn fit_staff(table: &Table, instrumented: bool, kind: &str) -> Fit {
+    let text = "productivity ~ training";
+    let mut output = String::new();
+    let mut messages: Vec<Diagnostic> = Vec::new();
+    let mut random = Randomness::default();
+    let script = format!("let m = d.ivreg({text})\n");
+    let mut sources = Sources::new();
+    sources.add(Source::new("t.zeff", &script));
+    let mut ctx = CallContext {
+        files: &NoFiles,
+        script: "t.zeff",
+        text: &script,
+        columns_used: Vec::new(),
+        frame: None,
+        group_rows: None,
+        callee_span: Span::new(10, 15),
+        arg_spans: vec![Some(Span::new(8, 9)), Some(Span::new(16, 16 + text.len()))],
+        rest_spans: Vec::new(),
+        definition_spans: Vec::new(),
+        output: &mut output,
+        messages: &mut messages,
+        random: &mut random,
+        statement: 1,
+    };
+    let frame = Some(Value::Frame(Frame::new(table.clone())));
+    let model = Some(Value::Formula(formula(text)));
+    let effects = Some(Value::Terms(zeff_testkit::terms("site")));
+    let se = Some(Value::Word(kind.to_string()));
+    let level = Some(Value::Float(0.95));
+    let result = if instrumented {
+        let instruments = Some(Value::Instruments {
+            endogenous: zeff_testkit::terms("training"),
+            excluded: zeff_testkit::terms("offer"),
+            included: Vec::new(),
+        });
+        zeff_regress::ivreg::ivreg(
+            &mut ctx,
+            Args {
+                values: vec![
+                    frame,
+                    model,
+                    effects,
+                    instruments,
+                    se,
+                    None,
+                    None,
+                    None,
+                    level,
+                    None,
+                ],
+                rest: Vec::new(),
+                definitions: Vec::new(),
+            },
+        )
+    } else {
+        zeff_regress::reg::reg(
+            &mut ctx,
+            Args {
+                values: vec![frame, model, effects, se, None, None, None, level],
+                rest: Vec::new(),
+                definitions: Vec::new(),
+            },
+        )
+    };
+    match result {
+        Ok(Value::Fit(fit)) => (*fit).clone(),
+        Ok(other) => panic!("not a fit: {other:?}"),
+        Err(e) => panic!("{}", e.render(&sources)),
+    }
+}
+
+/// On a hundred draws of the `staff` model, two-stage least squares with the offer as the
+/// instrument recovers the effect of the course: its mean estimate is within four standard
+/// errors of the mean of 4.5, and its 95 per cent intervals, classical and robust, cover 4.5
+/// about 95 per cent of the time. Least squares on the same draws is far from 4.5 and its
+/// intervals almost never cover it, which is what the instrument is for.
+#[test]
+#[ignore = "nightly: 100 draws of the staff model, by two-stage and by ordinary least squares"]
+fn two_stage_least_squares_recovers_the_effect_of_the_course() {
+    let mut failures = Vec::new();
+    let mut estimates = Vec::new();
+    let mut least_squares = Vec::new();
+    let kinds = ["classical", "robust"];
+    let mut covered = [0usize; 2];
+    let mut covered_by_least_squares = 0usize;
+    for seed in 0..STAFF_SEEDS {
+        let table = draw_staff(seed);
+        for (k, kind) in kinds.iter().enumerate() {
+            let fit = fit_staff(&table, true, kind);
+            assert_eq!(fit.kind, "IvFit");
+            assert_eq!(fit.terms, ["training"], "seed {seed}");
+            if k == 0 {
+                estimates.push(fit.estimates[0]);
+            }
+            let (lo, hi) = fit.intervals[0];
+            if lo <= COURSE_EFFECT && COURSE_EFFECT <= hi {
+                covered[k] += 1;
+            }
+        }
+        let ols = fit_staff(&table, false, "classical");
+        least_squares.push(ols.estimates[0]);
+        let (lo, hi) = ols.intervals[0];
+        if lo <= COURSE_EFFECT && COURSE_EFFECT <= hi {
+            covered_by_least_squares += 1;
+        }
+    }
+    let n = estimates.len() as f64;
+    let mean = estimates.iter().sum::<f64>() / n;
+    let variance = estimates.iter().map(|b| (b - mean).powi(2)).sum::<f64>() / (n - 1.0);
+    let z = (mean - COURSE_EFFECT) / (variance / n).sqrt();
+    if z.abs() > 4.0 {
+        failures.push(format!(
+            "the two-stage estimate is biased: mean {mean:.4} against {COURSE_EFFECT} ({z:+.2} standard errors of the mean)"
+        ));
+    }
+    // A hundred intervals: about 95 cover, with room for the Monte Carlo error.
+    for (k, kind) in kinds.iter().enumerate() {
+        let share = covered[k] as f64 / n;
+        if !(0.88..=0.995).contains(&share) {
+            failures.push(format!(
+                "the 95 per cent intervals under {kind} errors cover {share:.3} of the time"
+            ));
+        }
+    }
+    let ols_mean = least_squares.iter().sum::<f64>() / n;
+    if ols_mean - COURSE_EFFECT < 1.0 || covered_by_least_squares as f64 / n > 0.2 {
+        failures.push(format!(
+            "least squares was expected to overstate the effect: mean {ols_mean:.4}, covering {covered_by_least_squares} times"
+        ));
+    }
+    println!(
+        "staff: two-stage mean {mean:.4} ({z:+.2} standard errors of the mean from {COURSE_EFFECT}); coverage classical {:.3}, robust {:.3}; least squares mean {ols_mean:.4}, covering {:.3}",
+        covered[0] as f64 / n,
+        covered[1] as f64 / n,
+        covered_by_least_squares as f64 / n
+    );
+    assert!(failures.is_empty(), "{}", failures.join("\n"));
+}

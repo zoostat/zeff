@@ -456,3 +456,26 @@ fn every_message_of_the_export_of_a_plot() {
     }
     insta::assert_snapshot!("every_message_of_a_plot", text);
 }
+
+/// A `report` of a least-squares fit beside one by instrumental variables, written as LaTeX
+/// (section 7 of the specification's sample script; release 0.8.0, step 13c): the `Instruments`
+/// row is in the file, and the instrumented model has no R² there, as in the printed table.
+#[test]
+fn a_report_beside_an_instrumented_fit_is_written_as_latex() {
+    let (fs, project) = project();
+    let script = "let staff = dataset(staff)\n\
+        let ols = staff.reg(productivity ~ age + training, fe: site)\n\
+        let iv = staff.ivreg(productivity ~ age + training, fe: site, instruments: training ~ offer + distance, se: robust)\n\
+        report([ols, iv]).export(\"output/table_iv.tex\")\n";
+    let (code, stdout, stderr) = go(&fs, &project, script);
+    assert_eq!(code, 0, "{stderr}");
+    assert_eq!(stdout, "");
+    let tex = fs
+        .read_to_string(Path::new("/p/output/table_iv.tex"))
+        .unwrap();
+    insta::assert_snapshot!("report_with_an_instrumented_fit_tex", tex);
+    assert!(
+        tex.contains("Instruments") && tex.contains("offer, distance"),
+        "{tex}"
+    );
+}

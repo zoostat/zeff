@@ -41,7 +41,9 @@ warning says so (W1007).
 An `IvFit`: the table of estimates with their standard errors, t values, p-values and
 confidence intervals, and under it the instrumented regressors, the instruments used and the
 weak-instrument F. It is read as any fit is: `coef`, `std_errors`, `p_values` and `ci` by term,
-`summary` for the table, `test` for hypotheses about the coefficients.
+`summary` for the table, `test` for hypotheses about the coefficients. `predict`, `fitted` and
+`residuals` are those of the equation as written, with the regressors as observed; `design`
+gives the columns, the instruments among them; `report` sets the fit beside others.
 
 ## Missing values
 A row with `NA` in the outcome, a regressor, an instrument, a fixed effect, the weights or the
@@ -122,6 +124,8 @@ and Yogo's, the minimum eigenvalue statistic of Stata's `estat firststage`.
 ## Related tasks
 - To fit the same equation without instruments, for comparison, use `reg`.
 - To set two or more fits side by side in one table, use `report`.
+- To predict the outcome for other rows from the estimated equation, use `predict`.
+- To see the columns the fit was computed on, with the instruments, use `design`.
 - To read one coefficient or its interval from the fit, use `coef` and `ci`.
 - To test a hypothesis about the coefficients, use `test`.
 
@@ -146,7 +150,7 @@ Montiel Olea, J. L. and Pflueger, C. (2013), A robust test for weak instruments,
 Business and Economic Statistics 31(3), 358–369.
 
 ## See also
-reg, report, coef, ci, test
+reg, report, coef, ci, test, predict, design
 
 ## Examples
 // The effect of a training course on productivity: the offer of the course was drawn by lot, so it is an instrument for taking it.
@@ -254,3 +258,17 @@ warning[W1007]: weak instruments: the effective F is 12.05, under its critical v
 > iv.ci(training)
 3.76049
 5.44481
+
+// Beside least squares in one table: the row of instruments marks the instrumented model, which has no R².
+> report([staff.reg(productivity ~ training, fe: site), iv])
+                           (1)         (2)
+  training              5.926***    4.603***
+                       (0.207)     (0.429)
+  ──────────────────────────────────────────
+  Fixed effects             site        site
+  Instruments                          offer
+  SEs                  classical   classical
+  N                        2,400       2,400
+  R²              0.256 (within)
+
+* p < 0.05, ** p < 0.01, *** p < 0.001

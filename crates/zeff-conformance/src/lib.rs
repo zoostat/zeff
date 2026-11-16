@@ -1031,6 +1031,58 @@ fn regress_cases() -> Vec<Line> {
             &outcome.output.stderr,
         ));
     }
+    // Instrumental variables (release 0.8.0, step 13c). `models/ivreg`: two-stage least squares
+    // on the shipped `staff` through the whole engine, one and two instruments, the sites
+    // absorbed, robust and clustered errors, weights, the first stage asked for, and the fit
+    // read by its interface (the coefficients, a prediction, the design, a report beside least
+    // squares). `models/instruments_checked`: what `instruments:` owes the formula, refused
+    // when the script is checked and, for a formula held in a binding or a range, when it
+    // runs; each script stops at its refusal, so the case is several scripts, their output
+    // digested together.
+    let staff = "let staff = dataset(staff)\n";
+    let models: [(&str, &[&str]); 2] = [
+        (
+            "ivreg",
+            &[
+                "staff.ivreg(productivity ~ training, instruments: training ~ offer)\n",
+                "staff.ivreg(productivity ~ age + training, fe: site, instruments: training ~ offer + distance, se: robust, first: true)\n",
+                "staff.ivreg(productivity ~ age + training, instruments: training ~ offer, cluster: site)\n",
+                "staff.ivreg(productivity ~ training, instruments: training ~ offer, weights: tenure, weight_type: analytic, level: 0.99)\n",
+                "staff.ivreg(productivity ~ training, instruments: training ~ distance, se: robust)\n",
+                "let ols = staff.reg(productivity ~ age + training, fe: site)\nlet iv = staff.ivreg(productivity ~ age + training, fe: site, instruments: training ~ offer + distance, se: robust)\niv.coef()\niv.ci(training)\niv.predict(staff.head(3))\niv.design().head(3)\nreport([ols, iv])\n",
+            ],
+        ),
+        (
+            "instruments_checked",
+            &[
+                "staff.ivreg(productivity ~ age, instruments: training ~ offer)\n",
+                "staff.ivreg(productivity ~ training, instruments: training ~ training + offer)\n",
+                "staff.ivreg(productivity ~ training + tenure, instruments: training + tenure ~ offer)\n",
+                "staff.ivreg(productivity ~ training, instruments: productivity ~ offer)\n",
+                "staff.ivreg(productivity ~ training, instruments: training ~ lottery)\n",
+                "staff.ivreg(productivity ~ age + training, instruments: training ~ age + offer)\n",
+                "let f = productivity ~ age\nstaff.ivreg(f, instruments: training ~ offer)\n",
+                "let f = productivity ~ training\nstaff.ivreg(f, instruments: training ~ productivity + offer)\n",
+                "staff.ivreg(productivity ~ training + tenure, instruments: training..tenure ~ offer)\n",
+                "staff.ivreg(productivity ~ training)\n",
+            ],
+        ),
+    ];
+    for (name, scripts) in models {
+        let (mut stdout, mut stderr) = (String::new(), String::new());
+        for script in scripts {
+            let outcome = run_script(
+                &fs,
+                &project,
+                "scripts/main.zeff",
+                &format!("{staff}{script}"),
+            );
+            stdout.push_str(&outcome.output.stdout);
+            stderr.push_str(&outcome.output.stderr);
+        }
+        lines.push(text(&format!("models/{name}/stdout"), &stdout));
+        lines.push(text(&format!("models/{name}/stderr"), &stderr));
+    }
     lines
 }
 

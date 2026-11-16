@@ -1,0 +1,157 @@
+---
+source: packages/tier2/regress/tests/ivreg.rs
+expression: "all_of(&borrowed, false)"
+---
+## predict on new rows
+let staff = dataset(staff)
+let ols = staff.reg(productivity ~ age + training, fe: site)
+let iv = staff.ivreg(productivity ~ age + training, fe: site, instruments: training ~ offer + distance, se: robust)
+let plain = staff.ivreg(productivity ~ age + training, instruments: training ~ offer, weights: tenure, weight_type: analytic)
+iv.predict(staff.head(3))
+
+---
+Column<Float> · 3 values
+59.3387
+53.197
+56.8741
+
+## predict on the fitted frame is fitted, and the outcome less it the residuals
+let staff = dataset(staff)
+let ols = staff.reg(productivity ~ age + training, fe: site)
+let iv = staff.ivreg(productivity ~ age + training, fe: site, instruments: training ~ offer + distance, se: robust)
+let plain = staff.ivreg(productivity ~ age + training, instruments: training ~ offer, weights: tenure, weight_type: analytic)
+let d = staff.add(p = iv.predict(staff), f = iv.fitted(), e = iv.residuals())
+d.add(gap = abs(p - f), left = abs(productivity - f - e)).aggregate(largest_gap = max(gap), largest_left = max(left))
+
+---
+frame · 1 row × 2 variables
+
+      largest_gap   largest_left
+  1   5.68434e-14    3.55271e-15
+
+## the design under fixed effects
+let staff = dataset(staff)
+let ols = staff.reg(productivity ~ age + training, fe: site)
+let iv = staff.ivreg(productivity ~ age + training, fe: site, instruments: training ~ offer + distance, se: robust)
+let plain = staff.ivreg(productivity ~ age + training, instruments: training ~ offer, weights: tenure, weight_type: analytic)
+iv.design().head(3)
+
+---
+frame · 3 rows × 4 variables
+
+           age    training       offer   distance
+  1    -3.5782    0.563981    0.526066   -2.77488
+  2    10.2111   -0.376884   -0.457286    2.81357
+  3   -18.9856    0.578947   -0.478469   -2.29043
+
+## the design with an intercept and weights
+let staff = dataset(staff)
+let ols = staff.reg(productivity ~ age + training, fe: site)
+let iv = staff.ivreg(productivity ~ age + training, fe: site, instruments: training ~ offer + distance, se: robust)
+let plain = staff.ivreg(productivity ~ age + training, instruments: training ~ offer, weights: tenure, weight_type: analytic)
+plain.design().head(3)
+plain.design().n_cols()
+
+---
+frame · 3 rows × 5 variables
+
+      (intercept)   age   training   offer   (weights)
+  1             1    37          1       1     1.55528
+  2             1    51          0       0     1.21595
+  3             1    22          1       0    0.735225
+5
+
+## a report beside least squares
+let staff = dataset(staff)
+let ols = staff.reg(productivity ~ age + training, fe: site)
+let iv = staff.ivreg(productivity ~ age + training, fe: site, instruments: training ~ offer + distance, se: robust)
+let plain = staff.ivreg(productivity ~ age + training, instruments: training ~ offer, weights: tenure, weight_type: analytic)
+report([ols, iv])
+
+---
+                           (1)               (2)
+  age                   0.004             0.000
+                       (0.009)           (0.009)
+  training              5.934***          4.582***
+                       (0.208)           (0.423)
+  ────────────────────────────────────────────────
+  Fixed effects             site              site
+  Instruments                      offer, distance
+  SEs                  classical            robust
+  N                        2,400             2,400
+  R²              0.256 (within)
+
+* p < 0.05, ** p < 0.01, *** p < 0.001
+
+## a report with every statistic
+let staff = dataset(staff)
+let ols = staff.reg(productivity ~ age + training, fe: site)
+let iv = staff.ivreg(productivity ~ age + training, fe: site, instruments: training ~ offer + distance, se: robust)
+let plain = staff.ivreg(productivity ~ age + training, instruments: training ~ offer, weights: tenure, weight_type: analytic)
+report([ols, iv, plain], stats: [n_obs, r_squared, r_squared_within, aic, bic])
+
+---
+                      (1)               (2)         (3)
+  age              0.004             0.000      -0.008
+                  (0.009)           (0.009)     (0.011)
+  training         5.934***          4.582***    4.327***
+                  (0.208)           (0.423)     (0.506)
+  (intercept)                                   51.674***
+                                                (0.586)
+  ───────────────────────────────────────────────────────
+  Fixed effects        site              site        none
+  Instruments                 offer, distance       offer
+  SEs             classical            robust   classical
+  N                   2,400             2,400       2,400
+  R²                  0.407
+  R² within           0.256
+  AIC               14561.9
+  BIC               14648.7
+
+* p < 0.05, ** p < 0.01, *** p < 0.001
+
+## the table and the fit exported, which print nothing
+let staff = dataset(staff)
+let ols = staff.reg(productivity ~ age + training, fe: site)
+let iv = staff.ivreg(productivity ~ age + training, fe: site, instruments: training ~ offer + distance, se: robust)
+let plain = staff.ivreg(productivity ~ age + training, instruments: training ~ offer, weights: tenure, weight_type: analytic)
+report([ols, iv]).export("output/table_iv.tex")
+iv.export("output/iv.docx")
+
+---
+
+## the plot of the coefficients
+let staff = dataset(staff)
+let ols = staff.reg(productivity ~ age + training, fe: site)
+let iv = staff.ivreg(productivity ~ age + training, fe: site, instruments: training ~ offer + distance, se: robust)
+let plain = staff.ivreg(productivity ~ age + training, instruments: training ~ offer, weights: tenure, weight_type: analytic)
+iv.coef_plot()
+
+---
+plot · iv · estimate against term
+
+  axis   title      scale      limits                 breaks
+  x                 category   0.4 to 2.6             training, age
+  y      estimate   linear     -0.290547 to 5.68279   0, 1, 2, 3, 4, 5
+
+  layer   mark        data   marks   settings
+      1   hline       iv         1   at 0, width 0.5, style dashed
+      2   errorbars   iv         2   low ci_lower, high ci_upper, interval ci 0.95, width 0
+      3   points      iv         2   size 4.5, alpha 1
+
+caption: Bars: 95% confidence intervals
+coordinates: flipped, `x` up the side and `y` along the foot
+
+## the estimates as a frame
+let staff = dataset(staff)
+let ols = staff.reg(productivity ~ age + training, fe: site)
+let iv = staff.ivreg(productivity ~ age + training, fe: site, instruments: training ~ offer + distance, se: robust)
+let plain = staff.ivreg(productivity ~ age + training, instruments: training ~ offer, weights: tenure, weight_type: analytic)
+iv.estimates()
+
+---
+frame · 2 rows × 9 variables
+
+      term           estimate    std_error   statistic     df   df2       p_value     ci_lower    ci_upper
+  1   age        -0.000480692   0.00946022   -0.050812   2386    NA       0.95948   -0.0190318   0.0180704
+  2   training        4.58159     0.423103     10.8285   2386    NA   1.04216e-26       3.7519     5.41128

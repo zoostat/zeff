@@ -221,3 +221,101 @@ fn the_fit_is_read_as_any_fit() {
     );
     insta::assert_snapshot!("ivreg_r_squared_refused", refused);
 }
+
+/// The rest of the interface (step 13c): `predict` from the equation as written with the
+/// regressors as observed, which on the fitted frame is `fitted`; `residuals`; `design()` with
+/// the regressors as observed and the instruments kept; `report` beside a `reg` fit, with its
+/// `Instruments` row and no R² for the instrumented model; `export`; and the plots.
+#[test]
+fn the_rest_of_the_interface() {
+    let start = "let staff = dataset(staff)\n\
+        let ols = staff.reg(productivity ~ age + training, fe: site)\n\
+        let iv = staff.ivreg(productivity ~ age + training, fe: site, instruments: training ~ offer + distance, se: robust)\n\
+        let plain = staff.ivreg(productivity ~ age + training, instruments: training ~ offer, weights: tenure, weight_type: analytic)\n";
+    let cases = [
+        ("predict on new rows", "iv.predict(staff.head(3))"),
+        (
+            "predict on the fitted frame is fitted, and the outcome less it the residuals",
+            "let d = staff.add(p = iv.predict(staff), f = iv.fitted(), e = iv.residuals())\nd.add(gap = abs(p - f), left = abs(productivity - f - e)).aggregate(largest_gap = max(gap), largest_left = max(left))",
+        ),
+        ("the design under fixed effects", "iv.design().head(3)"),
+        (
+            "the design with an intercept and weights",
+            "plain.design().head(3)\nplain.design().n_cols()",
+        ),
+        ("a report beside least squares", "report([ols, iv])"),
+        (
+            "a report with every statistic",
+            "report([ols, iv, plain], stats: [n_obs, r_squared, r_squared_within, aic, bic])",
+        ),
+        (
+            "the table and the fit exported, which print nothing",
+            "report([ols, iv]).export(\"output/table_iv.tex\")\niv.export(\"output/iv.docx\")",
+        ),
+        ("the plot of the coefficients", "iv.coef_plot()"),
+        ("the estimates as a frame", "iv.estimates()"),
+    ];
+    let scripts: Vec<(&str, String)> = cases
+        .iter()
+        .map(|(what, call)| (*what, format!("{start}{call}\n")))
+        .collect();
+    let borrowed: Vec<(&str, &str)> = scripts.iter().map(|(w, s)| (*w, s.as_str())).collect();
+    insta::assert_snapshot!("ivreg_interface", all_of(&borrowed, false));
+}
+
+/// What the checker cannot count is checked when the statement runs (moved from step 9): a
+/// formula held in a binding, and a side of `instruments:` written as a range. The same codes,
+/// and the checker's own words where it has them. A name the frame lacks is refused before
+/// anything runs, by `zeff check`'s pass over the variables.
+#[test]
+fn the_checks_made_at_the_run() {
+    let staff = "let staff = dataset(staff)\n";
+    let cases = [
+        (
+            "a bound formula without the instrumented regressor",
+            "let f = productivity ~ age\nstaff.ivreg(f, instruments: training ~ offer)",
+        ),
+        (
+            "a bound formula whose outcome is given as an instrument",
+            "let f = productivity ~ training\nstaff.ivreg(f, instruments: training ~ productivity + offer)",
+        ),
+        (
+            "a bound formula whose outcome is instrumented",
+            "let f = productivity ~ training\nstaff.ivreg(f, instruments: productivity ~ offer)",
+        ),
+        (
+            "a bound formula that holds an instrument already",
+            "let f = productivity ~ age + training\nstaff.ivreg(f, instruments: training ~ age + offer)",
+        ),
+        (
+            "a bound formula with too few instruments once one is found in it",
+            "let f = productivity ~ age + training\nstaff.ivreg(f, instruments: training ~ age)",
+        ),
+        (
+            "a range of instruments",
+            "staff.ivreg(productivity ~ training, instruments: training ~ offer..distance)",
+        ),
+        (
+            "a range of instruments that holds the instrumented regressor",
+            "staff.ivreg(productivity ~ training, instruments: training ~ offer..training)",
+        ),
+        (
+            "a range of instrumented regressors with one instrument",
+            "staff.ivreg(productivity ~ training + tenure, instruments: training..tenure ~ offer)",
+        ),
+        (
+            "a name the frame lacks, in an instrument",
+            "staff.ivreg(productivity ~ training, instruments: training ~ lottery)",
+        ),
+        (
+            "a name the frame lacks, instrumented",
+            "staff.ivreg(productivity ~ course, instruments: course ~ offer)",
+        ),
+    ];
+    let scripts: Vec<(&str, String)> = cases
+        .iter()
+        .map(|(what, call)| (*what, format!("{staff}{call}\n")))
+        .collect();
+    let borrowed: Vec<(&str, &str)> = scripts.iter().map(|(w, s)| (*w, s.as_str())).collect();
+    insta::assert_snapshot!("ivreg_checked_at_the_run", all_of(&borrowed, false));
+}

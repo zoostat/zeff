@@ -176,6 +176,30 @@ impl Designs {
         effects: Option<&[Term]>,
     ) -> Result<(Designs, Option<Projection>), Fail> {
         let columns: Vec<String> = frame.table.names().to_vec();
+        // The outcome is no instrument and is not instrumented: the checker says so where it
+        // reads the formula, and the run where the formula was held in a binding.
+        if let Some(outcome) = &formula.outcome {
+            for (term, role) in endogenous
+                .iter()
+                .map(|t| (t, "instrumented"))
+                .chain(excluded.iter().map(|t| (t, "an instrument")))
+            {
+                if term.text == outcome.text {
+                    return Err(fail(
+                        Diagnostic::error(
+                            "Z0401",
+                            format!(
+                                "`{}` is the outcome of the formula and cannot be {role}",
+                                term.text
+                            ),
+                        )
+                        .in_file(ctx.script)
+                        .primary(ctx.callee_span, "the outcome")
+                        .help("`instruments:` names regressors of the formula on the left of `~` and variables outside it on the right; the outcome is neither"),
+                    ));
+                }
+            }
+        }
         // Each design drops the rows with `NA` in the other's variables too.
         let of_terms = |terms: &[Term], outcome: Option<&Term>| -> Vec<String> {
             formula_variables(

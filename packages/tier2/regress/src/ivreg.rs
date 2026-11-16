@@ -493,3 +493,57 @@ pub fn ivreg(ctx: &mut CallContext<'_>, args: Args) -> Result<Value, Fail> {
     }));
     Ok(Value::Fit(Rc::new(value)))
 }
+
+/// The two stages of a fit, computed again from what the fit keeps (open decision #71, as
+/// `design` does for `reg`): the same frame, formula, instruments, weights, clusters and fixed
+/// effects, through the steps `ivreg` took, so that the rows and the columns are the fit's.
+/// What the steps say on the way was said when the fit was made and is not said again. `None`
+/// for a fit that keeps no source or is not one of `ivreg`.
+pub(crate) fn refit(
+    ctx: &mut CallContext<'_>,
+    fit: &zeff_core::value::Fit,
+) -> Option<Result<(TwoStage, Option<Projection>), Fail>> {
+    let source = fit.source.as_ref()?;
+    let instrumented = fit.instrumented.as_ref()?;
+    let extra: Vec<&str> = source
+        .weights
+        .iter()
+        .chain(source.cluster.iter())
+        .map(String::as_str)
+        .collect();
+    let weight_kind = fit
+        .weight_kind
+        .unwrap_or(zeff_numeric::order::WeightKind::Sampling);
+    let weighting = source.weights.as_deref().map(|name| (name, weight_kind));
+    let mut given = instrumented.excluded.clone();
+    given.extend(instrumented.included.iter().cloned());
+    let said = std::mem::take(ctx.messages);
+    let built = if instrumented.effects.is_empty() {
+        Designs::build(
+            ctx,
+            &source.frame,
+            &fit.model,
+            &instrumented.endogenous,
+            &given,
+            &extra,
+            weighting,
+        )
+        .map(|designs| (designs, None))
+    } else {
+        Designs::build_absorbing(
+            ctx,
+            &source.frame,
+            &fit.model,
+            &instrumented.endogenous,
+            &given,
+            &extra,
+            weighting,
+            &instrumented.effects,
+        )
+        .map(|(designs, projection)| (designs, Some(projection)))
+    };
+    let fitted =
+        built.and_then(|(designs, projection)| estimate(ctx, designs).map(|two| (two, projection)));
+    *ctx.messages = said;
+    Some(fitted)
+}

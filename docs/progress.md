@@ -161,3 +161,13 @@ The merges decided during 0.7.0, each old name refused with its rewrite: step 8g
 **Next.** Step 13c `[function]`: the rest of `ivreg`'s interface.
 
 **For the owner to decide.** The printed form of `ivreg`. Open decisions #149 and #150. The story of `staff`. Whether to add `ivDiag` by hand.
+
+## 16 November 2026, release 0.8.0, step 13c (the rest of `ivreg`'s interface)
+
+**Done.** You approved the printed form of `ivreg`. Step 13c `[function]`: `iv.design()` gives the regressors as observed and the instruments; `report([ols, iv])` has a row naming the instruments and leaves the instrumented model's R² empty; `predict`, `residuals`, `export` and the plots work on the fit as on any other. A formula held in a name, or instruments written as a range, are checked when the statement runs, and the outcome given as an instrument is refused. Two conformance cases compare `ivreg` across the four targets. The nightly test draws the `staff` model a hundred times: the estimate averages 4.5007 against a truth of 4.5 and its intervals cover 96 per cent of the time.
+
+**Green.** Format, clippy with warnings denied, the tier, message and grammar checks, every test of the workspace; CI read after the push.
+
+**Next.** Step 14 `[function]`: `first_stage`, the first-stage tables with the partial R², the F statistics, Hansen's J and the Durbin–Wu–Hausman test.
+
+**For the owner to decide.** The `Instruments` row of `report` and the empty R² cell are a printed layout, yours to change. Open decisions #149 and #150. The story of `staff`. Whether to add `ivDiag` by hand.

@@ -9,7 +9,7 @@ error[Z0401]: `design` cannot be called on a Frame
 2 | d.design()
   | ^ this is a Frame
   |
-  = help: `design` takes a RegFit first; `x.design(...)` is `design(x, ...)`
+  = help: `design` takes a RegFit or IvFit first; `x.design(...)` is `design(x, ...)`
 
 == of_a_number
 error[Z0401]: `design` cannot be called on an Int
@@ -18,7 +18,7 @@ error[Z0401]: `design` cannot be called on an Int
 2 | k.design()
   | ^ this is an Int
   |
-  = help: `design` takes a RegFit first; `x.design(...)` is `design(x, ...)`
+  = help: `design` takes a RegFit or IvFit first; `x.design(...)` is `design(x, ...)`
 
 == of_a_test
 error[Z0401]: `design` cannot be called on a TestResult
@@ -27,7 +27,7 @@ error[Z0401]: `design` cannot be called on a TestResult
 2 | d.t_test(y).design()
   | ^^^^^^^^^^^ this is a TestResult
   |
-  = help: `design` takes a RegFit first; `x.design(...)` is `design(x, ...)`
+  = help: `design` takes a RegFit or IvFit first; `x.design(...)` is `design(x, ...)`
 
 == with_an_argument
 error[Z0407]: `design` takes 0 arguments, but more were given

@@ -216,14 +216,6 @@ pub fn design(ctx: &mut CallContext<'_>, args: Args) -> Result<Value, Fail> {
             .primary(ctx.callee_span, "the call that failed"),
         )
     };
-    let Some(built) = crate::reg::design_of(ctx, &fit) else {
-        return Err(unbuilt(ctx, "the fit keeps no frame"));
-    };
-    let built = built?;
-    // The design built again is the fit's own: the same rows, in the same order.
-    if built.rows != fit.rows {
-        return Err(unbuilt(ctx, "its rows are not the fit's"));
-    }
     let full = |values: &[f64]| -> Column {
         let mut all: Vec<Option<f64>> = vec![None; fit.frame_rows];
         for (i, &row) in fit.rows.iter().enumerate() {
@@ -232,6 +224,52 @@ pub fn design(ctx: &mut CallContext<'_>, args: Args) -> Result<Value, Fail> {
         Column::floats(all).0
     };
     let mut columns: Vec<(String, Column)> = Vec::new();
+    // A fit by instrumental variables: the regressors as observed, each term of the table,
+    // then the instruments outside the equation that the first stage kept (release 0.8.0,
+    // step 13c).
+    if fit.kind == "IvFit" {
+        let Some(again) = crate::ivreg::refit(ctx, &fit) else {
+            return Err(unbuilt(ctx, "the fit keeps no frame"));
+        };
+        let (two, _) = again?;
+        let designs = &two.designs;
+        if designs.structural.rows != fit.rows {
+            return Err(unbuilt(ctx, "its rows are not the fit's"));
+        }
+        for term in &fit.terms {
+            let Some(at) = designs
+                .structural
+                .names
+                .iter()
+                .position(|name| name == term)
+            else {
+                return Err(unbuilt(ctx, "a term of the fit is not a column of it"));
+            };
+            columns.push((term.clone(), full(&designs.structural.column_values(at))));
+        }
+        for &i in two.first.iter().flat_map(|first| &first.kept) {
+            let column = designs.instruments[i];
+            if matches!(column, crate::iv::Column::Excluded(_)) {
+                columns.push((
+                    designs.name(column).to_string(),
+                    full(&designs.values(column)),
+                ));
+            }
+        }
+        if let Some(weights) = &fit.weights {
+            columns.push((DESIGN_WEIGHTS.to_string(), full(weights)));
+        }
+        let table = Table::new(columns).map_err(|e| unbuilt(ctx, &format!("{e:?}")))?;
+        return Ok(Value::Frame(Frame::new(table)));
+    }
+    let Some(built) = crate::reg::design_of(ctx, &fit) else {
+        return Err(unbuilt(ctx, "the fit keeps no frame"));
+    };
+    let built = built?;
+    // The design built again is the fit's own: the same rows, in the same order.
+    if built.rows != fit.rows {
+        return Err(unbuilt(ctx, "its rows are not the fit's"));
+    }
     for term in &fit.terms {
         let Some(at) = built.names.iter().position(|name| name == term) else {
             return Err(unbuilt(ctx, "a term of the fit is not a column of it"));
