@@ -49,7 +49,7 @@ error[Z0401]: `d` of `year` must be a Date or a DateTime, but this is a column o
 2 | d.plot(x: year(c), y: n).points()
   |           ^^^^^^^ a column of Category
   |
-  = help: a function given a column applies to every row, and the rows must be of a type it takes; `to(x, Int)` gives the positions of a category's levels and `to(x, Str)` their labels
+  = help: a function given a column applies to every row, and the rows must be of a type it takes; `date(to(x, Str))` reads a category's labels as dates
 --- text in add
 error[Z0401]: `s` of `upper` must be a Str, but this is a column of Int
  --> scripts/main.zeff:2:17
@@ -57,7 +57,7 @@ error[Z0401]: `s` of `upper` must be a Str, but this is a column of Int
 2 | d.add(y = upper(n))
   |                 ^ a column of Int
   |
-  = help: a function given a column applies to every row, and the rows must be of a type it takes; `to(x, Str)` writes a value as text and `to(x, Float)` reads one
+  = help: a function given a column applies to every row, and the rows must be of a type it takes; `to(x, Str)` writes a value as text
 --- shipped data
 error[Z0401]: `x` of `log` must be a Float, but this is a column of Category
  --> scripts/main.zeff:2:15

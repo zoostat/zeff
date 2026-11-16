@@ -151,3 +151,13 @@ The merges decided during 0.7.0, each old name refused with its rewrite: step 8g
 **Next.** Step 13c `[function]`: the rest of `ivreg`'s interface (`predict`, `residuals`, `design()`, `export`, `report` beside `reg` fits, the plots), its conformance case and the items moved from step 9.
 
 **For the owner to decide.** The printed form of `ivreg`. Open decisions #149 and #150. The story of `staff`. Whether to add `ivDiag` by hand.
+
+## 16 November 2026, release 0.8.0, step 13b2 (two messages)
+
+**Done.** Two suggestions of yours, passed on from the session that ran the finished steps against R. `hour(educ)` on a numeric column is now pointed to `datetime(x, epoch: seconds)`, and each such refusal names the conversion that suits what the function wants. The F under a first-stage table of `ivreg` now says "(robust)" or "(clustered by site)" when it stands on such errors. That session found every figure of the finished steps equal to R's.
+
+**Green.** Format, clippy with warnings denied, the tier, message and grammar checks, every test of the workspace; CI read after the push.
+
+**Next.** Step 13c `[function]`: the rest of `ivreg`'s interface.
+
+**For the owner to decide.** The printed form of `ivreg`. Open decisions #149 and #150. The story of `staff`. Whether to add `ivDiag` by hand.

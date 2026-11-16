@@ -329,7 +329,51 @@ error[Z0401]: `dt` of `minute` must be a DateTime, but this is a column of Date
 2 | f.add(m = minute(d))
   |                  ^ a column of Date
   |
-  = help: a function given a column applies to every row, and the rows must be of a type it takes; `year`, `month` and the other functions of `time` read a date's parts as numbers
+  = help: a function given a column applies to every row, and the rows must be of a type it takes; a Date holds no time of day; `datetime` reads a date and time from text or from Unix time
+
+let f = frame(n = [1700000000, 1700003600])
+f.add(h = hour(n))
+---
+error[Z0401]: `dt` of `hour` must be a DateTime, but this is a column of Int
+ --> scripts/main.zeff:2:16
+  |
+2 | f.add(h = hour(n))
+  |                ^ a column of Int
+  |
+  = help: a function given a column applies to every row, and the rows must be of a type it takes; `datetime(x, epoch: seconds)` reads a number of seconds since 1970 as a date and time
+
+let f = frame(t = ["2026-10-16 09:30:00"])
+f.add(h = hour(t))
+---
+error[Z0401]: `dt` of `hour` must be a DateTime, but this is a column of Str
+ --> scripts/main.zeff:2:16
+  |
+2 | f.add(h = hour(t))
+  |                ^ a column of Str
+  |
+  = help: a function given a column applies to every row, and the rows must be of a type it takes; `datetime(x)` reads a date and time written as text
+
+let f = frame(n = [20261016, 20261017])
+f.add(y = year(n))
+---
+error[Z0401]: `d` of `year` must be a Date or a DateTime, but this is a column of Int
+ --> scripts/main.zeff:2:16
+  |
+2 | f.add(y = year(n))
+  |                ^ a column of Int
+  |
+  = help: a function given a column applies to every row, and the rows must be of a type it takes; `date(year, month, day)` makes a date of three numbers, and `datetime(x, epoch: seconds)` reads a number of seconds since 1970
+
+let f = frame(t = ["2026-10-16"])
+f.add(y = year(t))
+---
+error[Z0401]: `d` of `year` must be a Date or a DateTime, but this is a column of Str
+ --> scripts/main.zeff:2:16
+  |
+2 | f.add(y = year(t))
+  |                ^ a column of Str
+  |
+  = help: a function given a column applies to every row, and the rows must be of a type it takes; `date(x)` reads a date written as text, and `datetime(x)` a date and time
 
 second("09:30:07")
 ---
@@ -545,7 +589,7 @@ error[Z0401]: `s` of `date` must be a Str or an Int, but this is a column of Flo
 2 | f.add(d = date(y, m))
   |                ^ a column of Float
   |
-  = help: a function given a column applies to every row, and the rows must be of a type it takes; `to(x, Str)` writes a value as text and `to(x, Float)` reads one
+  = help: a function given a column applies to every row, and the rows must be of a type it takes; `to(x, Int)` reads a Float column of whole numbers as an Int
 
 start_of(date("2026-10-16"), "month")
 ---

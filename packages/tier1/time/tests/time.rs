@@ -794,6 +794,12 @@ fn every_message() {
         // `epoch:` and a number without it; both options at once; a word that is no unit.
         "hour(date(\"2026-10-16\"))\n",
         "let f = frame(d = [date(\"2026-10-16\")])\nf.add(m = minute(d))\n",
+        // A number, or text, where a date and time is needed: the help names the conversion
+        // that reads one (the owner's suggestion of 16 November 2026).
+        "let f = frame(n = [1700000000, 1700003600])\nf.add(h = hour(n))\n",
+        "let f = frame(t = [\"2026-10-16 09:30:00\"])\nf.add(h = hour(t))\n",
+        "let f = frame(n = [20261016, 20261017])\nf.add(y = year(n))\n",
+        "let f = frame(t = [\"2026-10-16\"])\nf.add(y = year(t))\n",
         "second(\"09:30:07\")\n",
         "datetime(\"2026-10-16\", epoch: seconds)\n",
         "datetime(20261016)\n",

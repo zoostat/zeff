@@ -30,7 +30,7 @@ first stage · training ~ age + offer + distance · fe: site
   offer        0.4841      0.0176     27.50    <0.001   [0.4496, 0.5187]
   distance    -0.0059      0.0015     -3.95    <0.001   [-0.0088, -0.0029]
 
-F of the excluded instruments 396.58 on 2 and 2,385 degrees of freedom
+F of the excluded instruments 396.58 on 2 and 2,385 degrees of freedom (robust)
 
 ivreg · productivity ~ age + training · fe: site
 N = 2,400 (no singletons)

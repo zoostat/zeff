@@ -215,6 +215,60 @@ fn with_articles(ty: &str) -> String {
     }
 }
 
+/// The conversion that would make a column fit a parameter, for the help line of Z0401: chosen
+/// by the type the parameter wants where that names one conversion (a date and time from Unix
+/// time or from text, a date from text or from its parts, whole numbers from a Float, text from
+/// anything), and by the column's own type otherwise (numbers from text, from a category, from a
+/// Bool, from a date).
+fn conversion_for(wanted: &str, column: ColumnType) -> &'static str {
+    let wants = |name: &str| wanted.split('|').any(|part| part.trim() == name);
+    let numeric = matches!(column, ColumnType::Int | ColumnType::Float);
+    if wants("Date") && wants("DateTime") && numeric {
+        return "`date(year, month, day)` makes a date of three numbers, and `datetime(x, epoch: seconds)` reads a number of seconds since 1970";
+    }
+    if wants("Date") && wants("DateTime") && column == ColumnType::Str {
+        return "`date(x)` reads a date written as text, and `datetime(x)` a date and time";
+    }
+    if wants("DateTime") && numeric {
+        return "`datetime(x, epoch: seconds)` reads a number of seconds since 1970 as a date and time";
+    }
+    if wants("DateTime") && column == ColumnType::Str {
+        return "`datetime(x)` reads a date and time written as text";
+    }
+    if wants("DateTime") && !wants("Date") && column == ColumnType::Date {
+        return "a Date holds no time of day; `datetime` reads a date and time from text or from Unix time";
+    }
+    if wants("Date") && numeric {
+        return "`date(year, month, day)` makes a date of three numbers";
+    }
+    if wants("Date") && column == ColumnType::Str {
+        return "`date(x)` reads a date written as text";
+    }
+    if wants("DateTime") && !wants("Date") && column == ColumnType::Category {
+        return "`datetime(to(x, Str))` reads a category's labels as dates and times";
+    }
+    if wants("Date") && column == ColumnType::Category {
+        return "`date(to(x, Str))` reads a category's labels as dates";
+    }
+    if wants("Int") && !wants("Float") && column == ColumnType::Float {
+        return "`to(x, Int)` reads a Float column of whole numbers as an Int";
+    }
+    if wants("Str") && !wants("Int") && !wants("Float") && column != ColumnType::Str {
+        return "`to(x, Str)` writes a value as text";
+    }
+    match column {
+        ColumnType::Str => "`to(x, Float)` or `to(x, Int)` reads numbers written as text",
+        ColumnType::Category => {
+            "`to(x, Int)` gives the positions of a category's levels and `to(x, Str)` their labels"
+        }
+        ColumnType::Bool => "`to(x, Int)` gives 1 for true and 0 for false",
+        ColumnType::Date | ColumnType::DateTime => {
+            "`year`, `month` and the other functions of `time` read a date's parts as numbers"
+        }
+        _ => "`to(x, Str)` writes a value as text and `to(x, Float)` reads one",
+    }
+}
+
 /// Z0401: a column of a type the parameter does not take, refused before any row runs (open
 /// decision #108: what R and Stata do, and what the checker does for one value), with the
 /// conversion that would make it fit.
@@ -227,17 +281,7 @@ fn wrong_column(ctx: &CallContext<'_>, params: Params<'_>, i: usize, column: Col
         .copied()
         .flatten()
         .unwrap_or(ctx.callee_span);
-    let conversion = match column {
-        ColumnType::Str => "`to(x, Float)` or `to(x, Int)` reads numbers written as text",
-        ColumnType::Category => {
-            "`to(x, Int)` gives the positions of a category's levels and `to(x, Str)` their labels"
-        }
-        ColumnType::Bool => "`to(x, Int)` gives 1 for true and 0 for false",
-        ColumnType::Date | ColumnType::DateTime => {
-            "`year`, `month` and the other functions of `time` read a date's parts as numbers"
-        }
-        _ => "`to(x, Str)` writes a value as text and `to(x, Float)` reads one",
-    };
+    let conversion = conversion_for(ty, column);
     fail(
         Diagnostic::error(
             "Z0401",

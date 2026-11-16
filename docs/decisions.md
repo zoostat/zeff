@@ -5772,3 +5772,15 @@ Done before parts 1 and 2 are read, because those wait for jobs that run for hou
 **Held by.** `packages/tier2/regress/tests/ivreg.rs`, through the engine: a stored snapshot of the printed result in nine forms; the model of section 7 of the specification's sample script on Card's data, with fixest's figures; twenty-one notes and refusals; the fit read by the methods of every fit, and `r_squared` refused. The page's examples run with the engine's build check.
 
 **Reason.** Language Reference, sections 4, 7.1 and 10.2; the owner's answer to question 3; the checklist's step 13b.
+
+## 16 November 2026 — Two messages made more useful (release 0.8.0, step 13b2)
+
+**Where they came from.** The owner had the finished steps of 0.8.0 run against R in another session, outside the repository (`~/dev/handbook/zeff-0.8.0-examples`). Every figure matched R: `variance_test`, `reg`, `bin`, the date functions, `fill_missing`, `running` and `row`, and `ivreg`'s estimates, errors, intervals, Cragg–Donald F, Kleibergen–Paap F, effective F and critical values. Two messages were found wanting, and he asked that they be passed on.
+
+**Z0401, a column of a type a parameter does not take (step 6).** The help line chose its advice by the column's type alone, so `w.add(h = hour(educ))` was told that `to(x, Str)` writes text and `to(x, Float)` reads it. It now looks first at the type the parameter wants: a number where a date and time is wanted is pointed to `datetime(x, epoch: seconds)`, text to `datetime(x)`; where a date or a date and time is wanted, to `date(year, month, day)` or `date(x)` as well; a Date where a time of day is wanted is told that a Date holds none; a category of date labels to `date(to(x, Str))`; a Float where an Int is wanted to `to(x, Int)`; anything where text alone is wanted to `to(x, Str)`. Where the wanted type names no single conversion (a number wanted), the advice goes by the column's type as before. The message's first line and its code are unchanged.
+
+**The F under a first-stage table of `ivreg` (step 13b).** With `se: robust` the line read "F of the excluded instruments 396.58 on 2 and 2,385 degrees of freedom", and 396.58 is the Wald form on the robust errors, where the classical F is 386.05. The line now ends "(robust)", "(robust, hc2)", "(robust, hc3)" or "(clustered by site)" when the errors are not classical, and is unchanged when they are.
+
+**Held by.** The stored messages of `time` (four new cases: a number and text given to `hour` and to `year`) and of the engine's column-type paths; the stored printed forms of `ivreg` and its page's example.
+
+**Reason.** The owner's request of 16 November 2026.

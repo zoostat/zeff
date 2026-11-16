@@ -458,8 +458,17 @@ pub fn ivreg(ctx: &mut CallContext<'_>, args: Args) -> Result<Value, Fail> {
                     .summary;
             table.before = Vec::new();
             let f = if weak.robust { weak.wald[q] } else { weak.f[q] };
+            // The F is the Wald form on the fit's standard errors, and says so when they are
+            // not the classical ones, so that it is not read against a classical F.
+            let on = match kind {
+                Kind::Classical => String::new(),
+                Kind::Hc1 => " (robust)".to_string(),
+                Kind::Hc2 => " (robust, hc2)".to_string(),
+                Kind::Hc3 => " (robust, hc3)".to_string(),
+                Kind::Cluster => format!(" (clustered by {})", cluster.as_deref().unwrap_or("")),
+            };
             table.after = vec![format!(
-                "F of the excluded instruments {} on {} and {} degrees of freedom",
+                "F of the excluded instruments {} on {} and {} degrees of freedom{on}",
                 f.map_or("not available".to_string(), two_decimals),
                 count(weak.df1 as u64),
                 count(if kind == Kind::Cluster {

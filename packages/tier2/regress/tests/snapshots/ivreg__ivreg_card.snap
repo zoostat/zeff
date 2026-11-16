@@ -22,7 +22,7 @@ first stage · educ ~ exper + exper^2 + black + nearc4 · fe: region
   black      -0.9172      0.0928     -9.89    <0.001   [-1.0991, -0.7354]
   nearc4      0.4511      0.0782      5.77    <0.001   [0.2978, 0.6044]
 
-F of the excluded instruments 33.30 on 1 and 2,997 degrees of freedom
+F of the excluded instruments 33.30 on 1 and 2,997 degrees of freedom (robust)
 
 ivreg · lwage ~ exper + exper^2 + black + educ · fe: region
 N = 3,010 (no singletons)
