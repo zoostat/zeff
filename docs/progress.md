@@ -160,7 +160,7 @@ Step 9: the checker reads `instruments: educ ~ nearc4` and refuses its mistakes 
 
 **Done.** Step 17 `[engine]`: with one effect in `fe:`, `se: hc2`, `se: hc3` (in `reg` and `ivreg`), `influence()` and the warning W1006 work as without `fe:`; the leverage is the demeaned columns' plus the row's share of its level. On `wagepan` with the person absorbed the HC2 and HC3 errors, the leverages, Cook's distances and studentized residuals equal R's on the model with 545 indicators written out, to eight digits. With several effects the three are refused in words that name release 1.1. The known-issues entry and the pages of `reg`, `ivreg` and `influence` say so.
 
-**Green.** Format, clippy with warnings denied, the tier, message and grammar checks, every test of the workspace; CI read after the push.
+**Green.** Format, clippy with warnings denied, the tier, message and grammar checks, every test of the workspace. CI not yet read: see step 18.
 
 **Next.** Step 18 `[function]`: the sample `instruments` and section 7 of the specification's script.
 
@@ -170,8 +170,8 @@ Step 9: the checker reads `instruments: educ ~ nearc4` and refuses its mistakes 
 
 **Done.** Step 18 `[function]`: the sample project `samples/instruments` on `staff`, from the regression that misleads (5.93) through the instrumented fit (4.60, the truth being 4.5), two instruments, a weak instrument with the Anderson–Rubin set, to the exported table; section 7 of the specification's script runs whole on Card's data in its own test. `zeff selftest` counts 525 cases. Block C (instrumental variables) is complete.
 
-**Green.** Format, clippy with warnings denied, the tier, message and grammar checks, every test of the workspace; CI read after the push.
+**Green.** Format, clippy with warnings denied, the tier, message and grammar checks, every test of the workspace, locally. CI is not yet read for steps 17 (103bc4d) and 18 (8f8c45a): GitHub held both runs in its queue from 12:03 UTC, during a service incident it reported from 11:59, and they had not started at 12:50 when the session stopped at the owner's word. The CI of step 16 (f536adf) is green.
 
-**Next.** Step 19 `[engine]`: `zeff explain`.
+**Next.** First read the CI runs of 103bc4d and 8f8c45a, and the scheduled run queued on f536adf. Then step 19 `[engine]`: `zeff explain`.
 
 **For the owner to decide.** The printed forms of `first_stage` and `ar_test` and the `Instruments` row of `report`. Open decisions #149 and #150. The story of `staff`. Whether to add `ivDiag` and `ivmodel` by hand.
