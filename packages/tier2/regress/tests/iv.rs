@@ -14,7 +14,8 @@ use zeff_data::csv::{CsvOptions, read_csv};
 use zeff_diagnostics::{Diagnostic, Source, Sources, Span};
 use zeff_numeric::order::WeightKind;
 use zeff_regress::iv::{
-    Column as ModelColumn, Designs, Diagnostics, Projection, TwoStage, Weak, estimate,
+    AndersonRubin, Column as ModelColumn, Designs, Diagnostics, Projection, Shape, TwoStage, Weak,
+    estimate,
 };
 use zeff_regress::ols::Ols;
 use zeff_results::absorb::EffectGroups;
@@ -174,6 +175,22 @@ fn diagnostics_of(
     in_context(table, model, |ctx, fit, projection| {
         let clusters = cluster.map(|name| clusters_of(table, &fit, name));
         fit.diagnostics(ctx, kind, clusters.as_ref(), projection.as_ref())
+    })
+    .unwrap_or_else(|e| panic!("{e}"))
+    .0
+}
+
+/// The Anderson–Rubin test of a model and its confidence set at `level`.
+fn anderson_rubin_of(
+    table: &Table,
+    model: &Model<'_>,
+    kind: Kind,
+    cluster: Option<&str>,
+    level: f64,
+) -> AndersonRubin {
+    in_context(table, model, |ctx, fit, projection| {
+        let clusters = cluster.map(|name| clusters_of(table, &fit, name));
+        fit.anderson_rubin(ctx, kind, clusters.as_ref(), projection.as_ref(), level)
     })
     .unwrap_or_else(|e| panic!("{e}"))
     .0
@@ -1267,6 +1284,124 @@ fn a_diagnostic_that_cannot_be_computed_is_not() {
     assert_eq!(test.statistic, None);
 }
 
+// ----- the Anderson–Rubin test and set -----
+
+/// The Anderson–Rubin statistic and the confidence set against `ar.json` (base R: the classical
+/// set by its quadratic, the robust and clustered ones by a search over regressions): an
+/// interval, two rays (the weaker instrument alone), the whole line (a small sample with the
+/// weaker instrument), an empty set (two instruments that disagree, at a low level), a wide
+/// interval at a level of 0.999, with the region absorbed, with weights, with clusters, and
+/// the joint test alone for two instrumented regressors. An end of a set is held to 1e-6 of
+/// its size; the text of every set is stored.
+#[test]
+fn the_anderson_rubin_sets_agree_with_r() {
+    let text = std::fs::read_to_string(root().join("tests/reference/r/ar.json")).unwrap();
+    let reference: Json = serde_json::from_str(&text).unwrap();
+    let cases = reference["cases"].as_object().unwrap();
+    assert_eq!(cases.len(), 10);
+    let mut all = String::new();
+    for (name, case) in cases {
+        let mut data = reference_data(case["data"].as_str().unwrap());
+        if name == "card_first_400" {
+            data = data.take_rows(&(0..400).collect::<Vec<_>>());
+        }
+        let weights = case["weights"].as_str().map(|w| (w, WeightKind::Analytic));
+        let level = number(&case["level"]);
+        for (kind_name, theirs) in case["kinds"].as_object().unwrap() {
+            let (kind, cluster) = match kind_name.as_str() {
+                "classical" => (Kind::Classical, None),
+                "hc1" => (Kind::Hc1, None),
+                other => (Kind::Cluster, Some(other)),
+            };
+            let asked = Model {
+                formula: case["formula"].as_str().unwrap(),
+                endogenous: case["endogenous"].as_str().unwrap(),
+                instruments: case["instruments"].as_str().unwrap(),
+                fe: case["fe"].as_str(),
+                weights,
+                cluster,
+                ..Model::default()
+            };
+            let found = anderson_rubin_of(&data, &asked, kind, cluster, level);
+            let what = format!("{name}, {kind_name}");
+            let statistic = found
+                .statistic
+                .unwrap_or_else(|| panic!("{what}: no statistic"));
+            let want = number(&theirs["statistic"]);
+            assert!(
+                close(statistic, want, 1e-7, 0.0),
+                "{what}: {statistic} against {want}"
+            );
+            assert_eq!(found.df1 as u64, case["df1"].as_u64().unwrap(), "{what}");
+            assert_eq!(found.df2 as u64, theirs["df2"].as_u64().unwrap(), "{what}");
+            let Some(shape) = theirs["shape"].as_str() else {
+                assert_eq!(found.set, None, "{what}: no set for several regressors");
+                all.push_str(&format!("{what}: F = {statistic:.4}, no set\n"));
+                continue;
+            };
+            let set = found.set.unwrap_or_else(|| panic!("{what}: no set"));
+            let ours = match set.shape() {
+                Shape::Interval => "interval",
+                Shape::TwoRays => "two rays",
+                Shape::WholeLine => "whole line",
+                Shape::Empty => "empty",
+                Shape::Other => "other",
+            };
+            assert_eq!(ours, shape, "{what}: {:?}", set.pieces);
+            let ends: Vec<f64> = set
+                .pieces
+                .iter()
+                .flat_map(|(lo, hi)| [*lo, *hi])
+                .filter(|e| e.is_finite())
+                .collect();
+            let theirs_ends = numbers(&theirs["ends"]);
+            assert_eq!(ends.len(), theirs_ends.len(), "{what}");
+            for (a, b) in ends.iter().zip(&theirs_ends) {
+                assert!(
+                    close(*a, *b, 1e-6, 0.0),
+                    "{what}: an end at {a} against {b}"
+                );
+            }
+            all.push_str(&format!(
+                "{what}: F = {statistic:.4}, {shape} {}\n",
+                set.pieces
+                    .iter()
+                    .map(|(lo, hi)| format!("[{lo:.5}, {hi:.5}]"))
+                    .collect::<Vec<_>>()
+                    .join(" and ")
+            ));
+        }
+    }
+    insta::assert_snapshot!("anderson_rubin_sets", all);
+}
+
+/// On the shipped `staff`, where the offer is a strong instrument, the Anderson–Rubin set is an
+/// interval close to the usual one, 4.60 ± 1.96 × 0.43, and holds the estimate; with nothing
+/// instrumented there is no test.
+#[test]
+fn a_strong_instrument_gives_a_set_close_to_the_usual_interval() {
+    let staff = zeff_datasets::table("staff").expect("the shipped staff");
+    let asked = Model {
+        fe: Some("site"),
+        ..model("productivity ~ training", "training", "offer")
+    };
+    let found = anderson_rubin_of(&staff, &asked, Kind::Classical, None, 0.95);
+    let set = found.set.unwrap();
+    assert_eq!(set.shape(), Shape::Interval);
+    let (lo, hi) = set.pieces[0];
+    assert!(lo < 4.602_651_8 && 4.602_651_8 < hi);
+    assert!((lo - (4.6027 - 1.961 * 0.4295)).abs() < 0.03, "{lo}");
+    assert!((hi - (4.6027 + 1.961 * 0.4295)).abs() < 0.03, "{hi}");
+    let none = anderson_rubin_of(
+        &staff,
+        &model("productivity ~ training", "", ""),
+        Kind::Hc1,
+        None,
+        0.95,
+    );
+    assert_eq!((none.statistic, none.set), (None, None));
+}
+
 // ----- the edge cases of the handbook -----
 
 /// A small frame with a regressor that needs an instrument: `x` moves with `z1` and `z2` and
@@ -1878,6 +2013,45 @@ proptest! {
             // With one instrumented regressor Shea's partial R² is the partial R².
             prop_assert!(close(a.partial[0].unwrap(), a.shea[0].unwrap(), 1e-8, 1e-12));
             prop_assert_eq!(a.over_identification.unwrap().hansen, kind != Kind::Classical);
+        }
+    }
+
+    /// The Anderson–Rubin set holds the two-stage estimate when the instruments are strong, is
+    /// wider at a higher level, and is in the outcome's units: an outcome times seven has a
+    /// set seven times as far out, and a regressor in other units a set in those.
+    #[test]
+    fn the_anderson_rubin_set_holds_the_estimate_and_follows_the_units(values in rows()) {
+        let t = frame_of(&values);
+        let plain = model("y ~ w + x", "x", "z1 + z2");
+        let (base, _) = fit(&t, &plain).unwrap();
+        prop_assume!(well_identified(&base));
+        let scaled = model("(y * 7) ~ w + (x * 0.5)", "(x * 0.5)", "(z1 * 1e5) + z2");
+        for kind in [Kind::Classical, Kind::Hc1] {
+            let strength = weak_of(&t, &plain, kind, None);
+            prop_assume!(strength.wald[0].is_some_and(|f| f > 30.0));
+            let a = anderson_rubin_of(&t, &plain, kind, None, 0.95);
+            let b = anderson_rubin_of(&t, &scaled, kind, None, 0.95);
+            let wider = anderson_rubin_of(&t, &plain, kind, None, 0.99);
+            prop_assert!(close(a.statistic.unwrap(), b.statistic.unwrap(), 1e-7, 1e-10));
+            let (sa, sb, sw) = (a.set.unwrap(), b.set.unwrap(), wider.set.unwrap());
+            prop_assert_eq!(sa.shape(), sb.shape());
+            if sa.shape() == Shape::Interval && sw.shape() == Shape::Interval {
+                let estimate = base.fitted.estimates[2];
+                // The set need not hold the estimate when the instruments disagree; when it is
+                // an interval at both levels the wider holds the narrower.
+                prop_assert!(sw.pieces[0].0 <= sa.pieces[0].0 && sa.pieces[0].1 <= sw.pieces[0].1);
+                if a.statistic.unwrap() > 0.0 {
+                    let (lo, hi) = sa.pieces[0];
+                    let j = diagnostics_of(&t, &plain, kind, None).over_identification.unwrap().statistic.unwrap();
+                    if j < 1.0 {
+                        prop_assert!(lo <= estimate && estimate <= hi, "{} outside [{}, {}]", estimate, lo, hi);
+                    }
+                }
+                for ((x, y), _) in sa.pieces.iter().zip(&sb.pieces).zip(0..1) {
+                    prop_assert!(close(x.0 * 14.0, y.0, 1e-6, 1e-9), "{} against {}", x.0 * 14.0, y.0);
+                    prop_assert!(close(x.1 * 14.0, y.1, 1e-6, 1e-9), "{} against {}", x.1 * 14.0, y.1);
+                }
+            }
         }
     }
 

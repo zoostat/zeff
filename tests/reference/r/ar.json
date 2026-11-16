@@ -1,0 +1,344 @@
+{
+ "reference": {
+  "software": "R version 4.6.0 (2026-04-24)",
+  "note": "the Anderson-Rubin test and set written out in base R; 17 significant digits"
+ },
+ "cases": {
+  "card_over": {
+   "data": "card",
+   "formula": "lwage ~ exper + expersq + black + south + smsa + educ",
+   "endogenous": "educ",
+   "instruments": "nearc4 + nearc2",
+   "level": "0.94999999999999996",
+   "df1": 2,
+   "kinds": {
+    "classical": {
+     "statistic": "7.1550188060980391",
+     "df2": 3002,
+     "p_value": "0.00079432376835632116",
+     "shape": "interval",
+     "ends": [
+      "0.086343744361194519",
+      "0.31655908841220959"
+     ]
+    },
+    "hc1": {
+     "statistic": "7.2674803597057531",
+     "df2": 3002,
+     "p_value": "0.00071021469278284338",
+     "shape": "interval",
+     "ends": [
+      "0.084968395434442318",
+      "0.313588441481088"
+     ]
+    },
+    "age": {
+     "statistic": "10.192709229564979",
+     "df2": 10,
+     "p_value": "0.0038607696585158746",
+     "shape": "interval",
+     "ends": [
+      "0.13517126133667925",
+      "0.22537640340551449"
+     ]
+    }
+   }
+  },
+  "card_over_low_level": {
+   "data": "card",
+   "formula": "lwage ~ exper + expersq + black + south + smsa + educ",
+   "endogenous": "educ",
+   "instruments": "nearc4 + nearc2",
+   "level": "0.59999999999999998",
+   "df1": 2,
+   "kinds": {
+    "classical": {
+     "statistic": "7.1550188060980391",
+     "df2": 3002,
+     "p_value": "0.00079432376835632116",
+     "shape": "empty",
+     "ends": []
+    },
+    "hc1": {
+     "statistic": "7.2674803597057531",
+     "df2": 3002,
+     "p_value": "0.00071021469278284338",
+     "shape": "empty",
+     "ends": []
+    }
+   }
+  },
+  "card_over_high_level": {
+   "data": "card",
+   "formula": "lwage ~ exper + expersq + black + south + smsa + educ",
+   "endogenous": "educ",
+   "instruments": "nearc4 + nearc2",
+   "level": "0.999",
+   "df1": 2,
+   "kinds": {
+    "classical": {
+     "statistic": "7.1550188060980391",
+     "df2": 3002,
+     "p_value": "0.00079432376835632116",
+     "shape": "interval",
+     "ends": [
+      "0.0048818726480107325",
+      "0.79529183563378092"
+     ]
+    },
+    "hc1": {
+     "statistic": "7.2674803597057531",
+     "df2": 3002,
+     "p_value": "0.00071021469278284338",
+     "shape": "interval",
+     "ends": [
+      "0.0067330165724227252",
+      "0.76623040343603954"
+     ]
+    }
+   }
+  },
+  "card_just": {
+   "data": "card",
+   "formula": "lwage ~ exper + expersq + black + south + smsa + educ",
+   "endogenous": "educ",
+   "instruments": "nearc4",
+   "level": "0.94999999999999996",
+   "df1": 1,
+   "kinds": {
+    "classical": {
+     "statistic": "6.8811083133008655",
+     "df2": 3003,
+     "p_value": "0.0087552076564182714",
+     "shape": "interval",
+     "ends": [
+      "0.038398600766767307",
+      "0.2611836536338516"
+     ]
+    },
+    "hc1": {
+     "statistic": "7.4218728286006739",
+     "df2": 3003,
+     "p_value": "0.0064808896640491283",
+     "shape": "interval",
+     "ends": [
+      "0.041513016174540278",
+      "0.26034256217513391"
+     ]
+    },
+    "age": {
+     "statistic": "4.5312988618096171",
+     "df2": 10,
+     "p_value": "0.059152176198908966",
+     "shape": "interval",
+     "ends": [
+      "-0.010519309416394019",
+      "0.21016476030180722"
+     ]
+    }
+   }
+  },
+  "card_weak": {
+   "data": "card",
+   "formula": "lwage ~ exper + expersq + black + south + smsa + educ",
+   "endogenous": "educ",
+   "instruments": "nearc2",
+   "level": "0.94999999999999996",
+   "df1": 1,
+   "kinds": {
+    "classical": {
+     "statistic": "8.111133178225705",
+     "df2": 3003,
+     "p_value": "0.0044293341105395359",
+     "shape": "two rays",
+     "ends": [
+      "-1.4605852722530066",
+      "0.11885683532796201"
+     ]
+    },
+    "hc1": {
+     "statistic": "7.9894340010347147",
+     "df2": 3003,
+     "p_value": "0.0047362385122227844",
+     "shape": "two rays",
+     "ends": [
+      "-1.3941908284870452",
+      "0.11732835941771204"
+     ]
+    },
+    "age": {
+     "statistic": "18.937866646009603",
+     "df2": 10,
+     "p_value": "0.0014395890360074973",
+     "shape": "two rays",
+     "ends": [
+      "-0.30049330967763088",
+      "0.15639844943318312"
+     ]
+    }
+   }
+  },
+  "card_first_400": {
+   "data": "card",
+   "formula": "lwage ~ exper + expersq + black + south + smsa + educ",
+   "endogenous": "educ",
+   "instruments": "nearc2",
+   "level": "0.94999999999999996",
+   "df1": 1,
+   "kinds": {
+    "classical": {
+     "statistic": "0.0042060587360991924",
+     "df2": 393,
+     "p_value": "0.94832311502050903",
+     "shape": "whole line",
+     "ends": []
+    },
+    "hc1": {
+     "statistic": "0.0043805666077562635",
+     "df2": 393,
+     "p_value": "0.94726351879615767",
+     "shape": "whole line",
+     "ends": []
+    }
+   }
+  },
+  "card_fe": {
+   "data": "card",
+   "formula": "lwage ~ exper + expersq + black + smsa + educ",
+   "endogenous": "educ",
+   "instruments": "nearc4 + nearc2",
+   "level": "0.94999999999999996",
+   "df1": 2,
+   "kinds": {
+    "classical": {
+     "statistic": "6.7259438673230409",
+     "df2": 2995,
+     "p_value": "0.0012175869014596425",
+     "shape": "interval",
+     "ends": [
+      "0.076617710753583937",
+      "0.35824041246470417"
+     ]
+    },
+    "hc1": {
+     "statistic": "6.9625467333540172",
+     "df2": 2995,
+     "p_value": "0.00096208213261229393",
+     "shape": "interval",
+     "ends": [
+      "0.076351469991902565",
+      "0.35393449025157631"
+     ]
+    },
+    "age": {
+     "statistic": "12.379383567551843",
+     "df2": 10,
+     "p_value": "0.0019709616773137305",
+     "shape": "interval",
+     "ends": [
+      "0.12055274492824494",
+      "0.25391197312024916"
+     ]
+    }
+   },
+   "fe": "region"
+  },
+  "card_analytic": {
+   "data": "card",
+   "formula": "lwage ~ exper + expersq + black + south + smsa + educ",
+   "endogenous": "educ",
+   "instruments": "nearc4 + nearc2",
+   "level": "0.94999999999999996",
+   "df1": 2,
+   "kinds": {
+    "classical": {
+     "statistic": "12.052698763800906",
+     "df2": 3002,
+     "p_value": "6.1162218300580308e-06",
+     "shape": "interval",
+     "ends": [
+      "0.12843876618229233",
+      "0.37310728144031152"
+     ]
+    },
+    "hc1": {
+     "statistic": "9.2728565257166782",
+     "df2": 3002,
+     "p_value": "9.6658047895912912e-05",
+     "shape": "interval",
+     "ends": [
+      "0.11167899662072271",
+      "0.42506910559870931"
+     ]
+    }
+   },
+   "weights": "weight",
+   "weight_type": "analytic"
+  },
+  "card_two_endogenous": {
+   "data": "card",
+   "formula": "lwage ~ black + south + smsa + educ + KWW",
+   "endogenous": "educ + KWW",
+   "instruments": "nearc4 + nearc2 + fatheduc + motheduc",
+   "level": "0.94999999999999996",
+   "df1": 4,
+   "kinds": {
+    "classical": {
+     "statistic": "8.2931423015558998",
+     "df2": 2183,
+     "p_value": "1.2298430617106281e-06"
+    },
+    "hc1": {
+     "statistic": "7.1846769912879207",
+     "df2": 2183,
+     "p_value": "9.5837799096363821e-06"
+    },
+    "age": {
+     "statistic": "25.553966332088056",
+     "df2": 10,
+     "p_value": "3.1215349377156083e-05"
+    }
+   }
+  },
+  "wage2_siblings": {
+   "data": "wage2",
+   "formula": "lwage ~ exper + tenure + educ",
+   "endogenous": "educ",
+   "instruments": "sibs + brthord",
+   "level": "0.94999999999999996",
+   "df1": 2,
+   "kinds": {
+    "classical": {
+     "statistic": "10.560717590576358",
+     "df2": 847,
+     "p_value": "2.94979011088505e-05",
+     "shape": "interval",
+     "ends": [
+      "0.072523415868592109",
+      "0.2335567953871909"
+     ]
+    },
+    "hc1": {
+     "statistic": "12.347589039973577",
+     "df2": 847,
+     "p_value": "5.1784251170463731e-06",
+     "shape": "interval",
+     "ends": [
+      "0.077167847857240013",
+      "0.22513636292378525"
+     ]
+    },
+    "age": {
+     "statistic": "16.487717748863723",
+     "df2": 10,
+     "p_value": "0.00068217934884485805",
+     "shape": "interval",
+     "ends": [
+      "0.083037389907720638",
+      "0.23653867252428015"
+     ]
+    }
+   }
+  }
+ }
+}

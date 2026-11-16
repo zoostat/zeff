@@ -133,3 +133,15 @@ Step 9: the checker reads `instruments: educ ~ nearc4` and refuses its mistakes 
 **Next.** Step 15 `[engine]`: the Anderson–Rubin test and confidence set.
 
 **For the owner to decide.** The printed form of `first_stage` and the `Instruments` row of `report` are layouts, yours to change. Open decisions #149 and #150. The story of `staff`. Whether to add `ivDiag` and `ivmodel` by hand (step 15 would use `ivmodel`).
+
+## 16 November 2026, release 0.8.0, step 15 (the Anderson–Rubin test and set)
+
+**Done.** Step 15 `[engine]`: the Anderson–Rubin test, which holds however weak the instruments, and the confidence set of the values it does not reject. On Card's data with both proximity indicators the set for the return to schooling is 0.086 to 0.317, against the usual interval of about 0.06 to 0.26; with the weaker indicator alone it is two rays, and on the first 400 rows the whole line: the data cannot bound the effect, and the set says so. Ten cases agree with R within 1e-6. Nothing a script can call changed: `ar_test` is next.
+
+**Not available.** `ivmodel` would have been the package reference; it cannot be installed from a session. The sets are held to two independent computations in base R.
+
+**Green.** Format, clippy with warnings denied, the tier, message and grammar checks, every test of the workspace; CI read after the push.
+
+**Next.** Step 16 `[function]`: `ar_test`, the function, its printed result and its page.
+
+**For the owner to decide.** The printed form of `first_stage` and the `Instruments` row of `report`. Open decisions #149 and #150. The story of `staff`. Whether to add `ivDiag` and `ivmodel` by hand.

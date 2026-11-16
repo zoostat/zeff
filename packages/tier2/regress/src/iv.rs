@@ -1674,6 +1674,402 @@ impl TwoStage {
     }
 }
 
+/// A confidence set on the line: its pieces in ascending order, each a closed interval, an end
+/// at −∞ or +∞ for a ray. No piece is the empty set; one piece from −∞ to +∞ the whole line.
+#[derive(Debug, Clone, PartialEq)]
+pub struct ConfidenceSet {
+    pub pieces: Vec<(f64, f64)>,
+}
+
+/// The shapes a confidence set of the Anderson–Rubin test takes.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum Shape {
+    Interval,
+    TwoRays,
+    WholeLine,
+    Empty,
+    /// Anything else: one ray, or several pieces, which a set under robust errors with several
+    /// instruments can be.
+    Other,
+}
+
+impl ConfidenceSet {
+    pub fn shape(&self) -> Shape {
+        match self.pieces.as_slice() {
+            [] => Shape::Empty,
+            [(lo, hi)] if lo.is_infinite() && hi.is_infinite() => Shape::WholeLine,
+            [(lo, hi)] if lo.is_finite() && hi.is_finite() => Shape::Interval,
+            [(a, b), (c, d)]
+                if a.is_infinite() && b.is_finite() && c.is_finite() && d.is_infinite() =>
+            {
+                Shape::TwoRays
+            }
+            _ => Shape::Other,
+        }
+    }
+}
+
+/// The Anderson–Rubin test (release 0.8.0, step 15; the owner's answer to question 3(c)): the
+/// test that the coefficients of the instrumented regressors are zero, valid however weak the
+/// instruments, and for one instrumented regressor the set of values the test does not reject.
+#[derive(Debug, Clone, PartialEq)]
+pub struct AndersonRubin {
+    /// The statistic at zero: the F of the excluded instruments in the regression of the
+    /// outcome on the instruments, or its Wald form over `df1` on the variance asked for.
+    pub statistic: Option<f64>,
+    pub df1: usize,
+    /// N less the instruments and the absorbed parameters, or the clusters less one.
+    pub df2: usize,
+    /// The value of F on `df1` and `df2` degrees of freedom that the statistic exceeds with
+    /// probability one less the level.
+    pub critical: f64,
+    /// The confidence set at the level, for one instrumented regressor; `None` with several,
+    /// or where it cannot be computed.
+    pub set: Option<ConfidenceSet>,
+}
+
+/// The value an F variable on `d1` and `d2` degrees of freedom exceeds with probability `upper`.
+pub fn f_upper_point(d1: f64, d2: f64, upper: f64) -> f64 {
+    // d1 F / (d1 F + d2) is Beta(d1/2, d2/2).
+    let x = zeff_numeric::special::incomplete_beta_inverse(d1 / 2.0, d2 / 2.0, upper, true);
+    d2 * x / (d1 * (1.0 - x))
+}
+
+/// The values b with a b² + b1 b + c ≤ 0, as a confidence set.
+fn quadratic_set(a: f64, b1: f64, c: f64) -> ConfidenceSet {
+    let whole = vec![(f64::NEG_INFINITY, f64::INFINITY)];
+    if a == 0.0 {
+        // A line: one ray, or all or nothing.
+        let pieces = if b1 == 0.0 {
+            if c <= 0.0 { whole } else { Vec::new() }
+        } else if b1 > 0.0 {
+            vec![(f64::NEG_INFINITY, -c / b1)]
+        } else {
+            vec![(-c / b1, f64::INFINITY)]
+        };
+        return ConfidenceSet { pieces };
+    }
+    let discriminant = b1 * b1 - 4.0 * a * c;
+    if discriminant < 0.0 || (discriminant == 0.0 && a < 0.0) {
+        // No root, or the parabola touches zero from below: all of the line when it opens
+        // downwards, none of it when upwards.
+        return ConfidenceSet {
+            pieces: if a < 0.0 { whole } else { Vec::new() },
+        };
+    }
+    // The roots without cancellation: the larger in size first, the other from the product.
+    let q = -0.5 * (b1 + b1.signum() * discriminant.sqrt());
+    let (r1, r2) = if q == 0.0 { (0.0, 0.0) } else { (q / a, c / q) };
+    let (lo, hi) = (r1.min(r2), r1.max(r2));
+    ConfidenceSet {
+        pieces: if a > 0.0 {
+            vec![(lo, hi)]
+        } else {
+            vec![(f64::NEG_INFINITY, lo), (hi, f64::INFINITY)]
+        },
+    }
+}
+
+impl TwoStage {
+    /// The Anderson–Rubin test, with the confidence set at `level` when one regressor is
+    /// instrumented, on the variance of `kind`; `projection` when the model has fixed effects.
+    ///
+    /// The statistic at a value b of the coefficient is the test of the excluded instruments in
+    /// the regression of the outcome less b times the regressor on the instruments. Its
+    /// coefficients are those of the outcome's regression less b times the first stage's, and
+    /// their variance the outcome's less b times the two covariances plus b² times the first
+    /// stage's, so the statistic at every b comes from the joint variance of the two
+    /// regressions. Under classical errors, and with one excluded instrument under any, the
+    /// set is the solution of a quadratic inequality; otherwise its ends are found by a
+    /// bracketed search over the statistic's crossings of the critical value.
+    pub fn anderson_rubin(
+        &self,
+        ctx: &mut CallContext<'_>,
+        kind: Kind,
+        clusters: Option<&Clusters>,
+        projection: Option<&Projection>,
+        level: f64,
+    ) -> Result<AndersonRubin, Fail> {
+        let designs = &self.designs;
+        let nothing = |df1: usize, df2: usize, critical: f64| AndersonRubin {
+            statistic: None,
+            df1,
+            df2,
+            critical,
+            set: None,
+        };
+        let Some(first) = &self.first else {
+            return Ok(nothing(0, 0, f64::NAN));
+        };
+        let excluded: Vec<usize> = (0..first.kept.len())
+            .filter(|&e| matches!(designs.instruments[first.kept[e]], Column::Excluded(_)))
+            .collect();
+        let m = excluded.len();
+        let plain = projection.map_or(0, |p| p.parameters(None));
+        let absorbed = projection.map_or(0, |p| p.parameters(clusters));
+        let n = match designs.structural.weight_kind {
+            Some(WeightKind::Frequency) => designs.structural.weight_total(),
+            _ => designs.structural.n() as f64,
+        };
+        let classical_df = n - (first.kept.len() + plain) as f64;
+        let df2 = match (kind, clusters) {
+            (Kind::Cluster, Some(c)) => c.count.saturating_sub(1),
+            _ => classical_df.max(0.0) as usize,
+        };
+        if m == 0 || df2 == 0 || classical_df <= 0.0 {
+            return Ok(nothing(m, df2, f64::NAN));
+        }
+        let critical = f_upper_point(m as f64, df2 as f64, 1.0 - level);
+        let said = ctx.messages.len();
+        let stages = match self.first_stages(ctx) {
+            Ok(stages) => stages,
+            Err(e) if e.code == "Z9001" => return Err(e),
+            Err(_) => {
+                ctx.messages.truncate(said);
+                return Ok(nothing(m, df2, critical));
+            }
+        };
+        let (Some(stage), Some(outcome)) = (stages.first(), designs.structural.outcome()) else {
+            return Ok(nothing(m, df2, critical));
+        };
+        // The regression of the outcome on the instruments: the reduced form.
+        let names: Vec<String> = stage.design.names.clone();
+        let columns: Vec<Rc<Vec<f64>>> = first
+            .kept
+            .iter()
+            .map(|&i| Rc::new(designs.values(designs.instruments[i])))
+            .collect();
+        let reduced_design = designs.structural.with_model(
+            names,
+            columns,
+            Rc::new(outcome),
+            &designs.structural.outcome_name().unwrap_or_default(),
+            designs.structural.leverage_available(),
+        );
+        let reduced = match Ols.fit(ctx, &reduced_design) {
+            Ok(fit) => fit,
+            Err(e) if e.code == "Z9001" => return Err(e),
+            Err(_) => {
+                ctx.messages.truncate(said);
+                return Ok(nothing(m, df2, critical));
+            }
+        };
+        if reduced.kept.len() != first.kept.len() {
+            return Ok(nothing(m, df2, critical));
+        }
+        let bread = Ols.bread(&reduced);
+        let own_bread = block(&bread, &excluded);
+        let by_instrument: Vec<f64> = (0..m).map(|i| own_bread.get(i, i)).collect();
+        if by_instrument.iter().any(|d| !(*d > 0.0 && d.is_finite())) {
+            return Ok(nothing(m, df2, critical));
+        }
+        let by_instrument: Vec<f64> = by_instrument.iter().map(|d| 1.0 / d.sqrt()).collect();
+        let coefficients = |fit: &Fitted, scale: f64| -> Vec<f64> {
+            excluded
+                .iter()
+                .zip(&by_instrument)
+                .map(|(&e, d)| fit.estimates[e] * d * scale)
+                .collect()
+        };
+        let one_regressor = designs.endogenous.len() == 1;
+        // The joint variance of the outcome's regression and, with one instrumented regressor,
+        // its first stage.
+        let mut fits: Vec<&Fitted> = vec![&reduced];
+        if one_regressor {
+            fits.push(&stage.fitted);
+        }
+        let joint = match variance::joint_variance(
+            kind,
+            &Ols,
+            &reduced_design,
+            &fits,
+            &bread,
+            clusters,
+            if kind == Kind::Classical {
+                plain
+            } else {
+                absorbed
+            },
+        ) {
+            Ok(v) => v,
+            Err(VarianceError::Asymmetric) => {
+                return Err(internal(
+                    ctx,
+                    "an asymmetric variance of the Anderson–Rubin test",
+                ));
+            }
+            Err(_) => return Ok(nothing(m, df2, critical)),
+        };
+        let kept = first.kept.len();
+        // The block of the joint variance for two of the regressions, on the excluded
+        // instruments, in the scaled units.
+        let part = |a: usize, b: usize, scale: f64| -> Matrix {
+            Matrix::from_fn(m, m, |i, j| {
+                joint.get(a * kept + excluded[i], b * kept + excluded[j])
+                    * by_instrument[i]
+                    * by_instrument[j]
+                    * scale
+            })
+        };
+        // Each regression's residual standard deviation scales its side.
+        let spread = |fit: &Fitted| (fit.residual_sum_of_squares / classical_df).sqrt();
+        let sd_y = spread(&reduced);
+        if !(sd_y > 0.0 && sd_y.is_finite()) {
+            return Ok(nothing(m, df2, critical));
+        }
+        let pi_y = coefficients(&reduced, 1.0 / sd_y);
+        let v_yy = part(0, 0, 1.0 / (sd_y * sd_y));
+        let statistic = quadratic_form(&v_yy, &pi_y).map(|w| w / m as f64);
+        if !one_regressor {
+            return Ok(AndersonRubin {
+                statistic,
+                df1: m,
+                df2,
+                critical,
+                set: None,
+            });
+        }
+        let sd_x = spread(&stage.fitted);
+        if !(sd_x > 0.0 && sd_x.is_finite()) {
+            return Ok(AndersonRubin {
+                statistic,
+                df1: m,
+                df2,
+                critical,
+                set: None,
+            });
+        }
+        let pi_x = coefficients(&stage.fitted, 1.0 / sd_x);
+        let v_xx = part(1, 1, 1.0 / (sd_x * sd_x));
+        let v_yx = part(0, 1, 1.0 / (sd_y * sd_x));
+        let v_xy = part(1, 0, 1.0 / (sd_y * sd_x));
+        // The statistic at b, in the scaled units, less the critical value.
+        let excess = |b: f64| -> Option<f64> {
+            let u: Vec<f64> = pi_y.iter().zip(&pi_x).map(|(y, x)| y - b * x).collect();
+            let v = Matrix::from_fn(m, m, |i, j| {
+                v_yy.get(i, j) - b * (v_yx.get(i, j) + v_xy.get(i, j)) + b * b * v_xx.get(i, j)
+            });
+            quadratic_form(&v, &u).map(|w| w / m as f64 - critical)
+        };
+        let scaled: Option<ConfidenceSet> = if kind == Kind::Classical {
+            // (q_yy − 2b q_yx + b² q_xx) − m c (σ_yy − 2b σ_yx + b² σ_xx) ≤ 0, with q the
+            // quadratic forms of the coefficients in the inverse of the instruments' bread and
+            // σ the residual covariances, which the scaling has made 1, the correlation and 1.
+            let scaled_bread = Matrix::from_fn(m, m, |i, j| {
+                own_bread.get(i, j) * by_instrument[i] * by_instrument[j]
+            });
+            let sum: Vec<f64> = pi_y.iter().zip(&pi_x).map(|(y, x)| y + x).collect();
+            (|| {
+                let q_yy = quadratic_form(&scaled_bread, &pi_y)?;
+                let q_xx = quadratic_form(&scaled_bread, &pi_x)?;
+                let q_yx = 0.5 * (quadratic_form(&scaled_bread, &sum)? - q_yy - q_xx);
+                let correlation =
+                    dot(&reduced.residuals, &stage.fitted.residuals) / classical_df / (sd_y * sd_x);
+                let k = m as f64 * critical;
+                Some(quadratic_set(
+                    q_xx - k,
+                    -2.0 * (q_yx - k * correlation),
+                    q_yy - k,
+                ))
+            })()
+        } else if m == 1 {
+            // (π_y − b π_x)² − c (v_yy − 2b v_yx + b² v_xx) ≤ 0.
+            let (py, px) = (pi_y[0], pi_x[0]);
+            let cross = 0.5 * (v_yx.get(0, 0) + v_xy.get(0, 0));
+            Some(quadratic_set(
+                px * px - critical * v_xx.get(0, 0),
+                -2.0 * (py * px - critical * cross),
+                py * py - critical * v_yy.get(0, 0),
+            ))
+        } else {
+            searched_set(
+                &excess,
+                quadratic_form(&v_xx, &pi_x).map(|w| w / m as f64 - critical),
+            )
+        };
+        // Back to the units of the data: a coefficient is in the outcome's units over the
+        // regressor's.
+        let unit = sd_y / sd_x;
+        let set = scaled.map(|set| ConfidenceSet {
+            pieces: set
+                .pieces
+                .iter()
+                .map(|(lo, hi)| (lo * unit, hi * unit))
+                .collect(),
+        });
+        Ok(AndersonRubin {
+            statistic,
+            df1: m,
+            df2,
+            critical,
+            set,
+        })
+    }
+}
+
+/// The set where `excess` is not above zero, by a bracketed search: the function is evaluated
+/// on a grid of values from −1e8 to 1e8 in the scaled units, spaced evenly in their logarithm,
+/// every change of sign is closed in by halving to 1e-13 of its size, and the pieces are the
+/// stretches between crossings where the function is not above zero. `far` is its limit at
+/// ±∞, which decides whether the ends of the line are in the set. `None` when the function
+/// cannot be evaluated somewhere.
+fn searched_set(excess: &dyn Fn(f64) -> Option<f64>, far: Option<f64>) -> Option<ConfidenceSet> {
+    let far_inside = far? <= 0.0;
+    let mut grid: Vec<f64> = Vec::with_capacity(1603);
+    let steps = 800;
+    for i in 0..=steps {
+        let exponent = 8.0 - 16.0 * i as f64 / steps as f64;
+        grid.push(-zeff_numeric::maths::exp(
+            exponent * std::f64::consts::LN_10,
+        ));
+    }
+    grid.push(0.0);
+    for i in 0..=steps {
+        let exponent = -8.0 + 16.0 * i as f64 / steps as f64;
+        grid.push(zeff_numeric::maths::exp(exponent * std::f64::consts::LN_10));
+    }
+    let values: Vec<f64> = grid.iter().map(|&b| excess(b)).collect::<Option<_>>()?;
+    if values.iter().any(|v| v.is_nan()) {
+        return None;
+    }
+    let mut crossings: Vec<f64> = Vec::new();
+    for i in 0..grid.len() - 1 {
+        if (values[i] <= 0.0) == (values[i + 1] <= 0.0) {
+            continue;
+        }
+        let (mut lo, mut hi) = (grid[i], grid[i + 1]);
+        let inside_low = values[i] <= 0.0;
+        for _ in 0..200 {
+            let middle = 0.5 * (lo + hi);
+            if (excess(middle)? <= 0.0) == inside_low {
+                lo = middle;
+            } else {
+                hi = middle;
+            }
+            if hi - lo <= 1e-13 * lo.abs().max(hi.abs()).max(f64::MIN_POSITIVE) {
+                break;
+            }
+        }
+        crossings.push(0.5 * (lo + hi));
+    }
+    // The pieces: from −∞, or from each crossing into the set, to the next crossing out of it.
+    let mut pieces: Vec<(f64, f64)> = Vec::new();
+    let mut inside = far_inside;
+    let mut start = f64::NEG_INFINITY;
+    for &crossing in &crossings {
+        if inside {
+            pieces.push((start, crossing));
+        } else {
+            start = crossing;
+        }
+        inside = !inside;
+    }
+    if inside {
+        pieces.push((start, f64::INFINITY));
+    }
+    Some(ConfidenceSet { pieces })
+}
+
 /// First-stage residuals whose scaled covariance has an eigenvalue below this share of its
 /// largest are collinear: the instrumented regressors differ by a combination of the
 /// instruments, and the statistics that invert the covariance are not computed.
