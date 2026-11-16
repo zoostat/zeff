@@ -1040,7 +1040,20 @@ fn regress_cases() -> Vec<Line> {
     // runs; each script stops at its refusal, so the case is several scripts, their output
     // digested together.
     let staff = "let staff = dataset(staff)\n";
-    let models: [(&str, &[&str]); 2] = [
+    let models: [(&str, &[&str]); 3] = [
+        // `models/first_stage` (step 14b): the first-stage tables and the three lines for the
+        // model under classical, robust and clustered errors, exactly identified and with two
+        // instrumented regressors.
+        (
+            "first_stage",
+            &[
+                "staff.ivreg(productivity ~ age + training, fe: site, instruments: training ~ offer + distance, se: robust).first_stage()\n",
+                "staff.ivreg(productivity ~ age + training, instruments: training ~ offer + distance).first_stage()\n",
+                "staff.ivreg(productivity ~ age + training, instruments: training ~ offer + distance, cluster: site).first_stage()\n",
+                "staff.ivreg(productivity ~ training, instruments: training ~ offer).first_stage()\n",
+                "staff.ivreg(productivity ~ training + tenure, instruments: training + tenure ~ offer + distance + age).first_stage()\n",
+            ],
+        ),
         (
             "ivreg",
             &[

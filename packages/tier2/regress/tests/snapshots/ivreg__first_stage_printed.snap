@@ -1,0 +1,194 @@
+---
+source: packages/tier2/regress/tests/ivreg.rs
+expression: "all_of(&scripts, false)"
+---
+## two instruments, robust errors, the sites absorbed
+let staff = dataset(staff)
+let iv = staff.ivreg(productivity ~ age + training, fe: site, instruments: training ~ offer + distance, se: robust)
+iv.first_stage()
+
+---
+first stage · training ~ age + offer + distance · fe: site
+
+  term       estimate   std.error   t value   p value   95% CI
+  age         -0.0039      0.0008     -4.87    <0.001   [-0.0054, -0.0023]
+  offer        0.4841      0.0176     27.50    <0.001   [0.4496, 0.5187]
+  distance    -0.0059      0.0015     -3.95    <0.001   [-0.0088, -0.0029]
+
+partial R² 0.2446
+F of the excluded instruments 396.58 on 2 and 2,385 degrees of freedom (robust)
+
+standard errors: robust (HC1)
+weak instruments: Kleibergen–Paap F 396.58 · effective F 383.11 (critical value 19.66)
+over-identification: Hansen's J, chi2(1) = 0.13   p = 0.723 (robust)
+endogeneity: Durbin–Wu–Hausman F(1, 2,385) = 13.74   p < 0.001 (robust)
+
+## classical errors: the F, the Cragg–Donald F and Sargan's statistic
+let staff = dataset(staff)
+staff.ivreg(productivity ~ age + training, instruments: training ~ offer + distance).first_stage()
+
+---
+first stage · training ~ age + offer + distance
+
+  term          estimate   std.error   t value   p value   95% CI
+  (intercept)     0.4835      0.0382     12.65    <0.001   [0.4085, 0.5585]
+  age            -0.0038      0.0008     -4.80    <0.001   [-0.0054, -0.0023]
+  offer           0.4888      0.0177     27.59    <0.001   [0.4541, 0.5235]
+  distance       -0.0061      0.0015     -4.07    <0.001   [-0.0090, -0.0031]
+
+partial R² 0.2446
+F of the excluded instruments 387.89 on 2 and 2,396 degrees of freedom
+
+standard errors: classical
+weak instruments: Cragg–Donald F 387.89
+over-identification: Sargan's statistic, chi2(1) = 0.53   p = 0.467
+endogeneity: Durbin–Wu–Hausman F(1, 2,396) = 7.65   p = 0.006
+
+## clustered errors
+let staff = dataset(staff)
+staff.ivreg(productivity ~ age + training, instruments: training ~ offer + distance, cluster: site).first_stage()
+
+---
+first stage · training ~ age + offer + distance
+
+  term          estimate   std.error   t value   p value   95% CI
+  (intercept)     0.4835      0.0318     15.20    <0.001   [0.4135, 0.5535]
+  age            -0.0038      0.0008     -4.99    <0.001   [-0.0055, -0.0021]
+  offer           0.4888      0.0196     24.93    <0.001   [0.4456, 0.5319]
+  distance       -0.0061      0.0014     -4.48     0.001   [-0.0090, -0.0031]
+
+partial R² 0.2446
+F of the excluded instruments 319.12 on 2 and 11 degrees of freedom (clustered by site)
+
+standard errors: clustered by site (12 clusters, CR1)
+weak instruments: Kleibergen–Paap F 319.12 · effective F 378.11 (critical value 20.10)
+over-identification: Hansen's J, chi2(1) = 0.65   p = 0.419 (clustered by site)
+endogeneity: Durbin–Wu–Hausman F(1, 11) = 15.55   p = 0.002 (clustered by site)
+warning[W1002]: few clusters: 12 clusters give clustered errors little to rest on (line 2)
+  = help: the wild cluster bootstrap (`se: bootstrap`, release 1.1) is the usual remedy below 30 clusters
+
+## exactly identified
+let staff = dataset(staff)
+staff.ivreg(productivity ~ training, instruments: training ~ offer).first_stage()
+
+---
+first stage · training ~ offer
+
+  term          estimate   std.error   t value   p value   95% CI
+  (intercept)     0.2563      0.0125     20.49    <0.001   [0.2318, 0.2809]
+  offer           0.4858      0.0179     27.21    <0.001   [0.4508, 0.5208]
+
+partial R² 0.2360
+F of the excluded instruments 740.58 on 1 and 2,398 degrees of freedom
+
+standard errors: classical
+weak instruments: Cragg–Donald F 740.58
+over-identification: exactly identified, no over-identification test
+endogeneity: Durbin–Wu–Hausman F(1, 2,397) = 6.64   p = 0.010
+
+## two instrumented regressors: Shea's partial R² beside each
+let staff = dataset(staff)
+staff.ivreg(productivity ~ training + tenure, instruments: training + tenure ~ offer + distance + age).first_stage()
+
+---
+first stage · training ~ offer + distance + age
+
+  term          estimate   std.error   t value   p value   95% CI
+  (intercept)     0.4835      0.0382     12.65    <0.001   [0.4085, 0.5585]
+  offer           0.4888      0.0177     27.59    <0.001   [0.4541, 0.5235]
+  distance       -0.0061      0.0015     -4.07    <0.001   [-0.0090, -0.0031]
+  age            -0.0038      0.0008     -4.80    <0.001   [-0.0054, -0.0023]
+
+partial R² 0.2489 · Shea's partial R² 0.0045
+F of the excluded instruments 264.72 on 3 and 2,396 degrees of freedom
+
+first stage · tenure ~ offer + distance + age
+
+  term          estimate   std.error   t value   p value   95% CI
+  (intercept)     3.6428      0.1078     33.78    <0.001   [3.4313, 3.8543]
+  offer           0.4461      0.0500      8.93    <0.001   [0.3482, 0.5441]
+  distance       -0.0091      0.0042     -2.17     0.030   [-0.0174, -0.0009]
+  age            -0.0053      0.0022     -2.36     0.018   [-0.0097, -0.0009]
+
+partial R² 0.0358 · Shea's partial R² 0.0007
+F of the excluded instruments 29.69 on 3 and 2,396 degrees of freedom
+
+standard errors: classical
+weak instruments: Cragg–Donald F 0.52
+over-identification: Sargan's statistic, chi2(1) = 0.26   p = 0.610
+endogeneity: Durbin–Wu–Hausman F(2, 2,395) = 4.02   p = 0.018
+warning[W1007]: weak instruments: the Cragg–Donald F is 0.52, under 10 (line 2)
+  = help: with weak instruments the estimate leans towards the least-squares one and its confidence interval is too narrow; `ar_test()` gives a test and a confidence set that hold however weak the instruments are
+
+## weights
+let staff = dataset(staff)
+staff.ivreg(productivity ~ training, instruments: training ~ offer + distance, weights: tenure, weight_type: analytic).first_stage()
+
+---
+first stage · training ~ offer + distance
+
+  term          estimate   std.error   t value   p value   95% CI
+  (intercept)     0.3838      0.0217     17.72    <0.001   [0.3413, 0.4262]
+  offer           0.4812      0.0177     27.20    <0.001   [0.4465, 0.5159]
+  distance       -0.0061      0.0015     -4.12    <0.001   [-0.0091, -0.0032]
+
+partial R² 0.2392
+F of the excluded instruments 376.74 on 2 and 2,397 degrees of freedom
+
+standard errors: classical
+weak instruments: Cragg–Donald F 376.74
+over-identification: Sargan's statistic, chi2(1) = 0.01   p = 0.915
+endogeneity: Durbin–Wu–Hausman F(1, 2,397) = 5.69   p = 0.017
+
+## an instrument dropped as constant is not in the table
+let staff = dataset(staff).add(one = 1.0)
+staff.ivreg(productivity ~ training, instruments: training ~ one + offer + distance).first_stage()
+
+---
+first stage · training ~ offer + distance
+
+  term          estimate   std.error   t value   p value   95% CI
+  (intercept)     0.3318      0.0216     15.33    <0.001   [0.2893, 0.3742]
+  offer           0.4867      0.0178     27.36    <0.001   [0.4518, 0.5216]
+  distance       -0.0064      0.0015     -4.26    <0.001   [-0.0093, -0.0034]
+
+partial R² 0.2417
+F of the excluded instruments 382.02 on 2 and 2,397 degrees of freedom
+
+standard errors: classical
+weak instruments: Cragg–Donald F 382.02
+over-identification: Sargan's statistic, chi2(1) = 0.52   p = 0.469
+endogeneity: Durbin–Wu–Hausman F(1, 2,397) = 7.56   p = 0.006
+note: `one` is collinear with the regressors and instruments before it and was dropped from the instruments (line 2)
+
+## nothing left to instrument
+let staff = dataset(staff).add(both = age + distance)
+staff.ivreg(productivity ~ age + distance + both, instruments: both ~ offer).first_stage()
+
+---
+first stage · productivity ~ age + distance + both
+nothing is instrumented: the fit dropped every instrumented regressor
+note: `both` is collinear with the columns before it and was dropped (line 2)
+note: `both` was dropped, so nothing is instrumented and the estimates are those of least squares (line 2)
+
+## a fit by reg has no first stage
+let staff = dataset(staff)
+staff.reg(productivity ~ training).first_stage()
+
+---
+error[Z0401]: `first_stage` cannot be called on a RegFit
+ --> scripts/main.zeff:2:1
+  |
+2 | staff.reg(productivity ~ training).first_stage()
+  | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ this is a RegFit
+  |
+  = help: `first_stage` takes an IvFit first; `x.first_stage(...)` is `first_stage(x, ...)`
+
+## kept under a name and exported
+let staff = dataset(staff)
+let stages = staff.ivreg(productivity ~ training, instruments: training ~ offer + distance).first_stage()
+type_of(stages)
+stages.export("output/first.tex")
+
+---
+Table

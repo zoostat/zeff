@@ -5825,3 +5825,23 @@ Done before parts 1 and 2 are read, because those wait for jobs that run for hou
 **Held by.** `packages/tier2/regress/tests/iv.rs`: the seven cases; the four situations where a figure is not available; and a property that no diagnostic depends on the units of a variable.
 
 **Reason.** The owner's answer to question 3(b) of the release; the checklist's step 14a.
+
+## 16 November 2026 — `first_stage` (release 0.8.0, step 14b)
+
+**Choice.** `iv.first_stage()` in `regress/src/ivreg.rs`, a method of an `IvFit` that returns a `Table`. The fit is computed again from what it keeps, as `design()` does, and everything stands on the standard errors the fit was given, with its weights, clusters and fixed effects.
+
+**The printed form (a layout, the owner's to change).** For each instrumented regressor the fit kept: the table of its first stage in `reg`'s layout, titled `first stage · training ~ age + offer + distance`, and under it `partial R² 0.2446` (with `· Shea's partial R² …` beside it when several regressors are instrumented) and `F of the excluded instruments 396.58 on 2 and 2,385 degrees of freedom (robust)`. Then four lines for the model: the standard errors; `weak instruments:` with the statistic printed under the fit; `over-identification:` with Sargan's statistic or Hansen's J as `chi2(1) = 0.13   p = 0.723`, or `exactly identified, no over-identification test`; and `endogeneity: Durbin–Wu–Hausman F(1, 2,385) = 13.74   p < 0.001`. A statistic on robust or clustered errors says so at the end of its line. The tables of `ivreg(..., first: true)` and of `first_stage` are made by one function; `first_stage` adds the partial R².
+
+**What it leaves out.** A regressor the fit dropped has no first stage shown; when every instrumented regressor was dropped the result says that nothing is instrumented. An instrument the fit dropped is not in a table. `first_stage` raises no warning of its own: W1007 was raised when the model was fitted.
+
+**The p-values** are the upper tails of chi-square and of F from the incomplete gamma and beta functions of `zeff-numeric`; under clustered errors the Durbin–Wu–Hausman F is referred to G − 1 denominator degrees of freedom, as every clustered test of the engine is.
+
+**The receiver's name.** The catalogue writes `iv.first_stage()`, so the parameter is `iv`.
+
+**Held by.** `packages/tier2/regress/tests/ivreg.rs`: a stored snapshot of ten forms on `staff` (each kind of standard error, exactly identified, two instrumented regressors, weights, an instrument dropped, nothing left to instrument, the refusal for a `reg` fit, the table kept and exported) and of two on Card's data, the model of the specification's sample script and the over-identified one, with fixest's Sargan (2.65, p = 0.103) and Wu–Hausman (3.87, p = 0.049) asserted; the conformance case `models/first_stage`; the page's examples. The statistics themselves are held to R at step 14a.
+
+**The page.** Under the 0.8.0 contract; "Coming from R or Stata" says that after robust errors Stata's `estat overid` and `estat endogenous` are score tests of the same hypotheses and so close to these figures without being equal. `ivreg`'s page now names `first_stage` among its related tasks.
+
+**The specification's sample script.** Its statement `iv.first_stage()` now checks: ten of its 75 statements wait for a later release.
+
+**Reason.** Catalogue row 251, now implemented; the owner's answer to question 3(b); the checklist's step 14b.

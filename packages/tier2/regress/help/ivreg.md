@@ -123,6 +123,7 @@ and Yogo's, the minimum eigenvalue statistic of Stata's `estat firststage`.
 
 ## Related tasks
 - To fit the same equation without instruments, for comparison, use `reg`.
+- To see the first stage of each instrumented regressor and the tests of the instruments, use `first_stage`.
 - To set two or more fits side by side in one table, use `report`.
 - To predict the outcome for other rows from the estimated equation, use `predict`.
 - To see the columns the fit was computed on, with the instruments, use `design`.
@@ -150,7 +151,7 @@ Montiel Olea, J. L. and Pflueger, C. (2013), A robust test for weak instruments,
 Business and Economic Statistics 31(3), 358–369.
 
 ## See also
-reg, report, coef, ci, test, predict, design
+reg, first_stage, report, coef, ci, test, predict, design
 
 ## Examples
 // The effect of a training course on productivity: the offer of the course was drawn by lot, so it is an instrument for taking it.

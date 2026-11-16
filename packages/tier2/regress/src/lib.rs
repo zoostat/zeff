@@ -209,6 +209,26 @@ pub fn functions() -> Vec<Function> {
         },
         Function {
             spec: FunctionSpec {
+                name: "first_stage",
+                package: "regress",
+                method: true,
+                params: vec![ParamSpec::required("iv", "IvFit")],
+                rest: None,
+                returns: "Table",
+                diagnostics: vec![DiagnosticDecl::new(
+                    "Z0401",
+                    "the receiver is not a fit by `ivreg`",
+                )],
+                help: include_str!("../help/first_stage.md"),
+                accuracy: Some(AccuracyRecord {
+                    reference: "R 4.6.0 with fixest 0.14.2 fitstat() and the statistics written out in base R (tests/reference/r/iv.R)".to_string(),
+                    last_run: None,
+                }),
+            },
+            body: ivreg::first_stage,
+        },
+        Function {
+            spec: FunctionSpec {
                 name: "interact",
                 package: "regress",
                 method: false,

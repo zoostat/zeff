@@ -123,3 +123,13 @@ Step 9: the checker reads `instruments: educ ~ nearc4` and refuses its mistakes 
 **Next.** Step 14b `[function]`: `first_stage`, its printed form and its page.
 
 **For the owner to decide.** The `Instruments` row of `report`. Open decisions #149 and #150. The story of `staff`. Whether to add `ivDiag` by hand.
+
+## 16 November 2026, release 0.8.0, step 14b (`first_stage`)
+
+**Done.** Step 14b `[function]`: `iv.first_stage()` prints the first stage of each instrumented regressor with its partial R² and F, then the weak-instrument statistic, the over-identification test (Sargan's or Hansen's J, or the sentence for an exactly identified model) and the Durbin–Wu–Hausman test. On Card's data with both proximity indicators it gives fixest's figures: Sargan 2.65 (p = 0.103), Wu–Hausman 3.87 (p = 0.049). The statement `iv.first_stage()` of the specification's sample script now runs. Its help page is complete.
+
+**Green.** Format, clippy with warnings denied, the tier, message and grammar checks, every test of the workspace; CI read after the push.
+
+**Next.** Step 15 `[engine]`: the Anderson–Rubin test and confidence set.
+
+**For the owner to decide.** The printed form of `first_stage` and the `Instruments` row of `report` are layouts, yours to change. Open decisions #149 and #150. The story of `staff`. Whether to add `ivDiag` and `ivmodel` by hand (step 15 would use `ivmodel`).

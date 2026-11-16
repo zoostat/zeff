@@ -231,36 +231,13 @@ pub fn ivreg(ctx: &mut CallContext<'_>, args: Args) -> Result<Value, Fail> {
                 .help("two regressors are almost the same column once the instrumented ones are replaced by their fitted values; drop one, or find an instrument that tells them apart"),
         );
     }
-    // The clusters of the rows used: the index of the effect on the same variable when there
-    // is one, else one built the same way.
-    let clusters = match &cluster {
-        Some(name) => {
-            let reused = projection.as_ref().and_then(|p| {
-                p.absorbed
-                    .effects
-                    .iter()
-                    .find(|e| e.variables.len() == 1 && e.variables[0] == *name)
-                    .map(|e| Clusters::from_groups(&e.group_of_row, e.levels()))
-            });
-            Some(match reused {
-                Some(clusters) => clusters,
-                None => {
-                    let column = frame
-                        .table
-                        .column(name)
-                        .ok_or_else(|| internal(ctx, "the cluster variable vanished"))?;
-                    let groups = EffectGroups::over(
-                        name,
-                        std::slice::from_ref(name),
-                        &[column],
-                        &designs.structural.rows,
-                    );
-                    Clusters::from_groups(&groups.group_of_row, groups.levels())
-                }
-            })
-        }
-        None => None,
-    };
+    let clusters = clusters_for(
+        ctx,
+        &frame,
+        cluster.as_deref(),
+        projection.as_ref(),
+        &designs.structural.rows,
+    )?;
     let absorbed = projection
         .as_ref()
         .map_or(0, |p| p.parameters(clusters.as_ref()));
@@ -408,78 +385,25 @@ pub fn ivreg(ctx: &mut CallContext<'_>, args: Args) -> Result<Value, Fail> {
     value.summary.after = after;
     // The first stages, when asked for: each in `reg`'s layout, under the fit's standard
     // errors, with the F of its excluded instruments.
-    let mut first_tables: Vec<Table> = Vec::new();
-    if first_asked && !instrumented_columns.is_empty() {
-        let stages = fit.first_stages(ctx)?;
-        for (q, stage) in stages.iter().enumerate() {
-            let bread = Ols.bread(&stage.fitted);
-            let (stage_vcov, stage_df) = checked_variance(
-                ctx,
-                variance::variance(
-                    kind,
-                    &Ols,
-                    &stage.design,
-                    &stage.fitted,
-                    &bread,
-                    clusters.as_ref(),
-                    absorbed,
-                ),
-                kind,
-                cluster.as_deref(),
-                CLUSTER,
-            )?;
-            let outcome = designs.structural.names[designs.endogenous[q]].clone();
-            let regressors: Vec<&str> = stage
-                .design
-                .names
-                .iter()
-                .map(String::as_str)
-                .filter(|n| *n != "(intercept)")
-                .collect();
-            let stage_formula = format!("{outcome} ~ {}", regressors.join(" + "));
-            let stage_setting = Setting {
-                method: "first stage",
-                formula: &stage_formula,
-                se_line: &line,
-                df: stage_df,
-                level,
-                n: n_obs,
-                n_note: None,
-                more_lines: Vec::new(),
-                model: formula.clone(),
-                levels: Vec::new(),
-                frame_rows: frame.table.rows(),
-                effects: fixed_effects.clone(),
-                absorbed_parameters: setting.absorbed_parameters,
-                singletons: setting.singletons,
-            };
-            let mut table =
-                summary::linear_fit(&stage.design, &stage.fitted, &stage_vcov, &stage_setting)
-                    .summary;
-            table.before = Vec::new();
-            let f = if weak.robust { weak.wald[q] } else { weak.f[q] };
-            // The F is the Wald form on the fit's standard errors, and says so when they are
-            // not the classical ones, so that it is not read against a classical F.
-            let on = match kind {
-                Kind::Classical => String::new(),
-                Kind::Hc1 => " (robust)".to_string(),
-                Kind::Hc2 => " (robust, hc2)".to_string(),
-                Kind::Hc3 => " (robust, hc3)".to_string(),
-                Kind::Cluster => format!(" (clustered by {})", cluster.as_deref().unwrap_or("")),
-            };
-            table.after = vec![format!(
-                "F of the excluded instruments {} on {} and {} degrees of freedom{on}",
-                f.map_or("not available".to_string(), two_decimals),
-                count(weak.df1 as u64),
-                count(if kind == Kind::Cluster {
-                    stage_df as u64
-                } else {
-                    weak.df2.round() as u64
-                })
-            )];
-            first_tables.push(table);
-        }
-    }
+    let first_tables: Vec<Table> = if first_asked && !instrumented_columns.is_empty() {
+        let shared = Shared {
+            kind,
+            clusters: clusters.as_ref(),
+            cluster: cluster.as_deref(),
+            absorbed,
+            line: &line,
+            level,
+            n_obs,
+            model: &formula,
+            frame_rows: frame.table.rows(),
+            effects: &fixed_effects,
+            absorbed_parameters: setting.absorbed_parameters,
+            singletons: setting.singletons,
+        };
+        stage_tables(ctx, &fit, &weak, &shared, None)?
+    } else {
+        Vec::new()
+    };
     value.instrumented = Some(Rc::new(Instrumented {
         endogenous,
         excluded,
@@ -546,4 +470,332 @@ pub(crate) fn refit(
         built.and_then(|(designs, projection)| estimate(ctx, designs).map(|two| (two, projection)));
     *ctx.messages = said;
     Some(fitted)
+}
+
+/// What the tables of the first stages share with the fit they belong to.
+struct Shared<'a> {
+    kind: Kind,
+    clusters: Option<&'a Clusters>,
+    cluster: Option<&'a str>,
+    /// The parameters of the absorbed effects in every N − k, under `kind`.
+    absorbed: usize,
+    /// The fit's line for its standard errors.
+    line: &'a str,
+    level: f64,
+    n_obs: usize,
+    model: &'a zeff_core::value::Formula,
+    frame_rows: usize,
+    effects: &'a [FixedEffect],
+    absorbed_parameters: usize,
+    singletons: usize,
+}
+
+/// The clusters of the rows used, by the cluster variable: the index of the effect on the same
+/// variable when there is one, else one built the same way (section 8.3, point 10, "Reused
+/// fixed-effect work").
+fn clusters_for(
+    ctx: &CallContext<'_>,
+    frame: &zeff_core::value::Frame,
+    cluster: Option<&str>,
+    projection: Option<&Projection>,
+    rows: &[usize],
+) -> Result<Option<Clusters>, Fail> {
+    let Some(name) = cluster else {
+        return Ok(None);
+    };
+    let reused = projection.and_then(|p| {
+        p.absorbed
+            .effects
+            .iter()
+            .find(|e| e.variables.len() == 1 && e.variables[0] == name)
+            .map(|e| Clusters::from_groups(&e.group_of_row, e.levels()))
+    });
+    Ok(Some(match reused {
+        Some(clusters) => clusters,
+        None => {
+            let column = frame
+                .table
+                .column(name)
+                .ok_or_else(|| internal(ctx, "the cluster variable vanished"))?;
+            let name = name.to_string();
+            let groups = EffectGroups::over(&name, std::slice::from_ref(&name), &[column], rows);
+            Clusters::from_groups(&groups.group_of_row, groups.levels())
+        }
+    }))
+}
+
+/// How a line says which standard errors a statistic stands on, when they are not classical.
+fn on_errors(kind: Kind, cluster: Option<&str>) -> String {
+    match kind {
+        Kind::Classical => String::new(),
+        Kind::Hc1 => " (robust)".to_string(),
+        Kind::Hc2 => " (robust, hc2)".to_string(),
+        Kind::Hc3 => " (robust, hc3)".to_string(),
+        Kind::Cluster => format!(" (clustered by {})", cluster.unwrap_or("")),
+    }
+}
+
+/// The table of each first stage, in `reg`'s layout under the fit's standard errors: the
+/// instrumented regressor on the instruments kept, and under it the F of its excluded
+/// instruments, which is the Wald form when the errors are not classical and says so. With
+/// `diagnostics`, the partial R² of the stage stands before the F, and Shea's beside it when
+/// several regressors are instrumented.
+fn stage_tables(
+    ctx: &mut CallContext<'_>,
+    fit: &TwoStage,
+    weak: &crate::iv::Weak,
+    shared: &Shared<'_>,
+    diagnostics: Option<&crate::iv::Diagnostics>,
+) -> Result<Vec<Table>, Fail> {
+    let designs = &fit.designs;
+    let stages = fit.first_stages(ctx)?;
+    let mut tables = Vec::with_capacity(stages.len());
+    for (q, stage) in stages.iter().enumerate() {
+        // A regressor the fit dropped is not instrumented and has no first stage to show.
+        if fit.fitted.omitted.contains(&designs.endogenous[q]) {
+            continue;
+        }
+        let bread = Ols.bread(&stage.fitted);
+        let (stage_vcov, stage_df) = checked_variance(
+            ctx,
+            variance::variance(
+                shared.kind,
+                &Ols,
+                &stage.design,
+                &stage.fitted,
+                &bread,
+                shared.clusters,
+                shared.absorbed,
+            ),
+            shared.kind,
+            shared.cluster,
+            CLUSTER,
+        )?;
+        let outcome = designs.structural.names[designs.endogenous[q]].clone();
+        let regressors: Vec<&str> = stage
+            .design
+            .names
+            .iter()
+            .map(String::as_str)
+            .filter(|n| *n != "(intercept)")
+            .collect();
+        let stage_formula = format!("{outcome} ~ {}", regressors.join(" + "));
+        let stage_setting = Setting {
+            method: "first stage",
+            formula: &stage_formula,
+            se_line: shared.line,
+            df: stage_df,
+            level: shared.level,
+            n: shared.n_obs,
+            n_note: None,
+            more_lines: Vec::new(),
+            model: shared.model.clone(),
+            levels: Vec::new(),
+            frame_rows: shared.frame_rows,
+            effects: shared.effects.to_vec(),
+            absorbed_parameters: shared.absorbed_parameters,
+            singletons: shared.singletons,
+        };
+        let mut table =
+            summary::linear_fit(&stage.design, &stage.fitted, &stage_vcov, &stage_setting).summary;
+        table.before = Vec::new();
+        let f = if weak.robust { weak.wald[q] } else { weak.f[q] };
+        let mut after = Vec::new();
+        if let Some(d) = diagnostics {
+            let measure = |x: Option<f64>| {
+                x.map_or("not available".to_string(), |v| {
+                    zeff_core::display::fixed(v, 4)
+                })
+            };
+            let mut line = format!("partial R² {}", measure(d.partial[q]));
+            if designs.endogenous.len() > 1 {
+                line.push_str(&format!(" · Shea's partial R² {}", measure(d.shea[q])));
+            }
+            after.push(line);
+        }
+        after.push(format!(
+            "F of the excluded instruments {} on {} and {} degrees of freedom{}",
+            f.map_or("not available".to_string(), two_decimals),
+            count(weak.df1 as u64),
+            count(if shared.kind == Kind::Cluster {
+                stage_df as u64
+            } else {
+                weak.df2.round() as u64
+            }),
+            on_errors(shared.kind, shared.cluster)
+        ));
+        table.after = after;
+        tables.push(table);
+    }
+    Ok(tables)
+}
+
+/// `p = 0.103`, or `p < 0.001`.
+fn p_text(p: f64) -> String {
+    let text = zeff_core::display::p_value_text(p);
+    match text.strip_prefix('<') {
+        Some(bound) => format!("p < {bound}"),
+        None => format!("p = {text}"),
+    }
+}
+
+/// `iv.first_stage()` (catalogue row 251; the owner's answer to question 3(b) of release
+/// 0.8.0): the first stage of each instrumented regressor as a table, with its partial R²
+/// (and Shea's when several are instrumented) and the F of its excluded instruments; then the
+/// weak-instrument statistic of the fit, the test of the over-identifying restrictions (or
+/// that there is none to test), and the Durbin–Wu–Hausman test. Everything stands on the
+/// standard errors the fit was given.
+pub fn first_stage(ctx: &mut CallContext<'_>, args: Args) -> Result<Value, Fail> {
+    let Some(Value::Fit(fit)) = args.get(0) else {
+        return Err(internal(ctx, "first_stage was called without a fit"));
+    };
+    let fit = Rc::clone(fit);
+    let unbuilt = |ctx: &CallContext<'_>, why: &str| {
+        internal(ctx, &format!("the first stage of the fit: {why}"))
+    };
+    let Some(again) = refit(ctx, &fit) else {
+        return Err(unbuilt(ctx, "the fit keeps no frame or no instruments"));
+    };
+    let (two, projection) = again?;
+    let Some(source) = &fit.source else {
+        return Err(unbuilt(ctx, "the fit keeps no frame"));
+    };
+    if two.designs.structural.rows != fit.rows {
+        return Err(unbuilt(ctx, "its rows are not the fit's"));
+    }
+    let kind = if fit.se_kind.starts_with("clustered") {
+        Kind::Cluster
+    } else if fit.se_kind.starts_with("robust") {
+        Kind::Hc1
+    } else if fit.se_kind == "hc2" {
+        Kind::Hc2
+    } else if fit.se_kind == "hc3" {
+        Kind::Hc3
+    } else {
+        Kind::Classical
+    };
+    let cluster = if kind == Kind::Cluster {
+        source.cluster.as_deref()
+    } else {
+        None
+    };
+    let clusters = clusters_for(
+        ctx,
+        &source.frame,
+        cluster,
+        projection.as_ref(),
+        &two.designs.structural.rows,
+    )?;
+    let absorbed = projection
+        .as_ref()
+        .map_or(0, |p| p.parameters(clusters.as_ref()));
+    let weak = two.weak(ctx, kind, clusters.as_ref(), projection.as_ref())?;
+    let diagnostics = two.diagnostics(ctx, kind, clusters.as_ref(), projection.as_ref())?;
+    let shared = Shared {
+        kind,
+        clusters: clusters.as_ref(),
+        cluster,
+        absorbed,
+        line: &fit.se_kind,
+        level: fit.level,
+        n_obs: fit.n,
+        model: &fit.model,
+        frame_rows: fit.frame_rows,
+        effects: &fit.effects,
+        absorbed_parameters: fit.absorbed_parameters,
+        singletons: fit.singletons,
+    };
+    let mut tables = if two.first.is_some() {
+        stage_tables(ctx, &two, &weak, &shared, Some(&diagnostics))?
+    } else {
+        Vec::new()
+    };
+    // The lines for the model as a whole.
+    let on = on_errors(kind, cluster);
+    let mut lines: Vec<String> = Vec::new();
+    lines.push(format!("standard errors: {}", fit.se_kind));
+    let (name, strength) = if weak.robust {
+        ("Kleibergen–Paap F", weak.kleibergen_paap)
+    } else {
+        ("Cragg–Donald F", weak.cragg_donald)
+    };
+    let mut strength_line = format!(
+        "weak instruments: {name} {}",
+        strength.map_or("not available".to_string(), two_decimals)
+    );
+    if let Some(e) = weak.effective {
+        strength_line.push_str(&format!(
+            " · effective F {} (critical value {})",
+            two_decimals(e.f),
+            two_decimals(e.critical)
+        ));
+    }
+    lines.push(strength_line);
+    lines.push(match diagnostics.over_identification {
+        None => "over-identification: exactly identified, no over-identification test".to_string(),
+        Some(test) => {
+            let name = if test.hansen {
+                "Hansen's J"
+            } else {
+                "Sargan's statistic"
+            };
+            match test.statistic {
+                Some(value) => {
+                    let p =
+                        zeff_numeric::special::incomplete_gamma(test.df as f64 / 2.0, value / 2.0)
+                            .upper;
+                    format!(
+                        "over-identification: {name}, chi2({}) = {}   {}{}",
+                        count(test.df as u64),
+                        two_decimals(value),
+                        p_text(p),
+                        if test.hansen { on.as_str() } else { "" }
+                    )
+                }
+                None => format!("over-identification: {name} not available"),
+            }
+        }
+    });
+    lines.push(match diagnostics.endogeneity {
+        Some(test) => {
+            // The upper tail of F(df1, df2) at the statistic.
+            let (d1, d2) = (test.df1 as f64, test.df2 as f64);
+            let p = zeff_numeric::special::incomplete_beta(
+                d2 / 2.0,
+                d1 / 2.0,
+                d2 / (d2 + d1 * test.statistic),
+            )
+            .lower;
+            format!(
+                "endogeneity: Durbin–Wu–Hausman F({}, {}) = {}   {}{on}",
+                count(test.df1 as u64),
+                count(test.df2 as u64),
+                two_decimals(test.statistic),
+                p_text(p)
+            )
+        }
+        None => "endogeneity: Durbin–Wu–Hausman test not available".to_string(),
+    });
+    let whole = Table {
+        title: String::new(),
+        before: lines,
+        columns: Vec::new(),
+        rows: Vec::new(),
+        after: Vec::new(),
+        more: Vec::new(),
+        rules: Vec::new(),
+    };
+    if tables.is_empty() {
+        return Ok(Value::Table(Table {
+            title: format!("first stage · {}", fit.formula),
+            before: vec![
+                "nothing is instrumented: the fit dropped every instrumented regressor".to_string(),
+            ],
+            ..whole
+        }));
+    }
+    let mut main = tables.remove(0);
+    main.more = tables;
+    main.more.push(whole);
+    Ok(Value::Table(main))
 }

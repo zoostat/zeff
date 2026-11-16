@@ -319,3 +319,70 @@ fn the_checks_made_at_the_run() {
     let borrowed: Vec<(&str, &str)> = scripts.iter().map(|(w, s)| (*w, s.as_str())).collect();
     insta::assert_snapshot!("ivreg_checked_at_the_run", all_of(&borrowed, false));
 }
+
+/// `first_stage` (catalogue row 251; step 14b): the tables with their partial R² and F, then
+/// the weak-instrument statistic, the over-identification test and the Durbin–Wu–Hausman test,
+/// under each kind of standard error; Shea's partial R² beside the partial R² when two
+/// regressors are instrumented; the sentence for an exactly identified model; a model with an
+/// instrument dropped; one with nothing left to instrument; the specification's sample; and
+/// the refusal for a fit that is not `ivreg`'s.
+#[test]
+fn first_stage_in_each_form() {
+    let scripts = [
+        (
+            "two instruments, robust errors, the sites absorbed",
+            "let staff = dataset(staff)\nlet iv = staff.ivreg(productivity ~ age + training, fe: site, instruments: training ~ offer + distance, se: robust)\niv.first_stage()\n",
+        ),
+        (
+            "classical errors: the F, the Cragg–Donald F and Sargan's statistic",
+            "let staff = dataset(staff)\nstaff.ivreg(productivity ~ age + training, instruments: training ~ offer + distance).first_stage()\n",
+        ),
+        (
+            "clustered errors",
+            "let staff = dataset(staff)\nstaff.ivreg(productivity ~ age + training, instruments: training ~ offer + distance, cluster: site).first_stage()\n",
+        ),
+        (
+            "exactly identified",
+            "let staff = dataset(staff)\nstaff.ivreg(productivity ~ training, instruments: training ~ offer).first_stage()\n",
+        ),
+        (
+            "two instrumented regressors: Shea's partial R² beside each",
+            "let staff = dataset(staff)\nstaff.ivreg(productivity ~ training + tenure, instruments: training + tenure ~ offer + distance + age).first_stage()\n",
+        ),
+        (
+            "weights",
+            "let staff = dataset(staff)\nstaff.ivreg(productivity ~ training, instruments: training ~ offer + distance, weights: tenure, weight_type: analytic).first_stage()\n",
+        ),
+        (
+            "an instrument dropped as constant is not in the table",
+            "let staff = dataset(staff).add(one = 1.0)\nstaff.ivreg(productivity ~ training, instruments: training ~ one + offer + distance).first_stage()\n",
+        ),
+        (
+            "nothing left to instrument",
+            "let staff = dataset(staff).add(both = age + distance)\nstaff.ivreg(productivity ~ age + distance + both, instruments: both ~ offer).first_stage()\n",
+        ),
+        (
+            "a fit by reg has no first stage",
+            "let staff = dataset(staff)\nstaff.reg(productivity ~ training).first_stage()\n",
+        ),
+        (
+            "kept under a name and exported",
+            "let staff = dataset(staff)\nlet stages = staff.ivreg(productivity ~ training, instruments: training ~ offer + distance).first_stage()\ntype_of(stages)\nstages.export(\"output/first.tex\")\n",
+        ),
+    ];
+    insta::assert_snapshot!("first_stage_printed", all_of(&scripts, false));
+    let card = [
+        (
+            "section 7 of the sample script",
+            "let card = import(\"data/card.csv\")\nlet iv = card.ivreg(lwage ~ exper + exper^2 + black + educ,\n                    fe: region,\n                    instruments: educ ~ nearc4,\n                    se: robust,\n                    first: true)\niv.first_stage()\n",
+        ),
+        (
+            "both proximity indicators, classical errors: fixest's Sargan 2.65 and Wu–Hausman 3.87",
+            "let card = import(\"data/card.csv\")\ncard.ivreg(lwage ~ exper + expersq + black + south + smsa + educ, instruments: educ ~ nearc4 + nearc2).first_stage()\n",
+        ),
+    ];
+    let out = all_of(&card, true);
+    assert!(out.contains("chi2(1) = 2.65   p = 0.103"), "{out}");
+    assert!(out.contains("F(1, 3,002) = 3.87   p = 0.049"), "{out}");
+    insta::assert_snapshot!("first_stage_card", out);
+}
