@@ -1,0 +1,11 @@
+---
+source: packages/tier2/regress/tests/ivreg.rs
+expression: refused
+---
+error[Z0401]: `r_squared` cannot be called on an IvFit
+ --> scripts/main.zeff:3:1
+  |
+3 | iv.r_squared()
+  | ^^ this is an IvFit
+  |
+  = help: `r_squared` takes a RegFit first; `x.r_squared(...)` is `r_squared(x, ...)`

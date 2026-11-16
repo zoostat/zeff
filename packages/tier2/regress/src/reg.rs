@@ -201,6 +201,438 @@ pub(crate) fn absorbed_parameters(groups: &[EffectGroups], clusters: Option<&Clu
     levels + 1 - counted.len()
 }
 
+/// The notes for the columns a fit dropped, each kind in its own words (section 7.2,
+/// "Collinearity"): a column the fixed effects absorbed (`absorbed_columns`, with the effects as
+/// written), a category level with no observations among the rows used, a column that is zero
+/// in every row, a column whose values are too small or too large to be scaled, and the rest
+/// collinear with the columns before them. Each is printed and kept in `notes`.
+pub(crate) fn dropped_notes(
+    ctx: &mut CallContext<'_>,
+    notes: &mut Vec<String>,
+    design: &Design,
+    fitted: &Fitted,
+    absorbed_columns: &[usize],
+    effects_text: &str,
+) {
+    // The columns dropped, each kind with its own note: a category level with no observations
+    // among the rows used, a column that is zero in every row, a column whose values are too
+    // small to be scaled, and the rest collinear with the columns before them.
+    let names = |columns: &[usize]| -> Vec<String> {
+        columns
+            .iter()
+            .map(|&c| format!("`{}`", design.names[c]))
+            .collect()
+    };
+    let note = |ctx: &mut CallContext<'_>,
+                notes: &mut Vec<String>,
+                listed: Vec<String>,
+                one: &str,
+                several: &str| {
+        let text = match listed.len() {
+            0 => return,
+            1 => format!("{} {one}", listed[0]),
+            _ => format!("{} {several}", listed.join(", ")),
+        };
+        notes.push(text.clone());
+        ctx.message(Diagnostic::plain_note(text));
+    };
+    // A column the fixed effects absorbed (section 7.2, "Collinearity") is zeroed by the
+    // projection and dropped by the fit; it is named so, and not as a zero column.
+    note(
+        ctx,
+        notes,
+        names(absorbed_columns),
+        &format!("is absorbed by fe: {effects_text} and was dropped"),
+        &format!("are absorbed by fe: {effects_text} and were dropped"),
+    );
+    let (levels, zeros): (Vec<usize>, Vec<usize>) = fitted
+        .zero
+        .iter()
+        .filter(|c| !absorbed_columns.contains(c))
+        .partition(|&&c| design.names[c].contains('='));
+    note(
+        ctx,
+        notes,
+        names(&levels),
+        "has no observations among the rows used and was dropped",
+        "have no observations among the rows used and were dropped",
+    );
+    note(
+        ctx,
+        notes,
+        names(&zeros),
+        "is zero in every row used and was dropped",
+        "are zero in every row used and were dropped",
+    );
+    note(
+        ctx,
+        notes,
+        names(&fitted.vanishing),
+        "has values too small to be scaled (below 1e-150 in size) and was dropped",
+        "have values too small to be scaled (below 1e-150 in size) and were dropped",
+    );
+    note(
+        ctx,
+        notes,
+        names(&fitted.oversized),
+        "has values too large to be scaled (above 1e150 in size) and was dropped",
+        "have values too large to be scaled (above 1e150 in size) and were dropped",
+    );
+    let collinear: Vec<usize> = fitted
+        .omitted
+        .iter()
+        .copied()
+        .filter(|c| {
+            !fitted.zero.contains(c)
+                && !fitted.vanishing.contains(c)
+                && !fitted.oversized.contains(c)
+        })
+        .collect();
+    note(
+        ctx,
+        notes,
+        names(&collinear),
+        "is collinear with the columns before it and was dropped",
+        "are collinear with the columns before them and were dropped",
+    );
+}
+
+/// A variance from the variance layer, with what it could not compute turned into the refusal
+/// a script reads (Z0802: an observation with leverage one under `hc2` or `hc3`, one cluster, no
+/// residual degrees of freedom), and the self-check of section 11.1: a symmetric matrix with no
+/// negative variance. `cluster` is the cluster variable and `cluster_at` its argument's place.
+pub(crate) fn checked_variance(
+    ctx: &mut CallContext<'_>,
+    computed: Result<(Matrix, usize), VarianceError>,
+    kind: Kind,
+    cluster: Option<&str>,
+    cluster_at: usize,
+) -> Result<(Matrix, usize), Fail> {
+    let (vcov, df) = match computed {
+        Ok(pair) => pair,
+        Err(VarianceError::Asymmetric) => {
+            return Err(internal(ctx, "an asymmetric variance matrix"));
+        }
+        Err(VarianceError::LeverageOne(rows_at_one)) => {
+            let word = match kind {
+                Kind::Hc3 => "hc3",
+                _ => "hc2",
+            };
+            return Err(fail(
+                    Diagnostic::error(
+                        "Z0802",
+                        format!(
+                            "`se: {word}` needs every observation's leverage below one, but {} leverage one: each is alone in a cell of the design",
+                            if rows_at_one == 1 {
+                                "1 row has".to_string()
+                            } else {
+                                format!("{} rows have", count(rows_at_one as u64))
+                            }
+                        ),
+                    )
+                    .in_file(ctx.script)
+                    .primary(ctx.callee_span, "an observation that fits itself exactly")
+                    .help("`se: robust` (HC1) keeps these rows; or drop the regressor that singles each out, such as a category level with one observation"),
+                ));
+        }
+        Err(VarianceError::OneCluster) => {
+            return Err(fail(
+                Diagnostic::error(
+                    "Z0802",
+                    format!(
+                        "clustered errors need at least two clusters, and `{}` has one",
+                        cluster.unwrap_or("")
+                    ),
+                )
+                .in_file(ctx.script)
+                .primary(ctx.span_of(cluster_at), "one cluster")
+                .help("cluster by a variable with several values, or leave `cluster:` out"),
+            ));
+        }
+    };
+    if df == 0 {
+        return Err(fail(
+            Diagnostic::error(
+                "Z0802",
+                "no residual degrees of freedom: as many regressors as observations",
+            )
+            .in_file(ctx.script)
+            .primary(ctx.callee_span, "nothing left to estimate the error from")
+            .help("a model needs more observations than regressors; drop terms or use more data"),
+        ));
+    }
+    // Self-check (section 11.1): a symmetric variance matrix with no negative variance.
+    let k = vcov.rows();
+    for i in 0..k {
+        if vcov.get(i, i).is_nan() || vcov.get(i, i) < 0.0 {
+            return Err(internal(ctx, "a negative variance"));
+        }
+        for j in 0..i {
+            let (a, b) = (vcov.get(i, j), vcov.get(j, i));
+            if (a - b).abs() > 1e-10 * a.abs().max(b.abs()).max(f64::MIN_POSITIVE) {
+                return Err(internal(ctx, "an asymmetric variance matrix"));
+            }
+        }
+    }
+    Ok((vcov, df))
+}
+
+/// The note and the warnings that clusters and weights raise for any model: clusters of one
+/// observation (a note), fewer than [`FEW_CLUSTERS`] clusters (W1002), and weights whose
+/// effective sample size is a small share of the rows (W1003). Each is printed; the notes and
+/// the warnings are kept for the fit.
+pub(crate) fn cluster_and_weight_warnings(
+    ctx: &mut CallContext<'_>,
+    notes: &mut Vec<String>,
+    warnings: &mut Vec<String>,
+    clusters: Option<&Clusters>,
+    design: &Design,
+) {
+    if let Some(clusters) = clusters {
+        if clusters.singletons > 0 {
+            let text = format!(
+                "{} of the {} clusters hold one observation",
+                count(clusters.singletons as u64),
+                count(clusters.count as u64)
+            );
+            notes.push(text.clone());
+            ctx.message(Diagnostic::plain_note(text));
+        }
+        if clusters.count < FEW_CLUSTERS {
+            let text = format!(
+                "few clusters: {} clusters give clustered errors little to rest on",
+                count(clusters.count as u64)
+            );
+            warnings.push(format!("warning[W1002]: {text}"));
+            ctx.message(
+                Diagnostic::warning("W1002", text)
+                    .help("the wild cluster bootstrap (`se: bootstrap`, release 1.1) is the usual remedy below 30 clusters"),
+            );
+        }
+    }
+    if let Some(w) = &design.weights {
+        let effective = effective_sample_size(w);
+        let n = design.n() as f64;
+        if n > 0.0 && effective < EXTREME_WEIGHTS_SHARE * n {
+            let text = format!(
+                "extreme weights: the effective sample size is {} of {} rows",
+                count(effective.round() as u64),
+                count(design.n() as u64)
+            );
+            warnings.push(format!("warning[W1003]: {text}"));
+            ctx.message(
+                Diagnostic::warning("W1003", text)
+                    .help("a few rows carry most of the weight; check them, or trim the weights"),
+            );
+        }
+    }
+}
+
+/// How the summary's line names the standard errors.
+pub(crate) fn se_line(kind: Kind, clusters: Option<&Clusters>, cluster: Option<&str>) -> String {
+    match kind {
+        Kind::Classical => "classical".to_string(),
+        Kind::Hc1 => "robust (HC1)".to_string(),
+        Kind::Hc2 => "hc2".to_string(),
+        Kind::Hc3 => "hc3".to_string(),
+        Kind::Cluster => {
+            let c = clusters.expect("clusters");
+            format!(
+                "clustered by {} ({} clusters, CR1)",
+                cluster.unwrap_or(""),
+                count(c.count as u64)
+            )
+        }
+    }
+}
+
+/// The observation count the summary prints and what it says in brackets beside it: the rows
+/// used, or the sum of the frequency weights and that it is one; the rows dropped for `NA` and
+/// left out for a zero weight; and, with fixed effects (`singletons` given), the singletons.
+pub(crate) fn observations(design: &Design, singletons: Option<usize>) -> (usize, Option<String>) {
+    let n_obs = match design.weight_kind {
+        Some(WeightKind::Frequency) => design.weight_total().round() as usize,
+        _ => design.n(),
+    };
+    let mut note = n_note(design);
+    if design.weight_kind == Some(WeightKind::Frequency) {
+        let sum_text = format!("the sum of the frequency weights over {}", rows(design.n()));
+        note = Some(match note {
+            Some(rest) => format!("{sum_text}; {rest}"),
+            None => sum_text,
+        });
+    }
+    if let Some(singletons) = singletons {
+        let singletons = match singletons {
+            0 => "no singletons".to_string(),
+            1 => "1 row dropped as a singleton".to_string(),
+            n => format!("{} dropped as singletons", rows(n)),
+        };
+        note = Some(match note {
+            Some(rest) => format!("{rest}; {singletons}"),
+            None => singletons,
+        });
+    }
+    (n_obs, note)
+}
+
+/// The summary's line for the weights, when the model is weighted.
+pub(crate) fn weights_line(weights: Option<&str>, design: &Design) -> Vec<String> {
+    match (weights, design.weight_kind) {
+        (Some(name), Some(kind)) => vec![format!(
+            "weights: {name} ({})",
+            match kind {
+                WeightKind::Frequency => "frequency",
+                WeightKind::Analytic => "analytic",
+                WeightKind::Sampling => "sampling",
+            }
+        )],
+        _ => Vec::new(),
+    }
+}
+
+/// The positions of the options a model shares with `reg`, among a function's arguments.
+pub(crate) struct At {
+    pub se: usize,
+    pub cluster: usize,
+    pub weights: usize,
+    pub weight_type: usize,
+    pub level: usize,
+}
+
+const REG_AT: At = At {
+    se: SE,
+    cluster: CLUSTER,
+    weights: WEIGHTS,
+    weight_type: WEIGHT_TYPE,
+    level: LEVEL,
+};
+
+/// What `se:`, `cluster:`, `weights:`, `weight_type:` and `level:` ask for, once checked.
+pub(crate) struct Choices {
+    pub cluster: Option<String>,
+    pub weights: Option<String>,
+    pub weight_kind: WeightKind,
+    pub kind: Kind,
+    pub level: f64,
+}
+
+/// The options a model shares with `reg`, read and checked (section 6; the rulings of release
+/// 0.4.0): the kind of standard error from `se:`, `cluster:` and the kind of the weights, with
+/// the combinations that exclude each other refused, and the confidence level. `with_effects`
+/// says whether the model has `fe:`, under which `hc2` and `hc3` are refused.
+pub(crate) fn choices(
+    ctx: &mut CallContext<'_>,
+    args: &Args,
+    at: &At,
+    with_effects: bool,
+) -> Result<Choices, Fail> {
+    let cluster = match args.get(at.cluster) {
+        Some(Value::Var(name)) => Some(name.clone()),
+        _ => None,
+    };
+    let weights = match args.get(at.weights) {
+        Some(Value::Var(name)) => Some(name.clone()),
+        _ => None,
+    };
+    let weight_kind = match args.get(at.weight_type) {
+        Some(Value::Word(word)) => match word.as_str() {
+            "frequency" => WeightKind::Frequency,
+            "analytic" => WeightKind::Analytic,
+            _ => WeightKind::Sampling,
+        },
+        _ => WeightKind::Sampling,
+    };
+    let sampling = weights.is_some() && weight_kind == WeightKind::Sampling;
+    let se_word = match args.get(at.se) {
+        Some(Value::Word(word)) => Some(word.clone()),
+        _ => None,
+    };
+    if let (Some(word @ ("hc2" | "hc3")), false) = (se_word.as_deref(), !with_effects) {
+        return Err(fail(
+            Diagnostic::error(
+                "Z0410",
+                format!("`se: {word}` and `fe:` exclude each other: with absorbed effects an observation's leverage in the full design is not available"),
+            )
+            .in_file(ctx.script)
+            .primary(ctx.span_of(at.se), "needs every observation's leverage")
+            .help("`se: robust` (HC1) or `cluster:` with `fe:`; HC2 and HC3 with fixed effects arrive with release 0.8.0"),
+        ));
+    }
+    let kind = match (se_word.as_deref(), cluster.is_some()) {
+        (Some(word @ ("hc2" | "hc3")), true) => {
+            return Err(fail(
+                Diagnostic::error(
+                    "Z0410",
+                    format!("`se: {word}` and `cluster:` exclude each other"),
+                )
+                .in_file(ctx.script)
+                .primary(ctx.span_of(at.se), "two kinds of standard error")
+                .help("clustered errors are CR1; leave `se:` out with `cluster:`"),
+            ));
+        }
+        (_, true) => Kind::Cluster,
+        (None, false) => {
+            if sampling {
+                Kind::Hc1
+            } else {
+                Kind::Classical
+            }
+        }
+        (Some("classical"), false) => {
+            if sampling {
+                return Err(fail(
+                    Diagnostic::error(
+                        "Z0410",
+                        "`se: classical` with sampling weights: classical errors treat the weights as precision weights",
+                    )
+                    .in_file(ctx.script)
+                    .primary(ctx.span_of(at.se), "not valid for probability weights")
+                    .help("leave `se:` out, which gives `robust`, or write `weight_type: analytic` for precision weights"),
+                ));
+            }
+            Kind::Classical
+        }
+        (Some("robust"), false) => Kind::Hc1,
+        (Some("hc2"), false) => Kind::Hc2,
+        (Some("hc3"), false) => Kind::Hc3,
+        (Some(other), false) => {
+            return Err(fail(
+                Diagnostic::error(
+                    "Z0304",
+                    format!("`se: {other}` is not available in this release"),
+                )
+                .in_file(ctx.script)
+                .primary(ctx.span_of(at.se), "arrives with release 1.1")
+                .help("`classical`, `robust`, `hc2`, `hc3` and `cluster:` are available now"),
+            ));
+        }
+    };
+    let level = match args.get(at.level) {
+        Some(Value::Float(level)) => *level,
+        Some(Value::Int(level)) => *level as f64,
+        _ => 0.95,
+    };
+    if !(level > 0.0 && level < 1.0) {
+        return Err(fail(
+            Diagnostic::error(
+                "Z0401",
+                format!("`level:` is a probability strictly between 0 and 1, but this is {level}"),
+            )
+            .in_file(ctx.script)
+            .primary(ctx.span_of(at.level), "not a confidence level")
+            .help("the usual levels are 0.9, 0.95 and 0.99"),
+        ));
+    }
+    Ok(Choices {
+        cluster,
+        weights,
+        weight_kind,
+        kind,
+        level,
+    })
+}
+
 /// `data.reg(formula, se:, cluster:, weights:, weight_type:, level:)`.
 pub fn reg(ctx: &mut CallContext<'_>, args: Args) -> Result<Value, Fail> {
     let Some(Value::Frame(frame)) = args.get(0) else {
@@ -214,27 +646,6 @@ pub fn reg(ctx: &mut CallContext<'_>, args: Args) -> Result<Value, Fail> {
     let effects: Vec<Term> = match args.get(FE) {
         Some(Value::Terms(terms)) => terms.clone(),
         _ => Vec::new(),
-    };
-    let cluster = match args.get(CLUSTER) {
-        Some(Value::Var(name)) => Some(name.clone()),
-        _ => None,
-    };
-    let weights = match args.get(WEIGHTS) {
-        Some(Value::Var(name)) => Some(name.clone()),
-        _ => None,
-    };
-    let weight_kind = match args.get(WEIGHT_TYPE) {
-        Some(Value::Word(word)) => match word.as_str() {
-            "frequency" => WeightKind::Frequency,
-            "analytic" => WeightKind::Analytic,
-            _ => WeightKind::Sampling,
-        },
-        _ => WeightKind::Sampling,
-    };
-    let sampling = weights.is_some() && weight_kind == WeightKind::Sampling;
-    let se_word = match args.get(SE) {
-        Some(Value::Word(word)) => Some(word.clone()),
-        _ => None,
     };
     // A fixed effect that is a model variable too is refused: an absorbed effect cannot also be
     // a regressor or the outcome.
@@ -255,82 +666,13 @@ pub fn reg(ctx: &mut CallContext<'_>, args: Args) -> Result<Value, Fail> {
             .help("an absorbed effect cannot be a regressor or the outcome as well; drop it from `fe:` or from the formula"),
         ));
     }
-    if let (Some(word @ ("hc2" | "hc3")), false) = (se_word.as_deref(), effects.is_empty()) {
-        return Err(fail(
-            Diagnostic::error(
-                "Z0410",
-                format!("`se: {word}` and `fe:` exclude each other: with absorbed effects an observation's leverage in the full design is not available"),
-            )
-            .in_file(ctx.script)
-            .primary(ctx.span_of(SE), "needs every observation's leverage")
-            .help("`se: robust` (HC1) or `cluster:` with `fe:`; HC2 and HC3 with fixed effects arrive with release 0.8.0"),
-        ));
-    }
-    let kind = match (se_word.as_deref(), cluster.is_some()) {
-        (Some(word @ ("hc2" | "hc3")), true) => {
-            return Err(fail(
-                Diagnostic::error(
-                    "Z0410",
-                    format!("`se: {word}` and `cluster:` exclude each other"),
-                )
-                .in_file(ctx.script)
-                .primary(ctx.span_of(SE), "two kinds of standard error")
-                .help("clustered errors are CR1; leave `se:` out with `cluster:`"),
-            ));
-        }
-        (_, true) => Kind::Cluster,
-        (None, false) => {
-            if sampling {
-                Kind::Hc1
-            } else {
-                Kind::Classical
-            }
-        }
-        (Some("classical"), false) => {
-            if sampling {
-                return Err(fail(
-                    Diagnostic::error(
-                        "Z0410",
-                        "`se: classical` with sampling weights: classical errors treat the weights as precision weights",
-                    )
-                    .in_file(ctx.script)
-                    .primary(ctx.span_of(SE), "not valid for probability weights")
-                    .help("leave `se:` out, which gives `robust`, or write `weight_type: analytic` for precision weights"),
-                ));
-            }
-            Kind::Classical
-        }
-        (Some("robust"), false) => Kind::Hc1,
-        (Some("hc2"), false) => Kind::Hc2,
-        (Some("hc3"), false) => Kind::Hc3,
-        (Some(other), false) => {
-            return Err(fail(
-                Diagnostic::error(
-                    "Z0304",
-                    format!("`se: {other}` is not available in this release"),
-                )
-                .in_file(ctx.script)
-                .primary(ctx.span_of(SE), "arrives with release 1.1")
-                .help("`classical`, `robust`, `hc2`, `hc3` and `cluster:` are available now"),
-            ));
-        }
-    };
-    let level = match args.get(LEVEL) {
-        Some(Value::Float(level)) => *level,
-        Some(Value::Int(level)) => *level as f64,
-        _ => 0.95,
-    };
-    if !(level > 0.0 && level < 1.0) {
-        return Err(fail(
-            Diagnostic::error(
-                "Z0401",
-                format!("`level:` is a probability strictly between 0 and 1, but this is {level}"),
-            )
-            .in_file(ctx.script)
-            .primary(ctx.span_of(LEVEL), "not a confidence level")
-            .help("the usual levels are 0.9, 0.95 and 0.99"),
-        ));
-    }
+    let Choices {
+        cluster,
+        weights,
+        weight_kind,
+        kind,
+        level,
+    } = choices(ctx, &args, &REG_AT, !effects.is_empty())?;
     // The design and the fit, reused when this run already made them for this frame, formula
     // and weighting (the cluster's `NA` rows change the rows used, so it is part of the key).
     let effects_text = terms_text(&effects);
@@ -406,90 +748,17 @@ pub fn reg(ctx: &mut CallContext<'_>, args: Args) -> Result<Value, Fail> {
         notes.push(text.clone());
         ctx.message(Diagnostic::plain_note(text));
     }
-    // The columns dropped, each kind with its own note: a category level with no observations
-    // among the rows used, a column that is zero in every row, a column whose values are too
-    // small to be scaled, and the rest collinear with the columns before them.
-    let names = |columns: &[usize]| -> Vec<String> {
-        columns
-            .iter()
-            .map(|&c| format!("`{}`", design.names[c]))
-            .collect()
-    };
-    let note = |ctx: &mut CallContext<'_>,
-                notes: &mut Vec<String>,
-                listed: Vec<String>,
-                one: &str,
-                several: &str| {
-        let text = match listed.len() {
-            0 => return,
-            1 => format!("{} {one}", listed[0]),
-            _ => format!("{} {several}", listed.join(", ")),
-        };
-        notes.push(text.clone());
-        ctx.message(Diagnostic::plain_note(text));
-    };
-    // A column the fixed effects absorbed (section 7.2, "Collinearity") is zeroed by the
-    // projection and dropped by the fit; it is named so, and not as a zero column.
     let absorbed_columns: Vec<usize> = fe
         .as_ref()
         .map(|w| w.absorbed.absorbed_columns.clone())
         .unwrap_or_default();
-    note(
+    dropped_notes(
         ctx,
         &mut notes,
-        names(&absorbed_columns),
-        &format!("is absorbed by fe: {effects_text} and was dropped"),
-        &format!("are absorbed by fe: {effects_text} and were dropped"),
-    );
-    let (levels, zeros): (Vec<usize>, Vec<usize>) = fitted
-        .zero
-        .iter()
-        .filter(|c| !absorbed_columns.contains(c))
-        .partition(|&&c| design.names[c].contains('='));
-    note(
-        ctx,
-        &mut notes,
-        names(&levels),
-        "has no observations among the rows used and was dropped",
-        "have no observations among the rows used and were dropped",
-    );
-    note(
-        ctx,
-        &mut notes,
-        names(&zeros),
-        "is zero in every row used and was dropped",
-        "are zero in every row used and were dropped",
-    );
-    note(
-        ctx,
-        &mut notes,
-        names(&fitted.vanishing),
-        "has values too small to be scaled (below 1e-150 in size) and was dropped",
-        "have values too small to be scaled (below 1e-150 in size) and were dropped",
-    );
-    note(
-        ctx,
-        &mut notes,
-        names(&fitted.oversized),
-        "has values too large to be scaled (above 1e150 in size) and was dropped",
-        "have values too large to be scaled (above 1e150 in size) and were dropped",
-    );
-    let collinear: Vec<usize> = fitted
-        .omitted
-        .iter()
-        .copied()
-        .filter(|c| {
-            !fitted.zero.contains(c)
-                && !fitted.vanishing.contains(c)
-                && !fitted.oversized.contains(c)
-        })
-        .collect();
-    note(
-        ctx,
-        &mut notes,
-        names(&collinear),
-        "is collinear with the columns before it and was dropped",
-        "are collinear with the columns before them and were dropped",
+        &design,
+        &fitted,
+        &absorbed_columns,
+        &effects_text,
     );
     // The statistical warnings, printed here and kept on the fit for the footer of a `report`
     // table (section 11.1).
@@ -572,120 +841,24 @@ pub fn reg(ctx: &mut CallContext<'_>, args: Args) -> Result<Value, Fail> {
     let absorbed = fe.as_ref().map_or(0, |w| {
         absorbed_parameters(&w.absorbed.effects, clusters.as_ref())
     });
-    let (vcov, df) = match variance::variance(
+    let (vcov, df) = checked_variance(
+        ctx,
+        variance::variance(
+            kind,
+            &Ols,
+            &design,
+            &fitted,
+            &bread,
+            clusters.as_ref(),
+            absorbed,
+        ),
         kind,
-        &Ols,
-        &design,
-        &fitted,
-        &bread,
-        clusters.as_ref(),
-        absorbed,
-    ) {
-        Ok(pair) => pair,
-        Err(VarianceError::Asymmetric) => {
-            return Err(internal(ctx, "an asymmetric variance matrix"));
-        }
-        Err(VarianceError::LeverageOne(rows_at_one)) => {
-            let word = match kind {
-                Kind::Hc3 => "hc3",
-                _ => "hc2",
-            };
-            return Err(fail(
-                    Diagnostic::error(
-                        "Z0802",
-                        format!(
-                            "`se: {word}` needs every observation's leverage below one, but {} leverage one: each is alone in a cell of the design",
-                            if rows_at_one == 1 {
-                                "1 row has".to_string()
-                            } else {
-                                format!("{} rows have", count(rows_at_one as u64))
-                            }
-                        ),
-                    )
-                    .in_file(ctx.script)
-                    .primary(ctx.callee_span, "an observation that fits itself exactly")
-                    .help("`se: robust` (HC1) keeps these rows; or drop the regressor that singles each out, such as a category level with one observation"),
-                ));
-        }
-        Err(VarianceError::OneCluster) => {
-            return Err(fail(
-                Diagnostic::error(
-                    "Z0802",
-                    format!(
-                        "clustered errors need at least two clusters, and `{}` has one",
-                        cluster.as_deref().unwrap_or("")
-                    ),
-                )
-                .in_file(ctx.script)
-                .primary(ctx.span_of(CLUSTER), "one cluster")
-                .help("cluster by a variable with several values, or leave `cluster:` out"),
-            ));
-        }
-    };
-    if df == 0 {
-        return Err(fail(
-            Diagnostic::error(
-                "Z0802",
-                "no residual degrees of freedom: as many regressors as observations",
-            )
-            .in_file(ctx.script)
-            .primary(ctx.callee_span, "nothing left to estimate the error from")
-            .help("a model needs more observations than regressors; drop terms or use more data"),
-        ));
-    }
-    // Self-check (section 11.1): a symmetric variance matrix with no negative variance.
-    let k = fitted.kept.len();
-    for i in 0..k {
-        if vcov.get(i, i).is_nan() || vcov.get(i, i) < 0.0 {
-            return Err(internal(ctx, "a negative variance"));
-        }
-        for j in 0..i {
-            let (a, b) = (vcov.get(i, j), vcov.get(j, i));
-            if (a - b).abs() > 1e-10 * a.abs().max(b.abs()).max(f64::MIN_POSITIVE) {
-                return Err(internal(ctx, "an asymmetric variance matrix"));
-            }
-        }
-    }
+        cluster.as_deref(),
+        CLUSTER,
+    )?;
     // The statistical warnings: few clusters (W1002), extreme weights (W1003), an observation
     // that drives a coefficient (W1006).
-    if let Some(clusters) = &clusters {
-        if clusters.singletons > 0 {
-            let text = format!(
-                "{} of the {} clusters hold one observation",
-                count(clusters.singletons as u64),
-                count(clusters.count as u64)
-            );
-            notes.push(text.clone());
-            ctx.message(Diagnostic::plain_note(text));
-        }
-        if clusters.count < FEW_CLUSTERS {
-            let text = format!(
-                "few clusters: {} clusters give clustered errors little to rest on",
-                count(clusters.count as u64)
-            );
-            warnings.push(format!("warning[W1002]: {text}"));
-            ctx.message(
-                Diagnostic::warning("W1002", text)
-                    .help("the wild cluster bootstrap (`se: bootstrap`, release 1.1) is the usual remedy below 30 clusters"),
-            );
-        }
-    }
-    if let Some(w) = &design.weights {
-        let effective = effective_sample_size(w);
-        let n = design.n() as f64;
-        if n > 0.0 && effective < EXTREME_WEIGHTS_SHARE * n {
-            let text = format!(
-                "extreme weights: the effective sample size is {} of {} rows",
-                count(effective.round() as u64),
-                count(design.n() as u64)
-            );
-            warnings.push(format!("warning[W1003]: {text}"));
-            ctx.message(
-                Diagnostic::warning("W1003", text)
-                    .help("a few rows carry most of the weight; check them, or trim the weights"),
-            );
-        }
-    }
+    cluster_and_weight_warnings(ctx, &mut notes, &mut warnings, clusters.as_ref(), &design);
     // An observation's leverage in the full design is not available with absorbed effects, so
     // W1006 is judged without them.
     let driving = if fe.is_some() {
@@ -725,54 +898,9 @@ pub fn reg(ctx: &mut CallContext<'_>, args: Args) -> Result<Value, Fail> {
         );
     }
     // The summary.
-    let se_line = match kind {
-        Kind::Classical => "classical".to_string(),
-        Kind::Hc1 => "robust (HC1)".to_string(),
-        Kind::Hc2 => "hc2".to_string(),
-        Kind::Hc3 => "hc3".to_string(),
-        Kind::Cluster => {
-            let c = clusters.as_ref().expect("clusters");
-            format!(
-                "clustered by {} ({} clusters, CR1)",
-                cluster.as_deref().unwrap_or(""),
-                count(c.count as u64)
-            )
-        }
-    };
-    let n_obs = match design.weight_kind {
-        Some(WeightKind::Frequency) => design.weight_total().round() as usize,
-        _ => design.n(),
-    };
-    let mut note = n_note(&design);
-    if design.weight_kind == Some(WeightKind::Frequency) {
-        let sum_text = format!("the sum of the frequency weights over {}", rows(design.n()));
-        note = Some(match note {
-            Some(rest) => format!("{sum_text}; {rest}"),
-            None => sum_text,
-        });
-    }
-    if let Some(work) = &fe {
-        let singletons = match work.absorbed.singletons {
-            0 => "no singletons".to_string(),
-            1 => "1 row dropped as a singleton".to_string(),
-            n => format!("{} dropped as singletons", rows(n)),
-        };
-        note = Some(match note {
-            Some(rest) => format!("{rest}; {singletons}"),
-            None => singletons,
-        });
-    }
-    let more_lines = match (&weights, design.weight_kind) {
-        (Some(name), Some(kind)) => vec![format!(
-            "weights: {name} ({})",
-            match kind {
-                WeightKind::Frequency => "frequency",
-                WeightKind::Analytic => "analytic",
-                WeightKind::Sampling => "sampling",
-            }
-        )],
-        _ => Vec::new(),
-    };
+    let se_line = se_line(kind, clusters.as_ref(), cluster.as_deref());
+    let (n_obs, note) = observations(&design, fe.as_ref().map(|w| w.absorbed.singletons));
+    let more_lines = weights_line(weights.as_deref(), &design);
     let formula_text = formula.to_string();
     let setting = Setting {
         method: "reg",

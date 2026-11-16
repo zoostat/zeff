@@ -243,6 +243,7 @@ pub fn linear_fit(design: &Design, fitted: &Fitted, vcov: &Matrix, setting: &Set
         absorbed_parameters: absorbed,
         r_squared_within,
         adjusted_r_squared_within,
+        instrumented: None,
     }
 }
 
@@ -377,7 +378,7 @@ fn summary_of(
 /// weight, the divisor N − 1 with N their sum, as R computes them on the replicated rows; under
 /// analytic and sampling weights, and without weights, each row counts once, as R's `sd` of the
 /// model matrix does. Two passes over the blocks, the rows unscaled by their weights.
-fn deviations(design: &Design, fitted: &Fitted) -> (Vec<f64>, f64) {
+pub fn deviations(design: &Design, fitted: &Fitted) -> (Vec<f64>, f64) {
     let kept = &fitted.kept;
     let n = design.n();
     let weights = design.weights.as_ref();

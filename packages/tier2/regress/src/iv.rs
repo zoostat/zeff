@@ -1299,6 +1299,84 @@ fn counted(n: usize, one: &str, many: &str) -> String {
     }
 }
 
+/// The refusal of an under-identified model (Z0804): by the count of excluded instruments that
+/// remain, with the ones dropped named, or, when the count is enough, because the instruments
+/// move the instrumented regressors only together. `observed` are the regressors collinear as
+/// observed, which are not counted, and `unidentified` the regressors left without an
+/// instrument of their own.
+fn under_identified(
+    ctx: &CallContext<'_>,
+    designs: &Designs,
+    first: &FirstStage,
+    notes: &[String],
+    observed: &[usize],
+    unidentified: &[String],
+) -> Fail {
+    let excluded = designs.excluded_instruments();
+    let remaining = excluded.iter().filter(|i| first.kept.contains(i)).count();
+    let instrumented = designs
+        .endogenous
+        .iter()
+        .filter(|c| !observed.contains(c))
+        .count();
+    let dropped = excluded.len() - remaining;
+    let mut d = if remaining < instrumented {
+        Diagnostic::error(
+            "Z0804",
+            format!(
+                "the model is under-identified: {} for {}",
+                if dropped == 0 {
+                    counted(remaining, "excluded instrument", "excluded instruments")
+                } else {
+                    counted(
+                        remaining,
+                        "excluded instrument remains",
+                        "excluded instruments remain",
+                    )
+                },
+                counted(
+                    instrumented,
+                    "instrumented regressor",
+                    "instrumented regressors"
+                )
+            ),
+        )
+        .in_file(ctx.script)
+        .primary(ctx.callee_span, "fewer instruments than instrumented regressors")
+        .help("each instrumented regressor needs at least one instrument that is not a regressor of the formula")
+    } else {
+        Diagnostic::error(
+            "Z0804",
+            format!(
+                "the model is under-identified: the instruments do not tell {} from the regressors before {}",
+                listed(unidentified),
+                if unidentified.len() == 1 { "it" } else { "them" }
+            ),
+        )
+        .in_file(ctx.script)
+        .primary(ctx.callee_span, "instruments that move the regressors only together")
+        .help("the first stage's fitted values are collinear: each instrumented regressor needs an instrument that moves it apart from the others")
+    };
+    for text in notes {
+        d = d.help(text.clone());
+    }
+    if !designs.included.is_empty() {
+        d = d.help(format!(
+            "{} already in the formula, so {} an included instrument and identifies nothing",
+            match designs.included.as_slice() {
+                [one] => format!("`{one}` is"),
+                many => format!("{} are", listed(many)),
+            },
+            if designs.included.len() == 1 {
+                "it is"
+            } else {
+                "each is"
+            }
+        ));
+    }
+    fail(d)
+}
+
 /// The two stages on `designs`.
 pub fn estimate(ctx: &mut CallContext<'_>, designs: Designs) -> Result<TwoStage, Fail> {
     let n = designs.structural.n();
@@ -1322,36 +1400,6 @@ pub fn estimate(ctx: &mut CallContext<'_>, designs: Designs) -> Result<TwoStage,
         });
     }
     let first = first_stage(ctx, &designs)?;
-    // The fitted regressors: a regressor that is not instrumented keeps its own values; an
-    // instrumented one is the kept instruments times its first-stage coefficients, summed in
-    // the instruments' order.
-    let k = designs.structural.k();
-    let mut columns: Vec<Vec<f64>> = (0..k)
-        .map(|c| {
-            if designs.endogenous.contains(&c) {
-                vec![0.0; n]
-            } else {
-                designs.structural.column_values(c)
-            }
-        })
-        .collect();
-    for (p, &i) in first.kept.iter().enumerate() {
-        let instrument = designs.values(designs.instruments[i]);
-        for (q, &c) in designs.endogenous.iter().enumerate() {
-            let coefficient = first.coefficients[q][p];
-            for (sum, z) in columns[c].iter_mut().zip(&instrument) {
-                *sum += coefficient * z;
-            }
-        }
-    }
-    let second = designs
-        .structural
-        .with_columns(columns, designs.structural.leverage_available());
-    let estimator = SecondStage {
-        structural: &designs.structural,
-        first_condition: first.condition_number,
-    };
-    let fitted = estimator.fit(ctx, &second)?;
     // What the first stage dropped among the excluded instruments.
     let names_of = |positions: &[usize]| -> Vec<String> {
         positions
@@ -1409,6 +1457,63 @@ pub fn estimate(ctx: &mut CallContext<'_>, designs: Designs) -> Result<TwoStage,
         "is collinear with the regressors and instruments before it and was dropped from the instruments",
         "are collinear with the regressors and instruments before them and were dropped from the instruments",
     );
+    // The order condition, before the second stage: with fewer excluded instruments kept than
+    // regressors to instrument (those not dropped as collinear among the regressors as
+    // observed) nothing identifies the model, and the fitted regressors need not be computed.
+    let kept_excluded = designs
+        .excluded_instruments()
+        .iter()
+        .filter(|i| first.kept.contains(i))
+        .count();
+    if kept_excluded < designs.endogenous.len() {
+        let observed = collinear_as_observed(&designs);
+        let unidentified: Vec<String> = designs
+            .endogenous
+            .iter()
+            .filter(|c| !observed.contains(c))
+            .map(|&c| designs.structural.names[c].clone())
+            .collect();
+        if kept_excluded < unidentified.len() {
+            return Err(under_identified(
+                ctx,
+                &designs,
+                &first,
+                &notes,
+                &observed,
+                &unidentified,
+            ));
+        }
+    }
+    // The fitted regressors: a regressor that is not instrumented keeps its own values; an
+    // instrumented one is the kept instruments times its first-stage coefficients, summed in
+    // the instruments' order.
+    let k = designs.structural.k();
+    let mut columns: Vec<Vec<f64>> = (0..k)
+        .map(|c| {
+            if designs.endogenous.contains(&c) {
+                vec![0.0; n]
+            } else {
+                designs.structural.column_values(c)
+            }
+        })
+        .collect();
+    for (p, &i) in first.kept.iter().enumerate() {
+        let instrument = designs.values(designs.instruments[i]);
+        for (q, &c) in designs.endogenous.iter().enumerate() {
+            let coefficient = first.coefficients[q][p];
+            for (sum, z) in columns[c].iter_mut().zip(&instrument) {
+                *sum += coefficient * z;
+            }
+        }
+    }
+    let second = designs
+        .structural
+        .with_columns(columns, designs.structural.leverage_available());
+    let estimator = SecondStage {
+        structural: &designs.structural,
+        first_condition: first.condition_number,
+    };
+    let fitted = estimator.fit(ctx, &second)?;
     // A fitted regressor collinear with the ones before it where the regressor as observed is
     // not: the instruments do not identify the model (section 7.1; Z0804), by their count once
     // the collinear ones are gone, or because they move the instrumented regressors only
@@ -1422,69 +1527,14 @@ pub fn estimate(ctx: &mut CallContext<'_>, designs: Designs) -> Result<TwoStage,
             .map(|&c| designs.structural.names[c].clone())
             .collect();
         if !unidentified.is_empty() {
-            let excluded = designs.excluded_instruments();
-            let remaining = excluded.iter().filter(|i| first.kept.contains(i)).count();
-            let instrumented = designs
-                .endogenous
-                .iter()
-                .filter(|c| !observed.contains(c))
-                .count();
-            let dropped = excluded.len() - remaining;
-            let mut d = if remaining < instrumented {
-                Diagnostic::error(
-                    "Z0804",
-                    format!(
-                        "the model is under-identified: {} for {}",
-                        if dropped == 0 {
-                            counted(remaining, "excluded instrument", "excluded instruments")
-                        } else {
-                            counted(
-                                remaining,
-                                "excluded instrument remains",
-                                "excluded instruments remain",
-                            )
-                        },
-                        counted(
-                            instrumented,
-                            "instrumented regressor",
-                            "instrumented regressors"
-                        )
-                    ),
-                )
-                .in_file(ctx.script)
-                .primary(ctx.callee_span, "fewer instruments than instrumented regressors")
-                .help("each instrumented regressor needs at least one instrument that is not a regressor of the formula")
-            } else {
-                Diagnostic::error(
-                    "Z0804",
-                    format!(
-                        "the model is under-identified: the instruments do not tell {} from the regressors before {}",
-                        listed(&unidentified),
-                        if unidentified.len() == 1 { "it" } else { "them" }
-                    ),
-                )
-                .in_file(ctx.script)
-                .primary(ctx.callee_span, "instruments that move the regressors only together")
-                .help("the first stage's fitted values are collinear: each instrumented regressor needs an instrument that moves it apart from the others")
-            };
-            for text in &notes {
-                d = d.help(text.clone());
-            }
-            if !designs.included.is_empty() {
-                d = d.help(format!(
-                    "{} already in the formula, so {} an included instrument and identifies nothing",
-                    match designs.included.as_slice() {
-                        [one] => format!("`{one}` is"),
-                        many => format!("{} are", listed(many)),
-                    },
-                    if designs.included.len() == 1 {
-                        "it is"
-                    } else {
-                        "each is"
-                    }
-                ));
-            }
-            return Err(fail(d));
+            return Err(under_identified(
+                ctx,
+                &designs,
+                &first,
+                &notes,
+                &observed,
+                &unidentified,
+            ));
         }
     }
     Ok(TwoStage {

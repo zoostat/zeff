@@ -752,3 +752,7 @@ Found while coding step 9 of release 0.8.0. Section 7.1 names three codes for th
 ## 16 November 2026 — zeff_language_reference.md, section 11 (the row "Statistical warnings", the code W1007)
 
 Applied at step 12c of release 0.8.0, under the release's ruling that a statistical warning for weak instruments is a new W1 code with its row, its explained page and its snapshot. The row listed W1001 to W1006; it gains "weak instruments, with the F statistic that shows it (W1007)", the next free code of the family. Nothing else in the text changes: section 7.1 describes the instruments and `first_stage`, and the conditions of the warning (the F printed under the fit under 10, or the effective F under its critical value) are the owner's answer to question 3(a) of the release, recorded in `docs/decisions.md`.
+
+## 16 November 2026 — zeff_functions.csv (row 239, the usage and status of `ivreg`)
+
+Applied at step 13b of release 0.8.0. The usage of `ivreg` listed `fe:`, `instruments:` and `first:`; the release's checklist gives the function the options every model shares with `reg`, and the registry holds a function to the parameters its catalogue row lists. The usage is now `data.ivreg(formula, fe: Terms, instruments: Instruments, se: classical | robust | hc2 | hc3, cluster: Var, weights: Var, weight_type: frequency | analytic | sampling = sampling, level: Float = 0.95, first: Bool = false)`, the formula and the instruments written by their types as `reg`'s row writes its own, and the status is `implemented`. The description and the equivalents are unchanged.

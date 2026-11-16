@@ -1,0 +1,223 @@
+//! `ivreg` through the engine (Language Reference, sections 7.1 and 10.2; catalogue row 239;
+//! release 0.8.0, step 13b): the printed result in each of its forms, on the shipped `staff`
+//! and on Card's data as the specification's sample script fits it; every note, warning and
+//! refusal; and the fit read as any fit is read. The estimator's own figures are held to R in
+//! `iv.rs`; here the function is held to the estimator.
+
+use zeff_testkit::{root, run, run_with};
+
+fn printed(script: &str) -> String {
+    let outcome = run(script);
+    format!("{}{}", outcome.output.stdout, outcome.output.stderr)
+}
+
+/// A script with Card's data beside it, as `data/card.csv`.
+fn printed_with_card(script: &str) -> String {
+    let card = std::fs::read(root().join("tests/reference/data/card.csv")).unwrap();
+    let outcome = run_with(&[("data/card.csv", &card)], script);
+    format!("{}{}", outcome.output.stdout, outcome.output.stderr)
+}
+
+fn all_of(scripts: &[(&str, &str)], with_card: bool) -> String {
+    let mut all = String::new();
+    for (what, script) in scripts {
+        all.push_str(&format!("## {what}\n{script}\n---\n"));
+        all.push_str(&if with_card {
+            printed_with_card(script)
+        } else {
+            printed(script)
+        });
+        all.push('\n');
+    }
+    all
+}
+
+/// The printed result: the structural table in `reg`'s layout, under it what was instrumented
+/// by what and the weak-instrument F of the ruling (Cragg–Donald under classical errors,
+/// Kleibergen–Paap with the effective F otherwise); with `fe:`; with weights of each kind; with
+/// clusters; with `first: true`, the first stages above; and with two instrumented regressors.
+#[test]
+fn the_printed_result_in_each_form() {
+    let scripts = [
+        (
+            "one instrument, classical errors",
+            "let staff = dataset(staff)\nstaff.ivreg(productivity ~ training, instruments: training ~ offer)\n",
+        ),
+        (
+            "two instruments, robust errors, the sites absorbed, the first stage asked for",
+            "let staff = dataset(staff)\nstaff.ivreg(productivity ~ age + training, fe: site, instruments: training ~ offer + distance, se: robust, first: true)\n",
+        ),
+        (
+            "clustered by site",
+            "let staff = dataset(staff)\nstaff.ivreg(productivity ~ age + training, instruments: training ~ offer, cluster: site)\n",
+        ),
+        (
+            "hc3, a category among the regressors, a 90% interval",
+            "let staff = dataset(staff)\nstaff.ivreg(productivity ~ region + training, instruments: training ~ offer, se: hc3, level: 0.9)\n",
+        ),
+        (
+            "analytic weights",
+            "let staff = dataset(staff)\nstaff.ivreg(productivity ~ training, instruments: training ~ offer, weights: tenure, weight_type: analytic)\n",
+        ),
+        (
+            "sampling weights, robust unless said",
+            "let staff = dataset(staff)\nstaff.ivreg(productivity ~ training, instruments: training ~ offer, weights: tenure)\n",
+        ),
+        (
+            "frequency weights",
+            "let staff = dataset(staff).add(copies = to(floor(age / 10), Int))\nstaff.ivreg(productivity ~ training, instruments: training ~ offer, weights: copies, weight_type: frequency)\n",
+        ),
+        (
+            "two instrumented regressors, the first stage of each above",
+            "let staff = dataset(staff)\nstaff.ivreg(productivity ~ training + tenure, instruments: training + tenure ~ offer + distance + age, first: true)\n",
+        ),
+        (
+            "bound to a name, printed by `print`, and its summary",
+            "let staff = dataset(staff)\nlet iv = staff.ivreg(productivity ~ training, instruments: training ~ offer, first: true)\nprint(iv)\niv.summary()\n",
+        ),
+    ];
+    insta::assert_snapshot!("ivreg_printed", all_of(&scripts, false));
+}
+
+/// The model of section 7 of the specification's sample script, on Card's data, and the same
+/// with both proximity indicators, whose instruments are weak: the figures are fixest's (0.2252
+/// for schooling with the region absorbed, its robust standard error 0.0426).
+#[test]
+fn the_specification_s_model_on_card_s_data() {
+    let scripts = [
+        (
+            "section 7 of the sample script",
+            "let card = import(\"data/card.csv\")\nlet iv = card.ivreg(lwage ~ exper + exper^2 + black + educ,\n                    fe: region,\n                    instruments: educ ~ nearc4,\n                    se: robust,\n                    first: true)\niv\niv.coef(educ)\niv.std_errors(educ)\n",
+        ),
+        (
+            "both proximity indicators: weak instruments",
+            "let card = import(\"data/card.csv\")\ncard.ivreg(lwage ~ exper + expersq + black + south + smsa + educ, instruments: educ ~ nearc4 + nearc2, se: robust)\n",
+        ),
+        (
+            "a first stage whose residuals are collinear has no joint statistic",
+            "let card = import(\"data/card.csv\")\ncard.ivreg(lwage ~ black + south + smsa + educ + exper, instruments: educ + exper ~ nearc4 + nearc2 + age)\n",
+        ),
+    ];
+    let all = all_of(&scripts, true);
+    assert!(all.contains("0.225208\n0.0425616\n"), "{all}");
+    insta::assert_snapshot!("ivreg_card", all);
+}
+
+/// Every note and every refusal of the function, as printed.
+#[test]
+fn the_notes_and_the_refusals() {
+    let staff =
+        "let staff = dataset(staff).add(one = 1.0, twice = distance * 2, by_site = site * 10.0)\n";
+    let cases = [
+        ("no `instruments:`", "staff.ivreg(productivity ~ training)"),
+        (
+            "an instrumented regressor missing from the formula",
+            "staff.ivreg(productivity ~ age, instruments: training ~ offer)",
+        ),
+        (
+            "a variable on both sides",
+            "staff.ivreg(productivity ~ training, instruments: training ~ training + offer)",
+        ),
+        (
+            "fewer instruments than instrumented regressors",
+            "staff.ivreg(productivity ~ training + tenure, instruments: training + tenure ~ offer)",
+        ),
+        (
+            "an instrument that is a regressor already, with another that is not",
+            "staff.ivreg(productivity ~ age + training, instruments: training ~ age + offer)",
+        ),
+        (
+            "the only instrument a regressor already",
+            "staff.ivreg(productivity ~ age + training, instruments: training ~ age)",
+        ),
+        (
+            "a constant instrument and a copy of another, dropped with notes",
+            "staff.ivreg(productivity ~ training, instruments: training ~ one + distance + twice + offer)",
+        ),
+        (
+            "an instrument that does not vary within the sites, absorbed",
+            "staff.ivreg(productivity ~ training, fe: site, instruments: training ~ by_site + offer)",
+        ),
+        (
+            "the only instrument absorbed",
+            "staff.ivreg(productivity ~ training, fe: site, instruments: training ~ by_site)",
+        ),
+        (
+            "a fixed effect that is an instrument",
+            "staff.ivreg(productivity ~ training, fe: offer, instruments: training ~ offer)",
+        ),
+        (
+            "a fixed effect that is a regressor",
+            "staff.ivreg(productivity ~ age + training, fe: age, instruments: training ~ offer)",
+        ),
+        (
+            "hc2 with fixed effects",
+            "staff.ivreg(productivity ~ training, fe: site, instruments: training ~ offer, se: hc2)",
+        ),
+        (
+            "hc3 with clusters",
+            "staff.ivreg(productivity ~ training, instruments: training ~ offer, se: hc3, cluster: site)",
+        ),
+        (
+            "classical errors with sampling weights",
+            "staff.ivreg(productivity ~ training, instruments: training ~ offer, weights: tenure, se: classical)",
+        ),
+        (
+            "a level that is not a probability",
+            "staff.ivreg(productivity ~ training, instruments: training ~ offer, level: 95)",
+        ),
+        (
+            "an instrument the frame does not have",
+            "staff.ivreg(productivity ~ training, instruments: training ~ lottery)",
+        ),
+        (
+            "a product instrumented as one term",
+            "staff.ivreg(productivity ~ training * age, instruments: training * age ~ offer + distance)",
+        ),
+        (
+            "an interaction instrumented by name",
+            "staff.ivreg(productivity ~ age + training + training:age, instruments: training + training:age ~ offer + offer:age)",
+        ),
+        (
+            "a weak instrument, classical errors",
+            "staff.where(employee <= 300).ivreg(productivity ~ training, instruments: training ~ distance)",
+        ),
+        (
+            "a regressor collinear with another, dropped as `reg` drops it",
+            "staff.ivreg(productivity ~ distance + twice + training, instruments: training ~ offer)",
+        ),
+        (
+            "the instrumented regressor a combination of the others: nothing left to instrument",
+            "staff.add(both = age + distance).ivreg(productivity ~ age + distance + both, instruments: both ~ offer)",
+        ),
+    ];
+    let scripts: Vec<(&str, String)> = cases
+        .iter()
+        .map(|(what, call)| (*what, format!("{staff}{call}\n")))
+        .collect();
+    let borrowed: Vec<(&str, &str)> = scripts.iter().map(|(w, s)| (*w, s.as_str())).collect();
+    insta::assert_snapshot!("ivreg_notes_and_refusals", all_of(&borrowed, false));
+}
+
+/// An `IvFit` is read as any fit: by term, as a table, and by tests on its coefficients; the
+/// methods of a regression fit alone (`r_squared`) are refused by the checker; and what
+/// `ivreg` is not given (the instruments) leaves the least-squares figures of `reg`.
+#[test]
+fn the_fit_is_read_as_any_fit() {
+    let script = "let staff = dataset(staff)\n\
+        let iv = staff.ivreg(productivity ~ age + training, fe: site, instruments: training ~ offer + distance, se: robust)\n\
+        iv.coef(training)\n\
+        iv.std_errors(training)\n\
+        iv.p_values(age)\n\
+        iv.ci(training)\n\
+        iv.coef()\n\
+        iv.test(training == 4.5)\n\
+        type_of(iv)\n";
+    let out = printed(script);
+    assert!(out.starts_with("4.58159\n0.423103\n"), "{out}");
+    insta::assert_snapshot!("ivreg_read", out);
+    let refused = printed(
+        "let staff = dataset(staff)\nlet iv = staff.ivreg(productivity ~ training, instruments: training ~ offer)\niv.r_squared()\n",
+    );
+    insta::assert_snapshot!("ivreg_r_squared_refused", refused);
+}

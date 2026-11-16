@@ -593,6 +593,7 @@ pub fn has_type(value: &Value, ty: &TypeValue) -> bool {
         "Instruments" => matches!(value, Value::Instruments { .. }),
         "Result" => matches!(value, Value::Fit(_) | Value::TestResult(_)),
         "RegFit" => matches!(value, Value::Fit(fit) if fit.kind == "RegFit"),
+        "IvFit" => matches!(value, Value::Fit(fit) if fit.kind == "IvFit"),
         "TestResult" => matches!(value, Value::TestResult(_)),
         "Plot" => matches!(value, Value::Plot(_)),
         "Term" => matches!(value, Value::Term(_) | Value::TermExpr { .. }),

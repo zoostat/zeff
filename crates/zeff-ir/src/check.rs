@@ -235,6 +235,7 @@ const TYPE_NAMES: &[&str] = &[
     "Term",
     "Result",
     "RegFit",
+    "IvFit",
     "TestResult",
     "Failed",
     "Any",

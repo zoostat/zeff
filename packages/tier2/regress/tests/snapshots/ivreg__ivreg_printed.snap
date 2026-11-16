@@ -1,0 +1,209 @@
+---
+source: packages/tier2/regress/tests/ivreg.rs
+expression: "all_of(&scripts, false)"
+---
+## one instrument, classical errors
+let staff = dataset(staff)
+staff.ivreg(productivity ~ training, instruments: training ~ offer)
+
+---
+ivreg · productivity ~ training
+N = 2,400
+standard errors: classical
+
+  term          estimate   std.error   t value   p value   95% CI
+  (intercept)    51.0507      0.2743    186.10    <0.001   [50.5127, 51.5886]
+  training        4.3177      0.4975      8.68    <0.001   [3.3420, 5.2933]
+
+instrumented: training · instruments: offer
+Cragg–Donald F 740.58
+
+## two instruments, robust errors, the sites absorbed, the first stage asked for
+let staff = dataset(staff)
+staff.ivreg(productivity ~ age + training, fe: site, instruments: training ~ offer + distance, se: robust, first: true)
+
+---
+first stage · training ~ age + offer + distance · fe: site
+
+  term       estimate   std.error   t value   p value   95% CI
+  age         -0.0039      0.0008     -4.87    <0.001   [-0.0054, -0.0023]
+  offer        0.4841      0.0176     27.50    <0.001   [0.4496, 0.5187]
+  distance    -0.0059      0.0015     -3.95    <0.001   [-0.0088, -0.0029]
+
+F of the excluded instruments 396.58 on 2 and 2,385 degrees of freedom
+
+ivreg · productivity ~ age + training · fe: site
+N = 2,400 (no singletons)
+fixed effects: site (12)
+standard errors: robust (HC1)
+
+  term       estimate   std.error   t value   p value   95% CI
+  age         -0.0005      0.0095     -0.05     0.959   [-0.0190, 0.0181]
+  training     4.5816      0.4231     10.83    <0.001   [3.7519, 5.4113]
+
+instrumented: training · instruments: offer, distance
+Kleibergen–Paap F 396.58 · effective F 383.11 (critical value 19.66)
+
+## clustered by site
+let staff = dataset(staff)
+staff.ivreg(productivity ~ age + training, instruments: training ~ offer, cluster: site)
+
+---
+ivreg · productivity ~ age + training
+N = 2,400
+standard errors: clustered by site (12 clusters, CR1)
+
+  term          estimate   std.error   t value   p value   95% CI
+  (intercept)    51.0791      0.8987     56.84    <0.001   [49.1011, 53.0571]
+  age            -0.0007      0.0073     -0.10     0.925   [-0.0167, 0.0153]
+  training        4.3185      0.4085     10.57    <0.001   [3.4193, 5.2177]
+
+instrumented: training · instruments: offer
+Kleibergen–Paap F 630.53 · effective F 630.53 (critical value 23.11)
+warning[W1002]: few clusters: 12 clusters give clustered errors little to rest on (line 2)
+  = help: the wild cluster bootstrap (`se: bootstrap`, release 1.1) is the usual remedy below 30 clusters
+
+## hc3, a category among the regressors, a 90% interval
+let staff = dataset(staff)
+staff.ivreg(productivity ~ region + training, instruments: training ~ offer, se: hc3, level: 0.9)
+
+---
+ivreg · productivity ~ region + training
+N = 2,400
+standard errors: hc3
+
+  term           estimate   std.error   t value   p value   90% CI
+  (intercept)     50.6392      0.3188    158.82    <0.001   [50.1145, 51.1638]
+  region=East      1.0966      0.3315      3.31     0.001   [0.5511, 1.6420]
+  region=South     2.5784      0.3219      8.01    <0.001   [2.0487, 3.1081]
+  region=West     -2.4089      0.3386     -7.11    <0.001   [-2.9662, -1.8517]
+  training         4.4876      0.4780      9.39    <0.001   [3.7010, 5.2741]
+
+instrumented: training · instruments: offer
+Kleibergen–Paap F 734.15 · effective F 734.15 (critical value 23.11)
+
+## analytic weights
+let staff = dataset(staff)
+staff.ivreg(productivity ~ training, instruments: training ~ offer, weights: tenure, weight_type: analytic)
+
+---
+ivreg · productivity ~ training
+N = 2,400
+weights: tenure (analytic)
+standard errors: classical
+
+  term          estimate   std.error   t value   p value   95% CI
+  (intercept)    51.3391      0.3105    165.36    <0.001   [50.7302, 51.9479]
+  training        4.3191      0.5076      8.51    <0.001   [3.3238, 5.3144]
+
+instrumented: training · instruments: offer
+Cragg–Donald F 731.67
+
+## sampling weights, robust unless said
+let staff = dataset(staff)
+staff.ivreg(productivity ~ training, instruments: training ~ offer, weights: tenure)
+
+---
+ivreg · productivity ~ training
+N = 2,400
+weights: tenure (sampling)
+standard errors: robust (HC1)
+
+  term          estimate   std.error   t value   p value   95% CI
+  (intercept)    51.3391      0.3201    160.39    <0.001   [50.7114, 51.9667]
+  training        4.3191      0.5410      7.98    <0.001   [3.2581, 5.3800]
+
+instrumented: training · instruments: offer
+Kleibergen–Paap F 654.92 · effective F 654.92 (critical value 23.11)
+
+## frequency weights
+let staff = dataset(staff).add(copies = to(floor(age / 10), Int))
+staff.ivreg(productivity ~ training, instruments: training ~ offer, weights: copies, weight_type: frequency)
+
+---
+ivreg · productivity ~ training
+N = 8,771 (the sum of the frequency weights over 2,400 rows)
+weights: copies (frequency)
+standard errors: classical
+
+  term          estimate   std.error   t value   p value   95% CI
+  (intercept)    51.1261      0.1421    359.69    <0.001   [50.8474, 51.4047]
+  training        4.1561      0.2634     15.78    <0.001   [3.6397, 4.6724]
+
+instrumented: training · instruments: offer
+Cragg–Donald F 2635.27
+
+## two instrumented regressors, the first stage of each above
+let staff = dataset(staff)
+staff.ivreg(productivity ~ training + tenure, instruments: training + tenure ~ offer + distance + age, first: true)
+
+---
+first stage · training ~ offer + distance + age
+
+  term          estimate   std.error   t value   p value   95% CI
+  (intercept)     0.4835      0.0382     12.65    <0.001   [0.4085, 0.5585]
+  offer           0.4888      0.0177     27.59    <0.001   [0.4541, 0.5235]
+  distance       -0.0061      0.0015     -4.07    <0.001   [-0.0090, -0.0031]
+  age            -0.0038      0.0008     -4.80    <0.001   [-0.0054, -0.0023]
+
+F of the excluded instruments 264.72 on 3 and 2,396 degrees of freedom
+
+first stage · tenure ~ offer + distance + age
+
+  term          estimate   std.error   t value   p value   95% CI
+  (intercept)     3.6428      0.1078     33.78    <0.001   [3.4313, 3.8543]
+  offer           0.4461      0.0500      8.93    <0.001   [0.3482, 0.5441]
+  distance       -0.0091      0.0042     -2.17     0.030   [-0.0174, -0.0009]
+  age            -0.0053      0.0022     -2.36     0.018   [-0.0097, -0.0009]
+
+F of the excluded instruments 29.69 on 3 and 2,396 degrees of freedom
+
+ivreg · productivity ~ training + tenure
+N = 2,400
+standard errors: classical
+
+  term          estimate   std.error   t value   p value   95% CI
+  (intercept)    56.9693     13.9768      4.08    <0.001   [29.5614, 84.3771]
+  training        6.0700      4.2955      1.41     0.158   [-2.3533, 14.4934]
+  tenure         -1.9189      4.5480     -0.42     0.673   [-10.8374, 6.9995]
+
+instrumented: training, tenure · instruments: offer, distance, age
+Cragg–Donald F 0.52
+warning[W1007]: weak instruments: the Cragg–Donald F is 0.52, under 10 (line 2)
+  = help: with weak instruments the estimate leans towards the least-squares one and its confidence interval is too narrow; `ar_test()` gives a test and a confidence set that hold however weak the instruments are
+
+## bound to a name, printed by `print`, and its summary
+let staff = dataset(staff)
+let iv = staff.ivreg(productivity ~ training, instruments: training ~ offer, first: true)
+print(iv)
+iv.summary()
+
+---
+first stage · training ~ offer
+
+  term          estimate   std.error   t value   p value   95% CI
+  (intercept)     0.2563      0.0125     20.49    <0.001   [0.2318, 0.2809]
+  offer           0.4858      0.0179     27.21    <0.001   [0.4508, 0.5208]
+
+F of the excluded instruments 740.58 on 1 and 2,398 degrees of freedom
+
+ivreg · productivity ~ training
+N = 2,400
+standard errors: classical
+
+  term          estimate   std.error   t value   p value   95% CI
+  (intercept)    51.0507      0.2743    186.10    <0.001   [50.5127, 51.5886]
+  training        4.3177      0.4975      8.68    <0.001   [3.3420, 5.2933]
+
+instrumented: training · instruments: offer
+Cragg–Donald F 740.58
+ivreg · productivity ~ training
+N = 2,400
+standard errors: classical
+
+  term          estimate   std.error   t value   p value   95% CI
+  (intercept)    51.0507      0.2743    186.10    <0.001   [50.5127, 51.5886]
+  training        4.3177      0.4975      8.68    <0.001   [3.3420, 5.2933]
+
+instrumented: training · instruments: offer
+Cragg–Donald F 740.58

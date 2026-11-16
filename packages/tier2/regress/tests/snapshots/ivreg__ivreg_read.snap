@@ -1,0 +1,14 @@
+---
+source: packages/tier2/regress/tests/ivreg.rs
+expression: out
+---
+4.58159
+0.423103
+0.95948
+3.7519
+5.41128
+age => -0.000480692
+training => 4.58159
+test · iv · training == 4.5
+F(1, 2,386) = 0.04   p = 0.847
+IvFit

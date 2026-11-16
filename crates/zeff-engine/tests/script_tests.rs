@@ -465,7 +465,8 @@ fn the_sample_script_of_the_specification_checks_with_its_module() {
             })
         })
         .count();
-    // At 0.7.0: 75 statements, 63 taken whole; 12 wait for `ivreg`, `first_stage`, `logistic`,
-    // `probit`, `reliability`, the `dag { }` block and its three functions.
-    assert_eq!((parsed.script.items.len(), waiting), (75, 12));
+    // At 0.7.0: 75 statements, 63 taken whole; 12 waited for `ivreg`, `first_stage`, `logistic`,
+    // `probit`, `reliability`, the `dag { }` block and its three functions. From release 0.8.0,
+    // step 13b, `ivreg` is taken: 11 wait.
+    assert_eq!((parsed.script.items.len(), waiting), (75, 11));
 }

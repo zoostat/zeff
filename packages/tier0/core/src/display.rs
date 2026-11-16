@@ -686,7 +686,16 @@ pub fn show_width(value: &Value, width: usize) -> String {
         ),
         Value::Frame(f) => frame_text(f, width),
         Value::Table(t) => table_text(t, width),
-        Value::Fit(fit) => table_text(&fit.summary, width),
+        Value::Fit(fit) => {
+            // A fit by instrumental variables asked for its first stages prints them above.
+            let mut text = String::new();
+            for table in fit.instrumented.iter().flat_map(|i| &i.first) {
+                text.push_str(&table_text(table, width));
+                text.push('\n');
+            }
+            text.push_str(&table_text(&fit.summary, width));
+            text
+        }
         Value::TestResult(result) => test_result_text(result, width),
         Value::Plot(plot) => table_text(&plot.summary, width),
         Value::Failed(failure) => format!("{}\n", failure.text()),

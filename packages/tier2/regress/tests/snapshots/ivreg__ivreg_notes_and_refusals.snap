@@ -1,0 +1,313 @@
+---
+source: packages/tier2/regress/tests/ivreg.rs
+expression: "all_of(&borrowed, false)"
+---
+## no `instruments:`
+let staff = dataset(staff).add(one = 1.0, twice = distance * 2, by_site = site * 10.0)
+staff.ivreg(productivity ~ training)
+
+---
+error[Z0406]: `ivreg` needs `instruments:`: what is instrumented, and by what
+ --> scripts/main.zeff:2:7
+  |
+2 | staff.ivreg(productivity ~ training)
+  |       ^^^^^ no `instruments:`
+  |
+  = help: name the instrumented regressor on the left of `~` and its instruments on the right: `instruments: educ ~ nearc4`; without one, the model is `reg`
+
+## an instrumented regressor missing from the formula
+let staff = dataset(staff).add(one = 1.0, twice = distance * 2, by_site = site * 10.0)
+staff.ivreg(productivity ~ age, instruments: training ~ offer)
+
+---
+error[Z0504]: `training` is instrumented but is not a regressor
+ --> scripts/main.zeff:2:46
+  |
+2 | staff.ivreg(productivity ~ age, instruments: training ~ offer)
+  |                                              ^^^^^^^^ instrumented here, missing from the formula
+  |
+  = help: add it to the regressors: `productivity ~ age + training`
+
+## a variable on both sides
+let staff = dataset(staff).add(one = 1.0, twice = distance * 2, by_site = site * 10.0)
+staff.ivreg(productivity ~ training, instruments: training ~ training + offer)
+
+---
+error[Z0505]: `training` is on both sides of `~` in `instruments:`
+ --> scripts/main.zeff:2:62
+  |
+2 | staff.ivreg(productivity ~ training, instruments: training ~ training + offer)
+  |                                                              ^^^^^^^^ an instrument for itself
+  |
+  = help: the left of `~` holds the regressors that are instrumented and the right the variables that instrument them; `training` belongs on one side
+
+## fewer instruments than instrumented regressors
+let staff = dataset(staff).add(one = 1.0, twice = distance * 2, by_site = site * 10.0)
+staff.ivreg(productivity ~ training + tenure, instruments: training + tenure ~ offer)
+
+---
+error[Z0804]: the model is under-identified: 1 excluded instrument for 2 instrumented regressors
+ --> scripts/main.zeff:2:60
+  |
+2 | staff.ivreg(productivity ~ training + tenure, instruments: training + tenure ~ offer)
+  |                                                            ^^^^^^^^^^^^^^^^^^^^^^^^^ fewer instruments than instrumented regressors
+  |
+  = help: each instrumented regressor needs at least one instrument that is not a regressor of the formula
+
+## an instrument that is a regressor already, with another that is not
+let staff = dataset(staff).add(one = 1.0, twice = distance * 2, by_site = site * 10.0)
+staff.ivreg(productivity ~ age + training, instruments: training ~ age + offer)
+
+---
+ivreg · productivity ~ age + training
+N = 2,400
+standard errors: classical
+
+  term          estimate   std.error   t value   p value   95% CI
+  (intercept)    51.0791      0.5573     91.65    <0.001   [49.9862, 52.1720]
+  age            -0.0007      0.0110     -0.06     0.949   [-0.0222, 0.0208]
+  training        4.3185      0.4955      8.72    <0.001   [3.3468, 5.2902]
+
+instrumented: training · instruments: offer
+Cragg–Donald F 754.29
+note: `age` is already in the formula, so it is an included instrument and not an excluded one (line 2)
+
+## the only instrument a regressor already
+let staff = dataset(staff).add(one = 1.0, twice = distance * 2, by_site = site * 10.0)
+staff.ivreg(productivity ~ age + training, instruments: training ~ age)
+
+---
+error[Z0804]: the model is under-identified: 0 excluded instruments for 1 instrumented regressor
+ --> scripts/main.zeff:2:57
+  |
+2 | staff.ivreg(productivity ~ age + training, instruments: training ~ age)
+  |                                                         ^^^^^^^^^^^^^^ fewer instruments than instrumented regressors
+  |
+  = help: each instrumented regressor needs at least one instrument that is not a regressor of the formula
+  = help: `age` is already in the formula, so it is an included instrument and identifies nothing
+
+## a constant instrument and a copy of another, dropped with notes
+let staff = dataset(staff).add(one = 1.0, twice = distance * 2, by_site = site * 10.0)
+staff.ivreg(productivity ~ training, instruments: training ~ one + distance + twice + offer)
+
+---
+ivreg · productivity ~ training
+N = 2,400
+standard errors: classical
+
+  term          estimate   std.error   t value   p value   95% CI
+  (intercept)    51.0781      0.2718    187.92    <0.001   [50.5451, 51.6111]
+  training        4.2622      0.4918      8.67    <0.001   [3.2978, 5.2266]
+
+instrumented: training · instruments: distance, offer
+Cragg–Donald F 382.02
+note: `one`, `twice` are collinear with the regressors and instruments before them and were dropped from the instruments (line 2)
+
+## an instrument that does not vary within the sites, absorbed
+let staff = dataset(staff).add(one = 1.0, twice = distance * 2, by_site = site * 10.0)
+staff.ivreg(productivity ~ training, fe: site, instruments: training ~ by_site + offer)
+
+---
+ivreg · productivity ~ training · fe: site
+N = 2,400 (no singletons)
+fixed effects: site (12)
+standard errors: classical
+
+  term       estimate   std.error   t value   p value   95% CI
+  training     4.6027      0.4295     10.72    <0.001   [3.7605, 5.4448]
+
+instrumented: training · instruments: offer
+Cragg–Donald F 737.98
+note: `by_site` is absorbed by fe: site and was dropped from the instruments (line 2)
+
+## the only instrument absorbed
+let staff = dataset(staff).add(one = 1.0, twice = distance * 2, by_site = site * 10.0)
+staff.ivreg(productivity ~ training, fe: site, instruments: training ~ by_site)
+
+---
+error[Z0804]: the model is under-identified: 0 excluded instruments remain for 1 instrumented regressor
+ --> scripts/main.zeff:2:7
+  |
+2 | staff.ivreg(productivity ~ training, fe: site, instruments: training ~ by_site)
+  |       ^^^^^ fewer instruments than instrumented regressors
+  |
+  = help: each instrumented regressor needs at least one instrument that is not a regressor of the formula
+  = help: `by_site` is absorbed by fe: site and was dropped from the instruments
+
+## a fixed effect that is an instrument
+let staff = dataset(staff).add(one = 1.0, twice = distance * 2, by_site = site * 10.0)
+staff.ivreg(productivity ~ training, fe: offer, instruments: training ~ offer)
+
+---
+error[Z0401]: `offer` is a fixed effect of `fe:` and an instrument too
+ --> scripts/main.zeff:2:7
+  |
+2 | staff.ivreg(productivity ~ training, fe: offer, instruments: training ~ offer)
+  |       ^^^^^ absorbed and an instrument
+  |
+  = help: an absorbed effect cannot be an instrument as well; drop it from `fe:` or from the instruments
+
+## a fixed effect that is a regressor
+let staff = dataset(staff).add(one = 1.0, twice = distance * 2, by_site = site * 10.0)
+staff.ivreg(productivity ~ age + training, fe: age, instruments: training ~ offer)
+
+---
+error[Z0401]: `age` is a fixed effect of `fe:` and a variable of the formula too
+ --> scripts/main.zeff:2:7
+  |
+2 | staff.ivreg(productivity ~ age + training, fe: age, instruments: training ~ offer)
+  |       ^^^^^ absorbed and in the model
+  |
+  = help: an absorbed effect cannot be a regressor or the outcome as well; drop it from `fe:` or from the formula
+
+## hc2 with fixed effects
+let staff = dataset(staff).add(one = 1.0, twice = distance * 2, by_site = site * 10.0)
+staff.ivreg(productivity ~ training, fe: site, instruments: training ~ offer, se: hc2)
+
+---
+error[Z0410]: `se: hc2` and `fe:` exclude each other: with absorbed effects an observation's leverage in the full design is not available
+ --> scripts/main.zeff:2:83
+  |
+2 | staff.ivreg(productivity ~ training, fe: site, instruments: training ~ offer, se: hc2)
+  |                                                                                   ^^^ needs every observation's leverage
+  |
+  = help: `se: robust` (HC1) or `cluster:` with `fe:`; HC2 and HC3 with fixed effects arrive with release 0.8.0
+
+## hc3 with clusters
+let staff = dataset(staff).add(one = 1.0, twice = distance * 2, by_site = site * 10.0)
+staff.ivreg(productivity ~ training, instruments: training ~ offer, se: hc3, cluster: site)
+
+---
+error[Z0410]: `se: hc3` and `cluster:` exclude each other
+ --> scripts/main.zeff:2:73
+  |
+2 | staff.ivreg(productivity ~ training, instruments: training ~ offer, se: hc3, cluster: site)
+  |                                                                         ^^^ two kinds of standard error
+  |
+  = help: clustered errors are CR1; leave `se:` out with `cluster:`
+
+## classical errors with sampling weights
+let staff = dataset(staff).add(one = 1.0, twice = distance * 2, by_site = site * 10.0)
+staff.ivreg(productivity ~ training, instruments: training ~ offer, weights: tenure, se: classical)
+
+---
+error[Z0410]: `se: classical` with sampling weights: classical errors treat the weights as precision weights
+ --> scripts/main.zeff:2:90
+  |
+2 | staff.ivreg(productivity ~ training, instruments: training ~ offer, weights: tenure, se: classical)
+  |                                                                                          ^^^^^^^^^ not valid for probability weights
+  |
+  = help: leave `se:` out, which gives `robust`, or write `weight_type: analytic` for precision weights
+
+## a level that is not a probability
+let staff = dataset(staff).add(one = 1.0, twice = distance * 2, by_site = site * 10.0)
+staff.ivreg(productivity ~ training, instruments: training ~ offer, level: 95)
+
+---
+error[Z0401]: `level:` is a probability strictly between 0 and 1, but this is 95
+ --> scripts/main.zeff:2:76
+  |
+2 | staff.ivreg(productivity ~ training, instruments: training ~ offer, level: 95)
+  |                                                                            ^^ not a confidence level
+  |
+  = help: the usual levels are 0.9, 0.95 and 0.99
+
+## an instrument the frame does not have
+let staff = dataset(staff).add(one = 1.0, twice = distance * 2, by_site = site * 10.0)
+staff.ivreg(productivity ~ training, instruments: training ~ lottery)
+
+---
+error[Z0101]: no variable `lottery` in `staff`
+ --> scripts/main.zeff:2:62
+  |
+2 | staff.ivreg(productivity ~ training, instruments: training ~ lottery)
+  |                                                              ^^^^^^^ not a variable of staff
+  |
+  = help: the variables of `staff` are: employee, site, region, age, offer, distance, training, tenure and 4 more
+
+## a product instrumented as one term
+let staff = dataset(staff).add(one = 1.0, twice = distance * 2, by_site = site * 10.0)
+staff.ivreg(productivity ~ training * age, instruments: training * age ~ offer + distance)
+
+---
+error[Z0401]: `instruments:` takes the instrumented regressors, `~`, and their instruments, and `training * age` is several terms at once
+ --> scripts/main.zeff:2:57
+  |
+2 | staff.ivreg(productivity ~ training * age, instruments: training * age ~ offer + distance)
+  |                                                         ^^^^^^^^^^^^^^ name each instrumented term: `a + b + a:b`
+  |
+  = help: write `instruments: educ ~ nearc4`; several of either are joined with `+`: `instruments: educ + exper ~ nearc4 + nearc2 + age2`
+
+## an interaction instrumented by name
+let staff = dataset(staff).add(one = 1.0, twice = distance * 2, by_site = site * 10.0)
+staff.ivreg(productivity ~ age + training + training:age, instruments: training + training:age ~ offer + offer:age)
+
+---
+ivreg · productivity ~ age + training + training:age
+N = 2,400
+standard errors: classical
+
+  term           estimate   std.error   t value   p value   95% CI
+  (intercept)     50.0153      1.0963     45.62    <0.001   [47.8655, 52.1651]
+  age              0.0249      0.0254      0.98     0.327   [-0.0249, 0.0747]
+  training         6.4493      1.9580      3.29     0.001   [2.6097, 10.2888]
+  training:age    -0.0524      0.0469     -1.12     0.264   [-0.1444, 0.0396]
+
+instrumented: training, training:age · instruments: offer, offer:age
+Cragg–Donald F 316.97
+
+## a weak instrument, classical errors
+let staff = dataset(staff).add(one = 1.0, twice = distance * 2, by_site = site * 10.0)
+staff.where(employee <= 300).ivreg(productivity ~ training, instruments: training ~ distance)
+
+---
+ivreg · productivity ~ training
+N = 300
+standard errors: classical
+
+  term          estimate   std.error   t value   p value   95% CI
+  (intercept)    75.4834     52.7490      1.43     0.153   [-28.3243, 179.2912]
+  training      -42.9098    101.4015     -0.42     0.672   [-242.4635, 156.6439]
+
+instrumented: training · instruments: distance
+Cragg–Donald F 0.25
+warning[W1007]: weak instruments: the Cragg–Donald F is 0.25, under 10 (line 2)
+  = help: with weak instruments the estimate leans towards the least-squares one and its confidence interval is too narrow; `ar_test()` gives a test and a confidence set that hold however weak the instruments are
+
+## a regressor collinear with another, dropped as `reg` drops it
+let staff = dataset(staff).add(one = 1.0, twice = distance * 2, by_site = site * 10.0)
+staff.ivreg(productivity ~ distance + twice + training, instruments: training ~ offer)
+
+---
+ivreg · productivity ~ distance + twice + training
+N = 2,400
+standard errors: classical
+
+  term           estimate   std.error   t value   p value   95% CI
+  (intercept)     50.8760      0.3897    130.54    <0.001   [50.1118, 51.6403]
+  distance         0.0148      0.0205      0.72     0.470   [-0.0254, 0.0551]
+  twice         (omitted)
+  training         4.3135      0.4967      8.68    <0.001   [3.3394, 5.2876]
+
+instrumented: training · instruments: offer
+Cragg–Donald F 748.46
+note: `twice` is collinear with the columns before it and was dropped (line 2)
+
+## the instrumented regressor a combination of the others: nothing left to instrument
+let staff = dataset(staff).add(one = 1.0, twice = distance * 2, by_site = site * 10.0)
+staff.add(both = age + distance).ivreg(productivity ~ age + distance + both, instruments: both ~ offer)
+
+---
+ivreg · productivity ~ age + distance + both
+N = 2,400
+standard errors: classical
+
+  term           estimate   std.error   t value   p value   95% CI
+  (intercept)     53.9219      0.5603     96.23    <0.001   [52.8231, 55.0207]
+  age             -0.0152      0.0119     -1.28     0.202   [-0.0384, 0.0081]
+  distance        -0.0094      0.0223     -0.42     0.674   [-0.0531, 0.0343]
+  both          (omitted)
+
+instrumented: nothing · instruments: offer
+note: `both` is collinear with the columns before it and was dropped (line 2)
+note: `both` was dropped, so nothing is instrumented and the estimates are those of least squares (line 2)

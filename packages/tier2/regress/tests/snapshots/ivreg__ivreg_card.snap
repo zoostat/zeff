@@ -1,0 +1,87 @@
+---
+source: packages/tier2/regress/tests/ivreg.rs
+expression: all
+---
+## section 7 of the sample script
+let card = import("data/card.csv")
+let iv = card.ivreg(lwage ~ exper + exper^2 + black + educ,
+                    fe: region,
+                    instruments: educ ~ nearc4,
+                    se: robust,
+                    first: true)
+iv
+iv.coef(educ)
+iv.std_errors(educ)
+
+---
+first stage · educ ~ exper + exper^2 + black + nearc4 · fe: region
+
+  term      estimate   std.error   t value   p value   95% CI
+  exper      -0.4123      0.0319    -12.94    <0.001   [-0.4748, -0.3498]
+  exper^2     0.0006      0.0017      0.37     0.715   [-0.0027, 0.0039]
+  black      -0.9172      0.0928     -9.89    <0.001   [-1.0991, -0.7354]
+  nearc4      0.4511      0.0782      5.77    <0.001   [0.2978, 0.6044]
+
+F of the excluded instruments 33.30 on 1 and 2,997 degrees of freedom
+
+ivreg · lwage ~ exper + exper^2 + black + educ · fe: region
+N = 3,010 (no singletons)
+fixed effects: region (9)
+standard errors: robust (HC1)
+
+  term      estimate   std.error   t value   p value   95% CI
+  exper       0.1478      0.0194      7.62    <0.001   [0.1098, 0.1858]
+  exper^2    -0.0025      0.0004     -5.77    <0.001   [-0.0034, -0.0017]
+  black      -0.0524      0.0433     -1.21     0.227   [-0.1374, 0.0326]
+  educ        0.2252      0.0426      5.29    <0.001   [0.1418, 0.3087]
+
+instrumented: educ · instruments: nearc4
+Kleibergen–Paap F 33.30 · effective F 33.30 (critical value 23.11)
+0.225208
+0.0425616
+note: data/card.csv read as CSV: 3,010 rows × 35 variables, types guessed; CSV carries no labels, value labels or categories (line 1)
+
+## both proximity indicators: weak instruments
+let card = import("data/card.csv")
+card.ivreg(lwage ~ exper + expersq + black + south + smsa + educ, instruments: educ ~ nearc4 + nearc2, se: robust)
+
+---
+ivreg · lwage ~ exper + expersq + black + south + smsa + educ
+N = 3,010
+standard errors: robust (HC1)
+
+  term          estimate   std.error   t value   p value   95% CI
+  (intercept)     3.2721      0.8178      4.00    <0.001   [1.6685, 4.8757]
+  exper           0.1192      0.0213      5.59    <0.001   [0.0774, 0.1610]
+  expersq        -0.0023      0.0004     -6.25    <0.001   [-0.0030, -0.0016]
+  black          -0.1020      0.0521     -1.96     0.050   [-0.2041, 0.0001]
+  south          -0.0951      0.0234     -4.06    <0.001   [-0.1411, -0.0492]
+  smsa            0.1166      0.0303      3.85    <0.001   [0.0572, 0.1760]
+  educ            0.1608      0.0486      3.31     0.001   [0.0656, 0.2561]
+
+instrumented: educ · instruments: nearc4, nearc2
+Kleibergen–Paap F 9.72 · effective F 9.64 (critical value 19.44)
+note: data/card.csv read as CSV: 3,010 rows × 35 variables, types guessed; CSV carries no labels, value labels or categories (line 1)
+warning[W1007]: weak instruments: the Kleibergen–Paap F is 9.72, under 10, and the effective F is 9.64, under its critical value of 19.44 (line 2)
+  = help: with weak instruments the estimate leans towards the least-squares one and its confidence interval is too narrow; `ar_test()` gives a test and a confidence set that hold however weak the instruments are
+
+## a first stage whose residuals are collinear has no joint statistic
+let card = import("data/card.csv")
+card.ivreg(lwage ~ black + south + smsa + educ + exper, instruments: educ + exper ~ nearc4 + nearc2 + age)
+
+---
+ivreg · lwage ~ black + south + smsa + educ + exper
+N = 3,010
+standard errors: classical
+
+  term          estimate   std.error   t value   p value   95% CI
+  (intercept)     3.9272      0.7055      5.57    <0.001   [2.5438, 5.3106]
+  black          -0.0806      0.0792     -1.02     0.309   [-0.2358, 0.0747]
+  south          -0.0921      0.0313     -2.94     0.003   [-0.1535, -0.0307]
+  smsa            0.0948      0.0528      1.80     0.072   [-0.0086, 0.1983]
+  educ            0.1481      0.0530      2.79     0.005   [0.0441, 0.2521]
+  exper           0.0405      0.0026     15.68    <0.001   [0.0354, 0.0455]
+
+instrumented: educ, exper · instruments: nearc4, nearc2, age
+Cragg–Donald F not available
+note: data/card.csv read as CSV: 3,010 rows × 35 variables, types guessed; CSV carries no labels, value labels or categories (line 1)

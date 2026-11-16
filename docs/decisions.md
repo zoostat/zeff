@@ -5750,3 +5750,25 @@ Done before parts 1 and 2 are read, because those wait for jobs that run for hou
 **For the owner.** The name, the story and every parameter are his to change before 1.0; after it the dataset is frozen under its name (section 8.5).
 
 **Reason.** Engine and Project Specification, section 8.5 (the 1.0 set lists `staff`); question 2 of the release; the checklist's step 13a.
+
+## 16 November 2026 — `ivreg`, its result type and its printed form (release 0.8.0, step 13b)
+
+**Choice.** `data.ivreg(formula, fe:, instruments:, se:, cluster:, weights:, weight_type:, level:, first:)` in `regress/src/ivreg.rs`, on the estimator of steps 10 to 12 in `iv.rs` (the ruling placed both in one file; the function is a file of its own because the estimator's is already long). It returns an `IvFit`, a result type of section 4 of the Language Reference, new in the checker, the registry and the values: every method of the `Result` interface takes it (`coef`, `std_errors`, `p_values`, `ci`, `summary`, `test` and the rest), and a method registered for `RegFit` alone, such as `r_squared`, refuses it when the script is checked.
+
+**The options are `reg`'s.** `se:`, `cluster:`, `weights:`, `weight_type:` and `level:` are read by the code that reads them for `reg`, with the same defaults (robust errors under sampling weights), the same refusals and the same words. To share it, six pieces of `reg`'s body became functions of their own (the options, the notes for dropped columns, the checked variance, the warnings for clusters and weights, and the lines of the summary). `reg` is unchanged: its tests and snapshots pass untouched and the conformance report is bit for bit the same.
+
+**The printed form (to be shown to the owner).** The structural table in `reg`'s layout, with `ivreg` in the title. Under it, in the place of `reg`'s R² line, two lines: `instrumented: training · instruments: offer, distance`, naming the regressors instrumented and the excluded instruments the first stage kept; and the weak-instrument statistic of the ruling, `Cragg–Donald F 740.58` under classical errors, `Kleibergen–Paap F 396.58 · effective F 383.11 (critical value 19.66)` under robust or clustered ones (the effective F when one regressor is instrumented), or `not available` where it cannot be computed. With `first: true`, above the table, one table per instrumented regressor in the same layout, titled `first stage · training ~ age + offer + distance`, under the fit's standard errors, with the line `F of the excluded instruments 396.58 on 2 and 2,385 degrees of freedom`. The first stages are part of how the fit prints, wherever it is printed, not something the function prints when it runs.
+
+**No R².** The table prints none: with a regressor replaced by its fitted values the figure can be negative and measures no fit. The fit still holds the residual sum of squares and the residuals of the equation as written.
+
+**Notes and warnings.** The design's notes once; an instrument that is a regressor of the formula already ("an included instrument and not an excluded one"); instruments dropped as zero, collinear or absorbed; regressors dropped as `reg` drops them; an instrumented regressor that was itself dropped, after which nothing is instrumented and the estimates are least squares, said in a note and without a weak-instrument warning. W1001 on the condition of the fitted regressors, W1002 and W1003 as `reg`, W1007 for weak instruments. W1006 (an observation that drives a coefficient) is not judged: its leave-one-out formulas are least squares' own.
+
+**Under-identification, earlier.** The order condition is now checked before the second stage: when the only instrument is dropped or absorbed, the refusal is Z0804 with the reason, not least squares' "no regressor remains".
+
+**The page.** Under the 0.8.0 contract, its examples on `staff`: the offer as the instrument (4.32), least squares for comparison (5.43), the sites absorbed with a second instrument, robust errors and the first stage, clusters, weights with a 99% interval, a weak instrument with its warning, and the fit read by `coef` and `ci`. "Coming from R or Stata" gives `AER::ivreg`, `sandwich` and fixest, and Stata's `ivregress 2sls` with `small`, saying how the default without `small` differs (open decision #150, taken as recommended). `first_stage` and `ar_test` join its related tasks when they exist (steps 14 and 16).
+
+**The catalogue.** Row 239's usage lists every option and its status is implemented (logged in `docs/spec_changes.md`).
+
+**Held by.** `packages/tier2/regress/tests/ivreg.rs`, through the engine: a stored snapshot of the printed result in nine forms; the model of section 7 of the specification's sample script on Card's data, with fixest's figures; twenty-one notes and refusals; the fit read by the methods of every fit, and `r_squared` refused. The page's examples run with the engine's build check.
+
+**Reason.** Language Reference, sections 4, 7.1 and 10.2; the owner's answer to question 3; the checklist's step 13b.

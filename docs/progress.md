@@ -139,3 +139,15 @@ The merges decided during 0.7.0, each old name refused with its rewrite: step 8g
 **Next.** Step 13b `[function]`: `ivreg` itself, its printed result and its help page.
 
 **For the owner to decide.** The story and the parameters of `staff` are yours to change before 1.0 (the recommendation of question 2 was taken). Open decisions #149 and #150. Whether to add `ivDiag` by hand.
+
+## 16 November 2026, release 0.8.0, step 13b (`ivreg`)
+
+**Done.** Step 13b `[function]`: `ivreg` can be called. `staff.ivreg(productivity ~ training, instruments: training ~ offer)` prints the table in `reg`'s layout, and under it what was instrumented by what and the weak-instrument F; `fe:`, `se:`, `cluster:`, `weights:` and `level:` work as in `reg`; `first: true` prints the first stage above. The model of the specification's sample script on Card's data gives 0.2252 for schooling, fixest's figure. The result is an `IvFit`, read by `coef`, `ci`, `test` and the other methods of every fit. Its help page is complete, with examples on `staff`. `reg` is unchanged.
+
+**The printed form is yours to approve** (the step's own condition): the two lines under the table, no R², and the first-stage table above when asked for.
+
+**Green.** Format, clippy with warnings denied, the tier, message and grammar checks, every test of the workspace; CI read after the push.
+
+**Next.** Step 13c `[function]`: the rest of `ivreg`'s interface (`predict`, `residuals`, `design()`, `export`, `report` beside `reg` fits, the plots), its conformance case and the items moved from step 9.
+
+**For the owner to decide.** The printed form of `ivreg`. Open decisions #149 and #150. The story of `staff`. Whether to add `ivDiag` by hand.

@@ -1117,6 +1117,35 @@ pub struct Fit {
     /// `adjusted_r_squared` are the overall forms, the effects' fit included.
     pub r_squared_within: Option<f64>,
     pub adjusted_r_squared_within: Option<f64>,
+    /// What a fit by instrumental variables keeps beside its table (`IvFit`); `None` for any
+    /// other fit.
+    pub instrumented: Option<Rc<Instrumented>>,
+}
+
+/// What a fit by instrumental variables keeps beside its table (release 0.8.0, step 13b): what
+/// was instrumented by what, as `instruments:` gave it and as the fit used it, and the
+/// statistic printed under the table. `first_stage` and `ar_test` read it and fit again from
+/// the fit's source.
+#[derive(Debug, Clone, PartialEq)]
+pub struct Instrumented {
+    /// The instrumented regressors and the excluded instruments as written, and the
+    /// instruments that were regressors of the formula already (the included ones).
+    pub endogenous: Vec<Term>,
+    pub excluded: Vec<Term>,
+    pub included: Vec<Term>,
+    /// The fixed effects as written.
+    pub effects: Vec<Term>,
+    /// The columns instrumented and the excluded instruments the first stage kept, by name.
+    pub instrumented_columns: Vec<String>,
+    pub instruments_kept: Vec<String>,
+    /// The weak-instrument statistic printed under the table, by its name (`Cragg–Donald F`,
+    /// `Kleibergen–Paap F`), `None` when it could not be computed; and the effective F with
+    /// its critical value, when there is one.
+    pub strength: (String, Option<f64>),
+    pub effective: Option<(f64, f64)>,
+    /// The first-stage tables printed above the fit's own, one per instrumented regressor,
+    /// when the fit was asked for them (`first: true`); empty otherwise.
+    pub first: Vec<Table>,
 }
 
 /// One absorbed fixed effect: its name as written (`firm`, `industry:year`), the variables it

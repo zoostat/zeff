@@ -6,8 +6,6 @@ error[Z0103]: no module is called `robustness`: there is no `functions/robustnes
  --> zeff_samples.zeff:17:1
 error[Z0103]: no function is called `robustness`
  --> zeff_samples.zeff:135:14
-error[Z0103]: no function is called `ivreg`
- --> zeff_samples.zeff:141:15
 error[Z0103]: no function is called `first_stage`
  --> zeff_samples.zeff:146:4
 error[Z0103]: no function is called `logistic`

@@ -7,6 +7,8 @@ use std::fmt;
 pub enum ResultKind {
     /// A regression fit, `wages.reg(f)`.
     RegFit,
+    /// A fit by instrumental variables, `card.ivreg(f, instruments: ...)`.
+    IvFit,
     /// The result of a test, `m.test(...)`.
     TestResult,
 }
@@ -15,6 +17,7 @@ impl ResultKind {
     pub fn name(self) -> &'static str {
         match self {
             ResultKind::RegFit => "RegFit",
+            ResultKind::IvFit => "IvFit",
             ResultKind::TestResult => "TestResult",
         }
     }
@@ -22,6 +25,7 @@ impl ResultKind {
     pub fn parse(text: &str) -> Option<ResultKind> {
         match text {
             "RegFit" => Some(ResultKind::RegFit),
+            "IvFit" => Some(ResultKind::IvFit),
             "TestResult" => Some(ResultKind::TestResult),
             _ => None,
         }
@@ -447,6 +451,7 @@ mod tests {
             "Terms",
             "Result",
             "RegFit",
+            "IvFit",
             "TestResult",
             "Term",
             "Term<Bool>",
@@ -546,6 +551,8 @@ mod tests {
         );
         assert!(any.accepts(&reg) && any.accepts(&test) && any.accepts(&any));
         assert!(reg.accepts(&reg) && !reg.accepts(&test) && !reg.accepts(&any));
+        let iv = Ty::Result(Some(ResultKind::IvFit));
+        assert!(any.accepts(&iv) && iv.accepts(&iv) && !reg.accepts(&iv) && !iv.accepts(&reg));
         assert!(!Ty::Frame.accepts(&reg) && !reg.accepts(&Ty::Frame));
         assert!(Ty::Term.accepts(&Ty::Str) && Ty::Term.accepts(&Ty::Term));
         assert!(!Ty::Term.accepts(&Ty::Int) && !Ty::Str.accepts(&Ty::Term));
@@ -562,7 +569,12 @@ mod tests {
         assert!(zeff_registry::is_result_type("Result"));
         assert_eq!(
             zeff_registry::RESULT_KINDS.len(),
-            [ResultKind::RegFit, ResultKind::TestResult].len()
+            [
+                ResultKind::RegFit,
+                ResultKind::IvFit,
+                ResultKind::TestResult
+            ]
+            .len()
         );
     }
 
