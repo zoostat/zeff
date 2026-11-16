@@ -398,6 +398,46 @@ weak <- function(X, Z2, W, w = NULL, weight_type = NULL, fe = NULL, absorbed = 0
     idx <- (j - 1) * m + seq_len(m)
     drop(t(Pi[, j]) %*% solve(Vpi[idx, idx]) %*% Pi[, j]) / m
   }))
+  # The Kleibergen-Paap rk Wald F (step 12c): the test that the matrix of first-stage
+  # coefficients has rank p - 1, on the variance of the fit. Theta = (Xp'Xp)^-1/2 Pi' (Zp'Zp)^1/2
+  # holds the canonical correlations; with a the left singular vector of its smallest singular
+  # value and the rows of B the right singular vectors from the p-th on, lambda = B Theta' a
+  # is zero under the hypothesis, its variance is K Var(vec Pi) K' with K = (a'G) (x) (B F), and
+  # the statistic is lambda' Var(lambda)^-1 lambda over m. Under classical errors it is the
+  # Cragg-Donald F; with one instrumented regressor it is the Wald F of its first stage.
+  power <- function(S, e) { d <- eigen(S, symmetric = TRUE); d$vectors %*% diag(d$values^e, nrow(S)) %*% t(d$vectors) }
+  Gx <- power(crossprod(Xp), -0.5); Fz <- power(ZZ, 0.5)
+  Theta <- Gx %*% t(Pi) %*% Fz
+  sv <- svd(Theta, nu = p, nv = m)
+  a <- sv$u[, p, drop = FALSE]; B <- t(sv$v[, p:m, drop = FALSE])
+  lambda <- drop(B %*% t(Theta) %*% a)
+  K <- kronecker(t(a) %*% Gx, B %*% Fz)
+  rk <- function(Vpi) drop(t(lambda) %*% solve(K %*% Vpi %*% t(K)) %*% lambda) / m
+  out$kp <- lapply(variances, rk)
+  out$kp_classical <- rk(kronecker(Svv, A))
+  # The effective F of Montiel Olea and Pflueger (one instrumented regressor): the first
+  # stage's explained sum of squares over the trace of the variance of its coefficients in
+  # the metric of the instruments, pi' Zp'Zp pi / tr(Var(pi) Zp'Zp); under classical errors
+  # it is the F. Written a second way, from instruments made orthonormal, as the paper has it.
+  # Its critical value, for a Nagar bias above a tenth of the worst case at the 5% level
+  # (their simplified procedure, x = 1/0.1): the upper 5% point of a non-central chi-square
+  # with K_eff degrees of freedom and non-centrality x K_eff, over K_eff, where
+  # K_eff = tr(W)^2 (1 + 2x) / (tr(W W) + 2x tr(W) max eigenvalue(W)) and W is the variance of
+  # the coefficients on the orthonormal instruments.
+  if (p == 1) {
+    effective <- function(Vpi) {
+      eff <- drop(t(Pi) %*% ZZ %*% Pi) / sum(diag(Vpi %*% ZZ))
+      Zo <- Zp %*% power(ZZ, -0.5)
+      Wm <- Fz %*% Vpi %*% Fz
+      stopifnot(abs(sum(crossprod(Zo, Xp)^2) / sum(diag(Wm)) / eff - 1) < 1e-9)
+      x <- 10
+      keff <- sum(diag(Wm))^2 * (1 + 2 * x) /
+        (sum(diag(Wm %*% Wm)) + 2 * x * sum(diag(Wm)) * max(eigen(Wm, symmetric = TRUE)$values))
+      list(f = eff, k = keff, critical = qchisq(0.95, keff, ncp = x * keff) / keff)
+    }
+    out$effective <- lapply(variances, effective)
+    stopifnot(abs(effective(kronecker(Svv, A))$f / out$f - 1) < 1e-9)
+  }
   out
 }
 weak_cases <- list()
@@ -408,6 +448,19 @@ weak_case <- function(name, data_name, formula, endogenous, instruments, stats, 
               f = as.list(num17(stats$f)), cragg_donald = num17(stats$cd),
               wald_hc1 = as.list(num17(stats$wald$hc1)), wald_cluster = list())
   for (cluster in clusters) out$wald_cluster[[cluster]] <- as.list(num17(stats$wald[[cluster]]))
+  # Under classical errors the rk Wald F is the Cragg-Donald F; with one instrumented
+  # regressor it is the Wald F of the first stage.
+  agree(stats$kp_classical, stats$cd)
+  if (length(stats$f) == 1) for (v in names(stats$kp)) agree(stats$kp[[v]], stats$wald[[v]])
+  out$kp_hc1 <- num17(stats$kp$hc1)
+  out$kp_cluster <- list()
+  for (cluster in clusters) out$kp_cluster[[cluster]] <- num17(stats$kp[[cluster]])
+  if (!is.null(stats$effective)) {
+    of_variance <- function(e) list(f = num17(e$f), k = num17(e$k), critical = num17(e$critical))
+    out$effective_hc1 <- of_variance(stats$effective$hc1)
+    out$effective_cluster <- list()
+    for (cluster in clusters) out$effective_cluster[[cluster]] <- of_variance(stats$effective[[cluster]])
+  }
   if (!is.null(fe)) out$fe <- fe
   if (!is.null(weights)) { out$weights <- weights; out$weight_type <- weight_type }
   weak_cases[[name]] <<- out
@@ -496,8 +549,15 @@ agree(s$wald$hc1, of_stat(f, ~ivwald, "hetero"))
 agree(s$wald$age, of_stat(f, ~ivwald, ~age))
 weak_case("wage2_siblings", "wage2", "lwage ~ exper + tenure + educ", "educ", "sibs + brthord", s, clusters = "age")
 
+# The upper 5% points of non-central chi-square distributions over their degrees of freedom, as
+# the critical value of the effective F needs them: degrees of freedom from 1 to 40, some
+# fractional, with non-centrality ten times the degrees of freedom.
+critical_points <- lapply(c(1, 1.184778, 1.5, 2, 2.75, 5, 10, 17.3, 40), function(k) {
+  list(k = num17(k), critical = num17(qchisq(0.95, k, ncp = 10 * k) / k))
+})
+
 out <- list(reference = list(software = R.version.string, fixest = as.character(packageVersion("fixest")),
                              wooldridge = as.character(packageVersion("wooldridge")),
                              note = "two-stage least squares by hand in base R, held to fixest inside the script; 17 significant digits"),
-            cases = cases, fixed_effects = fe_cases, weak = weak_cases)
+            cases = cases, fixed_effects = fe_cases, weak = weak_cases, critical_points = critical_points)
 write_json(out, file.path(here(), "iv.json"))

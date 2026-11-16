@@ -117,3 +117,15 @@ The merges decided during 0.7.0, each old name refused with its rewrite: step 8g
 **Next.** Step 12c `[engine]`: the Kleibergen–Paap rk Wald F, the effective F and the weak-instrument warning.
 
 **For the owner to decide.** Open decisions #149 and #150; nothing blocks.
+
+## 16 November 2026, release 0.8.0, step 12c (the Kleibergen–Paap F, the effective F, the warning)
+
+**Done.** Step 12c `[engine]`: the Kleibergen–Paap rk Wald F on the robust or clustered variance of the fit; the effective F of Montiel Olea and Pflueger for one instrumented regressor, with its critical value (23.1 with one instrument, lower with several); and the warning for weak instruments, W1007, with its row in the Language Reference, its page and its stored wording. On Card's data with both proximity indicators under robust errors: Kleibergen–Paap F 9.72, effective F 9.64 against a critical value of 19.44, and the warning says both. All of step 12 is now in. Nothing a script can call changed: `ivreg` is next.
+
+**Not done, and why.** `ivDiag` was to hold the effective F a second way. The session's permissions declined the installation of the package, so the effective F is held to its formula written two ways in base R instead. The Kleibergen–Paap F with several instrumented regressors under robust errors has no package to check it in the reference library; it is held to its formula and to two identities. A Stata run would settle both to the digit.
+
+**Green.** Format, clippy with warnings denied, the tier, message and grammar checks, every test of the workspace; CI read after the push.
+
+**Next.** Step 13 `[function]`: `ivreg`, the function itself, with its printed result, its help page and the dataset of question 2.
+
+**For the owner to decide.** Open decisions #149 and #150. Whether to add `ivDiag` to the reference library by hand. The thresholds of the warning (10 for the F; a tenth of the worst-case bias at 5% for the effective F) are the conventional ones and his to change.

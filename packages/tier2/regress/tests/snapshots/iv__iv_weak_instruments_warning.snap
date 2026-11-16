@@ -1,0 +1,29 @@
+---
+source: packages/tier2/regress/tests/iv.rs
+expression: all
+---
+## weak by construction, classical errors
+warning[W1007]: weak instruments: the Cragg–Donald F is 0.72, under 10
+  = help: with weak instruments the estimate leans towards the least-squares one and its confidence interval is too narrow; `ar_test()` gives a test and a confidence set that hold however weak the instruments are
+
+## weak by construction, robust errors
+warning[W1007]: weak instruments: the Kleibergen–Paap F is 0.70, under 10, and the effective F is 0.70, under its critical value of 23.11
+  = help: with weak instruments the estimate leans towards the least-squares one and its confidence interval is too narrow; `ar_test()` gives a test and a confidence set that hold however weak the instruments are
+
+## Card's two indicators, classical errors
+warning[W1007]: weak instruments: the Cragg–Donald F is 9.45, under 10
+  = help: with weak instruments the estimate leans towards the least-squares one and its confidence interval is too narrow; `ar_test()` gives a test and a confidence set that hold however weak the instruments are
+
+## Card's two indicators, robust errors
+warning[W1007]: weak instruments: the Kleibergen–Paap F is 9.72, under 10, and the effective F is 9.64, under its critical value of 19.44
+  = help: with weak instruments the estimate leans towards the least-squares one and its confidence interval is too narrow; `ar_test()` gives a test and a confidence set that hold however weak the instruments are
+
+## wage2 by siblings and birth order, clustered by age
+warning[W1007]: weak instruments: the effective F is 18.62, under its critical value of 19.90
+  = help: with weak instruments the estimate leans towards the least-squares one and its confidence interval is too narrow; `ar_test()` gives a test and a confidence set that hold however weak the instruments are
+
+## wage2 by siblings and birth order, classical errors
+no warning
+
+## strong instruments, robust errors
+no warning

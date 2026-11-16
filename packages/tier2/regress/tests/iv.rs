@@ -717,7 +717,276 @@ fn the_weak_instrument_statistics_agree_with_r() {
             let (cd, f) = (classical.cragg_donald.unwrap(), classical.f[0].unwrap());
             assert!(close(cd, f, 1e-10, 0.0), "{name}: {cd} against {f}");
         }
+        // The Kleibergen-Paap rk Wald F (step 12c): under classical errors it is the
+        // Cragg-Donald F; under robust and clustered errors R's by the formula.
+        let (kp, cd) = (
+            classical.kleibergen_paap.unwrap(),
+            classical.cragg_donald.unwrap(),
+        );
+        assert!(
+            close(kp, cd, 1e-8, 0.0),
+            "{name}: rk F {kp} against the Cragg-Donald F {cd}"
+        );
+        assert_eq!(
+            classical.effective, None,
+            "{name}: no effective F under classical errors"
+        );
+        all(
+            &[robust.kleibergen_paap],
+            &Json::Array(vec![case["kp_hc1"].clone()]),
+            "robust rk F",
+        );
+        let effective = |found: &Weak, theirs: &Json, what: &str| {
+            let ours = found
+                .effective
+                .unwrap_or_else(|| panic!("{name}: no effective F, {what}"));
+            for (a, key) in [
+                (ours.f, "f"),
+                (ours.degrees, "k"),
+                (ours.critical, "critical"),
+            ] {
+                let b = number(&theirs[key]);
+                assert!(
+                    close(a, b, tolerance, 0.0),
+                    "{name}: effective F, {what}, {key}: {a} against {b}"
+                );
+            }
+        };
+        if robust.f.len() == 1 {
+            effective(&robust, &case["effective_hc1"], "robust");
+        } else {
+            assert_eq!(
+                robust.effective, None,
+                "{name}: the effective F is for one regressor"
+            );
+        }
+        if let Some(clustered) = case["kp_cluster"].as_object() {
+            for (cluster, theirs) in clustered {
+                let with = Model {
+                    cluster: Some(cluster),
+                    ..asked.clone()
+                };
+                let found = weak_of(&data, &with, Kind::Cluster, Some(cluster));
+                all(
+                    &[found.kleibergen_paap],
+                    &Json::Array(vec![theirs.clone()]),
+                    &format!("rk F clustered by {cluster}"),
+                );
+                if found.f.len() == 1 {
+                    effective(
+                        &found,
+                        &case["effective_cluster"][cluster],
+                        &format!("clustered by {cluster}"),
+                    );
+                }
+            }
+        }
     }
+}
+
+/// The upper 5% points of non-central chi-square distributions, as the critical value of the
+/// effective F reads them, against R's `qchisq`: for one degree of freedom and ten times the
+/// non-centrality the point is 23.1, the figure of Montiel Olea and Pflueger's table.
+#[test]
+fn the_non_central_chi_square_points_agree_with_r() {
+    let text = std::fs::read_to_string(root().join("tests/reference/r/iv.json")).unwrap();
+    let reference: Json = serde_json::from_str(&text).unwrap();
+    let points = reference["critical_points"].as_array().unwrap();
+    assert_eq!(points.len(), 9);
+    for point in points {
+        let k = number(&point["k"]);
+        let want = number(&point["critical"]);
+        let got = zeff_regress::iv::noncentral_chi_square_point(k, 10.0 * k, 0.05) / k;
+        assert!(
+            close(got, want, 1e-10, 0.0),
+            "{k} degrees: {got} against {want}"
+        );
+    }
+    let one = zeff_regress::iv::noncentral_chi_square_point(1.0, 10.0, 0.05);
+    assert!((one - 23.1085).abs() < 1e-4, "{one}");
+    // Without non-centrality it is the chi-square's own point: 3.841 for one degree.
+    let central = zeff_regress::iv::noncentral_chi_square_point(1.0, 0.0, 0.05);
+    assert!((central - 3.841_458_820_694_124).abs() < 1e-10, "{central}");
+}
+
+/// The joint variance of the first stages holds each stage's own variance on its diagonal, to
+/// the bit, under every kind; and with one stage it is that stage's variance.
+#[test]
+fn the_joint_variance_of_the_first_stages_holds_each_stage_s_own() {
+    let card = reference_data("card");
+    let asked = Model {
+        cluster: Some("age"),
+        ..model(
+            "lwage ~ black + south + smsa + educ + KWW",
+            "educ + KWW",
+            "nearc4 + nearc2 + fatheduc + motheduc",
+        )
+    };
+    in_context(&card, &asked, |ctx, fit, _| {
+        let clusters = clusters_of(&card, &fit, "age");
+        let stages = fit.first_stages(ctx)?;
+        assert_eq!(stages.len(), 2);
+        let fits: Vec<&zeff_results::estimator::Fitted> =
+            stages.iter().map(|s| &s.fitted).collect();
+        let bread = Ols.bread(&stages[0].fitted);
+        let k = stages[0].fitted.kept.len();
+        for kind in [
+            Kind::Classical,
+            Kind::Hc1,
+            Kind::Hc2,
+            Kind::Hc3,
+            Kind::Cluster,
+        ] {
+            let given = (kind == Kind::Cluster).then_some(&clusters);
+            let joint = zeff_results::variance::joint_variance(
+                kind,
+                &Ols,
+                &stages[0].design,
+                &fits,
+                &bread,
+                given,
+                0,
+            )
+            .unwrap();
+            assert_eq!(joint.rows(), 2 * k);
+            for (j, stage) in stages.iter().enumerate() {
+                let (own, _) = zeff_results::variance::variance(
+                    kind,
+                    &Ols,
+                    &stage.design,
+                    &stage.fitted,
+                    &bread,
+                    given,
+                    0,
+                )
+                .unwrap();
+                for a in 0..k {
+                    for b in 0..k {
+                        assert_eq!(
+                            joint.get(j * k + a, j * k + b).to_bits(),
+                            own.get(a, b).to_bits(),
+                            "{kind:?}, stage {j}, entry ({a}, {b})"
+                        );
+                    }
+                }
+                let alone = zeff_results::variance::joint_variance(
+                    kind,
+                    &Ols,
+                    &stage.design,
+                    &[&stage.fitted],
+                    &bread,
+                    given,
+                    0,
+                )
+                .unwrap();
+                assert_eq!(alone, own, "{kind:?}, stage {j} alone");
+            }
+            // The covariance of the two stages' coefficients is the transpose of itself read
+            // the other way.
+            for a in 0..k {
+                for b in 0..k {
+                    assert_eq!(joint.get(a, k + b).to_bits(), joint.get(k + b, a).to_bits());
+                }
+            }
+        }
+        Ok(())
+    })
+    .unwrap();
+}
+
+/// The warning for weak instruments (W1007), in each of its forms, and its absence: an
+/// instrument weak by construction under classical errors (the Cragg–Donald F) and under
+/// robust ones (the Kleibergen–Paap F and the effective F); Card's two indicators, whose
+/// robust F is just under ten; `wage2`, whose clustered F is above ten and whose effective F is
+/// under its critical value; and strong instruments, which warn of nothing.
+#[test]
+fn the_warning_for_weak_instruments() {
+    // `x` moves with the outcome's error far more than with `z1`.
+    let n = 60u32;
+    let z: Vec<f64> = (0..n).map(|i| f64::from((i * 37) % 11) - 5.0).collect();
+    let u: Vec<f64> = (0..n).map(|i| f64::from((i * 53 + 7) % 17) - 8.0).collect();
+    let w: Vec<f64> = (0..n).map(|i| f64::from((i * 29 + 3) % 7) - 3.0).collect();
+    let x: Vec<f64> = (0..n as usize)
+        .map(|i| 0.05 * z[i] + u[i] + 0.3 * w[i])
+        .collect();
+    let y: Vec<f64> = (0..n as usize)
+        .map(|i| 1.0 + 0.5 * x[i] + w[i] + 2.0 * u[i])
+        .collect();
+    let weak = table(vec![("y", y), ("x", x), ("w", w), ("z1", z)]);
+    let card = reference_data("card");
+    let wage2 = reference_data("wage2");
+    let strong = small();
+    let card_model = model(
+        "lwage ~ exper + expersq + black + south + smsa + educ",
+        "educ",
+        "nearc4 + nearc2",
+    );
+    let siblings = Model {
+        cluster: Some("age"),
+        ..model("lwage ~ exper + tenure + educ", "educ", "sibs + brthord")
+    };
+    let cases: Vec<(&str, &Table, Model<'_>, Kind, Option<&str>)> = vec![
+        (
+            "weak by construction, classical errors",
+            &weak,
+            model("y ~ w + x", "x", "z1"),
+            Kind::Classical,
+            None,
+        ),
+        (
+            "weak by construction, robust errors",
+            &weak,
+            model("y ~ w + x", "x", "z1"),
+            Kind::Hc1,
+            None,
+        ),
+        (
+            "Card's two indicators, classical errors",
+            &card,
+            card_model.clone(),
+            Kind::Classical,
+            None,
+        ),
+        (
+            "Card's two indicators, robust errors",
+            &card,
+            card_model.clone(),
+            Kind::Hc1,
+            None,
+        ),
+        (
+            "wage2 by siblings and birth order, clustered by age",
+            &wage2,
+            siblings.clone(),
+            Kind::Cluster,
+            Some("age"),
+        ),
+        (
+            "wage2 by siblings and birth order, classical errors",
+            &wage2,
+            model("lwage ~ exper + tenure + educ", "educ", "sibs + brthord"),
+            Kind::Classical,
+            None,
+        ),
+        (
+            "strong instruments, robust errors",
+            &strong,
+            model("y ~ w + x", "x", "z1 + z2"),
+            Kind::Hc1,
+            None,
+        ),
+    ];
+    let mut all = String::new();
+    for (what, data, asked, kind, cluster) in cases {
+        let found = weak_of(data, &asked, kind, cluster);
+        all.push_str(&format!("## {what}\n"));
+        match found.warning() {
+            Some(warning) => all.push_str(&warning.render(&Sources::new())),
+            None => all.push_str("no warning\n"),
+        }
+        all.push('\n');
+    }
+    insta::assert_snapshot!("iv_weak_instruments_warning", all);
 }
 
 /// What cannot be computed is not: with as many instruments as rows no first stage has a
@@ -1349,9 +1618,18 @@ proptest! {
             let b = weak_of(&t, &scaled, kind, None);
             prop_assert_eq!(a.df1, b.df1);
             prop_assert_eq!(a.df2, b.df2);
-            for (x, y) in [(a.f[0], b.f[0]), (a.wald[0], b.wald[0]), (a.cragg_donald, b.cragg_donald)] {
+            for (x, y) in [(a.f[0], b.f[0]), (a.wald[0], b.wald[0]), (a.cragg_donald, b.cragg_donald), (a.kleibergen_paap, b.kleibergen_paap)] {
                 let (x, y) = (x.unwrap(), y.unwrap());
                 prop_assert!(close(x, y, 1e-8, 1e-12), "{:?}: {} against {}", kind, x, y);
+            }
+            // With one instrumented regressor the rk F is the Wald F of its first stage.
+            prop_assert!(close(a.kleibergen_paap.unwrap(), a.wald[0].unwrap(), 1e-9, 1e-12));
+            prop_assert_eq!(a.effective.is_some(), kind != Kind::Classical);
+            if let (Some(x), Some(y)) = (a.effective, b.effective) {
+                prop_assert!(close(x.f, y.f, 1e-8, 1e-12), "{:?}: {} against {}", kind, x.f, y.f);
+                prop_assert!(close(x.degrees, y.degrees, 1e-8, 1e-12));
+                prop_assert!(close(x.critical, y.critical, 1e-8, 1e-12));
+                prop_assert!(x.degrees >= 1.0 - 1e-9 && x.degrees <= 2.0 + 1e-9, "{}", x.degrees);
             }
             prop_assert!(close(a.f[0].unwrap(), a.cragg_donald.unwrap(), 1e-10, 1e-12));
         }

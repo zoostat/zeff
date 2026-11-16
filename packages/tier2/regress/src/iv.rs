@@ -23,7 +23,7 @@ use zeff_diagnostics::Diagnostic;
 use zeff_kernels::cholesky::{cholesky, solve_with_factor};
 use zeff_kernels::demean::Options;
 use zeff_kernels::eigen::symmetric_eigen;
-use zeff_kernels::product::matmul;
+use zeff_kernels::product::{matmul, transpose_matmul};
 use zeff_kernels::qr::{TallSkinnyQr, pivoted_qr};
 use zeff_kernels::svd::condition_number;
 use zeff_kernels::triangular::solve_upper;
@@ -743,6 +743,156 @@ pub struct Weak {
     /// The Cragg–Donald F in Stock and Yogo's form: the smallest eigenvalue of the
     /// concentration matrix over `df1`; with one instrumented regressor it is `f`.
     pub cragg_donald: Option<f64>,
+    /// The Kleibergen–Paap rk Wald F on the variance asked for: the test that the first-stage
+    /// coefficients have less than full rank, over `df1`. With one instrumented regressor it
+    /// is that regressor's `wald`; under classical errors it is the Cragg–Donald F.
+    pub kleibergen_paap: Option<f64>,
+    /// The effective F of Montiel Olea and Pflueger, for one instrumented regressor under
+    /// robust or clustered errors.
+    pub effective: Option<Effective>,
+    /// Whether the variance asked for is robust or clustered: the F printed under a fit is then
+    /// the Kleibergen–Paap one, and the Cragg–Donald one otherwise (the ruling of the release).
+    pub robust: bool,
+}
+
+/// The effective F with what it is judged by.
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub struct Effective {
+    /// The statistic: the first stage's explained sum of squares over the trace of the
+    /// variance of its coefficients in the instruments' own metric.
+    pub f: f64,
+    /// The effective degrees of freedom, between one and the number of excluded instruments.
+    pub degrees: f64,
+    /// The critical value at the 5% level for a bias above a tenth of the worst case.
+    pub critical: f64,
+}
+
+/// A first-stage F under this is taken for a weak instrument (Staiger and Stock's rule of
+/// thumb, which the release's ruling adopts for the warning).
+pub const WEAK_F: f64 = 10.0;
+/// The share of the worst-case bias the effective F's critical value guards against, and the
+/// level of its test.
+pub const EFFECTIVE_BIAS: f64 = 0.1;
+pub const EFFECTIVE_LEVEL: f64 = 0.05;
+
+/// The value a non-central chi-square variable with `degrees` degrees of freedom and
+/// non-centrality `noncentrality` exceeds with probability `upper`. The distribution is a
+/// Poisson mixture of central chi-squares, with weights e^(−λ/2)(λ/2)^j / j! on the degrees
+/// of freedom `degrees` + 2j; the point is found by halving an interval that holds it.
+pub fn noncentral_chi_square_point(degrees: f64, noncentrality: f64, upper: f64) -> f64 {
+    let half = noncentrality / 2.0;
+    // The weights that matter: around the mean of the Poisson, forty of its standard
+    // deviations and fifty terms either way, which leaves a tail far below rounding.
+    let reach = 40.0 * half.sqrt() + 50.0;
+    let first = (half - reach).max(0.0).floor() as usize;
+    let last = (half + reach).ceil() as usize;
+    let weights: Vec<f64> = (first..=last)
+        .map(|j| {
+            let j = j as f64;
+            let log = if half > 0.0 {
+                -half + j * zeff_numeric::maths::log(half)
+                    - zeff_numeric::special::log_gamma(j + 1.0)
+            } else if j == 0.0 {
+                0.0
+            } else {
+                f64::NEG_INFINITY
+            };
+            zeff_numeric::maths::exp(log)
+        })
+        .collect();
+    let above = |x: f64| -> f64 {
+        let terms: Vec<f64> = weights
+            .iter()
+            .enumerate()
+            .map(|(i, w)| {
+                let a = degrees / 2.0 + (first + i) as f64;
+                w * zeff_numeric::special::incomplete_gamma(a, x / 2.0).upper
+            })
+            .collect();
+        zeff_kernels::sum(&terms)
+    };
+    // The point lies between zero and the mean plus many standard deviations.
+    let mut low = 0.0;
+    let mut high =
+        degrees + noncentrality + 60.0 * (2.0 * (degrees + 2.0 * noncentrality)).sqrt() + 60.0;
+    for _ in 0..200 {
+        let middle = 0.5 * (low + high);
+        if above(middle) > upper {
+            low = middle;
+        } else {
+            high = middle;
+        }
+        if high - low <= 1e-14 * high {
+            break;
+        }
+    }
+    0.5 * (low + high)
+}
+
+/// The symmetric power `m^exponent` of a symmetric positive-definite matrix, by its
+/// eigenvalues; `None` when an eigenvalue is not positive beyond rounding.
+fn symmetric_power(m: &Matrix, exponent: f64) -> Option<Matrix> {
+    let k = m.rows();
+    let spectrum = symmetric_eigen(m);
+    let largest = spectrum.values.last().copied().unwrap_or(0.0);
+    if spectrum
+        .values
+        .iter()
+        .any(|v| v.is_nan() || *v <= COLLINEAR_RESIDUALS * largest)
+    {
+        return None;
+    }
+    let powers: Vec<f64> = spectrum
+        .values
+        .iter()
+        .map(|v| {
+            if exponent == 0.5 {
+                v.sqrt()
+            } else if exponent == -0.5 {
+                1.0 / v.sqrt()
+            } else {
+                1.0 / v
+            }
+        })
+        .collect();
+    Some(Matrix::from_fn(k, k, |i, j| {
+        (0..k)
+            .map(|l| spectrum.vectors.get(i, l) * spectrum.vectors.get(j, l) * powers[l])
+            .sum()
+    }))
+}
+
+impl Weak {
+    /// The statistical warning for weak instruments (W1007; the ruling of the release): the F
+    /// printed under the fit is under [`WEAK_F`], or the effective F is under its critical
+    /// value. `None` when neither is.
+    pub fn warning(&self) -> Option<Diagnostic> {
+        let (printed, name) = if self.robust {
+            (self.kleibergen_paap, "Kleibergen–Paap")
+        } else {
+            (self.cragg_donald, "Cragg–Donald")
+        };
+        let by_f = printed
+            .filter(|f| *f < WEAK_F)
+            .map(|f| format!("the {name} F is {f:.2}, under {WEAK_F:.0}"));
+        let by_effective = self.effective.filter(|e| e.f < e.critical).map(|e| {
+            format!(
+                "the effective F is {:.2}, under its critical value of {:.2}",
+                e.f, e.critical
+            )
+        });
+        let reasons: Vec<String> = by_f.into_iter().chain(by_effective).collect();
+        if reasons.is_empty() {
+            return None;
+        }
+        Some(
+            Diagnostic::warning(
+                "W1007",
+                format!("weak instruments: {}", reasons.join(", and ")),
+            )
+            .help("with weak instruments the estimate leans towards the least-squares one and its confidence interval is too narrow; `ar_test()` gives a test and a confidence set that hold however weak the instruments are"),
+        )
+    }
 }
 
 /// vᵀ M⁻¹ v for a symmetric positive-definite M, each row and column first scaled by its
@@ -821,6 +971,9 @@ impl TwoStage {
                 f: Vec::new(),
                 wald: Vec::new(),
                 cragg_donald: None,
+                kleibergen_paap: None,
+                effective: None,
+                robust: kind != Kind::Classical,
             });
         };
         // The excluded instruments among the kept ones, by their position there.
@@ -840,6 +993,9 @@ impl TwoStage {
             f: vec![None; p],
             wald: vec![None; p],
             cragg_donald: None,
+            kleibergen_paap: None,
+            effective: None,
+            robust: kind != Kind::Classical,
         };
         if m == 0 || df2 <= 0.0 {
             return Ok(unavailable);
@@ -953,12 +1109,145 @@ impl TwoStage {
             let value = symmetric_eigen(&concentration).values[0] / m as f64;
             value.is_finite().then_some(value)
         })();
+        // The joint variance of the first-stage coefficients on the excluded instruments, the
+        // regressors in order, under the variance asked for; `None` when it cannot be had.
+        let absorbed = projection.map_or(0, |p| p.parameters(clusters));
+        let fits: Vec<&Fitted> = stages.iter().map(|s| &s.fitted).collect();
+        let bread = Ols.bread(&stages[0].fitted);
+        let kept = first.kept.len();
+        let joint = match variance::joint_variance(
+            kind,
+            &Ols,
+            &stages[0].design,
+            &fits,
+            &bread,
+            clusters,
+            absorbed,
+        ) {
+            Ok(v) => Some(Matrix::from_fn(p * m, p * m, |a, b| {
+                v.get(
+                    (a / m) * kept + excluded[a % m],
+                    (b / m) * kept + excluded[b % m],
+                )
+            })),
+            Err(VarianceError::Asymmetric) => {
+                return Err(internal(ctx, "an asymmetric joint first-stage variance"));
+            }
+            Err(_) => None,
+        };
+        let (kleibergen_paap, effective) = (|| {
+            let none = (None, None);
+            let Some(joint) = joint else {
+                return none;
+            };
+            // Every instrument scaled by the root of its entry of the bread, and every
+            // regressor by its residual standard deviation: no statistic depends on a unit, and
+            // no matrix factorised here holds variables of very different sizes.
+            let own_bread = block(&bread, &excluded);
+            let by_instrument: Vec<f64> = (0..m).map(|i| own_bread.get(i, i)).collect();
+            let by_regressor: Vec<f64> = (0..p)
+                .map(|j| stages[j].fitted.residual_sum_of_squares / df2)
+                .collect();
+            if by_instrument
+                .iter()
+                .chain(&by_regressor)
+                .any(|d| !(*d > 0.0 && d.is_finite()))
+            {
+                return none;
+            }
+            let by_instrument: Vec<f64> = by_instrument.iter().map(|d| 1.0 / d.sqrt()).collect();
+            let by_regressor: Vec<f64> = by_regressor.iter().map(|d| 1.0 / d.sqrt()).collect();
+            let scaled_bread = Matrix::from_fn(m, m, |i, j| {
+                own_bread.get(i, j) * by_instrument[i] * by_instrument[j]
+            });
+            // (Z₂ᵀM Z₂), its root and the coefficients, all in the scaled units.
+            let Some(cross) = symmetric_power(&scaled_bread, -1.0) else {
+                return none;
+            };
+            let Some(root) = symmetric_power(&scaled_bread, -0.5) else {
+                return none;
+            };
+            let coefficients = Matrix::from_fn(p, m, |j, e| {
+                on_excluded[j][e] * by_instrument[e] * by_regressor[j]
+            });
+            let variance = Matrix::from_fn(p * m, p * m, |a, b| {
+                joint.get(a, b)
+                    * by_instrument[a % m]
+                    * by_instrument[b % m]
+                    * by_regressor[a / m]
+                    * by_regressor[b / m]
+            });
+            // The regressors' cross-products with the other instruments projected out: what
+            // the excluded instruments explain and what they leave.
+            let explained = matmul(&matmul(&coefficients, &cross), &coefficients.transpose());
+            let regressors = Matrix::from_fn(p, p, |j, l| {
+                explained.get(j, l)
+                    + dot(&stages[j].fitted.residuals, &stages[l].fitted.residuals)
+                        * by_regressor[j]
+                        * by_regressor[l]
+            });
+            let kleibergen_paap = (|| {
+                let inverse_root = symmetric_power(&regressors, -0.5)?;
+                // Θ = (XᵀX)^(-1/2) Πᵀ (ZᵀZ)^(1/2), p × m: its singular values are the
+                // canonical correlations of the regressors and the instruments.
+                let theta = matmul(&matmul(&inverse_root, &coefficients), &root);
+                let left = symmetric_eigen(&matmul(&theta, &theta.transpose()));
+                let right = symmetric_eigen(&transpose_matmul(&theta, &theta));
+                // a: the left vector of the smallest singular value; the rows of B: the right
+                // vectors of the m − p + 1 smallest, which span what the larger ones leave.
+                let a: Vec<f64> = left.vectors.column(0).to_vec();
+                let r = m - p + 1;
+                let b = Matrix::from_fn(r, m, |i, e| right.vectors.get(e, i));
+                let theta_a: Vec<f64> = (0..m)
+                    .map(|e| (0..p).map(|j| theta.get(j, e) * a[j]).sum())
+                    .collect();
+                let lambda: Vec<f64> = (0..r)
+                    .map(|i| (0..m).map(|e| b.get(i, e) * theta_a[e]).sum())
+                    .collect();
+                // λ = K vec(Π) with K = (aᵀG) ⊗ (B F), so its variance is K V Kᵀ.
+                let ga: Vec<f64> = (0..p)
+                    .map(|j| (0..p).map(|l| inverse_root.get(l, j) * a[l]).sum())
+                    .collect();
+                let bf = matmul(&b, &root);
+                let k = Matrix::from_fn(r, p * m, |i, c| ga[c / m] * bf.get(i, c % m));
+                let of_lambda = matmul(&matmul(&k, &variance), &k.transpose());
+                quadratic_form(&of_lambda, &lambda).map(|rk| rk / m as f64)
+            })();
+            // The effective F, for one instrumented regressor under robust or clustered errors.
+            let effective = (|| {
+                if p != 1 || kind == Kind::Classical {
+                    return None;
+                }
+                let w = matmul(&matmul(&root, &variance), &root);
+                let trace: f64 = (0..m).map(|i| w.get(i, i)).sum();
+                let squares = sum_of_squares(w.data());
+                let largest = *symmetric_eigen(&w).values.last()?;
+                let f = explained.get(0, 0) / trace;
+                let x = 1.0 / EFFECTIVE_BIAS;
+                let degrees =
+                    trace * trace * (1.0 + 2.0 * x) / (squares + 2.0 * x * trace * largest);
+                if !(f.is_finite() && degrees.is_finite() && degrees > 0.0) {
+                    return None;
+                }
+                let critical =
+                    noncentral_chi_square_point(degrees, x * degrees, EFFECTIVE_LEVEL) / degrees;
+                Some(Effective {
+                    f,
+                    degrees,
+                    critical,
+                })
+            })();
+            (kleibergen_paap, effective)
+        })();
         Ok(Weak {
             df1: m,
             df2,
             f,
             wald,
             cragg_donald,
+            kleibergen_paap,
+            effective,
+            robust: kind != Kind::Classical,
         })
     }
 }

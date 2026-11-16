@@ -169,8 +169,102 @@ pub fn variance(
     absorbed: usize,
 ) -> Result<(Matrix, usize), VarianceError> {
     let k = fitted.kept.len();
+    layered(
+        kind,
+        design,
+        fitted,
+        k,
+        &|block| estimator.scores(fitted, block, block.start),
+        bread,
+        &|divisor| {
+            let sigma2 = fitted.residual_sum_of_squares / divisor;
+            Matrix::from_fn(k, k, |i, j| sigma2 * bread.get(i, j))
+        },
+        clusters,
+        absorbed,
+    )
+}
+
+/// The joint variance of the estimates of several models on one design: the same columns, an
+/// outcome each, as the first stages of a two-stage fit are (release 0.8.0, step 12c). `fits`
+/// are the models' fits, each with the same kept columns, and `bread` is the bread they share.
+/// The matrix is square of order kept columns × models, a model's estimates together and the
+/// models in order; each block on its diagonal is what [`variance`] gives that model, and the
+/// blocks off it are the covariances between two models' estimates under the same `kind`.
+pub fn joint_variance(
+    kind: Kind,
+    estimator: &dyn Estimator,
+    design: &Design,
+    fits: &[&Fitted],
+    bread: &Matrix,
+    clusters: Option<&Clusters>,
+    absorbed: usize,
+) -> Result<Matrix, VarianceError> {
+    let lead = fits[0];
+    let k = lead.kept.len();
+    let q = fits.len();
+    // The bread of the models together: theirs, once per model.
+    let together = Matrix::from_fn(k * q, k * q, |i, j| {
+        if i / k == j / k {
+            bread.get(i % k, j % k)
+        } else {
+            0.0
+        }
+    });
+    layered(
+        kind,
+        design,
+        lead,
+        k,
+        &|block| {
+            let each: Vec<Matrix> = fits
+                .iter()
+                .map(|fit| estimator.scores(fit, block, block.start))
+                .collect();
+            Matrix::from_fn(block.x.rows(), k * q, |r, c| each[c / k].get(r, c % k))
+        },
+        &together,
+        &|divisor| {
+            // The covariance of two models' residuals times the bread; a model with itself by
+            // its own residual sum of squares, as `variance` has it.
+            let sigma = Matrix::from_fn(q, q, |a, b| {
+                if a == b {
+                    fits[a].residual_sum_of_squares / divisor
+                } else {
+                    zeff_kernels::dot(&fits[a].residuals, &fits[b].residuals) / divisor
+                }
+            });
+            Matrix::from_fn(k * q, k * q, |i, j| {
+                sigma.get(i / k, j / k) * bread.get(i % k, j % k)
+            })
+        },
+        clusters,
+        absorbed,
+    )
+    .map(|(v, _)| v)
+}
+
+/// The variance layer's one computation. `lead` gives the leverages and the condition number
+/// (those of the design, the same for every model on it); `own` is the number of kept columns
+/// of one model, which with `absorbed` is the k of every N − k; `scores` gives the scores of a
+/// block, one column per entry of `bread`'s order; `classical` gives the classical variance
+/// from the divisor N − k.
+#[allow(clippy::too_many_arguments)]
+fn layered(
+    kind: Kind,
+    design: &Design,
+    lead: &Fitted,
+    own: usize,
+    scores: &dyn Fn(&crate::design::Block) -> Matrix,
+    bread: &Matrix,
+    classical: &dyn Fn(f64) -> Matrix,
+    clusters: Option<&Clusters>,
+    absorbed: usize,
+) -> Result<(Matrix, usize), VarianceError> {
+    let fitted = lead;
+    let k = bread.rows();
     // The parameters in every N − k: the kept columns and the absorbed effects'.
-    let parameters = (k + absorbed) as f64;
+    let parameters = (own + absorbed) as f64;
     // N: the rows used, or the sum of the frequency weights.
     let n = match design.weight_kind {
         Some(WeightKind::Frequency) => design.weight_total(),
@@ -179,8 +273,7 @@ pub fn variance(
     let df = (n - parameters).max(0.0) as usize;
     match kind {
         Kind::Classical => {
-            let sigma2 = fitted.residual_sum_of_squares / (n - parameters);
-            let vcov = Matrix::from_fn(k, k, |i, j| sigma2 * bread.get(i, j));
+            let vcov = classical(n - parameters);
             Ok((symmetrised(&vcov, fitted.condition_number, None)?, df))
         }
         Kind::Hc1 | Kind::Hc2 | Kind::Hc3 => {
@@ -197,7 +290,7 @@ pub fn variance(
             let mut meat = Matrix::zeros(k, k);
             let mut meat_bound = Matrix::zeros(k, k);
             for block in design.blocks() {
-                let scores = estimator.scores(fitted, &block, block.start);
+                let scores = scores(&block);
                 let scaled = Matrix::from_fn(scores.rows(), k, |r, c| {
                     let row = block.start + r;
                     scores.get(r, c) * row_factor(kind, design, fitted, row)
@@ -231,7 +324,7 @@ pub fn variance(
             let mut sums: Vec<Vec<f64>> = vec![vec![0.0; k]; clusters.count];
             let mut sizes: Vec<Vec<f64>> = vec![vec![0.0; k]; clusters.count];
             for block in design.blocks() {
-                let scores = estimator.scores(fitted, &block, block.start);
+                let scores = scores(&block);
                 for r in 0..scores.rows() {
                     let cluster = clusters.of_row[block.start + r];
                     for c in 0..k {
