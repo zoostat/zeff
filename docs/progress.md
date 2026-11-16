@@ -175,3 +175,13 @@ Step 9: the checker reads `instruments: educ ~ nearc4` and refuses its mistakes 
 **Next.** First read the CI runs of 103bc4d and 8f8c45a, and the scheduled run queued on f536adf. Then step 19 `[engine]`: `zeff explain`.
 
 **For the owner to decide.** The printed forms of `first_stage` and `ar_test` and the `Instruments` row of `report`. Open decisions #149 and #150. The story of `staff`. Whether to add `ivDiag` and `ivmodel` by hand.
+
+## 16 November 2026, the article for the Journal of Statistical Software (outside the release's checklist)
+
+**Done.** The owner's draft article (kept outside the repository) was checked against the journal's rules for authors and its mission statement, and corrected outside the repository to the current plan (`glm` of #112, third-party packages at 2.0.0 of #123, the post-1.0 plan of #113, the function counts of the catalogue). At the owner's request the changes that give the article its best chance were recorded in the register as #151 to #161, in a new group "Raised for the journal article", with a status paragraph and summary rows; no normative text was changed. Found on the way: the article promises NIST accuracy results that no test yet produces (#153).
+
+**Green.** Format, clippy with warnings denied, the tier, message and grammar checks, every test of the workspace, locally.
+
+**Next.** The CI of 103bc4d, 8f8c45a and bfe2c90 is green; read the scheduled run on f536adf, still running at 14:19 UTC on 16 November, and every workflow after this push. Then step 19 `[engine]`: `zeff explain`.
+
+**For the owner to decide.** #151 (the licence), #156 (when to submit), #157 (packages written in Zeff during 1.x) and the study of #155 wait for his word; #151 and #153 are due at 0.9.0. The earlier items stand: the printed forms of `first_stage` and `ar_test` and the `Instruments` row of `report`, open decisions #149 and #150, the story of `staff`, and whether to add `ivDiag` and `ivmodel` by hand.

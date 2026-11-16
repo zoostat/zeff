@@ -100,6 +100,8 @@ Date: 17 October 2026 · Source: Zeff Specification section 15, Zemp Specificati
 
 **Status (15 November 2026, the owner's ruling on Zemp's repositories).** #148: Zemp Lite is developed in a public repository under Apache 2.0 and Zemp Studio, when its work starts, in a separate private one under a proprietary licence. It replaces the repository and licence parts of #125, and with them #25; sections 1, 2, 3, 15, 16 and 17 of the Zemp Specification are amended.
 
+**Status (16 November 2026, the article for the Journal of Statistical Software).** The owner's draft of an article on Zeff for the Journal of Statistical Software (kept outside the repository) was checked against the journal's published rules for authors and its mission statement, and against both volumes, the catalogue and this register. The owner asked for the changes that give the article its best chance to be recorded here: #151 to #161, in the new group "Raised for the journal article" at the end of this register. No normative text is changed. Four of them (#151, #156, #157 and the choice of study in #155) reverse or extend a ruling of the owner or set the article's own course, so they wait for his word and are not taken under the standing instruction of 12 November 2026; the others are taken as recommended at their deadlines unless he says otherwise.
+
 ## Summary
 
 | # | Decision | Recommendation | Decide by |
@@ -191,6 +193,17 @@ Date: 17 October 2026 · Source: Zeff Specification section 15, Zemp Specificati
 | 85 | The Games–Howell comparison in `posthoc` | Add `games_howell` to `method:` in the first release after 0.7.0 with room; until then Tukey's HSD after Welch's ANOVA prints a note | 0.9.0 |
 | 86 | Folding, snippets and the statement ranges behind **Run** in the language server | At 0.8.0, with Zemp's alpha; formatting through the server is built at 0.7.0 | decided 15 November 2026 (option A); built at 0.8.0, step 8b |
 | 87 | A variable name in an option record | Accept a `Vars` of exactly one variable where a parameter takes a `Var`, so that `{ se: robust, cluster: vars(firm) }` can be named once and spread | decided 15 November 2026 (option A); built at 0.8.0, step 4 |
+| 161 | Aids for the article's referees: a playground, a translation page, an archive and a citation file | Recommended A: a citation file and an archived copy of each release with its own identifier from 0.9.0; the playground with the article's examples and the R and Stata translation page, generated from the help pages, on the website at 1.0.0 | open; deadline 0.9.0 |
+| 160 | `sample_flow` before 1.0 | Recommended B: the printed table of `data.sample_flow()` and `fit.sample_flow()` at 0.11.0, the drawing at 1.2 as planned | open; deadline 0.10.0 |
+| 159 | Candidate instruments from a causal graph | Recommended A: `g.instruments(exposure:, outcome:)` at 0.10.0, the instruments and conditional instruments with their conditioning sets, held to dagitty | open; deadline 0.10.0 |
+| 158 | Testing a causal graph's implied independencies against the data | Recommended A: an option `data:` on `g.implied_independencies()` at 0.10.0 that tests each one, held to dagitty's local tests | open; deadline 0.10.0 |
+| 157 | Packages written in Zeff during 1.x, beside the ruling of #123 | Recommended B: Zeff-source packages at 1.6 as #8 once recommended, WebAssembly components at 2.0; A: #123 stands | open; the owner's word; deadline 1.1 |
+| 156 | When the article is submitted | Recommended A: a preprint at 1.0.0 and the submission at 1.1; B: submit at 1.0.0; C: wait for a wider range of methods | open; the owner's word; deadline 1.0.0 |
+| 155 | The article's case study and its replication project | Recommended A: one published study with openly licensed data replicated end to end, and the article itself a project that `zeff verify` re-runs within an hour; the study is the owner's choice | open; the study is the owner's word; deadline 0.11.0 |
+| 154 | Independent checking of the numerical core | Recommended A: the owner reads the reference scripts of the estimators and runs the Stata references himself by 0.10.0; an outside audit of the kernels and the variance layer, published, before submission | open; deadline 1.0.0 |
+| 153 | The NIST Statistical Reference Datasets in the validation suite | Recommended A: the linear-regression, univariate and analysis-of-variance problems at 0.9.0, accuracy as the log relative error, with R's and Stata's beside it | open; deadline 0.9.0 |
+| 152 | A home in a standard repository: an R package on CRAN and a Python wheel on PyPI | Recommended A: both at 1.0.0, the R package running a script or project and returning frames and results | open; deadline 0.10.0 |
+| 151 | The licence and the journal's rule of GPL compatibility | Recommended A: dual licence, MIT or Apache 2.0 at the user's choice, from 0.9.0, after a word with the editors | open; the owner's word; deadline 0.9.0 |
 | 150 | The small-sample form of the two-stage standard errors, and Stata's large-sample default | Recommended A: one form at 1.0, the N − k of `reg` with the t table (R's `ivreg`, fixest, Stata's `ivregress 2sls, small`), the page saying how Stata's default differs; the large-sample form an option after 1.0. B: an option on `ivreg` now | open; deadline 0.8.0 (step 13, where `ivreg`'s page is written) |
 | 149 | A warning repeated word for word in the passes of a loop | Recommended A: said once with the count of passes, as a note is from step 8o of 0.8.0; B: every pass, as now | open; deadline 0.9.0 |
 | 148 | Zemp Lite in a public repository under Apache 2.0; Zemp Studio in a private one | The owner's ruling: Zemp Lite is developed in the public repository `zemp-lite` under Apache 2.0, as Zeff; Zemp Studio, when its work starts, gets a separate private repository and a proprietary licence and builds on Lite; Lite never depends on Studio's modules | decided 15 November 2026 (owner's ruling); the Zemp Specification amended the same day; replaces the repository and licence parts of #125, and with them #25 |
@@ -3063,3 +3076,136 @@ Raised on 16 November 2026 at step 10 of release 0.8.0. The ruling of the releas
 | B. An option on `ivreg` at 0.8.0, in the manner of decision 97 (one function with an option), choosing the small-sample or the large-sample form | Stata's default is reproduced to the digit | A new option on a catalogued signature under the freeze; the same question then arises for every later estimator Stata fits by default with N |
 
 **Recommended: A.** Deadline 0.8.0, at step 13, where the page is written. Taken as recommended under the standing instruction of 12 November 2026 unless the owner says otherwise.
+
+
+## Raised for the journal article
+
+Raised on 16 November 2026, when the owner's draft of an article on Zeff for the Journal of Statistical Software was checked against the journal's rules for authors and its mission statement (both read on that day at jstatsoft.org). The rules that bear on Zeff: the journal considers only software under the GPL, version 2 or 3, or a licence compatible with it, and says it does not consider software under other licences; submitted software should, if at all possible, also be available from a standard repository such as CRAN, Bioconductor or PyPI, not only from a hosting site such as GitHub; a reader with the technical background should be able to install the software and run the replication material within about an hour on an ordinary computer; manuscripts longer than 30 pages take much longer to review; software in a less common language takes longer to find referees for; the journal seeks comprehensive implementations of broad classes of models or the infrastructure on which such implementations are built, illustrated by a non-trivial case study; full reproducibility is mandatory; and a rejected manuscript cannot be resubmitted. Since there is one attempt, these entries remove the reasons to refuse before they add to the contribution. The licence questions are general information, not legal advice.
+
+### 151. The licence and the journal's rule of GPL compatibility
+
+Zeff is under Apache 2.0 (#21, decided 16 October 2026; section 1.4 of the Engine Specification). The Free Software Foundation counts Apache 2.0 as compatible with version 3 of the GPL but not with version 2, so whether the journal accepts it turns on how the editors read "compatible". The owner holds the copyright in all of Zeff, so a change now costs one commit; each outside contributor makes it harder. Zemp Lite (#148) is separate and is not part of the article.
+
+| Option | What it gives | What it costs |
+| --- | --- | --- |
+| A. Dual licence, MIT or Apache 2.0 at the user's choice, as the Rust project and most of its crates are licensed; the patent grant of Apache 2.0 kept for those who take it | MIT is compatible with both versions of the GPL, so the doubt is gone; nothing changes for any current user | A second licence text in the repository and in every package's manifest; the notice file and section 1.4 amended |
+| B. Apache 2.0 kept, and the editors asked before submission whether it is acceptable | No change | The answer may be no, and the change would then come after outside contributions |
+| C. The GPL | Beyond doubt for the journal | Against the permissive rule of section 1.4 and the open-core plan; discourages packages and institutional use |
+
+**Recommended: A**, from 0.9.0, after a short message to the editors confirming that the dual licence meets their rule. The owner's word is asked: this reverses #21.
+
+### 152. A home in a standard repository: an R package on CRAN and a Python wheel on PyPI
+
+The plan of section 2.1 installs Zeff by an installer script, Homebrew, winget, Scoop and a container image at 1.0.0, and builds a PyPI wheel and conda packages "after 1.0, on request". None of these is a statistical repository of the kind the journal names. An R package on CRAN would also lower the barrier the journal warns of for a less common language: a referee who works in R could run the article's scripts from R.
+
+| Option | What it gives | What it costs |
+| --- | --- | --- |
+| A. At 1.0.0, an R package `zeff` on CRAN that builds the engine from its Rust source, runs a script or a project and returns frames as data frames and fits as tables of estimates; and a wheel on PyPI that does the same for Python | Both repositories the journal names; a referee in R or Python needs no terminal; the selftest of the engine runs as the package's own check, so the determinism contract is shown under CRAN's compilers | CRAN's rules for packages with Rust code (crates vendored, an offline build, size and build-time limits) to meet; a package to maintain for each engine release; its licence must be GPL-compatible (#151) |
+| B. The PyPI wheel only, at 1.0.0 | One repository the journal names, cheaply | The barrier for referees who work in R stays |
+| C. The plan as it is | No new work | The journal's "if at all possible" is not met, and a referee may say so |
+
+**Recommended: A.** Deadline 0.10.0, so that the work can be placed in 0.11.0 or 1.0.0 when those releases are planned. Amends the table of section 2.1 when it is built.
+
+### 153. The NIST Statistical Reference Datasets in the validation suite
+
+The draft article promises the accuracy of Zeff on the Statistical Reference Datasets of the National Institute of Standards and Technology, after McCullough's method, as the log relative error. Neither the validation suite nor the testing handbook has these problems. Their certified values were computed independently of any statistical package, so they are the one check that owes nothing to a reference program; the data are works of the United States government and in the public domain.
+
+| Option | What it gives | What it costs |
+| --- | --- | --- |
+| A. At 0.9.0, the eleven linear-regression problems (Longley and the Wampler problems among them), the nine univariate problems and the eleven analysis-of-variance problems, each as a conformance case giving the log relative error of every certified value, with R's and Stata's beside them in the release notes | The article's accuracy table exists two releases before the full suite is published; a fault on the hard problems is found early | One step of 0.9.0; the testing handbook gains the kind of test |
+| B. At 0.10.0, with the validation suite run in full | No change to 0.9.0 | A fault on these problems found later |
+| C. Not at all, and the claim taken out of the article | No work | The article loses its most independent evidence |
+
+**Recommended: A.**
+
+### 154. Independent checking of the numerical core
+
+A referee of the journal checks correctness partly by reading the code. The reference tests compare Zeff with R's own output, computed by R on every build, so the numbers are not Zeff's; but the cases, the tolerances and the scripts that run them were written with the engine, not apart from it, and no second person has read the Rust of the kernels or the variance layer.
+
+| Option | What it gives | What it costs |
+| --- | --- | --- |
+| A. By 0.10.0 the owner reads the reference scripts of the estimators (`reg`, `ivreg`, `first_stage`, the variance layer) and runs the Stata references himself; before submission an outside statistician or numerical analyst who reads Rust audits the kernels and the variance layer, and the audit is published with the release notes | The correctness of the engine rests on a person's reading as well as on its tests; the article can say who checked what | The owner's time; the cost of the audit, or a co-author who does it |
+| B. The owner's reading and Stata runs only | No outside cost | No one but the owner vouches for the code |
+| C. The tests alone | No work | A referee may judge the code unreviewed |
+
+**Recommended: A.** Deadline 1.0.0 for the audit; the owner's part by 0.10.0.
+
+### 155. The article's case study and its replication project
+
+The journal asks for a non-trivial case study and for replication material that runs within about an hour. The draft's examples use the synthetic `wages` and `staff` and Card's data, whose licence is not yet confirmed.
+
+| Option | What it gives | What it costs |
+| --- | --- | --- |
+| A. One published empirical study whose data are openly licensed (CC0, CC-BY 4.0, ODC-BY, ODbL or public-domain government data, as section 8.5 requires), replicated end to end in Zeff: the raw files, the cleaning, a panel with fixed effects, instrumental variables, the check against a causal graph, the tables and `zeff verify`; and the article itself a project that `zeff verify` re-runs within an hour, with the ten-million-row benchmark given a referee's size and its full-size timings stated apart | The case study the journal expects; the published figures as an outside check; replication within the journal's hour | Finding a study whose data may be shipped; replication packages deposited with a CC-BY licence (some at openICPSR) are the likely source |
+| B. The synthetic datasets only | No licence question | Not the non-trivial case the journal asks for |
+
+**Recommended: A.** The choice of study is the owner's. Deadline 0.11.0, the release of `zeff verify`.
+
+### 156. When the article is submitted
+
+The draft proposes submission at a tagged release, preferably 1.0.0. The range of methods at 1.0 is narrow; under the plan of #113 bootstrap standard errors and the `external` step come at 1.1, Poisson regression with fixed effects at 1.7, two-period difference-in-differences at 1.9 and staggered adoption at 1.19, at about one minor release every three months.
+
+| Option | What it gives | What it costs |
+| --- | --- | --- |
+| A. A preprint at 1.0.0; the submission at 1.1, presenting Zeff as infrastructure on which methods are built | The preprint fixes priority and draws comment; 1.1 adds the bootstrap to every model and a recorded route to R and Python for what Zeff lacks | About three months later than B |
+| B. Submission at 1.0.0 | Earliest | Bootstrap absent; a referee may find the methods thin |
+| C. Wait for a wider range, for instance 1.9 | Broad coverage | About two years later; the article's argument does not rest on breadth |
+
+**Recommended: A.** The owner's word is asked.
+
+### 157. Packages written in Zeff during 1.x, beside the ruling of #123
+
+The article presents Zeff as infrastructure, which a referee may question while no one but the project can add a function to it before 2.0.0 (#123, 11 November 2026). #8 had recommended packages written in Zeff at 1.6, with WebAssembly components later.
+
+| Option | What it gives | What it costs |
+| --- | --- | --- |
+| A. #123 stands: no third-party package before 2.0.0; the article points to the project's own functions, the published package manifest of 1.0.0 and `external` of 1.1 | No change; every function a script calls is the project's own | The infrastructure claim rests on a promise |
+| B. Packages written in Zeff, with the manifest and `zeff.lock`, at 1.6; WebAssembly components at 2.0.0 | Others can add methods several years earlier; no sandbox is needed, since the language is the sandbox | The manifest and lock-file work moves forward from 2.0.0 |
+
+**Recommended: B.** The owner's word is asked: this reopens #123. Deadline 1.1, so that the article can say which.
+
+### 158. Testing a causal graph's implied independencies against the data
+
+`g.implied_independencies()` (catalogue row 431, 0.10.0) lists the independencies a graph implies as testable predictions, but nothing tests them. The test is what makes a graph something the data can contradict, and it is the feature a referee from the causal-inference side will look for. dagitty's `localTests` is the reference; it is not in the R library and needs the owner to install it.
+
+| Option | What it gives | What it costs |
+| --- | --- | --- |
+| A. An option `data:` on `g.implied_independencies()` at 0.10.0: with a frame, each implied independence is tested (a partial correlation for numeric variables, as dagitty's linear test) and printed with its estimate, interval and p value, under `p_adjust`'s methods | One function with an option (decision 97); the graph meets the data | One option on a catalogued signature; a reference test that needs dagitty |
+| B. A function of its own | A shorter call | Against decision 97 |
+| C. After 1.0 | No work now | The article's centrepiece lacks its test |
+
+**Recommended: A.**
+
+### 159. Candidate instruments from a causal graph
+
+`iv.exclusion_check(g, instrument:)` (row 436, 0.10.0) checks an instrument the analyst names; nothing lists the instruments a graph allows. dagitty's `instrumentalVariables` lists them, with the conditioning set of each conditional instrument.
+
+| Option | What it gives | What it costs |
+| --- | --- | --- |
+| A. `g.instruments(exposure:, outcome:)` at 0.10.0, a result method of `identify` listing the instruments and conditional instruments with their conditioning sets, held to dagitty | Identification by instruments read from the graph, beside adjustment sets; a natural example for the article | One function added to the catalogue before the names freeze |
+| B. `exclusion_check` only | No new function | The graph checks a choice but does not suggest one |
+
+**Recommended: A.**
+
+### 160. `sample_flow` before 1.0
+
+`data.sample_flow()` and `fit.sample_flow()` (rows 684 and 685) print and draw every step that changed the number of rows, with its count and reason; they are planned for 1.2. The verbs and the fits already count every dropped row, so the table is the sixth design principle ("nothing disappears silently") shown in one call, which the article can print.
+
+| Option | What it gives | What it costs |
+| --- | --- | --- |
+| A. Both, the table and the drawing, at 0.11.0 | The whole feature in 1.0 | The drawing needs the diagram layer, work of 1.2 |
+| B. The printed table at 0.11.0, the drawing at 1.2 as planned | The part the article needs, on machinery that exists | The two rows split across releases |
+| C. 1.2, as planned | No change | The article describes the principle without showing it |
+
+**Recommended: B.** Deadline 0.10.0, so that 0.11.0 is planned with it.
+
+### 161. Aids for the article's referees
+
+The journal warns that software in a less common language is slow to review. The website is held until 1.0.0 by the owner's ruling.
+
+| Option | What it gives | What it costs |
+| --- | --- | --- |
+| A. From 0.9.0, a citation file in the repository and an archived copy of each release with its own persistent identifier (the owner links the archive to the repository once); at 1.0.0, on the website, a playground in the browser build with the article's examples loaded, and a page translating Zeff to R and Stata, generated from the "Coming from R or Stata" part of every help page | A referee can run the examples with nothing installed and read Zeff through R or Stata; the article can cite an exact archived version | One page of the site generated from the help; the owner's one-time link of the archive |
+| B. At 1.0.0, all of it | One piece of work | The archived versions start later |
+
+**Recommended: A.**
