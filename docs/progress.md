@@ -165,3 +165,13 @@ Step 9: the checker reads `instruments: educ ~ nearc4` and refuses its mistakes 
 **Next.** Step 18 `[function]`: the sample `instruments` and section 7 of the specification's script.
 
 **For the owner to decide.** The printed forms of `first_stage` and `ar_test` and the `Instruments` row of `report`. Open decisions #149 and #150. The story of `staff`. Whether to add `ivDiag` and `ivmodel` by hand.
+
+## 16 November 2026, release 0.8.0, step 18 (the sample `instruments`)
+
+**Done.** Step 18 `[function]`: the sample project `samples/instruments` on `staff`, from the regression that misleads (5.93) through the instrumented fit (4.60, the truth being 4.5), two instruments, a weak instrument with the Anderson–Rubin set, to the exported table; section 7 of the specification's script runs whole on Card's data in its own test. `zeff selftest` counts 525 cases. Block C (instrumental variables) is complete.
+
+**Green.** Format, clippy with warnings denied, the tier, message and grammar checks, every test of the workspace; CI read after the push.
+
+**Next.** Step 19 `[engine]`: `zeff explain`.
+
+**For the owner to decide.** The printed forms of `first_stage` and `ar_test` and the `Instruments` row of `report`. Open decisions #149 and #150. The story of `staff`. Whether to add `ivDiag` and `ivmodel` by hand.

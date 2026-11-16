@@ -48,3 +48,8 @@ lines 8 to 9 become:
     |    .label(female, [0 => "male", 1 => "female"])
 lines 73 to 76 become:
     |wages.correlation([lwage, educ, exper, hours], method: spearman)
+==== instruments/scripts
+lines 11 to 12 become:
+    |staff.summary([productivity, age, distance], by: training)
+lines 68 to 71 become:
+    |table_iv.export("output/table_iv.tex")

@@ -563,4 +563,9 @@ tests/stdout e9dec113fb628d10
 tests/stderr f1bcf360999ab7c4
 tests/exit_code a8c7f832281a39c5
 # tests/exit_code bits 0000000000000000
+instruments/stdout 515cdd0a13b6c085
+instruments/stderr 6459536a561f2944
+instruments/exit_code a8c7f832281a39c5
+# instruments/exit_code bits 0000000000000000
+instruments/output/table_iv.tex 0197b4ea2155cac9
 help/examples cbf29ce484222325

@@ -460,6 +460,7 @@ fn the_messages_of_the_sample_scripts() {
         "panel",
         "plots",
         "tests",
+        "instruments",
     ] {
         let folder = root.join(name);
         let fs = MemoryFileSystem::new();

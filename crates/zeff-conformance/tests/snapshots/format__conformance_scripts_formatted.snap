@@ -2549,3 +2549,71 @@ p_adjust(p, method: bh)
 //    Spearman.
 wages.correlation([lwage, educ, exper, hours], p_values: true)
 wages.correlation([lwage, educ, exper, hours], method: spearman)
+==== script 148
+// The sample project of release 0.8.0: instrumental variables end to end on the shipped staff
+// data, a training course offered by lot and taken by choice. The data are generated, so the
+// answer is known: the course raises productivity by 4.5 units per hour. `zeff run` in this
+// folder prints what expected/stdout.txt holds, and its messages are expected/stderr.txt; the
+// conformance suite compares both byte for byte on every target, with the table the last
+// section exports.
+
+// 1. The data: one row per employee. `offer` was drawn by lot, `training` was the employee's
+//    own choice, and those who took the course differ from those who did not.
+let staff = dataset(staff)
+staff.describe()
+staff.summary([productivity, age, distance], by: training)
+
+// 2. The comparison that misleads. Regressing productivity on the course, with age held fixed
+//    and the site absorbed, gives too large an effect: the more able took the course more
+//    often, and ability is not in the file.
+let ols = staff.reg(productivity ~ age + training, fe: site, se: robust)
+ols
+
+// 3. The offer as an instrument. It was drawn by lot and moves productivity only through the
+//    course, so two-stage least squares recovers the effect; `first: true` prints the first
+//    stage above the estimates.
+let iv = staff.ivreg(productivity ~ age + training,
+                     fe: site,
+                     instruments: training ~ offer,
+                     se: robust,
+                     first: true)
+iv
+print("effect of the course:", iv.coef(training))
+iv.ci(training, level: 0.9)
+
+// 4. The first stage read on its own: how strongly the offer moves the take-up, and whether
+//    the regression of section 2 and the instrumented one disagree by more than chance.
+iv.first_stage()
+
+// 5. Two instruments for one regressor. The distance to the training centre is a second and
+//    weaker instrument; with more instruments than instrumented regressors the first stage
+//    carries a test of the over-identifying restrictions.
+let two = staff.ivreg(productivity ~ age + training,
+                      fe: site,
+                      instruments: training ~ offer + distance,
+                      se: robust)
+two.first_stage()
+
+// 6. A weak instrument. On three hundred employees the distance alone barely moves the
+//    take-up: the fit warns, its interval is not to be trusted, and the Anderson–Rubin set,
+//    valid whatever the instrument's strength, says how little the data tell. Beside it, the
+//    set of the strong instrument, which is close to the usual interval.
+let weak = staff.head(300).ivreg(productivity ~ age + training, instruments: training ~ distance)
+weak
+weak.ar_test()
+iv.ar_test()
+
+// 7. Standard errors that count each observation's leverage, available with one absorbed
+//    effect from this release.
+staff
+    .ivreg(productivity ~ age + training, fe: site, instruments: training ~ offer, se: hc3)
+    .estimates()
+
+// 8. The publication table: the regression beside the two instrumented fits, printed and
+//    exported to LaTeX.
+let table_iv = report([ols, iv, two],
+                      stats: [n_obs],
+                      labels: {training: "Took the course", age: "Age in years"},
+                      title: "Table 1. Productivity and the training course")
+table_iv
+table_iv.export("output/table_iv.tex")

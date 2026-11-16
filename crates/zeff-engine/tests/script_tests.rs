@@ -20,7 +20,7 @@
 use std::path::Path;
 use zeff_diagnostics::{Source, Sources};
 use zeff_engine::VERSION;
-use zeff_engine::fs::MemoryFileSystem;
+use zeff_engine::fs::{FileSystem, MemoryFileSystem};
 use zeff_engine::project::Project;
 use zeff_engine::run::{Outcome, run_script};
 use zeff_ir::ModuleSource;
@@ -314,6 +314,57 @@ fn the_statements_of_section_7_1() {
         outcome.output.stderr
     );
     insta::assert_snapshot!("section_7_1_star_in_fe", outcome.output.stderr);
+}
+
+// ----- section 7 of the sample script -----
+
+/// Card's schooling data (`tests/reference/data/card.csv`, described in `SOURCES.md` there), the
+/// `data/card.csv` of section 7 of the specification's sample script.
+const CARD: &[u8] = include_bytes!("../../../tests/reference/data/card.csv");
+
+/// Section 7 of `docs/spec/zeff_samples.zeff`, "Instrumental variables", taken whole from the
+/// file as it stands (release 0.8.0, step 18): the fit with the region absorbed and its first
+/// stage printed, `first_stage()`, and the table of the regression beside the instrumented fit
+/// exported to LaTeX. Its figures are fixest's, held by the case `script` of `iv.json`.
+#[test]
+fn the_instrumental_variables_of_the_sample_script() {
+    let script = include_str!("../../../docs/spec/zeff_samples.zeff");
+    let start = script
+        .find("// ── 7. Instrumental variables")
+        .expect("section 7 of the sample script");
+    let end = script
+        .find("// ── 8. ")
+        .expect("section 8 of the sample script");
+    let section = &script[start..end];
+    for part in [
+        "import(\"data/card.csv\")",
+        "card.ivreg(",
+        "first: true",
+        "iv.first_stage()",
+        "report([card.reg(",
+        ".export(\"output/table_iv.tex\")",
+    ] {
+        assert!(section.contains(part), "{part}:\n{section}");
+    }
+    let fs = MemoryFileSystem::new();
+    fs.add_file(
+        "/p/zeff.toml",
+        format!("[project]\nname = \"p\"\nzeff = \"{VERSION}\"\nedition = \"preview\"\n"),
+    );
+    fs.add_file("/p/data/card.csv", CARD);
+    let project = Project::open(&fs, Path::new("/p")).unwrap();
+    let outcome = run_script(&fs, &project, "scripts/main.zeff", section);
+    assert_eq!(outcome.exit_code, 0, "{}", outcome.output.stderr);
+    let table = fs.read(Path::new("/p/output/table_iv.tex")).unwrap();
+    insta::assert_snapshot!(
+        "sample_script_section_7",
+        format!(
+            "{}{}---- output/table_iv.tex\n{}",
+            outcome.output.stdout,
+            outcome.output.stderr,
+            String::from_utf8(table).unwrap()
+        )
+    );
 }
 
 // ----- the help document's examples -----

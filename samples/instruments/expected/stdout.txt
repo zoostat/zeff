@@ -1,0 +1,124 @@
+staff · 2,400 rows × 9 variables
+
+  variable       type        non-missing   missing   example
+  employee       Int               2,400         0   1
+  site           Int               2,400         0   9
+  region         Category          2,400         0   South (4 levels)
+  age            Int               2,400         0   37
+  offer          Int (lab)         2,400         0   yes
+  distance       Float             2,400         0   9.5
+  training       Int (lab)         2,400         0   yes
+  tenure         Float             2,400         0   5.5
+  productivity   Float             2,400         0   61.9
+summary · by training
+
+  training   variable           N   missing     mean       sd      min      max
+  no         productivity   1,212         0   50.499    5.888   31.300   68.900
+  yes        productivity   1,188         0   55.931    5.898   37.500   75.300
+  no         age            1,212         0   41.877   11.197   22.000   60.000
+  yes        age            1,188         0   40.181   11.085   22.000   60.000
+  no         distance       1,212         0   12.318    5.965    0.500   32.000
+  yes        distance       1,188         0   11.482    5.910    0.500   31.200
+reg · productivity ~ age + training · fe: site
+N = 2,400 (no singletons)
+fixed effects: site (12)
+standard errors: robust (HC1)
+
+  term       estimate   std.error   t value   p value   95% CI
+  age          0.0042      0.0093      0.45     0.650   [-0.0140, 0.0224]
+  training     5.9339      0.2082     28.50    <0.001   [5.5256, 6.3422]
+
+R² within 0.256 · R² overall 0.407
+first stage · training ~ age + offer · fe: site
+
+  term    estimate   std.error   t value   p value   95% CI
+  age      -0.0040      0.0008     -5.04    <0.001   [-0.0055, -0.0024]
+  offer     0.4834      0.0177     27.35    <0.001   [0.4487, 0.5181]
+
+F of the excluded instruments 747.81 on 1 and 2,386 degrees of freedom (robust)
+
+ivreg · productivity ~ age + training · fe: site
+N = 2,400 (no singletons)
+fixed effects: site (12)
+standard errors: robust (HC1)
+
+  term       estimate   std.error   t value   p value   95% CI
+  age         -0.0004      0.0095     -0.04     0.966   [-0.0190, 0.0182]
+  training     4.6031      0.4279     10.76    <0.001   [3.7641, 5.4421]
+
+instrumented: training · instruments: offer
+Kleibergen–Paap F 747.81 · effective F 747.81 (critical value 23.11)
+effect of the course: 4.6031
+3.89905
+5.30716
+first stage · training ~ age + offer · fe: site
+
+  term    estimate   std.error   t value   p value   95% CI
+  age      -0.0040      0.0008     -5.04    <0.001   [-0.0055, -0.0024]
+  offer     0.4834      0.0177     27.35    <0.001   [0.4487, 0.5181]
+
+partial R² 0.2396
+F of the excluded instruments 747.81 on 1 and 2,386 degrees of freedom (robust)
+
+standard errors: robust (HC1)
+weak instruments: Kleibergen–Paap F 747.81 · effective F 747.81 (critical value 23.11)
+over-identification: exactly identified, no over-identification test
+endogeneity: Durbin–Wu–Hausman F(1, 2,385) = 12.95   p < 0.001 (robust)
+first stage · training ~ age + offer + distance · fe: site
+
+  term       estimate   std.error   t value   p value   95% CI
+  age         -0.0039      0.0008     -4.87    <0.001   [-0.0054, -0.0023]
+  offer        0.4841      0.0176     27.50    <0.001   [0.4496, 0.5187]
+  distance    -0.0059      0.0015     -3.95    <0.001   [-0.0088, -0.0029]
+
+partial R² 0.2446
+F of the excluded instruments 396.58 on 2 and 2,385 degrees of freedom (robust)
+
+standard errors: robust (HC1)
+weak instruments: Kleibergen–Paap F 396.58 · effective F 383.11 (critical value 19.66)
+over-identification: Hansen's J, chi2(1) = 0.13   p = 0.723 (robust)
+endogeneity: Durbin–Wu–Hausman F(1, 2,385) = 13.74   p < 0.001 (robust)
+ivreg · productivity ~ age + training
+N = 300
+standard errors: classical
+
+  term          estimate   std.error   t value   p value   95% CI
+  (intercept)    96.3896    117.7763      0.82     0.414   [-135.3923, 328.1715]
+  age            -0.3668      0.9453     -0.39     0.698   [-2.2272, 1.4935]
+  training      -54.9310    154.5610     -0.36     0.723   [-359.1045, 249.2426]
+
+instrumented: training · instruments: distance
+Cragg–Donald F 0.16
+ar_test · weak · training
+  H0: the coefficient of training is zero          β = 0
+  H1: the coefficient of training is not zero      β ≠ 0
+F(1, 297) = 2.80   p = 0.095
+decision at α = 0.05: fail to reject H0 (p = 0.095)
+95% confidence set for the coefficient of training: every value up to 3.5345 and every value from 14.3298 on; the instruments are too weak to bound it on both sides
+Anderson–Rubin test on the instrument distance; valid however weak the instruments
+ar_test · iv · training
+  H0: the coefficient of training is zero          β = 0
+  H1: the coefficient of training is not zero      β ≠ 0
+F(1, 2,386) = 90.78   p < 0.001
+decision at α = 0.05: reject H0 (p < 0.001)
+95% confidence set for the coefficient of training: from 3.7526 to 5.4351
+Anderson–Rubin test on the instrument offer, with robust errors; valid however weak the instruments
+frame · 2 rows × 9 variables
+
+      term           estimate    std_error    statistic     df   df2       p_value     ci_lower    ci_upper
+  1   age        -0.000406166   0.00949727   -0.0427666   2386    NA      0.965891   -0.0190299   0.0182176
+  2   training         4.6031     0.429131      10.7266   2386    NA   2.99851e-26      3.76159     5.44461
+Table 1. Productivity and the training course
+
+                        (1)         (2)               (3)
+  Age in years       0.004       0.000             0.000
+                    (0.009)     (0.009)           (0.009)
+  Took the course    5.934***    4.603***          4.582***
+                    (0.208)     (0.428)           (0.423)
+  ─────────────────────────────────────────────────────────
+  Fixed effects          site        site              site
+  Instruments                       offer   offer, distance
+  SEs                  robust      robust            robust
+  N                     2,400       2,400             2,400
+
+* p < 0.05, ** p < 0.01, *** p < 0.001

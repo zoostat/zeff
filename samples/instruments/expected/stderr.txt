@@ -1,0 +1,2 @@
+warning[W1007]: weak instruments: the Cragg–Donald F is 0.16, under 10 (line 49)
+  = help: with weak instruments the estimate leans towards the least-squares one and its confidence interval is too narrow; `ar_test()` gives a test and a confidence set that hold however weak the instruments are

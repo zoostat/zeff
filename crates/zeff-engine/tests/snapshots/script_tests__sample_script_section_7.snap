@@ -1,0 +1,44 @@
+---
+source: crates/zeff-engine/tests/script_tests.rs
+expression: "format!(\"{}{}---- output/table_iv.tex\\n{}\", outcome.output.stdout,\noutcome.output.stderr, String::from_utf8(table).unwrap())"
+---
+first stage · educ ~ exper + exper^2 + black + nearc4 · fe: region
+
+  term      estimate   std.error   t value   p value   95% CI
+  exper      -0.4123      0.0319    -12.94    <0.001   [-0.4748, -0.3498]
+  exper^2     0.0006      0.0017      0.37     0.715   [-0.0027, 0.0039]
+  black      -0.9172      0.0928     -9.89    <0.001   [-1.0991, -0.7354]
+  nearc4      0.4511      0.0782      5.77    <0.001   [0.2978, 0.6044]
+
+partial R² 0.0104
+F of the excluded instruments 33.30 on 1 and 2,997 degrees of freedom (robust)
+
+standard errors: robust (HC1)
+weak instruments: Kleibergen–Paap F 33.30 · effective F 33.30 (critical value 23.11)
+over-identification: exactly identified, no over-identification test
+endogeneity: Durbin–Wu–Hausman F(1, 2,996) = 18.79   p < 0.001 (robust)
+note: data/card.csv read as CSV: 3,010 rows × 35 variables, types guessed; CSV carries no labels, value labels or categories (line 3)
+---- output/table_iv.tex
+% requires \usepackage{booktabs}
+% 
+\begin{tabular}{lrr}
+\toprule
+ & (1)   & (2)   \\
+\midrule
+exper & 0.088*** & 0.148*** \\
+ & (0.007)   & (0.019)   \\
+exper\textasciicircum{}2 & -0.002*** & -0.003*** \\
+ & (0.000)   & (0.000)   \\
+black & -0.183*** & -0.052    \\
+ & (0.019)   & (0.043)   \\
+educ & 0.079*** & 0.225*** \\
+ & (0.004)   & (0.043)   \\
+\midrule
+Fixed effects & region & region \\
+Instruments &  & nearc4 \\
+SEs & robust & robust \\
+N & 3,010 & 3,010 \\
+R\textsuperscript{2} & 0.200 (within) &  \\
+\bottomrule
+\multicolumn{3}{@{}l@{}}{\footnotesize * p $<$ 0.05, ** p $<$ 0.01, *** p $<$ 0.001} \\
+\end{tabular}

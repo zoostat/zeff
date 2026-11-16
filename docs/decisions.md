@@ -5899,3 +5899,17 @@ Done before parts 1 and 2 are read, because those wait for jobs that run for hou
 **Held by.** `fixed_effects.rs`: `leverage_under_one_effect_agrees_with_the_indicators_written_out`, the property `one_effect_by_fe_has_the_leverages_of_its_indicators` (twelve uneven panels, weighted and not, the leverages summing to the parameters), and the edge-case snapshot with the three forms working under one effect and refused under two. `iv.rs`: `hc2_and_hc3_under_one_effect_agree_with_the_indicators_written_out`. `ivreg.rs`: the snapshot's two cases.
 
 **Reason.** The ruling on leverage in the release's checklist; the promise the messages of Z0410 and Z0304 made at 0.6.0.
+
+## 16 November 2026: the sample `instruments` and section 7 of the specification's script (release 0.8.0, step 18)
+
+**Choice.** A ninth sample project, `samples/instruments`, on the shipped `staff` (the checklist calls it the eighth; `first_engine` was not counted there). Eight sections tell the release's story in the order a reader meets it: the data; the regression that misleads (5.93 where the truth is 4.5, the able having taken the course more often); the offer as an instrument with the first stage printed (4.60); `first_stage()` read on its own; two instruments and Hansen's J; a weak instrument on three hundred rows with its warning W1007 and the Anderson–Rubin set, beside the set of the strong instrument; HC3 errors under the absorbed site, which step 17 opened; and the table of the three fits printed and exported to LaTeX. It needs no data file of its own and no module.
+
+**Where it is held.** The command-line test runs it in its folder and compares both stored files byte for byte; the conformance suite compiles it in and adds four cases to the report (`instruments/stdout`, `stderr`, `exit_code`, `output/table_iv.tex`), which the identity job compares on the four targets and `zeff selftest` counts: 525 cases where there were 521. The formatting, language and editor tests list it; the formatter moved one chained call to a line of its own before the script was stored.
+
+**Section 7 of the specification's script.** `the_instrumental_variables_of_the_sample_script` in `script_tests.rs` cuts the section out of `docs/spec/zeff_samples.zeff` as the file stands, between its heading and the next, runs it on Card's data as `data/card.csv`, and stores what it prints with the exported `output/table_iv.tex`. It refuses to pass if the section loses any of its five calls. The figures are those of the case `script` of `iv.json`, fixest's.
+
+**The catalogue.** The ten rows of release 0.8.0 already read `implemented`, each set in its function's step; nothing to change.
+
+**Seen and left.** A table exported without a title writes an empty comment line (`% `) as its second line, the LaTeX writer's form since 0.4.0. Harmless in a document; noted for the page revision rather than changed here, since every stored `.tex` would move.
+
+**Reason.** The checklist's step 18; the testing handbook's script tests (section 1).

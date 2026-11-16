@@ -368,9 +368,23 @@ pub const TESTS: Sample = Sample {
     stderr: include_str!("../../../samples/tests/expected/stderr.txt"),
 };
 
+/// The sample of instrumental variables of release 0.8.0 (step 18), on the shipped `staff`: the
+/// regression that misleads, the offer as an instrument with its first stage, two instruments
+/// and the test of the over-identifying restrictions, a weak instrument with the
+/// Anderson–Rubin set, HC3 errors under one absorbed effect, and the table exported to LaTeX.
+pub const INSTRUMENTS: Sample = Sample {
+    name: "instruments",
+    manifest: include_str!("../../../samples/instruments/zeff.toml"),
+    data: &[],
+    modules: &[],
+    script: include_str!("../../../samples/instruments/scripts/main.zeff"),
+    stdout: include_str!("../../../samples/instruments/expected/stdout.txt"),
+    stderr: include_str!("../../../samples/instruments/expected/stderr.txt"),
+};
+
 /// Every sample project, oldest first; each adds three cases to the report, and one more for
 /// every file it writes under `output/`.
-pub const SAMPLES: [&Sample; 8] = [
+pub const SAMPLES: [&Sample; 9] = [
     &FIRST_ENGINE,
     &DATA_CLEANING,
     &SIMULATION,
@@ -379,6 +393,7 @@ pub const SAMPLES: [&Sample; 8] = [
     &PANEL,
     &PLOTS,
     &TESTS,
+    &INSTRUMENTS,
 ];
 
 /// Run a sample project on an in-memory copy of its files.
