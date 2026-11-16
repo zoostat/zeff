@@ -1192,5 +1192,154 @@
    "weights": "weight",
    "weight_type": "analytic"
   }
+ },
+ "weak": {
+  "card_over": {
+   "data": "card",
+   "formula": "lwage ~ exper + expersq + black + south + smsa + educ",
+   "endogenous": "educ",
+   "instruments": "nearc4 + nearc2",
+   "df1": 2,
+   "df2": "3002",
+   "f": [
+    "9.4526885270767913"
+   ],
+   "cragg_donald": "9.4526885270767913",
+   "wald_hc1": [
+    "9.7167707520558633"
+   ],
+   "wald_cluster": {
+    "age": [
+     "13.137481341469678"
+    ]
+   }
+  },
+  "card_just": {
+   "data": "card",
+   "formula": "lwage ~ exper + expersq + black + south + smsa + educ",
+   "endogenous": "educ",
+   "instruments": "nearc4",
+   "df1": 1,
+   "df2": "3003",
+   "f": [
+    "16.717591436451606"
+   ],
+   "cragg_donald": "16.717591436451606",
+   "wald_hc1": [
+    "17.513316096885866"
+   ],
+   "wald_cluster": {
+    "age": [
+     "20.426549538147732"
+    ]
+   }
+  },
+  "card_two_endogenous": {
+   "data": "card",
+   "formula": "lwage ~ black + south + smsa + educ + KWW",
+   "endogenous": "educ + KWW",
+   "instruments": "nearc4 + nearc2 + fatheduc + motheduc",
+   "df1": 4,
+   "df2": "2183",
+   "f": [
+    "149.11582701870691",
+    "39.69242514067853"
+   ],
+   "cragg_donald": "0.12006284234986564",
+   "wald_hc1": [
+    "121.47085578497941",
+    "35.824678255473863"
+   ],
+   "wald_cluster": {
+    "age": [
+     "110.88921730625833",
+     "34.024362887921455"
+    ]
+   }
+  },
+  "card_analytic": {
+   "data": "card",
+   "formula": "lwage ~ exper + expersq + black + south + smsa + educ",
+   "endogenous": "educ",
+   "instruments": "nearc4 + nearc2",
+   "df1": 2,
+   "df2": "3002",
+   "f": [
+    "11.044196096283226"
+   ],
+   "cragg_donald": "11.044196096283223",
+   "wald_hc1": [
+    "8.9424266322389414"
+   ],
+   "wald_cluster": {
+    "age": [
+     "10.357288885178601"
+    ]
+   },
+   "weights": "weight",
+   "weight_type": "analytic"
+  },
+  "card_frequency": {
+   "data": "card",
+   "formula": "lwage ~ exper + expersq + black + south + smsa + educ",
+   "endogenous": "educ",
+   "instruments": "nearc4 + nearc2",
+   "df1": 2,
+   "df2": "23200",
+   "f": [
+    "78.268488865339052"
+   ],
+   "cragg_donald": "78.268488865339052",
+   "wald_hc1": [
+    "82.31362153008466"
+   ],
+   "wald_cluster": [],
+   "weights": "fatheduc",
+   "weight_type": "frequency"
+  },
+  "card_fe": {
+   "data": "card",
+   "formula": "lwage ~ exper + expersq + black + smsa + educ",
+   "endogenous": "educ",
+   "instruments": "nearc4 + nearc2",
+   "df1": 2,
+   "df2": "2995",
+   "f": [
+    "8.7966245489035249"
+   ],
+   "cragg_donald": "8.7966245489035231",
+   "wald_hc1": [
+    "9.1426026218327454"
+   ],
+   "wald_cluster": {
+    "age": [
+     "13.126866876767835"
+    ],
+    "region": [
+     "12.287245027321447"
+    ]
+   },
+   "fe": "region"
+  },
+  "wage2_siblings": {
+   "data": "wage2",
+   "formula": "lwage ~ exper + tenure + educ",
+   "endogenous": "educ",
+   "instruments": "sibs + brthord",
+   "df1": 2,
+   "df2": "847",
+   "f": [
+    "23.322241691195238"
+   ],
+   "cragg_donald": "23.322241691195245",
+   "wald_hc1": [
+    "28.99278323240334"
+   ],
+   "wald_cluster": {
+    "age": [
+     "16.285032346249661"
+    ]
+   }
+  }
  }
 }

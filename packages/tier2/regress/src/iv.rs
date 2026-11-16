@@ -16,10 +16,14 @@ use crate::reg::{
     absorbed_parameters, effect_specs, formula_variables, project, refuse_all_absorbed,
 };
 use std::collections::{BTreeMap, BTreeSet};
+use std::rc::Rc;
 use zeff_core::runtime::{CallContext, Fail, fail};
 use zeff_core::value::{Formula, Frame, Term, TermKind, terms_text};
 use zeff_diagnostics::Diagnostic;
+use zeff_kernels::cholesky::{cholesky, solve_with_factor};
 use zeff_kernels::demean::Options;
+use zeff_kernels::eigen::symmetric_eigen;
+use zeff_kernels::product::matmul;
 use zeff_kernels::qr::{TallSkinnyQr, pivoted_qr};
 use zeff_kernels::svd::condition_number;
 use zeff_kernels::triangular::solve_upper;
@@ -708,6 +712,261 @@ impl TwoStage {
         )
     }
 }
+
+/// One first stage as a model of its own: an instrumented regressor on the instruments kept.
+pub struct StageFit {
+    /// The instruments kept for columns, in the order of the first stage's `kept`, and the
+    /// instrumented regressor for outcome, on the rows and with the weights of the fit.
+    pub design: Design,
+    pub fitted: Fitted,
+}
+
+/// How strong the instruments are (release 0.8.0, step 12b; the ruling of the release on the
+/// weak-instrument statistics): the F of the excluded instruments in each first stage, and the
+/// Cragg–Donald F of them all together. A statistic that cannot be computed is `None`: a
+/// first stage without residual degrees of freedom, a variance of the instruments'
+/// coefficients that cannot be inverted (fewer clusters than instruments), first-stage
+/// residuals that are collinear.
+#[derive(Debug, Clone, PartialEq)]
+pub struct Weak {
+    /// The excluded instruments kept: the numerator's degrees of freedom.
+    pub df1: usize,
+    /// N less the instruments kept and the parameters of the absorbed effects: the classical
+    /// denominator's degrees of freedom.
+    pub df2: f64,
+    /// For each instrumented regressor, the F of the excluded instruments in its first stage
+    /// under classical errors.
+    pub f: Vec<Option<f64>>,
+    /// The same as a Wald statistic over `df1` on the variance asked for: robust, clustered,
+    /// or classical, where it is `f`.
+    pub wald: Vec<Option<f64>>,
+    /// The Cragg–Donald F in Stock and Yogo's form: the smallest eigenvalue of the
+    /// concentration matrix over `df1`; with one instrumented regressor it is `f`.
+    pub cragg_donald: Option<f64>,
+}
+
+/// vᵀ M⁻¹ v for a symmetric positive-definite M, each row and column first scaled by its
+/// diagonal entry so that variables in very different units do not meet in one factorisation;
+/// `None` when M is not positive definite to the factorisation.
+fn quadratic_form(m: &Matrix, v: &[f64]) -> Option<f64> {
+    let k = v.len();
+    let scale: Vec<f64> = (0..k).map(|i| m.get(i, i)).collect();
+    if scale.iter().any(|d| !(*d > 0.0 && d.is_finite())) {
+        return None;
+    }
+    let scale: Vec<f64> = scale.iter().map(|d| 1.0 / d.sqrt()).collect();
+    let scaled = Matrix::from_fn(k, k, |i, j| m.get(i, j) * scale[i] * scale[j]);
+    let u: Vec<f64> = v.iter().zip(&scale).map(|(x, s)| x * s).collect();
+    let factor = cholesky(&scaled).ok()?;
+    let solved = solve_with_factor(&factor, &u).ok()?;
+    let value = dot(&u, &solved);
+    value.is_finite().then_some(value)
+}
+
+/// The block of `m` on the rows and columns `at`.
+fn block(m: &Matrix, at: &[usize]) -> Matrix {
+    Matrix::from_fn(at.len(), at.len(), |i, j| m.get(at[i], at[j]))
+}
+
+impl TwoStage {
+    /// The first stages as models of their own, one per instrumented regressor in the order of
+    /// the designs' `endogenous`: least squares of the regressor on the instruments kept.
+    pub fn first_stages(&self, ctx: &mut CallContext<'_>) -> Result<Vec<StageFit>, Fail> {
+        let Some(first) = &self.first else {
+            return Ok(Vec::new());
+        };
+        let designs = &self.designs;
+        let names: Vec<String> = first
+            .kept
+            .iter()
+            .map(|&i| designs.name(designs.instruments[i]).to_string())
+            .collect();
+        let columns: Vec<Rc<Vec<f64>>> = first
+            .kept
+            .iter()
+            .map(|&i| Rc::new(designs.values(designs.instruments[i])))
+            .collect();
+        let leverage = designs.structural.leverage_available();
+        let mut stages = Vec::with_capacity(designs.endogenous.len());
+        for &c in &designs.endogenous {
+            let design = designs.structural.with_model(
+                names.clone(),
+                columns.clone(),
+                Rc::new(designs.structural.column_values(c)),
+                &designs.structural.names[c],
+                leverage,
+            );
+            let fitted = Ols.fit(ctx, &design)?;
+            stages.push(StageFit { design, fitted });
+        }
+        Ok(stages)
+    }
+
+    /// The weak-instrument statistics, with the Wald form on the variance of `kind` (with
+    /// `clusters` when clustered) and the degrees of freedom of the fit; `projection` when the
+    /// model has fixed effects.
+    pub fn weak(
+        &self,
+        ctx: &mut CallContext<'_>,
+        kind: Kind,
+        clusters: Option<&Clusters>,
+        projection: Option<&Projection>,
+    ) -> Result<Weak, Fail> {
+        let designs = &self.designs;
+        let p = designs.endogenous.len();
+        let Some(first) = &self.first else {
+            return Ok(Weak {
+                df1: 0,
+                df2: f64::NAN,
+                f: Vec::new(),
+                wald: Vec::new(),
+                cragg_donald: None,
+            });
+        };
+        // The excluded instruments among the kept ones, by their position there.
+        let excluded: Vec<usize> = (0..first.kept.len())
+            .filter(|&e| matches!(designs.instruments[first.kept[e]], Column::Excluded(_)))
+            .collect();
+        let m = excluded.len();
+        let plain = projection.map_or(0, |p| p.parameters(None));
+        let n = match designs.structural.weight_kind {
+            Some(WeightKind::Frequency) => designs.structural.weight_total(),
+            _ => designs.structural.n() as f64,
+        };
+        let df2 = n - (first.kept.len() + plain) as f64;
+        let unavailable = Weak {
+            df1: m,
+            df2,
+            f: vec![None; p],
+            wald: vec![None; p],
+            cragg_donald: None,
+        };
+        if m == 0 || df2 <= 0.0 {
+            return Ok(unavailable);
+        }
+        // A first stage that least squares refuses (no residual degrees of freedom) has no
+        // statistic; an internal error is still one.
+        let said = ctx.messages.len();
+        let stages = match self.first_stages(ctx) {
+            Ok(stages) => stages,
+            Err(e) if e.code == "Z9001" => return Err(e),
+            Err(_) => {
+                ctx.messages.truncate(said);
+                return Ok(unavailable);
+            }
+        };
+        let mut f = Vec::with_capacity(p);
+        let mut wald = Vec::with_capacity(p);
+        // The coefficients of each first stage on the excluded instruments.
+        let mut on_excluded: Vec<Vec<f64>> = Vec::with_capacity(p);
+        for stage in &stages {
+            let fitted = &stage.fitted;
+            if fitted.kept.len() != first.kept.len() {
+                return Err(internal(
+                    ctx,
+                    "a first stage kept other instruments than the first stages together",
+                ));
+            }
+            let pi: Vec<f64> = excluded.iter().map(|&e| fitted.estimates[e]).collect();
+            let bread = Ols.bread(fitted);
+            let of = |kind: Kind,
+                      clusters: Option<&Clusters>,
+                      absorbed: usize|
+             -> Result<Option<f64>, VarianceError> {
+                match variance::variance(
+                    kind,
+                    &Ols,
+                    &stage.design,
+                    fitted,
+                    &bread,
+                    clusters,
+                    absorbed,
+                ) {
+                    Ok((v, _)) => {
+                        Ok(quadratic_form(&block(&v, &excluded), &pi).map(|w| w / m as f64))
+                    }
+                    Err(VarianceError::Asymmetric) => Err(VarianceError::Asymmetric),
+                    Err(_) => Ok(None),
+                }
+            };
+            let classical = of(Kind::Classical, None, plain)
+                .map_err(|_| internal(ctx, "an asymmetric first-stage variance"))?;
+            let asked = if kind == Kind::Classical {
+                classical
+            } else {
+                let absorbed = projection.map_or(0, |p| p.parameters(clusters));
+                of(kind, clusters, absorbed)
+                    .map_err(|_| internal(ctx, "an asymmetric first-stage variance"))?
+            };
+            f.push(classical);
+            wald.push(asked);
+            on_excluded.push(pi);
+        }
+        // The Cragg–Donald F: the smallest eigenvalue of Σ^(-1/2) Πᵀ(Z₂ᵀM Z₂)Π Σ^(-1/2) over m,
+        // where Z₂ᵀM Z₂, the excluded instruments with the others projected out, is the inverse
+        // of their block of the bread, and Σ is the covariance of the first-stage residuals
+        // with df2 for divisor. Each regressor is scaled by its residual variance first, which
+        // changes no eigenvalue of the pair.
+        let cragg_donald = (|| {
+            let bread = block(&Ols.bread(&stages[0].fitted), &excluded);
+            let scale: Vec<f64> = (0..m).map(|i| bread.get(i, i)).collect();
+            if scale.iter().any(|d| !(*d > 0.0 && d.is_finite())) {
+                return None;
+            }
+            let scale: Vec<f64> = scale.iter().map(|d| 1.0 / d.sqrt()).collect();
+            let scaled = Matrix::from_fn(m, m, |i, j| bread.get(i, j) * scale[i] * scale[j]);
+            let factor = cholesky(&scaled).ok()?;
+            let u: Vec<Vec<f64>> = on_excluded
+                .iter()
+                .map(|pi| pi.iter().zip(&scale).map(|(x, s)| x * s).collect())
+                .collect();
+            let solved: Vec<Vec<f64>> = u
+                .iter()
+                .map(|u| solve_with_factor(&factor, u).ok())
+                .collect::<Option<_>>()?;
+            let sigma = Matrix::from_fn(p, p, |j, k| {
+                dot(&stages[j].fitted.residuals, &stages[k].fitted.residuals) / df2
+            });
+            let own: Vec<f64> = (0..p).map(|j| sigma.get(j, j)).collect();
+            if own.iter().any(|d| !(*d > 0.0 && d.is_finite())) {
+                return None;
+            }
+            let own: Vec<f64> = own.iter().map(|d| 1.0 / d.sqrt()).collect();
+            let sigma = Matrix::from_fn(p, p, |j, k| sigma.get(j, k) * own[j] * own[k]);
+            let moved = Matrix::from_fn(p, p, |j, k| dot(&u[j], &solved[k]) * own[j] * own[k]);
+            let spectrum = symmetric_eigen(&sigma);
+            let (smallest, largest) = (spectrum.values[0], spectrum.values[p - 1]);
+            // Residuals that are collinear have no covariance to invert.
+            if smallest.is_nan() || smallest <= COLLINEAR_RESIDUALS * largest {
+                return None;
+            }
+            // Σ^(-1/2) = U diag(λ^(-1/2)) Uᵀ.
+            let root = Matrix::from_fn(p, p, |j, k| {
+                (0..p)
+                    .map(|l| {
+                        spectrum.vectors.get(j, l) * spectrum.vectors.get(k, l)
+                            / spectrum.values[l].sqrt()
+                    })
+                    .sum()
+            });
+            let concentration = matmul(&matmul(&root, &moved), &root);
+            let value = symmetric_eigen(&concentration).values[0] / m as f64;
+            value.is_finite().then_some(value)
+        })();
+        Ok(Weak {
+            df1: m,
+            df2,
+            f,
+            wald,
+            cragg_donald,
+        })
+    }
+}
+
+/// First-stage residuals whose scaled covariance has an eigenvalue below this share of its
+/// largest are collinear: the instrumented regressors differ by a combination of the
+/// instruments, and the statistics that invert the covariance are not computed.
+const COLLINEAR_RESIDUALS: f64 = 1e-10;
 
 /// The columns of the structural design that least squares on it would drop: the regressors
 /// collinear among themselves as observed.

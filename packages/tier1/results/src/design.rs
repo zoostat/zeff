@@ -908,6 +908,47 @@ impl Design {
         }
     }
 
+    /// A design on this design's rows and weights with other columns and another outcome: the
+    /// names of the columns, one vector of values per name and the outcome's values, each for
+    /// the rows used and unweighted, and the outcome as a message names it. It is how a first
+    /// stage is a model of its own (release 0.8.0, step 12b): the instruments for columns, an
+    /// instrumented regressor for outcome. The vectors are shared, not copied, so that several
+    /// first stages hold the instruments once. `own_leverage` as for [`Design::with_columns`].
+    pub fn with_model(
+        &self,
+        names: Vec<String>,
+        columns: Vec<Rc<Vec<f64>>>,
+        outcome: Rc<Vec<f64>>,
+        outcome_text: &str,
+        own_leverage: bool,
+    ) -> Design {
+        assert_eq!(columns.len(), names.len(), "one column for each name");
+        Design {
+            names,
+            rows: self.rows.clone(),
+            dropped: self.dropped,
+            dropped_in: self.dropped_in.clone(),
+            notes: Vec::new(),
+            intercept: false,
+            weights: self.weights.clone(),
+            weight_kind: self.weight_kind,
+            zero_weights: self.zero_weights,
+            unseen: Vec::new(),
+            columns: Vec::new(),
+            sources: Vec::new(),
+            keys: Vec::new(),
+            terms: Vec::new(),
+            term_columns: Vec::new(),
+            // The outcome is held as values; the index stands for "there is one".
+            outcome: Some(0),
+            outcome_text: Some(outcome_text.to_string()),
+            block_rows: self.block_rows,
+            dense: Some(Dense { columns, outcome }),
+            original_outcome: None,
+            own_leverage,
+        }
+    }
+
     /// The values of column `column`, one for each row used, in the order of `rows`,
     /// unweighted: the column as the model has it, and after the fixed effects have been
     /// projected out the column less its part along them (`fit.design()`, open decision #71).

@@ -107,3 +107,13 @@ The merges decided during 0.7.0, each old name refused with its rewrite: step 8g
 **Next.** Step 12b `[engine]`: the first-stage F and the Cragg–Donald F.
 
 **For the owner to decide.** Open decisions #149 and #150; nothing blocks.
+
+## 16 November 2026, release 0.8.0, step 12b (the first-stage F and the Cragg–Donald F)
+
+**Done.** Step 12b `[engine]`: for each instrumented regressor the F of its excluded instruments, classical and on the robust or clustered variance of the fit, and the Cragg–Donald F of them all together. On Card's data with both proximity indicators the first-stage F is 9.45 (robust 9.72), fixest's figures; with schooling and the test score both instrumented each first stage is strong (149 and 40) and the Cragg–Donald F is 0.12, which is what the statistic is for. Seven cases agree with R within 1e-7. The Cragg–Donald F is Stock and Yogo's, the one Stata prints; fixest's own divides by other degrees of freedom and is held after conversion. Nothing a script can call changed.
+
+**Green.** Format, clippy with warnings denied, the tier, message and grammar checks, every test of the workspace; CI read after the push.
+
+**Next.** Step 12c `[engine]`: the Kleibergen–Paap rk Wald F, the effective F and the weak-instrument warning.
+
+**For the owner to decide.** Open decisions #149 and #150; nothing blocks.

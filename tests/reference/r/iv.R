@@ -339,8 +339,165 @@ fe_case("weighted", card, "lwage ~ exper + expersq + black + smsa + educ", "educ
         c("exper", "expersq", "black", "smsa", "educ"), c("exper", "expersq", "black", "smsa", "fit_educ"),
         clusters = "age", weights = "weight", weight_type = "analytic")
 
+# The weak-instrument statistics (release 0.8.0, steps 12b and 12c), written out in base R from
+# the instrumented regressors and the excluded instruments with the exogenous regressors (and
+# the fixed effects) partialled out of both, weighted as the fit is. With Xp the n x p matrix of
+# instrumented regressors, Zp the n x m matrix of excluded instruments, Pi the first-stage
+# coefficients on Zp, V the first-stage residuals, L the number of instruments in all and
+# df = N - L - (the parameters of the absorbed effects):
+#   the first-stage F of a regressor is pi' Zp'Zp pi / m over its residual variance, V'V / df;
+#   the Wald form is pi' Var(pi)^-1 pi / m on the robust or clustered variance of the fit;
+#   the Cragg-Donald F is the smallest eigenvalue of Svv^-1/2 Pi' Zp'Zp Pi Svv^-1/2 over m, with
+#   Svv = V'V / df (Stock and Yogo's form: with one instrumented regressor it is its F).
+# fixest's `ivf` and `ivwald` are held to the first two; its `cd` divides by N - p - m - 1 in the
+# place of N - L, and is held after that conversion.
+partial_out <- function(v, A, w) v - A %*% solve(crossprod(A * w, A), crossprod(A * w, v))
+inverse_root <- function(S) {
+  e <- eigen(S, symmetric = TRUE)
+  e$vectors %*% diag(1 / sqrt(e$values), nrow(S)) %*% t(e$vectors)
+}
+weak <- function(X, Z2, W, w = NULL, weight_type = NULL, fe = NULL, absorbed = 0, clusters = list()) {
+  rows_n <- nrow(X)
+  ww <- if (is.null(w)) rep(1, rows_n) else w
+  if (identical(weight_type, "analytic") || identical(weight_type, "sampling")) ww <- ww * rows_n / sum(ww)
+  N <- if (identical(weight_type, "frequency")) sum(ww) else rows_n
+  if (!is.null(fe)) {
+    centre <- function(v) v - ave(v * ww, fe, FUN = sum) / ave(ww, fe, FUN = sum)
+    X <- apply(X, 2, centre); Z2 <- apply(Z2, 2, centre)
+    if (!is.null(W)) W <- apply(W, 2, centre)
+  }
+  if (!is.null(W)) {
+    X <- apply(X, 2, partial_out, A = W, w = ww); Z2 <- apply(Z2, 2, partial_out, A = W, w = ww)
+  }
+  sw <- sqrt(ww)
+  Xp <- X * sw; Zp <- Z2 * sw
+  p <- ncol(Xp); m <- ncol(Zp)
+  L <- m + if (is.null(W)) 0 else ncol(W)
+  df <- N - L - absorbed
+  ZZ <- crossprod(Zp); A <- solve(ZZ)
+  Pi <- A %*% crossprod(Zp, Xp)
+  V <- Xp - Zp %*% Pi
+  out <- list(n = N, instruments = L, excluded = m, df = df)
+  out$f <- sapply(seq_len(p), function(j) drop(t(Pi[, j]) %*% ZZ %*% Pi[, j]) / m / (sum(V[, j]^2) / df))
+  Svv <- crossprod(V) / df
+  root <- inverse_root(Svv)
+  out$cd <- min(eigen(root %*% (t(Pi) %*% ZZ %*% Pi) %*% root, symmetric = TRUE)$values) / m
+  # The variance of the first-stage coefficients, stacked regressor by regressor: the scores of
+  # a row are its instruments times its residual, once per frequency weight.
+  S <- do.call(cbind, lapply(seq_len(p), function(j) Zp * V[, j]))
+  bread <- kronecker(diag(p), A)
+  copies <- if (identical(weight_type, "frequency")) ww else rep(1, rows_n)
+  variances <- list(hc1 = bread %*% crossprod(S / copies, S) %*% bread * N / df)
+  for (name in names(clusters)) {
+    Sc <- rowsum(S, clusters[[name]]); G <- nrow(Sc)
+    nested <- attr(clusters[[name]], "absorbed")
+    dfc <- if (is.null(nested)) df else N - L - nested
+    variances[[name]] <- bread %*% crossprod(Sc) %*% bread * G / (G - 1) * (N - 1) / dfc
+  }
+  out$wald <- lapply(variances, function(Vpi) sapply(seq_len(p), function(j) {
+    idx <- (j - 1) * m + seq_len(m)
+    drop(t(Pi[, j]) %*% solve(Vpi[idx, idx]) %*% Pi[, j]) / m
+  }))
+  out
+}
+weak_cases <- list()
+weak_case <- function(name, data_name, formula, endogenous, instruments, stats, fe = NULL, weights = NULL,
+                      weight_type = NULL, clusters = character(0)) {
+  out <- list(data = data_name, formula = formula, endogenous = endogenous, instruments = instruments,
+              df1 = as.integer(stats$excluded), df2 = num17(stats$df),
+              f = as.list(num17(stats$f)), cragg_donald = num17(stats$cd),
+              wald_hc1 = as.list(num17(stats$wald$hc1)), wald_cluster = list())
+  for (cluster in clusters) out$wald_cluster[[cluster]] <- as.list(num17(stats$wald[[cluster]]))
+  if (!is.null(fe)) out$fe <- fe
+  if (!is.null(weights)) { out$weights <- weights; out$weight_type <- weight_type }
+  weak_cases[[name]] <<- out
+}
+of_stat <- function(fit, type, vcov = NULL) {
+  stats <- if (is.null(vcov)) fitstat(fit, type) else fitstat(fit, type, vcov = vcov)
+  unname(sapply(stats, function(s) if (is.list(s)) s$stat else s))
+}
+ones <- function(data) cbind("(intercept)" = rep(1, nrow(data)))
+columns <- function(data, names) as.matrix(data[, names, drop = FALSE])
+
+# Card's data, schooling instrumented by the two proximity indicators.
+d <- card
+exog <- c("exper", "expersq", "black", "south", "smsa")
+s <- weak(columns(d, "educ"), columns(d, c("nearc4", "nearc2")), cbind(ones(d), columns(d, exog)),
+          clusters = list(age = d$age))
+f <- feols(lwage ~ exper + expersq + black + south + smsa | educ ~ nearc4 + nearc2, d)
+agree(s$f, of_stat(f, ~ivf))
+agree(s$cd, s$f)
+agree(s$cd, of_stat(f, ~cd) * (s$n - s$instruments) / (s$n - 1 - 2 - 1))
+agree(s$wald$hc1, of_stat(f, ~ivwald, "hetero"))
+agree(s$wald$age, of_stat(f, ~ivwald, ~age))
+weak_case("card_over", "card", card_text, "educ", "nearc4 + nearc2", s, clusters = "age")
+# One instrument.
+s <- weak(columns(d, "educ"), columns(d, "nearc4"), cbind(ones(d), columns(d, exog)), clusters = list(age = d$age))
+f <- feols(lwage ~ exper + expersq + black + south + smsa | educ ~ nearc4, d)
+agree(s$f, of_stat(f, ~ivf))
+agree(s$wald$hc1, of_stat(f, ~ivwald, "hetero"))
+weak_case("card_just", "card", card_text, "educ", "nearc4", s, clusters = "age")
+# Two instrumented regressors, schooling and the test score, by four instruments, on the rows
+# where the parents' schooling and the score are known: strong first stages one by one, and a
+# Cragg-Donald F far below either, since the instruments move the two together.
+both <- c("black", "south", "smsa")
+rows <- complete.cases(d[, c("KWW", "fatheduc", "motheduc")])
+d2 <- d[rows, ]
+s <- weak(columns(d2, c("educ", "KWW")), columns(d2, c("nearc4", "nearc2", "fatheduc", "motheduc")),
+          cbind(ones(d2), columns(d2, both)), clusters = list(age = d2$age))
+f <- feols(lwage ~ black + south + smsa | educ + KWW ~ nearc4 + nearc2 + fatheduc + motheduc, d2)
+agree(s$f, of_stat(f, ~ivf))
+agree(s$cd, of_stat(f, ~cd) * (s$n - s$instruments) / (s$n - 2 - 4 - 1))
+agree(s$wald$hc1, of_stat(f, ~ivwald, "hetero"))
+agree(s$wald$age, of_stat(f, ~ivwald, ~age))
+weak_case("card_two_endogenous", "card", "lwage ~ black + south + smsa + educ + KWW", "educ + KWW",
+          "nearc4 + nearc2 + fatheduc + motheduc", s, clusters = "age")
+# Weights of the three kinds.
+s <- weak(columns(d, "educ"), columns(d, c("nearc4", "nearc2")), cbind(ones(d), columns(d, exog)),
+          w = d$weight, weight_type = "analytic", clusters = list(age = d$age))
+f <- feols(lwage ~ exper + expersq + black + south + smsa | educ ~ nearc4 + nearc2, d, weights = ~weight)
+agree(s$f, of_stat(f, ~ivf))
+agree(s$wald$hc1, of_stat(f, ~ivwald, "hetero"))
+agree(s$wald$age, of_stat(f, ~ivwald, ~age))
+weak_case("card_analytic", "card", card_text, "educ", "nearc4 + nearc2", s, weights = "weight",
+          weight_type = "analytic", clusters = "age")
+keep <- !is.na(d$fatheduc) & d$fatheduc > 0
+dk <- d[keep, ]
+s <- weak(columns(dk, "educ"), columns(dk, c("nearc4", "nearc2")), cbind(ones(dk), columns(dk, exog)),
+          w = dk$fatheduc, weight_type = "frequency")
+written <- dk[rep(seq_len(nrow(dk)), dk$fatheduc), ]
+s_written <- weak(columns(written, "educ"), columns(written, c("nearc4", "nearc2")),
+                  cbind(ones(written), columns(written, exog)))
+agree(s$f, s_written$f)
+agree(s$cd, s_written$cd)
+agree(s$wald$hc1, s_written$wald$hc1)
+weak_case("card_frequency", "card", card_text, "educ", "nearc4 + nearc2", s, weights = "fatheduc",
+          weight_type = "frequency")
+# With the region absorbed: nine parameters join the instruments in the degrees of freedom, and
+# one alone when the clusters are the regions.
+region_clusters <- d$region
+attr(region_clusters, "absorbed") <- 1
+s <- weak(columns(d, "educ"), columns(d, c("nearc4", "nearc2")), columns(d, c("exper", "expersq", "black", "smsa")),
+          fe = d$region, absorbed = 9, clusters = list(age = d$age, region = region_clusters))
+f <- feols(lwage ~ exper + expersq + black + smsa | region | educ ~ nearc4 + nearc2, d)
+agree(s$f, of_stat(f, ~ivf))
+agree(s$wald$hc1, of_stat(f, ~ivwald, "hetero"))
+agree(s$wald$age, of_stat(f, ~ivwald, ~age))
+agree(s$wald$region, of_stat(f, ~ivwald, ~region))
+weak_case("card_fe", "card", "lwage ~ exper + expersq + black + smsa + educ", "educ", "nearc4 + nearc2", s,
+          fe = "region", clusters = c("age", "region"))
+# wage2: schooling by the siblings and the birth order.
+w2k <- w2[complete.cases(w2[, c("lwage", "exper", "tenure", "educ", "sibs", "brthord")]), ]
+s <- weak(columns(w2k, "educ"), columns(w2k, c("sibs", "brthord")), cbind(ones(w2k), columns(w2k, c("exper", "tenure"))),
+          clusters = list(age = w2k$age))
+f <- feols(lwage ~ exper + tenure | educ ~ sibs + brthord, w2)
+agree(s$f, of_stat(f, ~ivf))
+agree(s$wald$hc1, of_stat(f, ~ivwald, "hetero"))
+agree(s$wald$age, of_stat(f, ~ivwald, ~age))
+weak_case("wage2_siblings", "wage2", "lwage ~ exper + tenure + educ", "educ", "sibs + brthord", s, clusters = "age")
+
 out <- list(reference = list(software = R.version.string, fixest = as.character(packageVersion("fixest")),
                              wooldridge = as.character(packageVersion("wooldridge")),
                              note = "two-stage least squares by hand in base R, held to fixest inside the script; 17 significant digits"),
-            cases = cases, fixed_effects = fe_cases)
+            cases = cases, fixed_effects = fe_cases, weak = weak_cases)
 write_json(out, file.path(here(), "iv.json"))

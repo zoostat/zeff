@@ -13,7 +13,7 @@ use zeff_core::value::{Frame, Term};
 use zeff_data::csv::{CsvOptions, read_csv};
 use zeff_diagnostics::{Diagnostic, Source, Sources, Span};
 use zeff_numeric::order::WeightKind;
-use zeff_regress::iv::{Column as ModelColumn, Designs, Projection, TwoStage, estimate};
+use zeff_regress::iv::{Column as ModelColumn, Designs, Projection, TwoStage, Weak, estimate};
 use zeff_regress::ols::Ols;
 use zeff_results::absorb::EffectGroups;
 use zeff_results::design::Design;
@@ -69,6 +69,17 @@ fn fit_projected(
     table: &Table,
     model: &Model<'_>,
 ) -> Result<(TwoStage, Option<Projection>, Vec<String>), String> {
+    in_context(table, model, |_, fit, projection| Ok((fit, projection)))
+        .map(|((fit, projection), messages)| (fit, projection, messages))
+}
+
+/// The model fitted, then `then` with the context of the call, the fit and its projection; the
+/// value with the messages, or the error rendered.
+fn in_context<T>(
+    table: &Table,
+    model: &Model<'_>,
+    then: impl FnOnce(&mut CallContext<'_>, TwoStage, Option<Projection>) -> Result<T, Fail>,
+) -> Result<(T, Vec<String>), String> {
     let script = format!(
         "let m = d.ivreg({}, {}instruments: {} ~ {})\n",
         model.formula,
@@ -129,13 +140,36 @@ fn fit_projected(
             designs.structural = designs.structural.with_block_rows(rows);
             designs.excluded = designs.excluded.with_block_rows(rows);
         }
-        estimate(&mut ctx, designs).map(|fit| (fit, projection))
+        let fit = estimate(&mut ctx, designs)?;
+        then(&mut ctx, fit, projection)
     });
     let rendered: Vec<String> = messages.iter().map(|m| m.render(&sources)).collect();
     match result {
-        Ok((fit, projection)) => Ok((fit, projection, rendered)),
+        Ok(value) => Ok((value, rendered)),
         Err(e) => Err(e.render(&sources)),
     }
+}
+
+/// The clusters of the rows a fit uses, by the variable `name`.
+fn clusters_of(table: &Table, fit: &TwoStage, name: &str) -> Clusters {
+    let column = table.column(name).unwrap();
+    let groups = EffectGroups::over(
+        name,
+        &[name.to_string()],
+        &[column],
+        &fit.designs.structural.rows,
+    );
+    Clusters::from_groups(&groups.group_of_row, groups.levels())
+}
+
+/// The weak-instrument statistics of a model, with the Wald form on the variance of `kind`.
+fn weak_of(table: &Table, model: &Model<'_>, kind: Kind, cluster: Option<&str>) -> Weak {
+    in_context(table, model, |ctx, fit, projection| {
+        let clusters = cluster.map(|name| clusters_of(table, &fit, name));
+        fit.weak(ctx, kind, clusters.as_ref(), projection.as_ref())
+    })
+    .unwrap_or_else(|e| panic!("{e}"))
+    .0
 }
 
 /// The standard errors of the kept columns under `kind`.
@@ -599,6 +633,150 @@ fn the_notes_and_the_errors_with_fixed_effects() {
         all.push('\n');
     }
     insta::assert_snapshot!("iv_notes_and_errors_with_fixed_effects", all);
+}
+
+// ----- the weak-instrument statistics -----
+
+/// The first-stage F of each instrumented regressor, its Wald form on the robust and the
+/// clustered variance, and the Cragg–Donald F, against `iv.json` (base R held to fixest): one
+/// and two instrumented regressors, one instrument, weights of the three kinds, an absorbed
+/// effect with the clusters outside it and on it, and rows with `NA`.
+#[test]
+fn the_weak_instrument_statistics_agree_with_r() {
+    let text = std::fs::read_to_string(root().join("tests/reference/r/iv.json")).unwrap();
+    let reference: Json = serde_json::from_str(&text).unwrap();
+    let cases = reference["weak"].as_object().unwrap();
+    assert_eq!(cases.len(), 7);
+    for (name, case) in cases {
+        let data = reference_data(case["data"].as_str().unwrap());
+        let weights = case["weights"].as_str().map(|w| {
+            let kind = match case["weight_type"].as_str().unwrap() {
+                "analytic" => WeightKind::Analytic,
+                "sampling" => WeightKind::Sampling,
+                _ => WeightKind::Frequency,
+            };
+            (w, kind)
+        });
+        let asked = Model {
+            formula: case["formula"].as_str().unwrap(),
+            endogenous: case["endogenous"].as_str().unwrap(),
+            instruments: case["instruments"].as_str().unwrap(),
+            fe: case["fe"].as_str(),
+            weights,
+            ..Model::default()
+        };
+        let tolerance = 1e-7;
+        let all = |ours: &[Option<f64>], theirs: &Json, what: &str| {
+            let theirs = numbers(theirs);
+            assert_eq!(ours.len(), theirs.len(), "{name}: {what}");
+            for (a, b) in ours.iter().zip(&theirs) {
+                let a = a.unwrap_or_else(|| panic!("{name}: {what} is not available"));
+                assert!(
+                    close(a, *b, tolerance, 0.0),
+                    "{name}: {what}: {a} against {b}"
+                );
+            }
+        };
+        let classical = weak_of(&data, &asked, Kind::Classical, None);
+        assert_eq!(
+            classical.df1 as u64,
+            case["df1"].as_u64().unwrap(),
+            "{name}: df1"
+        );
+        assert_eq!(classical.df2, number(&case["df2"]), "{name}: df2");
+        all(&classical.f, &case["f"], "F");
+        assert_eq!(
+            classical.f, classical.wald,
+            "{name}: the Wald form under classical errors"
+        );
+        all(
+            &[classical.cragg_donald],
+            &Json::Array(vec![case["cragg_donald"].clone()]),
+            "Cragg-Donald F",
+        );
+        let robust = weak_of(&data, &asked, Kind::Hc1, None);
+        assert_eq!(robust.f, classical.f, "{name}");
+        assert_eq!(robust.cragg_donald, classical.cragg_donald, "{name}");
+        all(&robust.wald, &case["wald_hc1"], "robust Wald F");
+        if let Some(clustered) = case["wald_cluster"].as_object() {
+            for (cluster, theirs) in clustered {
+                let with = Model {
+                    cluster: Some(cluster),
+                    ..asked.clone()
+                };
+                let found = weak_of(&data, &with, Kind::Cluster, Some(cluster));
+                all(
+                    &found.wald,
+                    theirs,
+                    &format!("Wald F clustered by {cluster}"),
+                );
+            }
+        }
+        // With one instrumented regressor the Cragg-Donald F is its first-stage F.
+        if classical.f.len() == 1 {
+            let (cd, f) = (classical.cragg_donald.unwrap(), classical.f[0].unwrap());
+            assert!(close(cd, f, 1e-10, 0.0), "{name}: {cd} against {f}");
+        }
+    }
+}
+
+/// What cannot be computed is not: with as many instruments as rows no first stage has a
+/// residual; with first-stage residuals that are collinear (in Card's data schooling and
+/// experience sum to age less six, and age is an instrument) the covariance of the residuals
+/// has no inverse and there is no Cragg–Donald F, while each first stage has its F; with fewer
+/// clusters than instruments the clustered variance of their coefficients has no inverse.
+#[test]
+fn a_statistic_that_cannot_be_computed_is_not() {
+    // Twelve rows; an intercept, `w` and ten instruments.
+    let t = small();
+    let mut wide = t.clone();
+    let mut names: Vec<String> = Vec::new();
+    for j in 0..10u32 {
+        let values: Vec<f64> = (0..12u32)
+            .map(|i| f64::from((i * (j + 3) * 7 + j * j) % 13) + f64::from(i == j) * 0.5)
+            .collect();
+        let name = format!("q{j}");
+        wide = wide.with_column(&name, floats(&values)).unwrap();
+        names.push(name);
+    }
+    let instruments = names.join(" + ");
+    let found = weak_of(
+        &wide,
+        &model("y ~ w + x", "x", &instruments),
+        Kind::Hc1,
+        None,
+    );
+    assert_eq!(found.df1, 10);
+    assert_eq!(found.df2, 0.0);
+    assert_eq!(found.f, vec![None]);
+    assert_eq!(found.wald, vec![None]);
+    assert_eq!(found.cragg_donald, None);
+
+    let card = reference_data("card");
+    let asked = model(
+        "lwage ~ black + south + smsa + educ + exper",
+        "educ + exper",
+        "nearc4 + nearc2 + age",
+    );
+    let found = weak_of(&card, &asked, Kind::Classical, None);
+    assert!(
+        found.f.iter().all(|f| f.is_some_and(|f| f > 1.0)),
+        "{:?}",
+        found.f
+    );
+    assert_eq!(found.cragg_donald, None);
+
+    // Three clusters and four instruments.
+    let groups: Vec<f64> = (0..12).map(|i| f64::from(i % 3)).collect();
+    let t = with(&wide, "g", groups);
+    let asked = Model {
+        cluster: Some("g"),
+        ..model("y ~ w + x", "x", "z1 + z2 + q0 + q1")
+    };
+    let found = weak_of(&t, &asked, Kind::Cluster, Some("g"));
+    assert!(found.f[0].is_some());
+    assert!(found.cragg_donald.is_some());
+    assert_eq!(found.wald, vec![None]);
 }
 
 // ----- the edge cases of the handbook -----
@@ -1156,6 +1334,27 @@ proptest! {
             prop_assert_eq!(a.to_bits(), b.to_bits());
         }
         prop_assert_eq!(whole.fitted.residual_sum_of_squares.to_bits(), blocked.fitted.residual_sum_of_squares.to_bits());
+    }
+
+    /// The weak-instrument statistics do not depend on the units of any variable.
+    #[test]
+    fn the_weak_instrument_statistics_do_not_depend_on_units(values in rows()) {
+        let t = frame_of(&values);
+        let (base, _) = fit(&t, &model("y ~ w + x", "x", "z1 + z2")).unwrap();
+        prop_assume!(well_identified(&base));
+        let plain = model("y ~ w + x", "x", "z1 + z2");
+        let scaled = model("(y * 7) ~ (w * 1e3) + (x * 1e-4)", "(x * 1e-4)", "(z1 * 1e5) + (z2 * 3)");
+        for kind in [Kind::Classical, Kind::Hc1, Kind::Hc3] {
+            let a = weak_of(&t, &plain, kind, None);
+            let b = weak_of(&t, &scaled, kind, None);
+            prop_assert_eq!(a.df1, b.df1);
+            prop_assert_eq!(a.df2, b.df2);
+            for (x, y) in [(a.f[0], b.f[0]), (a.wald[0], b.wald[0]), (a.cragg_donald, b.cragg_donald)] {
+                let (x, y) = (x.unwrap(), y.unwrap());
+                prop_assert!(close(x, y, 1e-8, 1e-12), "{:?}: {} against {}", kind, x, y);
+            }
+            prop_assert!(close(a.f[0].unwrap(), a.cragg_donald.unwrap(), 1e-10, 1e-12));
+        }
     }
 
     /// An effect by `fe:` gives the estimates of its indicators written out, whatever the data.
