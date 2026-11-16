@@ -23,7 +23,7 @@ data.reg(formula, [[fe: Terms]], se: classical | robust | hc2 | hc3, cluster: Va
 > let d = import("data/small.csv")
 > d.reg(b ~ a, c, ro|
 data.reg(formula, fe: Terms, [[se: classical | robust | hc2 | hc3]], cluster: Var, weights: Var, weight_type: frequency | analytic | sampling = sampling, level: Float = 0.95)
-    se: The kind of standard error: `classical`, `robust` (HC1), `hc2` or `hc3`; `classical` unless sampling weights are given, when `robust`. With `fe:`, `hc2` and `hc3` are refused (Z0410), since an observation's leverage in the full design is not available.
+    se: The kind of standard error: `classical`, `robust` (HC1), `hc2` or `hc3`; `classical` unless sampling weights are given, when `robust`. With one effect in `fe:`, `hc2` and `hc3` count the effect's levels in each leverage; with several effects they are refused (Z0410), since an observation's leverage in the full design is then not available.
     (Linear regression by least squares, with fixed effects)
 ----
 > let d = import("data/small.csv")
@@ -35,7 +35,7 @@ data.reg(formula, fe: Terms, se: classical | robust | hc2 | hc3, [[cluster: Var]
 > let d = import("data/small.csv")
 > d.reg(b ~ a, level: 0.9, se: rob|)
 data.reg(formula, fe: Terms, [[se: classical | robust | hc2 | hc3]], cluster: Var, weights: Var, weight_type: frequency | analytic | sampling = sampling, level: Float = 0.95)
-    se: The kind of standard error: `classical`, `robust` (HC1), `hc2` or `hc3`; `classical` unless sampling weights are given, when `robust`. With `fe:`, `hc2` and `hc3` are refused (Z0410), since an observation's leverage in the full design is not available.
+    se: The kind of standard error: `classical`, `robust` (HC1), `hc2` or `hc3`; `classical` unless sampling weights are given, when `robust`. With one effect in `fe:`, `hc2` and `hc3` count the effect's levels in each leverage; with several effects they are refused (Z0410), since an observation's leverage in the full design is then not available.
     (Linear regression by least squares, with fixed effects)
 ----
 > let d = import("data/small.csv")
@@ -157,7 +157,7 @@ share_gone(data: Frame, var: Var, [[digits: Int]]) -> Float
 >     .reg(b ~ a,
 >          se: |
 data.reg(formula, fe: Terms, [[se: classical | robust | hc2 | hc3]], cluster: Var, weights: Var, weight_type: frequency | analytic | sampling = sampling, level: Float = 0.95)
-    se: The kind of standard error: `classical`, `robust` (HC1), `hc2` or `hc3`; `classical` unless sampling weights are given, when `robust`. With `fe:`, `hc2` and `hc3` are refused (Z0410), since an observation's leverage in the full design is not available.
+    se: The kind of standard error: `classical`, `robust` (HC1), `hc2` or `hc3`; `classical` unless sampling weights are given, when `robust`. With one effect in `fe:`, `hc2` and `hc3` count the effect's levels in each leverage; with several effects they are refused (Z0410), since an observation's leverage in the full design is then not available.
     (Linear regression by least squares, with fixed effects)
 ----
 > let d = import("data/small.csv")

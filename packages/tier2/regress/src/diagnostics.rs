@@ -123,7 +123,8 @@ pub fn vif(ctx: &mut CallContext<'_>, args: Args) -> Result<Value, Fail> {
 /// the row's residual, as R computes them on the replicated rows. A row of leverage one has no
 /// distance and no studentized residual.
 pub fn measures(fit: &Fit) -> Vec<(f64, f64, f64)> {
-    let k = fit.terms.len() as f64;
+    // The parameters of the model: the terms and, with an absorbed effect, its levels.
+    let k = (fit.terms.len() + fit.absorbed_parameters) as f64;
     let n = fit.n as f64;
     let df = n - k;
     let rss = fit.residual_sum_of_squares;
@@ -154,17 +155,18 @@ pub fn measures(fit: &Fit) -> Vec<(f64, f64, f64)> {
 /// of the fitted frame's full length with `NA` in the rows the fit dropped.
 pub fn influence(ctx: &mut CallContext<'_>, args: Args) -> Result<Value, Fail> {
     let fit = regression(ctx, &args, "influence")?;
-    // With absorbed effects the leverage of the full design cannot be had from the demeaned
-    // factorisation (the ruling of release 0.6.0, step 18), so the measures wait.
-    if !fit.effects.is_empty() {
+    // With one absorbed effect the leverage of the full design is the leverage in the demeaned
+    // columns plus the row's share of its level (step 17 of release 0.8.0); with several it
+    // cannot be had from the demeaned factorisation, and the measures wait.
+    if fit.effects.len() > 1 {
         return Err(fail(
             Diagnostic::error(
                 "Z0304",
-                "`influence` on a fit with fixed effects is not available in this release",
+                "`influence` on a fit with several fixed effects is not available in this release",
             )
             .in_file(ctx.script)
-            .primary(ctx.span_of(0), "a fit with `fe:`")
-            .help("the leverage, Cook's distance and studentized residuals of a fit with absorbed effects arrive with release 0.8.0; `residuals()` and `fitted()` are available now"),
+            .primary(ctx.span_of(0), "a fit with several effects in `fe:`")
+            .help("with one effect in `fe:` the leverage, Cook's distance and studentized residuals are available; under several effects they arrive with release 1.1; `residuals()` and `fitted()` are available now"),
         ));
     }
     let measured = measures(&fit);

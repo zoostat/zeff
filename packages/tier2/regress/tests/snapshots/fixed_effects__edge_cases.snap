@@ -1,6 +1,5 @@
 ---
 source: packages/tier2/regress/tests/fixed_effects.rs
-assertion_line: 431
 expression: all
 ---
 error[Z0801]: no row remains to fit the model: every row is a singleton of fe: id
@@ -53,6 +52,8 @@ warning[W1004]: little variation left after fe: g: `x` keeps 0.16% of its variat
   = help: the regressor barely varies within the effects' groups, so its estimate is poorly determined; a coarser effect, or the regressor's group mean as a control, keeps the variation
 warning[W1004]: little variation left after fe: g: `x` keeps 0.23% of its variation (line 3)
   = help: the regressor barely varies within the effects' groups, so its estimate is poorly determined; a coarser effect, or the regressor's group mean as a control, keeps the variation
+warning[W1006]: 1 observation drives a coefficient: removing it moves an estimate by more than its standard error (row 4) (line 3)
+  = help: check the row's values; `influence()` lists leverage, Cook's distance and studentized residuals by row
 ----
 reg · y ~ x · fe: g
 N = 6 (no singletons)
@@ -83,6 +84,8 @@ standard errors: classical
   x        0.2667      0.0333      8.00     0.079   [-0.1569, 0.6902]
 
 R² within 0.985 · R² overall 0.998
+warning[W1006]: 2 observations drive a coefficient: removing one moves an estimate by more than its standard error (rows 4, 6) (line 2)
+  = help: check the row's values; `influence()` lists leverage, Cook's distance and studentized residuals by row
 ----
 error[Z0401]: `firm` is a fixed effect of `fe:` and a variable of the formula too
  --> scripts/main.zeff:2:41
@@ -162,6 +165,10 @@ standard errors: classical
   x3       1.2500      0.7217      1.73     0.182   [-1.0467, 3.5467]
 
 R² within 0.982 · R² overall 0.982
+warning[W1006]: 1 observation drives a coefficient: removing it moves an estimate by more than its standard error (row 2) (line 2)
+  = help: check the row's values; `influence()` lists leverage, Cook's distance and studentized residuals by row
+warning[W1006]: 2 observations drive a coefficient: removing one moves an estimate by more than its standard error (rows 5, 6) (line 3)
+  = help: check the row's values; `influence()` lists leverage, Cook's distance and studentized residuals by row
 ----
 error[Z0401]: the range `x3..x1` runs backwards: `x1` comes before `x3` in the frame
  --> scripts/main.zeff:2:3
@@ -218,6 +225,8 @@ standard errors: classical
   x        1.7500      0.4330      4.04     0.154   [-3.7519, 7.2519]
 
 R² within 0.942 · R² overall 0.998
+warning[W1006]: 4 observations drive a coefficient: removing one moves an estimate by more than its standard error (rows 1, 2, 5, 6) (line 2)
+  = help: check the row's values; `influence()` lists leverage, Cook's distance and studentized residuals by row
 ----
 reg · y ~ x · fe: g
 N = 5 (1 row with zero weight left out; 1 row dropped as a singleton)
@@ -239,6 +248,8 @@ standard errors: classical
 
 R² within 0.974 · R² overall 0.990
 note: 1 row with a zero weight left out of the estimate and the observation count (line 2)
+warning[W1006]: 4 observations drive a coefficient: removing one moves an estimate by more than its standard error (rows 1, 2, 5, 6) (line 4)
+  = help: check the row's values; `influence()` lists leverage, Cook's distance and studentized residuals by row
 ----
 reg · log(wage) ~ educ + female · fe: firm
 N = 18,201 (211 rows dropped for NA in model variables; no singletons)
@@ -312,21 +323,64 @@ error[Z0401]: `firm` is a fixed effect of `fe:` and a variable of the formula to
   |
   = help: an absorbed effect cannot be a regressor or the outcome as well; drop it from `fe:` or from the formula
 ----
-error[Z0410]: `se: hc3` and `fe:` exclude each other: with absorbed effects an observation's leverage in the full design is not available
- --> scripts/main.zeff:2:44
-  |
-2 | w.reg(log(wage) ~ educ, fe: firm:year, se: hc3)
-  |                                            ^^^ needs every observation's leverage
-  |
-  = help: `se: robust` (HC1) or `cluster:` with `fe:`; HC2 and HC3 with fixed effects arrive with release 0.8.0
+reg · log(wage) ~ educ · fe: firm:year
+N = 17,090 (211 rows dropped for NA in model variables; 1,111 rows dropped as singletons)
+fixed effects: firm:year (2,946)
+standard errors: hc3
+
+  term   estimate   std.error   t value   p value   95% CI
+  educ     0.0556      0.0016     33.76    <0.001   [0.0524, 0.0588]
+
+R² within 0.087 · R² overall 0.287
 ----
-error[Z0304]: `influence` on a fit with fixed effects is not available in this release
+reg · log(wage) ~ educ · fe: firm
+N = 18,201 (211 rows dropped for NA in model variables; no singletons)
+fixed effects: firm (397)
+standard errors: hc2
+
+  term   estimate   std.error   t value   p value   95% CI
+  educ     0.0559      0.0014     39.22    <0.001   [0.0531, 0.0587]
+
+R² within 0.080 · R² overall 0.169
+----
+frame · 18,412 rows × 3 variables
+
+         leverage   cooks_distance   studentized
+   1    0.0909574      0.000114838     -0.675852
+   2    0.0909574      0.000153778     -0.782091
+   3    0.0909574      2.77527e-05     -0.332243
+   4    0.0909574       0.00025655      -1.01019
+   5    0.0909574       1.1287e-05      0.211881
+   6    0.0909574      0.000138251      0.741555
+   7    0.0909574       1.3872e-05      0.234895
+   8   0.00549828      9.14038e-06      0.811165
+   9   0.00549828      8.20413e-08    -0.0768484
+  10   0.00549828      3.71858e-06      0.517381
+  … and 18,402 more rows
+----
+error[Z0410]: `se: hc3` and several fixed effects exclude each other: with more than one absorbed effect an observation's leverage in the full design is not available
+ --> scripts/main.zeff:2:46
+  |
+2 | w.reg(log(wage) ~ educ, fe: firm + year, se: hc3)
+  |                                              ^^^ needs every observation's leverage
+  |
+  = help: `se: robust` (HC1) or `cluster:` with several effects; with one effect in `fe:`, `se: hc3` is available; leverage under several effects arrives with release 1.1
+----
+error[Z0410]: `se: hc2` and several fixed effects exclude each other: with more than one absorbed effect an observation's leverage in the full design is not available
+ --> scripts/main.zeff:2:46
+  |
+2 | w.reg(log(wage) ~ educ, fe: firm + year, se: hc2)
+  |                                              ^^^ needs every observation's leverage
+  |
+  = help: `se: robust` (HC1) or `cluster:` with several effects; with one effect in `fe:`, `se: hc2` is available; leverage under several effects arrives with release 1.1
+----
+error[Z0304]: `influence` on a fit with several fixed effects is not available in this release
  --> scripts/main.zeff:2:1
   |
-2 | w.reg(log(wage) ~ educ, fe: firm).influence()
-  | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ a fit with `fe:`
+2 | w.reg(log(wage) ~ educ, fe: firm + year).influence()
+  | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ a fit with several effects in `fe:`
   |
-  = help: the leverage, Cook's distance and studentized residuals of a fit with absorbed effects arrive with release 0.8.0; `residuals()` and `fitted()` are available now
+  = help: with one effect in `fe:` the leverage, Cook's distance and studentized residuals are available; under several effects they arrive with release 1.1; `residuals()` and `fitted()` are available now
 ----
 error[Z0101]: no variable `nowhere` in `w`
  --> scripts/main.zeff:2:29

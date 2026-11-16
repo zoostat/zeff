@@ -152,9 +152,13 @@ is never listed here as accepted: it is fixed or the function is withdrawn.
   Z0716, which names 0.11.0, the release of the reader and writer interface (SPSS 1.1); an
   opaque column is refused with the advice to drop it. What is written reads back bit for bit.
   (Since 0.6.0; by the build order.)
-- **Under `fe:` a fit has no leverage.** `se: hc2` and `se: hc3` are refused (Z0410),
-  `influence` is refused (Z0304, until 0.8.0) and W1006 is not judged, because an observation's
-  leverage in the full design cannot be had from the demeaned columns. `fe:` takes variables and
+- **Under several effects in `fe:` a fit has no leverage.** `se: hc2` and `se: hc3` are refused
+  (Z0410), `influence` is refused (Z0304) and W1006 is not judged, because an observation's
+  leverage in the full design cannot be had from the columns with two or more effects projected
+  out; the messages name release 1.1. With one effect, an interaction `a:b` included, the
+  leverage is that in the demeaned columns plus the row's share of its level's weight, and all
+  three work as without `fe:`, in `reg` and in `ivreg` (from 0.8.0; before it every fit with
+  `fe:` was refused). `influence` and `vif` take a `reg` fit only. `fe:` takes variables and
   interactions `a:b` joined by `+`; `*`, a range or an expression is refused (Z0401), as is a
   fixed effect that is also a variable of the formula. Two-way clustering arrives at 1.1.
   (Since 0.6.0; `ivreg` takes `fe:` from 0.8.0.)

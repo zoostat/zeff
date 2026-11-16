@@ -350,6 +350,26 @@ impl Design {
         let original_outcome = self
             .has_outcome()
             .then(|| kept.iter().map(|&p| columns[k][p]).collect());
+        // With one effect, each row's share of its level's weight: what its leverage in the
+        // full design has beside its leverage in the demeaned columns.
+        let level_share: Option<Rc<Vec<f64>>> = match effects {
+            [only] => {
+                let restricted = only.restricted(&kept);
+                let mut totals = vec![0.0_f64; restricted.levels()];
+                for (i, &g) in restricted.group_of_row.iter().enumerate() {
+                    totals[g] += weights.as_ref().map_or(1.0, |w| w[i]);
+                }
+                Some(Rc::new(
+                    restricted
+                        .group_of_row
+                        .iter()
+                        .enumerate()
+                        .map(|(i, &g)| weights.as_ref().map_or(1.0, |w| w[i]) / totals[g])
+                        .collect(),
+                ))
+            }
+            _ => None,
+        };
         let design = Design {
             names: self.names.clone(),
             rows: kept.iter().map(|&p| self.rows[p]).collect(),
@@ -375,6 +395,7 @@ impl Design {
             }),
             original_outcome,
             own_leverage: false,
+            level_share,
         };
         let absorbed = Absorbed {
             effects: effects.iter().map(|e| e.restricted(&kept)).collect(),

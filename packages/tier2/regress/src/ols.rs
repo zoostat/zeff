@@ -235,7 +235,14 @@ impl Estimator for Ols {
                     }
                     solve_upper_transposed_into(&r11, &scaled_row, &mut z)
                         .map_err(|_| internal(ctx, "a zero pivot in the leverage"))?;
-                    leverage.push(sum_of_squares(&z));
+                    // Beside the leverage in the design's columns, a row's share of its
+                    // level when one fixed effect was projected out.
+                    let beside = design.leverage_beside(residuals.len() - 1);
+                    leverage.push(if beside == 0.0 {
+                        sum_of_squares(&z)
+                    } else {
+                        sum_of_squares(&z) + beside
+                    });
                 } else {
                     leverage.push(f64::NAN);
                 }

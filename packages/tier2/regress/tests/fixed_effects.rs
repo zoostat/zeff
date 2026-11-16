@@ -364,8 +364,8 @@ fn printed(script: &str) -> String {
 /// The edge cases of the checklist, through the engine: every row a singleton; one group; an
 /// effect collinear with a regressor, absorbed; an effect that is a model variable too; `- 1`
 /// with `fe:`; a Date effect; zero weights with `fe:`; `cluster:` nested and not nested in an
-/// effect; the refusals of `*`, a range, an expression and the intercept in `fe:`; `hc2` and
-/// `influence` with `fe:`; and the printed fit of section 10.2 with its `report` table.
+/// effect; the refusals of `*`, a range, an expression and the intercept in `fe:`; `hc2`, `hc3`
+/// and `influence` with one effect and with several; and the printed fit of section 10.2 with its `report` table.
 #[test]
 fn the_edge_cases() {
     let mut all = String::new();
@@ -414,8 +414,14 @@ fn the_edge_cases() {
         "let w = dataset(wages)\nw.reg(log(wage) ~ educ, fe: firm - 1)\n",
         "let w = dataset(wages)\nw.reg(log(wage) ~ educ, fe: 1)\n",
         "let w = dataset(wages)\nw.reg(log(wage) ~ educ + firm, fe: firm)\n",
+        // Leverage under `fe:`: with one effect, an interaction included, `hc2`, `hc3` and
+        // `influence` are available; with several they are refused, naming release 1.1.
         "let w = dataset(wages)\nw.reg(log(wage) ~ educ, fe: firm:year, se: hc3)\n",
+        "let w = dataset(wages)\nw.reg(log(wage) ~ educ, fe: firm, se: hc2)\n",
         "let w = dataset(wages)\nw.reg(log(wage) ~ educ, fe: firm).influence()\n",
+        "let w = dataset(wages)\nw.reg(log(wage) ~ educ, fe: firm + year, se: hc3)\n",
+        "let w = dataset(wages)\nw.reg(log(wage) ~ educ, fe: firm + year, se: hc2)\n",
+        "let w = dataset(wages)\nw.reg(log(wage) ~ educ, fe: firm + year).influence()\n",
         "let w = dataset(wages)\nw.reg(log(wage) ~ educ, fe: nowhere)\n",
         // The printed fit of section 10.2, `r_squared`, `report` with and without the within row,
         // and `predict` with the effects' part.
@@ -701,4 +707,130 @@ fn predict_includes_the_effects() {
                 && m.contains("their predictions are NA")),
         "{messages:?}"
     );
+}
+
+/// Leverage under one absorbed effect (release 0.8.0, step 17), against R's `lm` with the
+/// effect's indicators written out (`fixed_effects.json`, `leverage`): the HC2 and HC3 standard
+/// errors of sandwich, and through `influence` the leverages of `hatvalues`, `cooks.distance`
+/// and `rstudent`, on `wagepan` with the person absorbed, without weights and with hours as
+/// analytic weights.
+#[test]
+fn leverage_under_one_effect_agrees_with_the_indicators_written_out() {
+    let reference = json("r/fixed_effects.json");
+    let cases = reference["leverage"].as_object().unwrap();
+    assert_eq!(cases.len(), 2);
+    for (name, case) in cases {
+        let table = table_of(case["data"].as_str().unwrap());
+        let text = case["formula"].as_str().unwrap();
+        let weights = case["weights"].as_str().filter(|w| !w.is_empty());
+        let numbers =
+            |key: &str| -> Vec<f64> { case[key].as_array().unwrap().iter().map(number).collect() };
+        let mut kept: Option<Fit> = None;
+        for (se, key) in [("hc2", "se_hc2"), ("hc3", "se_hc3")] {
+            let options = Options {
+                fe: Some("nr"),
+                se: Some(se),
+                weights,
+                weight_type: weights.map(|_| "analytic"),
+                ..Options::default()
+            };
+            let (fit, _) =
+                fit_with(&table, text, &options).unwrap_or_else(|e| panic!("{name}: {e}"));
+            for ((term, ours), theirs) in fit.terms.iter().zip(&fit.std_errors).zip(numbers(key)) {
+                assert!(
+                    close(*ours, theirs, 1e-8, 0.0),
+                    "{name}: {se} of {term}: {ours} against {theirs}"
+                );
+            }
+            kept = Some(fit);
+        }
+        // The measures of `influence`, for the first twenty rows.
+        let fit = kept.unwrap();
+        let measured = zeff_regress::diagnostics::measures(&fit);
+        for (i, ((h, cooks), studentized)) in numbers("leverage_20")
+            .iter()
+            .zip(numbers("cooks_20"))
+            .zip(numbers("studentized_20"))
+            .enumerate()
+        {
+            assert_eq!(fit.rows[i], i, "{name}: the panel is sorted by person");
+            assert!(
+                close(measured[i].0, *h, 1e-8, 0.0),
+                "{name}: leverage of row {i}: {} against {h}",
+                measured[i].0
+            );
+            assert!(
+                close(measured[i].1, cooks, 1e-7, 1e-14),
+                "{name}: Cook's distance of row {i}: {} against {cooks}",
+                measured[i].1
+            );
+            assert!(
+                close(measured[i].2, studentized, 1e-7, 0.0),
+                "{name}: studentized residual of row {i}: {} against {studentized}",
+                measured[i].2
+            );
+        }
+    }
+}
+
+/// A one-way effect by `fe:` gives the leverages of its indicators written out, whatever the
+/// data: on small random panels with groups of unequal size, weighted and not. The two fits
+/// keep their rows in different orders, so the leverages are compared row by row of the frame.
+#[test]
+fn one_effect_by_fe_has_the_leverages_of_its_indicators() {
+    for seed in 0..12u64 {
+        let mut stream = zeff_numeric::random::Stream::new(seed, 17, 0);
+        let groups = 4 + seed as usize % 5;
+        let n = 40 + 9 * seed as usize;
+        let (mut g, mut x, mut w, mut y) = (Vec::new(), Vec::new(), Vec::new(), Vec::new());
+        for i in 0..n {
+            // The first rows give every group two members; the rest fall unevenly.
+            let group = if i < 2 * groups {
+                i % groups
+            } else {
+                ((stream.uniform() * stream.uniform()) * groups as f64) as usize
+            };
+            let xi = 2.0 * stream.uniform() - 1.0;
+            g.push(Some(group as i64 + 1));
+            x.push(Some(xi));
+            w.push(Some(0.25 + 3.0 * stream.uniform()));
+            y.push(Some(1.5 * xi + group as f64 + stream.uniform()));
+        }
+        let t = Table::new(vec![
+            ("g".to_string(), Column::ints(g)),
+            ("x".to_string(), Column::floats(x).0),
+            ("w".to_string(), Column::floats(w).0),
+            ("y".to_string(), Column::floats(y).0),
+        ])
+        .unwrap();
+        for weights in [None, Some("w")] {
+            let options = |fe: Option<&'static str>| Options {
+                fe,
+                weights,
+                weight_type: weights.map(|_| "analytic"),
+                ..Options::default()
+            };
+            let (absorbed, _) = fit_with(&t, "y ~ x", &options(Some("g"))).unwrap();
+            let (written, _) = fit_with(&t, "y ~ x + category(g)", &options(None)).unwrap();
+            let mut by_row = vec![f64::NAN; n];
+            for (row, h) in written.rows.iter().zip(&written.leverage) {
+                by_row[*row] = *h;
+            }
+            assert_eq!(absorbed.rows.len(), n, "seed {seed}");
+            let mut total = 0.0;
+            for (row, h) in absorbed.rows.iter().zip(&absorbed.leverage) {
+                assert!(
+                    close(*h, by_row[*row], 1e-9, 1e-12),
+                    "seed {seed}, row {row}: {h} against {}",
+                    by_row[*row]
+                );
+                total += h;
+            }
+            // The leverages sum to the number of parameters: the slope and one per group.
+            assert!(
+                close(total, 1.0 + groups as f64, 1e-9, 0.0),
+                "seed {seed}: {total}"
+            );
+        }
+    }
 }

@@ -47,7 +47,7 @@ expression: all
     
     USAGE
         data.reg(formula, fe: Terms, se: classical | robust | hc2 | hc3, cluster: Var, weights: Var,
-    (and 193 lines more)
+    (and 196 lines more)
 ----
 > let x = sq|rt(2.0)
 0:8-0:12, a function

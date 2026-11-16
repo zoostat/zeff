@@ -327,7 +327,7 @@ pub fn functions() -> Vec<Function> {
                 returns: "Frame",
                 diagnostics: vec![DiagnosticDecl::new(
                     "Z0304",
-                    "a fit with fixed effects, whose influence measures arrive with release 0.8.0",
+                    "a fit with several fixed effects, whose influence measures arrive with release 1.1",
                 )],
                 help: include_str!("../help/influence.md"),
                 accuracy: None,

@@ -128,8 +128,36 @@ cases$wagepan_nr_year <- case("lwage ~ expersq + married + union", "wagepan", "l
 cases$wagepan_educ_absorbed <- case("lwage ~ educ + expersq + married + union", "wagepan", "lwage",
   "educ + expersq + married + union", "nr + year", "nr + year", wagepan, se = "cluster", cluster = "nr")
 
+# Leverage under one absorbed effect (release 0.8.0, step 17): the model with the effect's
+# indicators written out, by `lm`, whose `hatvalues` are the leverages of the full design; the
+# HC2 and HC3 standard errors of sandwich 3.1.1 on it; and R's `cooks.distance` and `rstudent`.
+# The engine has the same from the demeaned columns, a row's leverage there plus its share of
+# its level. On wagepan with the person absorbed, unweighted and with hours as analytic weights.
+suppressMessages(library(sandwich))
+leverage_case <- function(zeff, terms, f, data, weights = NULL) {
+  m <- if (is.null(weights)) lm(f, data) else {
+    data$weights_given <- data[[weights]]
+    lm(f, data, weights = weights_given)
+  }
+  list(
+    formula = zeff, fe = "nr", data = "wagepan", weights = if (is.null(weights)) "" else weights,
+    terms = as.list(terms),
+    se_hc2 = as.list(num17(unname(sqrt(diag(vcovHC(m, type = "HC2")))[terms]))),
+    se_hc3 = as.list(num17(unname(sqrt(diag(vcovHC(m, type = "HC3")))[terms]))),
+    leverage_20 = as.list(num17(unname(hatvalues(m))[1:20])),
+    cooks_20 = as.list(num17(unname(cooks.distance(m))[1:20])),
+    studentized_20 = as.list(num17(unname(rstudent(m))[1:20]))
+  )
+}
+leverage <- list(
+  wagepan_nr = leverage_case("lwage ~ expersq + married + union", c("expersq", "married", "union"),
+                             lwage ~ expersq + married + union + factor(nr), wagepan),
+  wagepan_nr_weighted = leverage_case("lwage ~ expersq + married + union", c("expersq", "married", "union"),
+                                      lwage ~ expersq + married + union + factor(nr), wagepan, weights = "hours")
+)
+
 write_json(list(reference = list(software = R.version.string,
                                  fixest = as.character(packageVersion("fixest")),
                                  note = "fixest::feols with fixef.tol 1e-11; values written with 17 significant digits"),
-                cases = cases),
+                cases = cases, leverage = leverage),
            file.path(here(), "fixed_effects.json"))

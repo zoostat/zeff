@@ -149,6 +149,11 @@ pub struct Design {
     /// columns though they are held as values: so for the fitted regressors of an
     /// instrumental-variables fit (`with_columns`), not for a design with effects projected out.
     pub(crate) own_leverage: bool,
+    /// With exactly one fixed effect projected out: for each row used, its weight over the
+    /// summed weights of its level (one over the level's size without weights). An
+    /// observation's leverage in the full design, the effect's indicators among its columns,
+    /// is its leverage in these columns plus this share, exactly (release 0.8.0, step 17).
+    pub(crate) level_share: Option<Rc<Vec<f64>>>,
 }
 
 /// The design's values held per row used: one vector per column of `names`, and the outcome.
@@ -295,6 +300,7 @@ impl Design {
             dense: None,
             original_outcome: None,
             own_leverage: false,
+            level_share: None,
         })
     }
 
@@ -857,7 +863,14 @@ impl Design {
     /// ruling of release 0.6.0, step 18: `hc2`, `hc3`, `influence` and W1006 wait), so that the
     /// fit need not compute a leverage per row (step 18b).
     pub fn leverage_available(&self) -> bool {
-        self.dense.is_none() || self.own_leverage
+        self.dense.is_none() || self.own_leverage || self.level_share.is_some()
+    }
+
+    /// What a row's leverage in the full design has beside its leverage in this design's
+    /// columns: its share of its level's weight when one fixed effect was projected out, and
+    /// nothing otherwise.
+    pub fn leverage_beside(&self, index: usize) -> f64 {
+        self.level_share.as_ref().map_or(0.0, |share| share[index])
     }
 
     /// This design with other values in its columns: one vector per column of `names`, a value
@@ -905,6 +918,7 @@ impl Design {
             }),
             original_outcome: self.original_outcome.clone(),
             own_leverage,
+            level_share: self.level_share.clone(),
         }
     }
 
@@ -946,6 +960,7 @@ impl Design {
             dense: Some(Dense { columns, outcome }),
             original_outcome: None,
             own_leverage,
+            level_share: self.level_share.clone(),
         }
     }
 

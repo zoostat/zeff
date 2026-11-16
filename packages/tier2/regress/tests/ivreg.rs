@@ -151,8 +151,12 @@ fn the_notes_and_the_refusals() {
             "staff.ivreg(productivity ~ age + training, fe: age, instruments: training ~ offer)",
         ),
         (
-            "hc2 with fixed effects",
+            "hc2 with one fixed effect",
             "staff.ivreg(productivity ~ training, fe: site, instruments: training ~ offer, se: hc2)",
+        ),
+        (
+            "hc3 with several fixed effects",
+            "staff.ivreg(productivity ~ training, fe: site + region, instruments: training ~ offer, se: hc3)",
         ),
         (
             "hc3 with clusters",

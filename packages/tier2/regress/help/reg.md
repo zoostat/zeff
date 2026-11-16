@@ -31,8 +31,9 @@ and Stata's `regress` and `reghdfe`.
   serve; `*`, a range, an expression and the intercept are refused, and so is an effect that
   is also a variable of the formula.
 - se: The kind of standard error: `classical`, `robust` (HC1), `hc2` or `hc3`; `classical` unless
-  sampling weights are given, when `robust`. With `fe:`, `hc2` and `hc3` are refused (Z0410),
-  since an observation's leverage in the full design is not available.
+  sampling weights are given, when `robust`. With one effect in `fe:`, `hc2` and `hc3` count the
+  effect's levels in each leverage; with several effects they are refused (Z0410), since an
+  observation's leverage in the full design is then not available.
 - cluster: The variable whose values group the observations for clustered errors (CR1).
 - weights: The weight variable.
 - weight_type: What the weights are: `frequency` counts, `analytic` precision weights, `sampling`
@@ -72,8 +73,11 @@ reghdfe, and the t table uses G − 1 as without effects. The summary prints R²
 of the regression on the demeaned columns, and R² overall, 1 − RSS/TSS of the outcome with the
 effects' fit included, as fixest's `wr2` and `r2`; `r_squared()` gives both with their adjusted
 forms. `fitted()` includes the effects' part and `predict()` adds each row's effects by level,
-a level the fit never saw predicting `NA` with a warning (W0207); `influence()` on a fit with
-effects waits for release 0.8.0 (Z0304). A fit whose residual variance is below 1e-30 of the fitted values' scale
+a level the fit never saw predicting `NA` with a warning (W0207); with one effect in `fe:` a row's
+leverage is that in the demeaned columns plus its share of its level's weight (1/n of the level
+without weights), which is the leverage with the indicators written out, so `se: hc2`, `se: hc3`,
+`influence()` and the warning W1006 are as without `fe:`; with several effects they wait for
+release 1.1 (Z0410, Z0304). A fit whose residual variance is below 1e-30 of the fitted values' scale
 is noted as essentially perfect, which is R's rule, since its standard errors are then rounding
 alone. After every fit the residuals are checked to be orthogonal to the regressors and the
 variance matrix to be symmetric with no negative variance, and the demeaning to have converged,

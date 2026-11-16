@@ -275,6 +275,8 @@ def check_fixed_effects(committed, regenerated, problems):
             for i, (a, b) in enumerate(zip(case[key], other[key])):
                 if not close(a, b, tolerance, 1e-12):
                     problems.append(f"cases.{name}.{key}[{i}]: committed {a}, regenerated {b}")
+    # The leverage cases of release 0.8.0: every value within the tolerance, the names exactly.
+    check_special({"leverage": committed.get("leverage", {})}, {"leverage": regenerated.get("leverage", {})}, problems, "fixed_effects")
 
 
 def check_event(committed, regenerated, problems):

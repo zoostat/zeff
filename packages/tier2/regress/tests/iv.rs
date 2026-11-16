@@ -525,8 +525,55 @@ fn fits_with_fixed_effects_agree_with_fixest() {
                 all(&ours, theirs, &format!("se clustered by {cluster}"));
             }
         }
-        // Under absorbed effects an observation's leverage is not the design's to give.
-        assert!(!fit.second.leverage_available(), "{name}");
+        // Under one absorbed effect an observation's leverage is that in the projected columns
+        // plus its share of its level; under several it is not the design's to give.
+        assert_eq!(
+            fit.second.leverage_available(),
+            projection.absorbed.effects.len() == 1,
+            "{name}"
+        );
+    }
+}
+
+/// HC2 and HC3 under one absorbed effect (release 0.8.0, step 17), against two-stage least
+/// squares with the effect's indicators written out in base R (`iv.json`,
+/// `fixed_effects_leverage`): the leverage of the second stage counts the indicators.
+#[test]
+fn hc2_and_hc3_under_one_effect_agree_with_the_indicators_written_out() {
+    let text = std::fs::read_to_string(root().join("tests/reference/r/iv.json")).unwrap();
+    let reference: Json = serde_json::from_str(&text).unwrap();
+    let cases = reference["fixed_effects_leverage"].as_object().unwrap();
+    assert_eq!(cases.len(), 1);
+    let card = reference_data("card");
+    for (name, case) in cases {
+        let asked = Model {
+            formula: case["formula"].as_str().unwrap(),
+            endogenous: case["endogenous"].as_str().unwrap(),
+            instruments: case["instruments"].as_str().unwrap(),
+            fe: case["fe"].as_str(),
+            ..Model::default()
+        };
+        let (fit, projection, _) =
+            fit_projected(&card, &asked).unwrap_or_else(|e| panic!("{name}: {e}"));
+        let design = &fit.designs.structural;
+        assert_eq!(design.names, texts(&case["names"]), "{name}: names");
+        for (a, b) in fit
+            .fitted
+            .estimates
+            .iter()
+            .zip(numbers(&case["coefficients"]))
+        {
+            assert!(close(*a, b, 1e-8, 0.0), "{name}: estimate {a} against {b}");
+        }
+        for (kind, key) in [(Kind::Hc2, "se_hc2"), (Kind::Hc3, "se_hc3")] {
+            let ours = std_errors_projected(&card, &fit, projection.as_ref(), kind, None);
+            for ((term, a), b) in design.names.iter().zip(&ours).zip(numbers(&case[key])) {
+                assert!(
+                    close(*a, b, 1e-8, 0.0),
+                    "{name}: {key} of `{term}`: {a} against {b}"
+                );
+            }
+        }
     }
 }
 

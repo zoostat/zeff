@@ -160,18 +160,34 @@ error[Z0401]: `age` is a fixed effect of `fe:` and a variable of the formula too
   |
   = help: an absorbed effect cannot be a regressor or the outcome as well; drop it from `fe:` or from the formula
 
-## hc2 with fixed effects
+## hc2 with one fixed effect
 let staff = dataset(staff).add(one = 1.0, twice = distance * 2, by_site = site * 10.0)
 staff.ivreg(productivity ~ training, fe: site, instruments: training ~ offer, se: hc2)
 
 ---
-error[Z0410]: `se: hc2` and `fe:` exclude each other: with absorbed effects an observation's leverage in the full design is not available
- --> scripts/main.zeff:2:83
+ivreg · productivity ~ training · fe: site
+N = 2,400 (no singletons)
+fixed effects: site (12)
+standard errors: hc2
+
+  term       estimate   std.error   t value   p value   95% CI
+  training     4.6027      0.4298     10.71    <0.001   [3.7599, 5.4454]
+
+instrumented: training · instruments: offer
+Kleibergen–Paap F 730.53 · effective F 730.53 (critical value 23.11)
+
+## hc3 with several fixed effects
+let staff = dataset(staff).add(one = 1.0, twice = distance * 2, by_site = site * 10.0)
+staff.ivreg(productivity ~ training, fe: site + region, instruments: training ~ offer, se: hc3)
+
+---
+error[Z0410]: `se: hc3` and several fixed effects exclude each other: with more than one absorbed effect an observation's leverage in the full design is not available
+ --> scripts/main.zeff:2:92
   |
-2 | staff.ivreg(productivity ~ training, fe: site, instruments: training ~ offer, se: hc2)
-  |                                                                                   ^^^ needs every observation's leverage
+2 | staff.ivreg(productivity ~ training, fe: site + region, instruments: training ~ offer, se: hc3)
+  |                                                                                            ^^^ needs every observation's leverage
   |
-  = help: `se: robust` (HC1) or `cluster:` with `fe:`; HC2 and HC3 with fixed effects arrive with release 0.8.0
+  = help: `se: robust` (HC1) or `cluster:` with several effects; with one effect in `fe:`, `se: hc3` is available; leverage under several effects arrives with release 1.1
 
 ## hc3 with clusters
 let staff = dataset(staff).add(one = 1.0, twice = distance * 2, by_site = site * 10.0)

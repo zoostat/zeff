@@ -519,13 +519,13 @@ pub(crate) struct Choices {
 
 /// The options a model shares with `reg`, read and checked (section 6; the rulings of release
 /// 0.4.0): the kind of standard error from `se:`, `cluster:` and the kind of the weights, with
-/// the combinations that exclude each other refused, and the confidence level. `with_effects`
-/// says whether the model has `fe:`, under which `hc2` and `hc3` are refused.
+/// the combinations that exclude each other refused, and the confidence level. `effects` is
+/// the number of fixed effects in `fe:`: with more than one, `hc2` and `hc3` are refused.
 pub(crate) fn choices(
     ctx: &mut CallContext<'_>,
     args: &Args,
     at: &At,
-    with_effects: bool,
+    effects: usize,
 ) -> Result<Choices, Fail> {
     let cluster = match args.get(at.cluster) {
         Some(Value::Var(name)) => Some(name.clone()),
@@ -548,15 +548,15 @@ pub(crate) fn choices(
         Some(Value::Word(word)) => Some(word.clone()),
         _ => None,
     };
-    if let (Some(word @ ("hc2" | "hc3")), false) = (se_word.as_deref(), !with_effects) {
+    if let (Some(word @ ("hc2" | "hc3")), true) = (se_word.as_deref(), effects > 1) {
         return Err(fail(
             Diagnostic::error(
                 "Z0410",
-                format!("`se: {word}` and `fe:` exclude each other: with absorbed effects an observation's leverage in the full design is not available"),
+                format!("`se: {word}` and several fixed effects exclude each other: with more than one absorbed effect an observation's leverage in the full design is not available"),
             )
             .in_file(ctx.script)
             .primary(ctx.span_of(at.se), "needs every observation's leverage")
-            .help("`se: robust` (HC1) or `cluster:` with `fe:`; HC2 and HC3 with fixed effects arrive with release 0.8.0"),
+            .help(format!("`se: robust` (HC1) or `cluster:` with several effects; with one effect in `fe:`, `se: {word}` is available; leverage under several effects arrives with release 1.1")),
         ));
     }
     let kind = match (se_word.as_deref(), cluster.is_some()) {
@@ -672,7 +672,7 @@ pub fn reg(ctx: &mut CallContext<'_>, args: Args) -> Result<Value, Fail> {
         weight_kind,
         kind,
         level,
-    } = choices(ctx, &args, &REG_AT, !effects.is_empty())?;
+    } = choices(ctx, &args, &REG_AT, effects.len())?;
     // The design and the fit, reused when this run already made them for this frame, formula
     // and weighting (the cluster's `NA` rows change the rows used, so it is part of the key).
     let effects_text = terms_text(&effects);
@@ -859,12 +859,12 @@ pub fn reg(ctx: &mut CallContext<'_>, args: Args) -> Result<Value, Fail> {
     // The statistical warnings: few clusters (W1002), extreme weights (W1003), an observation
     // that drives a coefficient (W1006).
     cluster_and_weight_warnings(ctx, &mut notes, &mut warnings, clusters.as_ref(), &design);
-    // An observation's leverage in the full design is not available with absorbed effects, so
-    // W1006 is judged without them.
-    let driving = if fe.is_some() {
-        Vec::new()
+    // An observation's leverage in the full design is available without absorbed effects and
+    // with one (step 17 of release 0.8.0); with several it is not, and W1006 is not judged.
+    let driving = if design.leverage_available() {
+        driving_observations(&design, &fitted, &bread, absorbed_parameters_of(&fe))
     } else {
-        driving_observations(&design, &fitted, &bread)
+        Vec::new()
     };
     if !driving.is_empty() {
         let listed = driving
@@ -1191,17 +1191,28 @@ fn fit_with_effects(
     Ok((absorbed_design, fitted, work))
 }
 
+/// The parameters of a fit's absorbed effects in N − k, clusters aside; zero without `fe:`.
+fn absorbed_parameters_of(fe: &Option<Rc<FixedEffectWork>>) -> usize {
+    fe.as_ref()
+        .map_or(0, |w| absorbed_parameters(&w.absorbed.effects, None))
+}
+
 /// The rows (1-based, in the frame) whose removal moves some estimate by more than
 /// `DRIVING_DFBETAS` standard errors: DFBETAS from the leave-one-out formulas, which need only
 /// the row, the bread, its residual and its leverage.
-fn driving_observations(design: &Design, fitted: &Fitted, bread: &Matrix) -> Vec<usize> {
+fn driving_observations(
+    design: &Design,
+    fitted: &Fitted,
+    bread: &Matrix,
+    absorbed: usize,
+) -> Vec<usize> {
     let k = fitted.kept.len();
     let n = design.n();
-    if n <= k + 1 {
+    if n <= k + absorbed + 1 {
         return Vec::new();
     }
     let rss = fitted.residual_sum_of_squares;
-    let df = (n - k) as f64;
+    let df = (n - k - absorbed) as f64;
     let mut driving = Vec::new();
     let mut xi = vec![0.0; k];
     for block in design.blocks() {

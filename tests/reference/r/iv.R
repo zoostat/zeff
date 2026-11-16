@@ -313,6 +313,23 @@ agree(sqrt(diag(A %*% crossprod(Sc) %*% A) * 11 / 10 * (n_rows - 1) / (n_rows - 
 Sc <- rowsum(S, card$region)
 agree(sqrt(diag(A %*% crossprod(Sc) %*% A) * 9 / 8 * (n_rows - 1) / (n_rows - 4 - 1)), se(f, vcov = ~region)[fixest_order])
 
+# HC2 and HC3 under one absorbed effect (step 17): two-stage least squares by hand with the
+# region's indicators among the exogenous regressors, whose leverages are those of the full
+# design of fitted regressors; the estimates are those of the absorbed model.
+region_columns <- lapply(2:9, function(r) as.numeric(card$region == r))
+names(region_columns) <- paste0("region", 2:9)
+by_hand <- tsls(card$lwage,
+                c(list(exper = card$exper, expersq = card$expersq, black = card$black, smsa = card$smsa), region_columns),
+                list(educ = card$educ), list(nearc4 = card$nearc4, nearc2 = card$nearc2),
+                c("exper", "expersq", "black", "smsa", names(region_columns), "educ"))
+kept_terms <- c("exper", "expersq", "black", "smsa", "educ")
+at <- match(kept_terms, by_hand$names)
+fe_leverage <- list(card_region = list(
+  data = "card", formula = "lwage ~ exper + expersq + black + smsa + educ", fe = "region", endogenous = "educ",
+  instruments = "nearc4 + nearc2", names = as.list(kept_terms),
+  coefficients = as.list(num17(by_hand$b[at])),
+  se_hc2 = as.list(num17(by_hand$se$hc2[at])), se_hc3 = as.list(num17(by_hand$se$hc3[at]))))
+
 fe_case("over", card, "lwage ~ exper + expersq + black + smsa + educ", "educ", "nearc4 + nearc2", "region",
         lwage ~ exper + expersq + black + smsa | region | educ ~ nearc4 + nearc2,
         c("exper", "expersq", "black", "smsa", "educ"), c("exper", "expersq", "black", "smsa", "fit_educ"),
@@ -715,6 +732,7 @@ critical_points <- lapply(c(1, 1.184778, 1.5, 2, 2.75, 5, 10, 17.3, 40), functio
 out <- list(reference = list(software = R.version.string, fixest = as.character(packageVersion("fixest")),
                              wooldridge = as.character(packageVersion("wooldridge")),
                              note = "two-stage least squares by hand in base R, held to fixest inside the script; 17 significant digits"),
-            cases = cases, fixed_effects = fe_cases, weak = weak_cases, diagnostics = diagnostic_cases,
+            cases = cases, fixed_effects = fe_cases, fixed_effects_leverage = fe_leverage, weak = weak_cases,
+            diagnostics = diagnostic_cases,
             critical_points = critical_points)
 write_json(out, file.path(here(), "iv.json"))

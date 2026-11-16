@@ -91,7 +91,7 @@ pub fn ivreg(ctx: &mut CallContext<'_>, args: Args) -> Result<Value, Fail> {
         weight_kind,
         kind,
         level,
-    } = choices(ctx, &args, &IV_AT, !effects.is_empty())?;
+    } = choices(ctx, &args, &IV_AT, effects.len())?;
     // The designs and the two stages.
     let extra: Vec<&str> = weights
         .iter()
