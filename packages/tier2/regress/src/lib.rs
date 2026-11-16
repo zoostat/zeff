@@ -1,9 +1,11 @@
 //! Package regress (tier 2): linear regression (Engine and Project Specification, section 13;
 //! release 0.4.0): `reg`, ordinary least squares on the kernels with the variance layer of
 //! `results`; `interact` and `event`, the formula terms of section 7.2 and catalogue row 252;
-//! and the methods of regression fits, `r_squared`, `influence` and `vif`.
+//! and the methods of regression fits, `r_squared`, `influence` and `vif`; and, from release
+//! 0.8.0, two-stage least squares (`iv`), the estimator behind `ivreg`.
 
 pub mod diagnostics;
+pub mod iv;
 pub mod ols;
 pub mod reg;
 

@@ -145,6 +145,10 @@ pub struct Design {
     /// The outcome before the transformation, per row used and unweighted, for the overall R²
     /// and the fitted values that include the effects.
     pub original_outcome: Option<Vec<f64>>,
+    /// Whether an observation's leverage in the model is the leverage of this design's own
+    /// columns though they are held as values: so for the fitted regressors of an
+    /// instrumental-variables fit (`with_columns`), not for a design with effects projected out.
+    pub(crate) own_leverage: bool,
 }
 
 /// The design's values held per row used: one vector per column of `names`, and the outcome.
@@ -290,6 +294,7 @@ impl Design {
             block_rows: BLOCK_ROWS,
             dense: None,
             original_outcome: None,
+            own_leverage: false,
         })
     }
 
@@ -852,7 +857,55 @@ impl Design {
     /// ruling of release 0.6.0, step 18: `hc2`, `hc3`, `influence` and W1006 wait), so that the
     /// fit need not compute a leverage per row (step 18b).
     pub fn leverage_available(&self) -> bool {
-        self.dense.is_none()
+        self.dense.is_none() || self.own_leverage
+    }
+
+    /// This design with other values in its columns: one vector per column of `names`, a value
+    /// for each row used, unweighted. The rows, the weights and the outcome are this design's.
+    /// It is how an instrumental-variables fit hands its second stage to least squares and to
+    /// the variance layer (release 0.8.0, step 10): the columns are the fitted regressors, an
+    /// exogenous column its own values, and an observation's leverage is the leverage of these
+    /// columns. With `own_leverage` false the columns are those of a design whose effects are
+    /// projected out, and the leverage is not this design's to give.
+    pub fn with_columns(&self, columns: Vec<Vec<f64>>, own_leverage: bool) -> Design {
+        assert_eq!(
+            columns.len(),
+            self.k(),
+            "one column for each of the design's"
+        );
+        let outcome: Vec<f64> = if self.outcome.is_some() {
+            (0..self.rows.len())
+                .map(|index| self.outcome_value_at(index))
+                .collect()
+        } else {
+            Vec::new()
+        };
+        Design {
+            names: self.names.clone(),
+            rows: self.rows.clone(),
+            dropped: self.dropped,
+            dropped_in: self.dropped_in.clone(),
+            notes: self.notes.clone(),
+            intercept: self.intercept,
+            weights: self.weights.clone(),
+            weight_kind: self.weight_kind,
+            zero_weights: self.zero_weights,
+            unseen: self.unseen.clone(),
+            columns: Vec::new(),
+            sources: Vec::new(),
+            keys: Vec::new(),
+            terms: Vec::new(),
+            term_columns: Vec::new(),
+            outcome: self.outcome,
+            outcome_text: self.outcome_text.clone(),
+            block_rows: self.block_rows,
+            dense: Some(Dense {
+                columns: columns.into_iter().map(Rc::new).collect(),
+                outcome: Rc::new(outcome),
+            }),
+            original_outcome: self.original_outcome.clone(),
+            own_leverage,
+        }
     }
 
     /// The values of column `column`, one for each row used, in the order of `rows`,

@@ -115,7 +115,7 @@ fn effect_specs(terms: &[Term]) -> Vec<(String, Vec<String>)> {
 /// alone, and the design names the missing one). The variables of an `event` term are left
 /// out: its time variable is read for the relative periods alone and is usually a fixed effect
 /// too (`event(year, treat)` with `fe: unit + year`, as fixest's `i(rel) | unit + year`).
-fn formula_variables(formula: &Formula, columns: &[String]) -> Vec<String> {
+pub(crate) fn formula_variables(formula: &Formula, columns: &[String]) -> Vec<String> {
     fn of_expr(expr: &ColumnExpr, out: &mut Vec<String>) {
         match expr {
             ColumnExpr::Var(name) => {

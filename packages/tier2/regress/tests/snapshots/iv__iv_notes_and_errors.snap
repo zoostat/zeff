@@ -1,0 +1,116 @@
+---
+source: packages/tier2/regress/tests/iv.rs
+expression: all
+---
+## the only instrument is constant
+y ~ w + x with instruments: x ~ one
+error[Z0804]: the model is under-identified: 0 excluded instruments remain for 1 instrumented regressor
+ --> t.zeff:1:11
+  |
+1 | let m = d.ivreg(y ~ w + x, instruments: x ~ one)
+  |           ^^^^^ fewer instruments than instrumented regressors
+  |
+  = help: each instrumented regressor needs at least one instrument that is not a regressor of the formula
+  = help: `one` is collinear with the regressors and instruments before it and was dropped from the instruments
+
+## the only instrument is a regressor
+y ~ w + x with instruments: x ~ w
+error[Z0804]: the model is under-identified: 0 excluded instruments for 1 instrumented regressor
+ --> t.zeff:1:11
+  |
+1 | let m = d.ivreg(y ~ w + x, instruments: x ~ w)
+  |           ^^^^^ fewer instruments than instrumented regressors
+  |
+  = help: each instrumented regressor needs at least one instrument that is not a regressor of the formula
+  = help: `w` is already in the formula, so it is an included instrument and identifies nothing
+
+## one instrument for two regressors
+y ~ x + x2 with instruments: x + x2 ~ z1
+error[Z0804]: the model is under-identified: 1 excluded instrument for 2 instrumented regressors
+ --> t.zeff:1:11
+  |
+1 | let m = d.ivreg(y ~ x + x2, instruments: x + x2 ~ z1)
+  |           ^^^^^ fewer instruments than instrumented regressors
+  |
+  = help: each instrumented regressor needs at least one instrument that is not a regressor of the formula
+
+## two instruments of which one is zero, for two regressors
+y ~ x + x2 with instruments: x + x2 ~ z1 + zero
+error[Z0804]: the model is under-identified: 1 excluded instrument remains for 2 instrumented regressors
+ --> t.zeff:1:11
+  |
+1 | let m = d.ivreg(y ~ x + x2, instruments: x + x2 ~ z1 + zero)
+  |           ^^^^^ fewer instruments than instrumented regressors
+  |
+  = help: each instrumented regressor needs at least one instrument that is not a regressor of the formula
+  = help: `zero` is zero in every row used and was dropped from the instruments
+
+## two regressors the instruments move only together
+y ~ xa + xb with instruments: xa + xb ~ a + b
+error[Z0804]: the model is under-identified: the instruments do not tell `xb` from the regressors before it
+ --> t.zeff:1:11
+  |
+1 | let m = d.ivreg(y ~ xa + xb, instruments: xa + xb ~ a + b)
+  |           ^^^^^ instruments that move the regressors only together
+  |
+  = help: the first stage's fitted values are collinear: each instrumented regressor needs an instrument that moves it apart from the others
+
+## an instrumented regressor missing from the formula
+y ~ w with instruments: x ~ z1
+error[Z0504]: `x` is instrumented but is not a regressor
+ --> t.zeff:1:11
+  |
+1 | let m = d.ivreg(y ~ w, instruments: x ~ z1)
+  |           ^^^^^ instrumented, missing from the formula
+  |
+  = help: add it to the regressors: `y ~ w + x`
+
+## an instrument that is instrumented
+y ~ w + x with instruments: x ~ x + z1
+error[Z0505]: `x` is on both sides of `~` in `instruments:`
+ --> t.zeff:1:11
+  |
+1 | let m = d.ivreg(y ~ w + x, instruments: x ~ x + z1)
+  |           ^^^^^ instrumented by itself
+  |
+  = help: an instrument is a variable outside the model that moves the instrumented regressor; a regressor cannot instrument itself
+
+## a product instrumented as one term
+y ~ w * x with instruments: w * x ~ z1 + z2
+error[Z0401]: `w * x` cannot be instrumented as one term: a product stands for several
+ --> t.zeff:1:11
+  |
+1 | let m = d.ivreg(y ~ w * x, instruments: w * x ~ z1 + z2)
+  |           ^^^^^ a product on the left of `~`
+  |
+  = help: name each instrumented term: `instruments: a + a:b ~ z + z:b`
+
+## one row
+y ~ w + x with instruments: x ~ z1
+error[Z0802]: no residual degrees of freedom: 1 row and 1 regressor
+ --> t.zeff:1:11
+  |
+1 | let m = d.ivreg(y ~ w + x, instruments: x ~ z1)
+  |           ^^^^^ as many regressors as rows, or more
+  |
+  = help: a model needs more rows than regressors; drop terms or use more data
+
+## an instrument that is not a variable
+y ~ w + x with instruments: x ~ nowhere
+error[Z0101]: no variable `nowhere` in `the frame`
+ --> t.zeff:1:11
+  |
+1 | let m = d.ivreg(y ~ w + x, instruments: x ~ nowhere)
+  |           ^^^^^ not a variable of the frame
+  |
+  = help: the variables of `the frame` are: y, x, w, z1, z2, one, x2, zero and 4 more
+
+## instruments dropped, and the model still identified
+y ~ w + x with instruments: x ~ zero + one + z1 + (z1 * 3) + z2
+note: `zero` is zero in every row used and was dropped from the instruments
+note: `one`, `(z1 * 3)` are collinear with the regressors and instruments before them and were dropped from the instruments
+fitted: 3 estimates, omitted []
+
+## a regressor collinear with the ones before it
+y ~ w + (w * 2) + x with instruments: x ~ z1
+fitted: 3 estimates, omitted ["(w * 2)"]

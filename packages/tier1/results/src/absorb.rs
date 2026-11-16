@@ -374,6 +374,7 @@ impl Design {
                 outcome,
             }),
             original_outcome,
+            own_leverage: false,
         };
         let absorbed = Absorbed {
             effects: effects.iter().map(|e| e.restricted(&kept)).collect(),

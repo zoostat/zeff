@@ -175,3 +175,13 @@ Step 8b `[engine]`: the language server folds chains, blocks and functions, offe
 **Next.** Step 10 `[engine]`: two-stage least squares, the estimator itself.
 
 **For the owner to decide.** Open decision #149 (a warning repeated in the passes of a loop); nothing blocks.
+
+## 16 November 2026, release 0.8.0, step 10 (two-stage least squares)
+
+**Done.** Step 10 `[engine]`: the estimator behind `ivreg`. The first stages by one QR of the instruments, the second stage by least squares on the fitted regressors, the structural residuals, and every kind of standard error (classical, robust, HC2, HC3, clustered) from the variance layer unchanged, with weights of the three kinds. Card's return to schooling comes out at 0.1323, as the textbooks print it. Eleven cases agree with R (base R held to fixest) within 1e-8. An instrument that is constant, zero or a combination of the regressors is dropped with a note; a model the remaining instruments cannot identify is refused (Z0804) in words that say why. The function `ivreg` itself is step 13: nothing a script can call changed at this step.
+
+**Green.** Format, clippy with warnings denied, the tier, message and grammar checks, every test of the workspace; CI read after the push.
+
+**Next.** Step 11 `[engine]`: two-stage least squares with `fe:`.
+
+**For the owner to decide.** Open decision #150, new: Stata's `ivregress 2sls` prints large-sample standard errors unless `small` is given; Zeff prints the small-sample ones, as R, fixest and `reg` do. Recommended: one form at 1.0, the page saying how Stata's default differs. #149 stays open; nothing blocks.

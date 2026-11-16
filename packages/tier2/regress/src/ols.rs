@@ -312,7 +312,7 @@ fn rows_text(n: usize) -> String {
     )
 }
 
-fn internal(ctx: &CallContext<'_>, what: &str) -> Fail {
+pub(crate) fn internal(ctx: &CallContext<'_>, what: &str) -> Fail {
     fail(
         Diagnostic::error(
             "Z9001",
@@ -331,7 +331,7 @@ const OVERSIZED: f64 = 1e150;
 /// The Euclidean norm computed at the scale of the largest value, so that it neither underflows
 /// nor overflows for values far from one; zero for no values, and the largest value itself when
 /// that is not finite.
-fn scaled_norm(values: &[f64]) -> f64 {
+pub(crate) fn scaled_norm(values: &[f64]) -> f64 {
     let scale = values.iter().fold(0.0_f64, |m, v| m.max(v.abs()));
     if scale == 0.0 || !scale.is_finite() {
         return scale;
