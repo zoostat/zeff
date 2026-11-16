@@ -819,7 +819,8 @@ fn distribution_cases() -> Vec<Line> {
 }
 
 /// The linear-algebra kernel (release 0.4.0, step 2): the reduction shape, the blocked QR with
-/// its limited pivoting, the triangular inverse, the Cholesky factor and the singular values, on
+/// its limited pivoting, the triangular inverse, the Cholesky factor, the singular values and
+/// (from release 0.8.0) the eigenvalues and eigenvectors of a symmetric matrix, on
 /// generated data with magnitudes up to 1e12, so that the four targets prove the same bits.
 fn kernels_cases() -> Vec<Line> {
     use zeff_kernels::cholesky::cholesky;
@@ -937,6 +938,22 @@ fn kernels_cases() -> Vec<Line> {
     let mut spectrum = singular_values(&x);
     spectrum.push(condition_number(&fit.r));
     lines.push(series("kernels/singular_values", &spectrum));
+    // The symmetric eigenvalue routine (release 0.8.0, step 12a): the eigenvalues and the
+    // eigenvectors of the Gram matrix of the kept columns, whose entries run from 1e2 to 1e26,
+    // and of the same less the mean of its diagonal, which is not definite.
+    let symmetric = gram(&kept);
+    let order = symmetric.rows();
+    let mean = (0..order).map(|i| symmetric.get(i, i)).sum::<f64>() / order as f64;
+    let shifted = Matrix::from_fn(order, order, |i, j| {
+        symmetric.get(i, j) - if i == j { mean } else { 0.0 }
+    });
+    let mut eigen: Vec<f64> = Vec::new();
+    for matrix in [&symmetric, &shifted] {
+        let found = zeff_kernels::eigen::symmetric_eigen(matrix);
+        eigen.extend(&found.values);
+        eigen.extend(found.vectors.data());
+    }
+    lines.push(series("kernels/symmetric_eigen", &eigen));
     lines
 }
 

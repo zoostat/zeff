@@ -97,3 +97,13 @@ The merges decided during 0.7.0, each old name refused with its rewrite: step 8g
 **Next.** Step 12 `[engine]`: the weak-instrument statistics, with a symmetric eigenvalue routine in the kernels.
 
 **For the owner to decide.** Open decisions #149 and #150; nothing blocks.
+
+## 16 November 2026, release 0.8.0, step 12a (the symmetric eigenvalue routine)
+
+**Done.** Step 12 was too large for one step and is three in the checklist: 12a the kernel, 12b the first-stage F and the Cragg–Donald F, 12c the Kleibergen–Paap F, the effective F and the weak-instrument warning. Step 12a `[engine]`: the eigenvalues and eigenvectors of a symmetric matrix, by Jacobi rotations in a fixed order, in the engine's own arithmetic. It agrees with R's `eigen` on 23 matrices within LAPACK's own accuracy, and its values are compared bit for bit across the four targets. Nothing a script can call changed.
+
+**Green.** Format, clippy with warnings denied, the tier, message and grammar checks, every test of the workspace; CI read after the push.
+
+**Next.** Step 12b `[engine]`: the first-stage F and the Cragg–Donald F.
+
+**For the owner to decide.** Open decisions #149 and #150; nothing blocks.

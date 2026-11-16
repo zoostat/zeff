@@ -4,6 +4,7 @@
 
 use proptest::prelude::*;
 use zeff_kernels::cholesky::cholesky;
+use zeff_kernels::eigen::symmetric_eigen;
 use zeff_kernels::product::{gram, mat_vec, matmul};
 use zeff_kernels::qr::{TallSkinnyQr, fold, least_squares, r_factor};
 use zeff_kernels::svd::singular_values;
@@ -168,6 +169,91 @@ proptest! {
         let largest = values.first().copied().unwrap_or(0.0);
         for (a, b) in values.iter().zip(&transposed) {
             prop_assert!((a - b).abs() <= 1e-12 * largest.max(1e-300));
+        }
+    }
+}
+
+/// A symmetric matrix of order one to seven, its entries of very different sizes: each entry
+/// (i, j) is a value in (−1, 1) times the scales of row i and of column j, a power of ten from
+/// 1e-6 to 1e6 each, so that the matrix is graded as a covariance of variables in different
+/// units is.
+fn symmetric() -> impl Strategy<Value = Matrix> {
+    (1usize..8).prop_flat_map(|n| {
+        (
+            prop::collection::vec(-1.0..1.0_f64, n * n),
+            prop::collection::vec(-6i32..7, n),
+        )
+            .prop_map(move |(data, powers)| {
+                let scale: Vec<f64> = powers.iter().map(|p| 10f64.powi(*p)).collect();
+                Matrix::from_fn(n, n, |i, j| {
+                    let (lo, hi) = (i.min(j), i.max(j));
+                    data[lo * n + hi] * scale[i] * scale[j]
+                })
+            })
+    })
+}
+
+proptest! {
+    #![proptest_config(ProptestConfig::with_cases(property_cases(200)))]
+
+    /// What an eigen-decomposition is: A v = λ v for every pair, the vectors orthonormal, the
+    /// values ascending and summing to the trace.
+    #[test]
+    fn the_eigenvectors_of_a_symmetric_matrix_are_what_they_say(a in symmetric()) {
+        let n = a.rows();
+        let found = symmetric_eigen(&a);
+        let largest = max_abs(a.data());
+        for pair in found.values.windows(2) {
+            prop_assert!(pair[0] <= pair[1]);
+        }
+        for (c, value) in found.values.iter().enumerate() {
+            let v = found.vectors.column(c);
+            for i in 0..n {
+                let av: f64 = (0..n).map(|j| a.get(i, j) * v[j]).sum();
+                prop_assert!((av - value * v[i]).abs() <= 1e-13 * largest * n as f64, "row {} of A v − λ v: {}", i, av - value * v[i]);
+            }
+            for d in 0..=c {
+                let product = dot(v, found.vectors.column(d));
+                let want = if c == d { 1.0 } else { 0.0 };
+                prop_assert!((product - want).abs() <= 1e-14 * n as f64, "vectors {} and {}: {}", c, d, product);
+            }
+        }
+        let trace: f64 = (0..n).map(|i| a.get(i, i)).sum();
+        prop_assert!((sum(&found.values) - trace).abs() <= 1e-13 * largest * n as f64);
+    }
+
+    /// The same matrix with its rows and columns in another order has the same eigenvalues, and
+    /// a matrix times a power of two has its eigenvalues times that power, to the bit.
+    #[test]
+    fn the_eigenvalues_do_not_depend_on_the_order_or_the_unit(a in symmetric(), turn in 0usize..7) {
+        let n = a.rows();
+        let found = symmetric_eigen(&a);
+        let largest = max_abs(a.data());
+        let moved = Matrix::from_fn(n, n, |i, j| a.get((i + turn) % n, (j + turn) % n));
+        for (x, y) in found.values.iter().zip(&symmetric_eigen(&moved).values) {
+            prop_assert!((x - y).abs() <= 1e-13 * largest * n as f64, "{} against {}", x, y);
+        }
+        let scaled = Matrix::from_fn(n, n, |i, j| a.get(i, j) * 1024.0);
+        for (x, y) in found.values.iter().zip(&symmetric_eigen(&scaled).values) {
+            prop_assert_eq!((x * 1024.0).to_bits(), y.to_bits());
+        }
+    }
+
+    /// The cross-product of a matrix has the squares of its singular values for eigenvalues.
+    #[test]
+    fn the_eigenvalues_of_a_cross_product_are_the_squared_singular_values(x in matrix(2..12, 1..5)) {
+        // Ascending, as the eigenvalues are.
+        let squares: Vec<f64> = singular_values(&x).iter().rev().map(|s| s * s).collect();
+        let found = symmetric_eigen(&gram(&x));
+        let largest = found.values.iter().fold(0.0_f64, |m, v| m.max(v.abs()));
+        // A matrix with fewer rows than columns has more eigenvalues than singular values: the
+        // extra ones are zero, the smallest.
+        let extra = found.values.len() - squares.len();
+        for value in &found.values[..extra] {
+            prop_assert!(value.abs() <= 1e-11 * largest, "{} is not zero", value);
+        }
+        for (value, square) in found.values[extra..].iter().zip(&squares) {
+            prop_assert!((value - square).abs() <= 1e-11 * largest, "{} against {}", value, square);
         }
     }
 }

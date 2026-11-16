@@ -187,8 +187,19 @@ def check_kernels(committed, regenerated, problems):
             problems.append(f"least_squares.{name}.condition_number: committed {case['condition_number']}, regenerated {other['condition_number']}")
         if not close(case["condition_number_scaled"], other["condition_number_scaled"], tolerance):
             problems.append(f"least_squares.{name}.condition_number_scaled: committed {case['condition_number_scaled']}, regenerated {other['condition_number_scaled']}")
-    rest_committed = {k: v for k, v in committed.items() if k not in ("reference", "least_squares")}
-    rest_regenerated = {k: v for k, v in regenerated.items() if k not in ("reference", "least_squares")}
+    # The eigenvalues of a symmetric matrix are computed by LAPACK to an absolute accuracy of
+    # about epsilon times the largest in size, whatever their own size.
+    for name, values in committed.get("symmetric", {}).items():
+        other = regenerated.get("symmetric", {}).get(name)
+        if other is None or len(other) != len(values):
+            problems.append(f"symmetric.{name}: missing, or a different number of eigenvalues")
+            continue
+        largest = max((abs(number(v)) for v in values), default=1.0)
+        for i, (a, b) in enumerate(zip(values, other)):
+            if not close(a, b, base, 1e-12 * largest):
+                problems.append(f"symmetric.{name}[{i}]: committed {a}, regenerated {b}")
+    rest_committed = {k: v for k, v in committed.items() if k not in ("reference", "least_squares", "symmetric")}
+    rest_regenerated = {k: v for k, v in regenerated.items() if k not in ("reference", "least_squares", "symmetric")}
     check_special(rest_committed, rest_regenerated, problems, "kernels")
 
 

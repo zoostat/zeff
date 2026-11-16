@@ -1,6 +1,7 @@
 //! The kernel against R 4.6.0 (`tests/reference/r/kernels.R`): the limited-pivoting QR of `qr`
 //! (LINPACK's dqrdc2, the factorisation behind `lm`), its coefficients, residuals and leverages,
-//! the condition numbers and singular values, `backsolve`, `chol` and `solve`.
+//! the condition numbers and singular values, `backsolve`, `chol` and `solve`, and the
+//! eigenvalues of symmetric matrices by `eigen`.
 
 mod common;
 
@@ -9,7 +10,8 @@ use common::{
     with_positive_diagonal,
 };
 use zeff_kernels::cholesky::{cholesky, solve_with_factor};
-use zeff_kernels::product::matmul;
+use zeff_kernels::eigen::symmetric_eigen;
+use zeff_kernels::product::{gram, matmul};
 use zeff_kernels::qr::{least_squares, pivoted_qr, r_factor};
 use zeff_kernels::svd::{condition_number, singular_values};
 use zeff_kernels::triangular::{inverse_upper, solve_upper, solve_upper_transposed};
@@ -174,5 +176,66 @@ fn backsolve_chol_and_solve_agree_with_r() {
     let x = solve_with_factor(&l, &vector(&exact["positive_definite"]["b"])).unwrap();
     for (got, want) in x.iter().zip(vector(&reference["positive_definite"]["x"])) {
         assert!(close(*got, want, 1e-10, 0.0), "solve: {got} against {want}");
+    }
+}
+
+/// The eigenvalues of symmetric matrices against R's `eigen(symmetric = TRUE)`: the
+/// positive-definite matrix, the cross-product of every design with two columns or more, and
+/// the same less the mean of its diagonal, which is not definite. An eigenvalue is held to an
+/// absolute accuracy of 1e-12 of the largest in size, which is what LAPACK promises of its own;
+/// and each computed pair is held to the matrix itself: A v = λ v, with orthonormal vectors.
+#[test]
+fn the_eigenvalues_agree_with_r() {
+    let exact = load("kernels.json");
+    let reference = load("r/kernels.json");
+    let cases = reference["symmetric"].as_object().expect("cases");
+    assert_eq!(cases.len(), 23);
+    for (name, values) in cases {
+        let a = if name == "positive_definite" {
+            matrix(&exact["positive_definite"]["a"])
+        } else {
+            let (case, kind) = name.rsplit_once('_').expect("a design and a kind");
+            let g = gram(&matrix(&exact["least_squares"][case]["x"]));
+            let k = g.rows();
+            if kind == "shifted" {
+                let mean = (0..k).map(|i| g.get(i, i)).sum::<f64>() / k as f64;
+                Matrix::from_fn(k, k, |i, j| g.get(i, j) - if i == j { mean } else { 0.0 })
+            } else {
+                g
+            }
+        };
+        let found = symmetric_eigen(&a);
+        let want = vector(values);
+        assert_eq!(found.values.len(), want.len(), "{name}: how many");
+        let largest = max_abs(&want).max(max_abs(a.data()));
+        for (got, want) in found.values.iter().zip(&want) {
+            assert!(
+                (got - want).abs() <= 1e-12 * largest,
+                "{name}: eigenvalue {got} against R's {want}"
+            );
+        }
+        let k = a.rows();
+        for (c, value) in found.values.iter().enumerate() {
+            let v = found.vectors.column(c);
+            for i in 0..k {
+                let av: f64 = (0..k).map(|j| a.get(i, j) * v[j]).sum();
+                assert!(
+                    (av - value * v[i]).abs() <= 1e-12 * largest,
+                    "{name}: row {i} of A v − λ v for eigenvalue {c}"
+                );
+            }
+            for d in 0..=c {
+                let product: f64 = v
+                    .iter()
+                    .zip(found.vectors.column(d))
+                    .map(|(x, y)| x * y)
+                    .sum();
+                let want = if c == d { 1.0 } else { 0.0 };
+                assert!(
+                    (product - want).abs() <= 1e-13,
+                    "{name}: vectors {c} and {d} have product {product}"
+                );
+            }
+        }
     }
 }

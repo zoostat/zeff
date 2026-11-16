@@ -3,7 +3,7 @@
 # behind `lm`, with its default tolerance 1e-7), the coefficients, residuals and leverages it
 # gives, the exact condition number of the kept R factor from its singular values, the singular
 # values of each matrix, `backsolve` on the triangular system and `chol` and `solve` on the
-# positive-definite one. R is the main reference (testing handbook, section 1.1); the exact
+# positive-definite one, and the eigenvalues of symmetric matrices by `eigen`. R is the main reference (testing handbook, section 1.1); the exact
 # rational reference of kernels.py stays the strict one. Run with
 # `Rscript tests/reference/r/kernels.R`.
 source(file.path(dirname(sub("^--file=", "", commandArgs(FALSE)[grepl("^--file=", commandArgs(FALSE))])), "common.R"))
@@ -57,9 +57,24 @@ tri_b <- vector_of("triangular", "b")
 pd_a <- matrix_of("positive_definite", "a")
 pd_b <- vector_of("positive_definite", "b")
 
+# The eigenvalues of symmetric matrices (release 0.8.0, step 12a), by `eigen(symmetric = TRUE)`,
+# ascending: of the positive-definite matrix, and for each design with at least two columns of
+# its cross-product (positive semi-definite, singular where the design has a dependent column)
+# and of the cross-product less the mean of its diagonal times the identity (not definite).
+ascending <- function(a) as.list(num(rev(eigen(a, symmetric = TRUE, only.values = TRUE)$values)))
+symmetric <- list(positive_definite = ascending(pd_a))
+for (name in unique(cases$case[cases$kind == "x"])) {
+  x <- matrix_of(name, "x")
+  if (ncol(x) < 2) next
+  g <- crossprod(x)
+  symmetric[[paste0(name, "_gram")]] <- ascending(g)
+  symmetric[[paste0(name, "_shifted")]] <- ascending(g - diag(mean(diag(g)), ncol(g)))
+}
+
 out <- list(
   reference = reference_block(),
   least_squares = least_squares,
+  symmetric = symmetric,
   triangular = list(
     x = as.list(num(backsolve(tri_r, tri_b))),
     inverse = rows_of(backsolve(tri_r, diag(nrow(tri_r))))
