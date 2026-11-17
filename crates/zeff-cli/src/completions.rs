@@ -1,7 +1,7 @@
 //! `zeff completions <shell>` (Engine and Project Specification, section 2.1): the file by
 //! which bash, zsh, fish or PowerShell completes a `zeff` command line: the commands, the
-//! options and their values, and after `zeff help` the names of the functions, of the
-//! packages and of the diagnostic codes.
+//! options and their values, after `zeff help` the names of the functions, of the packages
+//! and of the diagnostic codes, and after `zeff explain` the codes alone.
 //!
 //! The file is written by the program from its own lists: the commands and options of the
 //! tables below, which a test holds to the text of `zeff help`, and the functions, packages
@@ -18,6 +18,8 @@ pub enum After {
     Script,
     /// A function, a package or a diagnostic code.
     Topic,
+    /// A diagnostic code.
+    Code,
     /// One of the four shells.
     Shell,
 }
@@ -53,6 +55,11 @@ pub const COMMANDS: &[(&str, After, &str)] = &[
         "help",
         After::Topic,
         "a help page, the functions of a package, or a code explained",
+    ),
+    (
+        "explain",
+        After::Code,
+        "explain the code of an error or a warning",
     ),
     ("version", After::Nothing, "print the version of Zeff"),
     (
@@ -174,6 +181,16 @@ pub fn topics() -> Vec<String> {
     functions.into_iter().chain(packages).chain(codes).collect()
 }
 
+/// The codes `zeff explain` takes: every diagnostic code with an explained page, in order.
+pub fn codes() -> Vec<String> {
+    let mut codes: Vec<String> = zeff_engine::explain::codes()
+        .into_iter()
+        .map(str::to_string)
+        .collect();
+    codes.sort();
+    codes
+}
+
 /// The options that take something after them, in both forms, for a shell to step over the
 /// word that follows one.
 fn with_a_value() -> Vec<&'static str> {
@@ -232,15 +249,17 @@ fn bash(topics: &[String]) -> String {
         "Load it with:  eval \"$(zeff completions bash)\"",
     );
     out.push_str(&format!(
-        "_zeff() {{\n    local cur prev command i\n    cur=\"${{COMP_WORDS[COMP_CWORD]}}\"\n    prev=\"\"\n    if [ \"$COMP_CWORD\" -gt 0 ]; then prev=\"${{COMP_WORDS[COMP_CWORD-1]}}\"; fi\n    local commands=\"{}\"\n    local options=\"{}\"\n    local shells=\"{}\"\n    local topics=\"{}\"\n",
+        "_zeff() {{\n    local cur prev command i\n    cur=\"${{COMP_WORDS[COMP_CWORD]}}\"\n    prev=\"\"\n    if [ \"$COMP_CWORD\" -gt 0 ]; then prev=\"${{COMP_WORDS[COMP_CWORD-1]}}\"; fi\n    local commands=\"{}\"\n    local options=\"{}\"\n    local shells=\"{}\"\n    local topics=\"{}\"\n    local codes=\"{}\"\n",
         commands.join(" "),
         options.join(" "),
         SHELLS.join(" "),
-        topics.join(" ")
+        topics.join(" "),
+        codes().join(" ")
     ));
     out.push_str(&format!(
-        "    # The command: the first word that is neither an option nor what an option takes.\n    command=\"\"\n    i=1\n    while [ \"$i\" -lt \"$COMP_CWORD\" ]; do\n        case \"${{COMP_WORDS[i]}}\" in\n            {stepped}) i=$((i + 1)) ;;\n            -*) ;;\n            *) command=\"${{COMP_WORDS[i]}}\"; break ;;\n        esac\n        i=$((i + 1))\n    done\n    case \"$prev\" in\n{after_an_option}    esac\n    case \"$cur\" in\n        -*) COMPREPLY=($(compgen -W \"$options\" -- \"$cur\")); return ;;\n    esac\n    case \"$command\" in\n        \"\") COMPREPLY=($(compgen -W \"$commands\" -- \"$cur\")) ;;\n        {}) COMPREPLY=($(compgen -W \"$topics\" -- \"$cur\")) ;;\n        {}) COMPREPLY=($(compgen -W \"$shells\" -- \"$cur\")) ;;\n        {}) COMPREPLY=($(compgen -f -X '!*.zeff' -- \"$cur\") $(compgen -d -- \"$cur\")) ;;\n        *) COMPREPLY=() ;;\n    esac\n}}\ncomplete -F _zeff zeff\n",
+        "    # The command: the first word that is neither an option nor what an option takes.\n    command=\"\"\n    i=1\n    while [ \"$i\" -lt \"$COMP_CWORD\" ]; do\n        case \"${{COMP_WORDS[i]}}\" in\n            {stepped}) i=$((i + 1)) ;;\n            -*) ;;\n            *) command=\"${{COMP_WORDS[i]}}\"; break ;;\n        esac\n        i=$((i + 1))\n    done\n    case \"$prev\" in\n{after_an_option}    esac\n    case \"$cur\" in\n        -*) COMPREPLY=($(compgen -W \"$options\" -- \"$cur\")); return ;;\n    esac\n    case \"$command\" in\n        \"\") COMPREPLY=($(compgen -W \"$commands\" -- \"$cur\")) ;;\n        {}) COMPREPLY=($(compgen -W \"$topics\" -- \"$cur\")) ;;\n        {}) COMPREPLY=($(compgen -W \"$codes\" -- \"$cur\")) ;;\n        {}) COMPREPLY=($(compgen -W \"$shells\" -- \"$cur\")) ;;\n        {}) COMPREPLY=($(compgen -f -X '!*.zeff' -- \"$cur\") $(compgen -d -- \"$cur\")) ;;\n        *) COMPREPLY=() ;;\n    esac\n}}\ncomplete -F _zeff zeff\n",
         commands_after(After::Topic).join("|"),
+        commands_after(After::Code).join("|"),
         commands_after(After::Shell).join("|"),
         commands_after(After::Script).join("|"),
     ));
@@ -304,13 +323,15 @@ fn zsh(topics: &[String]) -> String {
         "Load it with:  source <(zeff completions zsh)   (after compinit), or save it as _zeff in a folder of $fpath.",
     ));
     out.push_str(&format!(
-        "_zeff() {{\n    local -a commands options shells topics\n    commands=(\n{commands}    )\n    options=(\n{options}    )\n    shells=({})\n    topics=({})\n",
+        "_zeff() {{\n    local -a commands options shells topics codes\n    commands=(\n{commands}    )\n    options=(\n{options}    )\n    shells=({})\n    topics=({})\n    codes=({})\n",
         SHELLS.join(" "),
-        topics.join(" ")
+        topics.join(" "),
+        codes().join(" ")
     ));
     out.push_str(&format!(
-        "    # The command: the first word that is neither an option nor what an option takes.\n    local command=\"\"\n    local -i i=2\n    while (( i < CURRENT )); do\n        case \"${{words[i]}}\" in\n            {stepped}) (( i++ )) ;;\n            -*) ;;\n            *) command=\"${{words[i]}}\"; break ;;\n        esac\n        (( i++ ))\n    done\n    case \"${{words[CURRENT-1]}}\" in\n{after_an_option}    esac\n    if [[ \"${{words[CURRENT]}}\" == -* ]]; then\n        _describe 'option' options\n        return\n    fi\n    case \"$command\" in\n        \"\") _describe 'command' commands ;;\n        {}) compadd -a topics ;;\n        {}) compadd -a shells ;;\n        {}) _files -g '*.zeff' ;;\n    esac\n}}\n# Run where zsh loads this file as the function itself; registered where it is sourced.\nif [[ \"${{funcstack[1]}}\" == \"_zeff\" ]]; then\n    _zeff \"$@\"\nelse\n    compdef _zeff zeff\nfi\n",
+        "    # The command: the first word that is neither an option nor what an option takes.\n    local command=\"\"\n    local -i i=2\n    while (( i < CURRENT )); do\n        case \"${{words[i]}}\" in\n            {stepped}) (( i++ )) ;;\n            -*) ;;\n            *) command=\"${{words[i]}}\"; break ;;\n        esac\n        (( i++ ))\n    done\n    case \"${{words[CURRENT-1]}}\" in\n{after_an_option}    esac\n    if [[ \"${{words[CURRENT]}}\" == -* ]]; then\n        _describe 'option' options\n        return\n    fi\n    case \"$command\" in\n        \"\") _describe 'command' commands ;;\n        {}) compadd -a topics ;;\n        {}) compadd -a codes ;;\n        {}) compadd -a shells ;;\n        {}) _files -g '*.zeff' ;;\n    esac\n}}\n# Run where zsh loads this file as the function itself; registered where it is sourced.\nif [[ \"${{funcstack[1]}}\" == \"_zeff\" ]]; then\n    _zeff \"$@\"\nelse\n    compdef _zeff zeff\nfi\n",
         commands_after(After::Topic).join("|"),
+        commands_after(After::Code).join("|"),
         commands_after(After::Shell).join("|"),
         commands_after(After::Script).join("|"),
     ));
@@ -349,9 +370,11 @@ fn fish(topics: &[String]) -> String {
         out.push_str(&format!("{line} -d {}\n", quoted(says)));
     }
     out.push_str(&format!(
-        "\ncomplete -c zeff -n '__zeff_after {}' -a {}\ncomplete -c zeff -n '__zeff_after {}' -a {}\ncomplete -c zeff -n '__zeff_after {}' -k -a '(__fish_complete_suffix .zeff)'\n",
+        "\ncomplete -c zeff -n '__zeff_after {}' -a {}\ncomplete -c zeff -n '__zeff_after {}' -a {}\ncomplete -c zeff -n '__zeff_after {}' -a {}\ncomplete -c zeff -n '__zeff_after {}' -k -a '(__fish_complete_suffix .zeff)'\n",
         commands_after(After::Topic).join(" "),
         quoted(&topics.join(" ")),
+        commands_after(After::Code).join(" "),
+        quoted(&codes().join(" ")),
         commands_after(After::Shell).join(" "),
         quoted(&SHELLS.join(" ")),
         commands_after(After::Script).join(" "),
@@ -396,16 +419,18 @@ fn powershell(topics: &[String]) -> String {
         "Load it with:  zeff completions powershell | Out-String | Invoke-Expression   or add that line to $PROFILE",
     );
     out.push_str(&format!(
-        "Register-ArgumentCompleter -Native -CommandName zeff -ScriptBlock {{\n    param($wordToComplete, $commandAst, $cursorPosition)\n    $commands = @({})\n    $options = @({})\n    $shells = @({})\n    $topics = @({})\n    $takesAValue = @({})\n",
+        "Register-ArgumentCompleter -Native -CommandName zeff -ScriptBlock {{\n    param($wordToComplete, $commandAst, $cursorPosition)\n    $commands = @({})\n    $options = @({})\n    $shells = @({})\n    $topics = @({})\n    $codes = @({})\n    $takesAValue = @({})\n",
         list(&owned(&commands)),
         list(&owned(&options)),
         list(&owned(SHELLS)),
         list(topics),
+        list(&codes()),
         list(&owned(&with_a_value())),
     ));
     out.push_str(&format!(
-        "    # The words before the one being completed, without the name of the program.\n    $before = @($commandAst.CommandElements | Where-Object {{ $_.Extent.EndOffset -lt $cursorPosition -or ($_.Extent.EndOffset -eq $cursorPosition -and $wordToComplete -eq '') }} | ForEach-Object {{ $_.ToString() }})\n    if ($before.Count -gt 0) {{ $before = @($before | Select-Object -Skip 1) }}\n    # The command: the first word that is neither an option nor what an option takes.\n    $command = ''\n    for ($i = 0; $i -lt $before.Count; $i++) {{\n        $word = $before[$i]\n        if ($takesAValue -contains $word) {{ $i++; continue }}\n        if ($word.StartsWith('-')) {{ continue }}\n        $command = $word\n        break\n    }}\n    $previous = if ($before.Count -gt 0) {{ $before[$before.Count - 1] }} else {{ '' }}\n    $offered = $null\n    switch ($previous) {{\n{after_an_option}    }}\n    if ($null -eq $offered) {{\n        if ($wordToComplete.StartsWith('-')) {{ $offered = $options }}\n        elseif ($command -eq '') {{ $offered = $commands }}\n        elseif (@({}) -contains $command) {{ $offered = $topics }}\n        elseif (@({}) -contains $command) {{ $offered = $shells }}\n        else {{ $offered = @() }}\n    }}\n    $offered | Where-Object {{ $_ -like \"$wordToComplete*\" }} | ForEach-Object {{\n        [System.Management.Automation.CompletionResult]::new($_, $_, 'ParameterValue', $_)\n    }}\n}}\n",
+        "    # The words before the one being completed, without the name of the program.\n    $before = @($commandAst.CommandElements | Where-Object {{ $_.Extent.EndOffset -lt $cursorPosition -or ($_.Extent.EndOffset -eq $cursorPosition -and $wordToComplete -eq '') }} | ForEach-Object {{ $_.ToString() }})\n    if ($before.Count -gt 0) {{ $before = @($before | Select-Object -Skip 1) }}\n    # The command: the first word that is neither an option nor what an option takes.\n    $command = ''\n    for ($i = 0; $i -lt $before.Count; $i++) {{\n        $word = $before[$i]\n        if ($takesAValue -contains $word) {{ $i++; continue }}\n        if ($word.StartsWith('-')) {{ continue }}\n        $command = $word\n        break\n    }}\n    $previous = if ($before.Count -gt 0) {{ $before[$before.Count - 1] }} else {{ '' }}\n    $offered = $null\n    switch ($previous) {{\n{after_an_option}    }}\n    if ($null -eq $offered) {{\n        if ($wordToComplete.StartsWith('-')) {{ $offered = $options }}\n        elseif ($command -eq '') {{ $offered = $commands }}\n        elseif (@({}) -contains $command) {{ $offered = $topics }}\n        elseif (@({}) -contains $command) {{ $offered = $codes }}\n        elseif (@({}) -contains $command) {{ $offered = $shells }}\n        else {{ $offered = @() }}\n    }}\n    $offered | Where-Object {{ $_ -like \"$wordToComplete*\" }} | ForEach-Object {{\n        [System.Management.Automation.CompletionResult]::new($_, $_, 'ParameterValue', $_)\n    }}\n}}\n",
         list(&owned(&commands_after(After::Topic))),
+        list(&owned(&commands_after(After::Code))),
         list(&owned(&commands_after(After::Shell))),
     ));
     out
@@ -508,6 +533,11 @@ mod tests {
             assert_eq!(topics.iter().filter(|t| *t == name).count(), 1, "{name}");
         }
         assert!(topics.len() > 300, "{}", topics.len());
+        // After `zeff explain` the codes alone: every one, and no function.
+        let codes = codes();
+        assert_eq!(codes.len(), zeff_engine::explain::codes().len());
+        assert!(codes.iter().all(|code| zeff_engine::explain::is_code(code)));
+        assert!(codes.windows(2).all(|pair| pair[0] < pair[1]));
         assert_eq!(file("ksh"), None);
         for shell in SHELLS {
             assert!(

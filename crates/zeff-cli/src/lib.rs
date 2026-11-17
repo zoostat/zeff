@@ -40,6 +40,9 @@ Commands:
                     run one statement in the scratch project and print its value
   help <name>       print a function's help page, list a package's functions, or
                     explain a code such as Z0101
+  explain [code]    explain the code of an error or a warning, such as Z0402: its meaning,
+                    its common causes, an example and the fix; without a code, list the
+                    codes by family
   version           print the version of Zeff
   selftest          run the conformance cases shipped with the engine against their published
                     results and say whether this installation is conformant
@@ -50,8 +53,8 @@ Commands:
 
 Options:
   -p, --project <dir>     the project to act on (default: the nearest folder with zeff.toml)
-  --format text|json      for `check`, `test`, `version` and `selftest`: text (the default),
-                          or JSON records for an editor
+  --format text|json      for `check`, `test`, `version`, `selftest` and `explain`: text (the
+                          default), or JSON records for an editor
   --color auto|always|never
                           colour in messages; `auto` means a terminal, and NO_COLOR is honoured
   --ascii                 rules and symbols in ASCII, for fonts without them
@@ -428,12 +431,12 @@ pub fn run(
     if settings.format == Format::Json
         && !matches!(
             words.first(),
-            Some(&("check" | "test" | "version" | "--version" | "-V" | "selftest"))
+            Some(&("check" | "test" | "version" | "--version" | "-V" | "selftest" | "explain"))
         )
     {
         return usage_error(
             &mut err,
-            "`--format json` applies to `zeff check`, `zeff test`, `zeff version` and `zeff selftest` in this release",
+            "`--format json` applies to `zeff check`, `zeff test`, `zeff version`, `zeff selftest` and `zeff explain` in this release",
         );
     }
     if settings.deny_warnings && !matches!(words.first(), Some(&("run" | "check" | "test"))) {
@@ -485,6 +488,12 @@ pub fn run(
         ["selftest"] => selftest_command(&command, &mut out),
         ["selftest", ..] => usage_error(&mut err, "`zeff selftest` takes no arguments"),
         ["help", name] => help_command(&command, name, &mut out, &mut err),
+        ["explain"] => explain_command(&command, None, &mut out, &mut err),
+        ["explain", code] => explain_command(&command, Some(code), &mut out, &mut err),
+        ["explain", ..] => usage_error(
+            &mut err,
+            "`zeff explain` takes one code, such as `zeff explain Z0402`, or none to list them",
+        ),
         ["help", ..] => usage_error(
             &mut err,
             "`zeff help` takes one name, as in `zeff help mean` or `zeff help data`",
@@ -1360,6 +1369,56 @@ fn help_command(
         }
         Err(message) => {
             let _ = writeln!(err, "error: {message}");
+            1
+        }
+    }
+}
+
+/// `zeff explain [code]` (Engine and Project Specification, section 2.1; Language Reference,
+/// section 11.1, "Explained codes"): the page of a code, which is the page `zeff help <code>`
+/// prints, or with no code the codes by family; with `--format json`, the page as one record
+/// and the list as one record to a code. A code is taken in either case of its letter. Exit
+/// code 1 for a word that is no code, or a code no page explains.
+fn explain_command(
+    command: &Command<'_, '_>,
+    code: Option<&str>,
+    out: &mut dyn Write,
+    err: &mut dyn Write,
+) -> i32 {
+    use zeff_engine::explain;
+    let json = command.settings.format == Format::Json;
+    let Some(asked) = code else {
+        let text = if json {
+            explain::list_json()
+        } else {
+            explain::render_list()
+        };
+        let _ = out.write_all(text.as_bytes());
+        return 0;
+    };
+    let code = asked.to_ascii_uppercase();
+    if !explain::is_code(&code) {
+        let _ = writeln!(
+            err,
+            "error: `{asked}` is not a code: a code is Z or W and four digits, such as Z0402\n  = help: `zeff explain` lists the codes; `zeff help {asked}` prints the page of a function"
+        );
+        return 1;
+    }
+    match explain::explain(&code) {
+        Ok(page) => {
+            let text = if json {
+                format!("{}\n", explain::json(&page))
+            } else {
+                explain::render(&page)
+            };
+            let _ = out.write_all(text.as_bytes());
+            0
+        }
+        Err(problem) => {
+            let _ = writeln!(
+                err,
+                "error: {problem}\n  = help: `zeff explain` lists the codes this version explains"
+            );
             1
         }
     }

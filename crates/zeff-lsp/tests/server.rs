@@ -159,7 +159,7 @@ fn initialize_says_what_the_server_does() {
                     "documentFormattingProvider": true,
                     "documentRangeFormattingProvider": true,
                     "foldingRangeProvider": true,
-                    "experimental": {"zeffStatementRange": true},
+                    "experimental": {"zeffStatementRange": true, "zeffExplain": true},
                 },
                 "serverInfo": {"name": "zeff", "version": VERSION},
             },
@@ -241,6 +241,7 @@ fn a_document_opened_changed_and_closed_is_told_its_diagnostics_each_time() {
                     "range": {"start": {"line": 2, "character": 6}, "end": {"line": 2, "character": 10}},
                     "severity": 1,
                     "code": "Z0101",
+                    "codeDescription": {"href": "zeff://explain/Z0101"},
                     "source": "zeff",
                     "message": "nothing is called `nope` here",
                 }],
@@ -1218,6 +1219,100 @@ fn the_statement_range_is_answered_for_a_place_and_for_a_selection() {
         "params": {"textDocument": {"uri": MAIN}, "position": {"line": 0, "character": 3}},
     }));
     assert_eq!(answers[0]["result"]["ranges"][0]["kind"], "use");
+}
+
+/// A diagnostic links to the explained page of its code, and `zeff/explain` gives the page
+/// (Language Reference, section 11.1, "Explained codes"; release 0.8.0, step 19): by the code,
+/// by the link, in either case of the letter; a warning's as an error's; and a code no page
+/// explains, or no code at all, is refused with the reason.
+#[test]
+fn a_diagnostic_links_to_its_page_and_the_page_is_answered() {
+    let mut session = Session::started();
+    let answers = session.open(
+        MAIN,
+        "let d = frame(x = [1.0, NA, 3])\nd.mean(x)\nprint(nope)\n",
+    );
+    let diagnostics = answers[0]["params"]["diagnostics"].as_array().unwrap();
+    assert!(!diagnostics.is_empty());
+    for diagnostic in diagnostics {
+        let code = diagnostic["code"].as_str().unwrap();
+        assert_eq!(
+            diagnostic["codeDescription"]["href"],
+            format!("zeff://explain/{code}"),
+            "{diagnostic}"
+        );
+    }
+    let mut ask = |params: Value| -> Value {
+        let answers = session.send(&json!({
+            "jsonrpc": "2.0", "id": 9, "method": "zeff/explain", "params": params,
+        }));
+        assert_eq!(answers.len(), 1);
+        assert_eq!(answers[0]["id"], 9);
+        answers[0].clone()
+    };
+    let by_code = ask(json!({"code": "Z0101"}));
+    let page = &by_code["result"];
+    assert_eq!(page["code"], "Z0101");
+    assert_eq!(page["kind"], "error");
+    assert_eq!(page["title"], "no such name");
+    assert_eq!(page["link"], "zeff://explain/Z0101");
+    assert!(
+        page["meaning"]
+            .as_str()
+            .is_some_and(|text| !text.is_empty())
+    );
+    assert!(
+        page["causes"]
+            .as_array()
+            .is_some_and(|list| !list.is_empty())
+    );
+    assert!(
+        page["example"][0]
+            .as_str()
+            .is_some_and(|line| line.starts_with("> "))
+    );
+    assert!(page["fix"].as_str().is_some_and(|text| !text.is_empty()));
+    // The page as the command line prints it, and as it is written.
+    assert!(
+        page["text"]
+            .as_str()
+            .is_some_and(|text| text.starts_with("Z0101 — no such name\n\nMEANING\n"))
+    );
+    assert!(
+        page["markdown"]
+            .as_str()
+            .is_some_and(|text| text.starts_with("# Z0101 — no such name\n"))
+    );
+    // By the link a diagnostic carries, and in a small letter: the same page.
+    assert_eq!(
+        ask(json!({"href": "zeff://explain/Z0101"}))["result"],
+        *page
+    );
+    assert_eq!(ask(json!({"code": "z0101"}))["result"], *page);
+    // A warning's page.
+    let warning = ask(json!({"code": "W0201"}));
+    assert_eq!(warning["result"]["kind"], "warning");
+    // No such code; a link of another kind; nothing asked.
+    let unknown = ask(json!({"code": "Z9999"}));
+    assert_eq!(error_code(&unknown), -32602);
+    assert_eq!(
+        unknown["error"]["message"],
+        "no code `Z9999` has an explained page"
+    );
+    for params in [
+        json!({}),
+        json!(null),
+        json!({"href": "https://example.org/Z0101"}),
+        json!({"code": 101}),
+    ] {
+        let refused = ask(params.clone());
+        assert_eq!(error_code(&refused), -32602, "{params}");
+        assert_eq!(
+            refused["error"]["message"],
+            "`zeff/explain` names a code, as `code`, or a diagnostic's link, as `href`",
+            "{params}"
+        );
+    }
 }
 
 #[test]

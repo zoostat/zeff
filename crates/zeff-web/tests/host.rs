@@ -6,7 +6,7 @@
 use std::cell::RefCell;
 use std::sync::atomic::{AtomicBool, Ordering};
 use zeff_engine::control::Event;
-use zeff_web::{Host, LARGEST_DEFAULT, default_budget, event_json};
+use zeff_web::{Host, LARGEST_DEFAULT, default_budget, event_json, explain, explained_codes};
 
 fn never() -> bool {
     false
@@ -231,4 +231,43 @@ fn the_frames_are_those_of_the_last_run_and_stay_where_a_run_stops() {
     // A run with no frame has none.
     let (_, done) = run(&host, "print(1)\n", None, never);
     assert!(done.ends_with(r#""frames": []}"#), "{done}");
+}
+
+/// The explained page of a code, for Zemp's log and Help pane (release 0.8.0, step 19): the
+/// record of `zeff explain --format json` inside a line of type `explained`, by the code or by
+/// a diagnostic's link; an error for a code no page explains; and the list by family.
+#[test]
+fn a_code_is_explained_and_the_codes_are_listed() {
+    let line = explain("W1007");
+    assert!(!line.contains('\n'));
+    assert!(
+        line.starts_with(r#"{"type": "explained", "page": {"code": "W1007", "kind": "warning", "title": "weak instruments", "#),
+        "{line}"
+    );
+    assert_eq!(explain("zeff://explain/W1007"), line);
+    assert_eq!(explain("w1007"), line);
+    assert_eq!(
+        explain("Z9999"),
+        r#"{"type": "error", "message": "no code `Z9999` has an explained page"}"#
+    );
+    assert_eq!(
+        explain(""),
+        r#"{"type": "error", "message": "no code `` has an explained page"}"#
+    );
+    let codes = explained_codes();
+    assert!(!codes.contains('\n'));
+    assert!(
+        codes.starts_with(
+            r#"{"type": "codes", "families": [{"name": "Z00xx", "area": "Errors a script raises itself", "codes": [{"code": "Z0001", "kind": "error", "title": "the script stopped itself with error()"}]}, {"name": "Z01xx", "#
+        ),
+        "{codes}"
+    );
+    // Every code of the engine is in the list, once.
+    for code in zeff_engine::explain::codes() {
+        assert_eq!(
+            codes.matches(&format!(r#"{{"code": "{code}", "#)).count(),
+            1,
+            "{code}"
+        );
+    }
 }

@@ -1,0 +1,20 @@
+---
+source: crates/zeff-cli/tests/cli.rs
+expression: text
+---
+Z0402 — not one of the allowed words
+
+MEANING
+    An argument takes a fixed list of bare words, and the word written is not one of them.
+
+COMMON CAUSES
+    - A misspelt word: `robus` for `robust`.
+    - A word from another program: `hc` for `robust`.
+
+EXAMPLE
+    > wages.summary(stats: [mean, median])
+    error[Z0402]: `median` is not one of the allowed words
+      = help: did you mean `mean`?
+
+FIX
+    Use one of the words listed in the message.

@@ -1776,6 +1776,7 @@ dependencies = [
  "chrono",
  "ctrlc",
  "insta",
+ "serde_json",
  "tempfile",
  "zeff-conformance",
  "zeff-diagnostics",

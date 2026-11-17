@@ -214,6 +214,14 @@ fn diagnostic(uri: &str, finding: &Finding) -> Value {
     out.insert("severity".into(), json!(severity));
     if !finding.code.is_empty() {
         out.insert("code".into(), json!(finding.code));
+        // The code's explained page (Language Reference, section 11.1): a link of the engine's
+        // own scheme, which an editor opens by asking this server `zeff/explain`.
+        if zeff_engine::explain::markdown(&finding.code).is_some() {
+            out.insert(
+                "codeDescription".into(),
+                json!({ "href": zeff_engine::explain::link(&finding.code) }),
+            );
+        }
     }
     out.insert("source".into(), json!("zeff"));
     out.insert("message".into(), json!(message));
@@ -382,7 +390,9 @@ impl Server {
                             // The statement at a place, or those a selection touches, for an
                             // interface that runs them: the request `zeff/statementRange`,
                             // which is this server's own.
-                            "experimental": { "zeffStatementRange": true },
+                            // And the explained page of a diagnostic's code, which its
+                            // `codeDescription` links to: the request `zeff/explain`.
+                            "experimental": { "zeffStatementRange": true, "zeffExplain": true },
                         },
                         "serverInfo": { "name": "zeff", "version": zeff_engine::VERSION },
                     }),
@@ -399,6 +409,38 @@ impl Server {
             (State::Running, "shutdown") => {
                 self.state = State::ShutDown;
                 response(id, Value::Null)
+            }
+            (State::Running, "zeff/explain") => {
+                // The code, given by itself or as the link a diagnostic carries.
+                let asked = params
+                    .get("code")
+                    .and_then(Value::as_str)
+                    .or_else(|| {
+                        params
+                            .get("href")
+                            .and_then(Value::as_str)
+                            .and_then(|href| href.strip_prefix("zeff://explain/"))
+                    })
+                    .map(str::to_ascii_uppercase);
+                let Some(code) = asked else {
+                    return vec![error(
+                        id,
+                        code::INVALID_PARAMS,
+                        "`zeff/explain` names a code, as `code`, or a diagnostic's link, as `href`",
+                    )];
+                };
+                // The record of `zeff explain <code> --format json`; a code without a page
+                // has no answer, and the reason is said.
+                match zeff_engine::explain::explain(&code).ok().and_then(|page| {
+                    serde_json::from_str::<Value>(&zeff_engine::explain::json(&page)).ok()
+                }) {
+                    Some(page) => response(id, page),
+                    None => error(
+                        id,
+                        code::INVALID_PARAMS,
+                        &format!("no code `{code}` has an explained page"),
+                    ),
+                }
             }
             (State::Running, "textDocument/foldingRange" | "zeff/statementRange") => {
                 let uri = params

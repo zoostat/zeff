@@ -184,3 +184,32 @@ test("a message the worker cannot act on is answered, not passed over", async ()
   assert.deepEqual(said, []);
   await worker.terminate();
 });
+
+test("a code is explained and the codes are listed, with no project open", async () => {
+  const { worker, next } = started(0);
+  await next("ready");
+  worker.postMessage({ type: "explain", code: "Z0101" });
+  const explained = await next("explained");
+  assert.equal(explained.page.code, "Z0101");
+  assert.equal(explained.page.kind, "error");
+  assert.equal(explained.page.title, "no such name");
+  assert.equal(explained.page.link, "zeff://explain/Z0101");
+  assert.ok(explained.page.causes.length > 0);
+  assert.match(explained.page.example[0], /^> /);
+  assert.match(explained.page.text, /^Z0101 — no such name\n\nMEANING\n/);
+  assert.match(explained.page.markdown, /^# Z0101 — no such name\n/);
+  // By the link a diagnostic carries: the same page.
+  worker.postMessage({ type: "explain", code: "zeff://explain/Z0101" });
+  assert.deepEqual((await next("explained")).page, explained.page);
+  worker.postMessage({ type: "explain", code: "Z9999" });
+  assert.deepEqual(await next("error"), { type: "error", message: "no code `Z9999` has an explained page" });
+  worker.postMessage({ type: "explain" });
+  assert.deepEqual(await next("error"), { type: "error", message: "no code `` has an explained page" });
+  worker.postMessage({ type: "codes" });
+  const listed = await next("codes");
+  assert.equal(listed.families[0].name, "Z00xx");
+  const all = listed.families.flatMap((family) => family.codes);
+  assert.ok(all.length > 100);
+  assert.ok(all.some((entry) => entry.code === "W1007" && entry.kind === "warning"));
+  await worker.terminate();
+});

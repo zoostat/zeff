@@ -63,6 +63,60 @@ pub fn event_json(event: &Event) -> String {
     }
 }
 
+/// The explained page of a diagnostic code (Language Reference, section 11.1), for the
+/// interface's log and Help pane: a line of JSON of type `explained` whose `page` is the record
+/// `zeff explain <code> --format json` prints, or of type `error` for a code no page explains.
+/// The code is taken as it is written in a message, or as the link a diagnostic carries, in
+/// either case of its letter. It needs no project.
+pub fn explain(code: &str) -> String {
+    let asked = code
+        .strip_prefix("zeff://explain/")
+        .unwrap_or(code)
+        .to_ascii_uppercase();
+    match zeff_engine::explain::explain(&asked) {
+        Ok(page) => format!(
+            "{{\"type\": \"explained\", \"page\": {}}}",
+            zeff_engine::explain::json(&page)
+        ),
+        Err(_) => format!(
+            "{{\"type\": \"error\", \"message\": {}}}",
+            json_string(&format!("no code `{code}` has an explained page"))
+        ),
+    }
+}
+
+/// Every code with an explained page, by family, as a line of JSON of type `codes`: what the
+/// Help pane lists before a page is asked for.
+pub fn explained_codes() -> String {
+    let families: Vec<String> = zeff_engine::explain::families()
+        .iter()
+        .map(|family| {
+            let codes: Vec<String> = family
+                .codes
+                .iter()
+                .map(|(code, title)| {
+                    format!(
+                        "{{\"code\": {}, \"kind\": {}, \"title\": {}}}",
+                        json_string(code),
+                        json_string(zeff_engine::explain::kind(code)),
+                        json_string(title)
+                    )
+                })
+                .collect();
+            format!(
+                "{{\"name\": {}, \"area\": {}, \"codes\": [{}]}}",
+                json_string(family.name),
+                json_string(family.area),
+                codes.join(", ")
+            )
+        })
+        .collect();
+    format!(
+        "{{\"type\": \"codes\", \"families\": [{}]}}",
+        families.join(", ")
+    )
+}
+
 /// A project in memory, and the runs made in it.
 pub struct Host {
     fs: MemoryFileSystem,

@@ -37,6 +37,7 @@ expression: editor.told
       "documentFormattingProvider": true,
       "documentRangeFormattingProvider": true,
       "experimental": {
+        "zeffExplain": true,
         "zeffStatementRange": true
       },
       "foldingRangeProvider": true,
@@ -320,6 +321,9 @@ expression: editor.told
     "diagnostics": [
       {
         "code": "Z0101",
+        "codeDescription": {
+          "href": "zeff://explain/Z0101"
+        },
         "message": "no variable `wagee` in `wages`\nhelp: did you mean `wage`? If you meant a category level, write it in quotes: `\"wage\"`",
         "range": {
           "end": {
@@ -361,6 +365,9 @@ expression: editor.told
     "diagnostics": [
       {
         "code": "Z0101",
+        "codeDescription": {
+          "href": "zeff://explain/Z0101"
+        },
         "message": "no variable `wagee` in `wages`\nhelp: did you mean `wage`? If you meant a category level, write it in quotes: `\"wage\"`",
         "range": {
           "end": {
@@ -377,6 +384,9 @@ expression: editor.told
       },
       {
         "code": "Z0302",
+        "codeDescription": {
+          "href": "zeff://explain/Z0302"
+        },
         "message": "this `(` is never closed",
         "range": {
           "end": {
@@ -393,6 +403,9 @@ expression: editor.told
       },
       {
         "code": "Z0302",
+        "codeDescription": {
+          "href": "zeff://explain/Z0302"
+        },
         "message": "this `[` is never closed",
         "range": {
           "end": {
@@ -434,6 +447,9 @@ expression: editor.told
     "diagnostics": [
       {
         "code": "Z0302",
+        "codeDescription": {
+          "href": "zeff://explain/Z0302"
+        },
         "message": "this `(` is never closed",
         "range": {
           "end": {
@@ -666,6 +682,9 @@ expression: editor.told
     "diagnostics": [
       {
         "code": "Z0302",
+        "codeDescription": {
+          "href": "zeff://explain/Z0302"
+        },
         "message": "this `(` is never closed",
         "range": {
           "end": {
@@ -810,6 +829,9 @@ expression: editor.told
     "diagnostics": [
       {
         "code": "Z0213",
+        "codeDescription": {
+          "href": "zeff://explain/Z0213"
+        },
         "message": "`.sha` reads a record field, but this is a Frame\nhelp: a method call has parentheses: `.sha()`",
         "range": {
           "end": {
@@ -1140,6 +1162,9 @@ expression: editor.told
     "diagnostics": [
       {
         "code": "Z0302",
+        "codeDescription": {
+          "href": "zeff://explain/Z0302"
+        },
         "message": "this `(` is never closed",
         "range": {
           "end": {
@@ -1217,6 +1242,9 @@ expression: editor.told
     "diagnostics": [
       {
         "code": "Z0103",
+        "codeDescription": {
+          "href": "zeff://explain/Z0103"
+        },
         "message": "no function is called `share_missing`\nhelp: `zeff help` lists the functions of this release",
         "range": {
           "end": {
@@ -1233,6 +1261,9 @@ expression: editor.told
       },
       {
         "code": "Z0302",
+        "codeDescription": {
+          "href": "zeff://explain/Z0302"
+        },
         "message": "this `(` is never closed",
         "range": {
           "end": {
@@ -1283,6 +1314,9 @@ expression: editor.told
     "diagnostics": [
       {
         "code": "Z0302",
+        "codeDescription": {
+          "href": "zeff://explain/Z0302"
+        },
         "message": "this `(` is never closed",
         "range": {
           "end": {

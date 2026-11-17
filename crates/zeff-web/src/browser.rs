@@ -68,3 +68,16 @@ impl Engine {
 pub fn version() -> String {
     zeff_engine::VERSION.to_string()
 }
+
+/// The explained page of a diagnostic code, as a line of JSON of type `explained`, or of type
+/// `error` for a code no page explains.
+#[wasm_bindgen]
+pub fn explain(code: &str) -> String {
+    crate::explain(code)
+}
+
+/// Every code with an explained page, by family, as a line of JSON of type `codes`.
+#[wasm_bindgen]
+pub fn explained_codes() -> String {
+    crate::explained_codes()
+}

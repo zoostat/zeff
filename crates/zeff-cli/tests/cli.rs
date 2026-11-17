@@ -107,7 +107,7 @@ fn format_json_gives_records_for_version_and_check() {
         (&["check", "--format", "xml"][..], "not a format"),
         (
             &["run", "--format", "json"][..],
-            "applies to `zeff check`, `zeff test`, `zeff version` and `zeff selftest`",
+            "applies to `zeff check`, `zeff test`, `zeff version`, `zeff selftest` and `zeff explain`",
         ),
     ] {
         let o = zeff(&project, args);
@@ -589,6 +589,122 @@ fn zeff_help_prints_a_functions_page() {
         "{reg}"
     );
     insta::assert_snapshot!("help_reg", reg);
+}
+
+// ----- zeff explain -----
+
+/// `zeff explain` (Engine and Project Specification, section 2.1; Language Reference, section
+/// 11.1, "Explained codes"; release 0.8.0, step 19): the page of an error and of a warning,
+/// which is the page `zeff help <code>` prints; the codes by family when none is given; both
+/// as JSON; and what is said of a code no page explains, of a word that is no code and of two
+/// codes at once.
+#[test]
+fn zeff_explain_prints_a_codes_page_and_lists_the_codes() {
+    let dir = tempfile::tempdir().unwrap();
+    for name in ["Z0402", "W1007"] {
+        let o = zeff(dir.path(), &["explain", name]);
+        assert_eq!(code(&o), 0, "{}", err(&o));
+        assert_eq!(err(&o), "");
+        let text = out(&o);
+        assert!(text.starts_with(&format!("{name} — ")), "{text}");
+        for part in ["\nMEANING\n", "\nCOMMON CAUSES\n", "\nEXAMPLE\n", "\nFIX\n"] {
+            assert!(text.contains(part), "{name}: {part}");
+        }
+        assert_eq!(text, out(&zeff(dir.path(), &["help", name])), "{name}");
+        insta::assert_snapshot!(format!("explain_{name}"), text);
+        // The letter of a code in a small letter is the same code.
+        let small = zeff(dir.path(), &["explain", &name.to_lowercase()]);
+        assert_eq!(out(&small), text);
+        // As JSON: one record on one line, with the parts and the page both ways.
+        let o = zeff(dir.path(), &["--format", "json", "explain", name]);
+        assert_eq!(code(&o), 0, "{}", err(&o));
+        let record: serde_json::Value = serde_json::from_str(&out(&o)).unwrap();
+        assert_eq!(out(&o).lines().count(), 1);
+        assert_eq!(record["code"], name);
+        assert_eq!(
+            record["kind"],
+            if name.starts_with('W') {
+                "warning"
+            } else {
+                "error"
+            }
+        );
+        assert_eq!(record["text"], text);
+        assert_eq!(record["link"], format!("zeff://explain/{name}"));
+        assert!(
+            record["markdown"]
+                .as_str()
+                .is_some_and(|page| page.starts_with(&format!("# {name} — ")))
+        );
+        for part in ["title", "meaning", "fix"] {
+            assert!(
+                record[part].as_str().is_some_and(|t| !t.is_empty()),
+                "{part}"
+            );
+        }
+        for part in ["causes", "example"] {
+            assert!(
+                record[part].as_array().is_some_and(|l| !l.is_empty()),
+                "{part}"
+            );
+        }
+    }
+    // What cannot be explained: exit code 1, nothing on standard output.
+    let mut refused = String::new();
+    for words in [
+        vec!["explain", "Z9999"],
+        vec!["explain", "mean"],
+        vec!["explain", "Z0101", "Z0102"],
+        vec!["--format", "json", "explain", "Z9999"],
+    ] {
+        let o = zeff(dir.path(), &words);
+        assert_eq!(code(&o), 1, "{words:?}");
+        assert_eq!(out(&o), "", "{words:?}");
+        refused.push_str(&format!("$ zeff {}\n{}\n", words.join(" "), err(&o)));
+    }
+    insta::assert_snapshot!("explain_refused", refused);
+    // No code: the codes by family, every code of the engine once.
+    let o = zeff(dir.path(), &["explain"]);
+    assert_eq!(code(&o), 0, "{}", err(&o));
+    let list = out(&o);
+    let codes = zeff_engine::explain::codes();
+    assert!(
+        list.starts_with(&format!(
+            "{} codes are explained; `zeff explain <code>` prints a code's page.\n",
+            codes.len()
+        )),
+        "{list}"
+    );
+    for name in &codes {
+        assert_eq!(
+            list.lines()
+                .filter(|line| line.starts_with(&format!("    {name}  ")))
+                .count(),
+            1,
+            "{name}"
+        );
+    }
+    insta::assert_snapshot!("explain_list", list);
+    // As JSON: a record to a code.
+    let o = zeff(dir.path(), &["--format", "json", "explain"]);
+    assert_eq!(code(&o), 0, "{}", err(&o));
+    let records: Vec<serde_json::Value> = out(&o)
+        .lines()
+        .map(|line| serde_json::from_str(line).unwrap())
+        .collect();
+    assert_eq!(records.len(), codes.len());
+    assert_eq!(
+        records[0],
+        serde_json::json!({
+            "code": "Z0001",
+            "kind": "error",
+            "family": "Z00xx",
+            "area": "Errors a script raises itself",
+            "title": "the script stopped itself with error()",
+        })
+    );
+    // It needs no project, and writes nothing but its answer.
+    assert_eq!(std::fs::read_dir(dir.path()).unwrap().count(), 0);
 }
 
 #[test]
@@ -2130,7 +2246,7 @@ fn zeff_lsp_serves_an_editor_on_standard_input_and_output() {
     );
     // The misspelt variable, with the suggestion, though the file on disk was never changed.
     assert!(
-        said.contains("\"code\":\"Z0101\",\"message\":\"no variable `wagee` in `d`\\nhelp: did you mean `wage`?"),
+        said.contains("\"code\":\"Z0101\",\"codeDescription\":{\"href\":\"zeff://explain/Z0101\"},\"message\":\"no variable `wagee` in `d`\\nhelp: did you mean `wage`?"),
         "{said}"
     );
     assert!(
@@ -2185,7 +2301,7 @@ fn zeff_lsp_serves_an_editor_on_standard_input_and_output() {
     let o = zeff_with(dir.path(), dir.path(), &lsp_messages(&alone), &["lsp"]);
     assert_eq!(code(&o), 0, "{}", err(&o));
     assert!(
-        out(&o).contains("\"code\":\"Z0101\",\"message\":\"nothing is called `nope` here\""),
+        out(&o).contains("\"code\":\"Z0101\",\"codeDescription\":{\"href\":\"zeff://explain/Z0101\"},\"message\":\"nothing is called `nope` here\""),
         "{}",
         out(&o)
     );
@@ -2355,8 +2471,13 @@ fn each_shell_loads_its_file_and_completes_by_it() {
         .map(|shell| shell.trim().to_string())
         .collect();
     // The lines to complete, and what each must offer and must not.
-    let asked: [(&str, &[&str], &[&str]); 6] = [
+    let asked: [(&str, &[&str], &[&str]); 7] = [
         ("zeff he", &["help"], &["new", "mean"]),
+        (
+            "zeff explain W100",
+            &["W1001", "W1007"],
+            &["W0201", "Z0101"],
+        ),
         ("zeff help med", &["median"], &["mean", "help"]),
         ("zeff help Z010", &["Z0101", "Z0103"], &["W0201", "median"]),
         ("zeff --format ", &["text", "json"], &["help", "auto"]),

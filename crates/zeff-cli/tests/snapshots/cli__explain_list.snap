@@ -1,0 +1,173 @@
+---
+source: crates/zeff-cli/tests/cli.rs
+expression: list
+---
+144 codes are explained; `zeff explain <code>` prints a code's page.
+
+Z00xx  Errors a script raises itself
+    Z0001  the script stopped itself with error()
+
+Z01xx  Names: variables, bindings, functions, packages
+    Z0101  no such name
+    Z0102  a name differs only in case from a variable
+    Z0103  no such function
+    Z0105  a name of core cannot be rebound
+    Z0106  a loop variable with a column's name
+    Z0107  a name defined twice
+    Z0108  a function that calls itself
+    Z0109  a name both built in and defined in the script
+    Z0110  a script-only function inside a function
+    Z0111  the seed comes too late, or twice
+
+Z02xx  Types and values
+    Z0203  a condition that is not a Bool column, or an `if` on NA or a column
+    Z0204  no such key in a mapping
+    Z0205  a function passed where one of another signature is needed
+    Z0206  a statement's result cannot be bound or passed
+    Z0207  an index outside the list
+    Z0208  comparison is not defined for this value
+    Z0209  the record has no such field
+    Z0210  a date compared with text
+    Z0211  an Int overflowed
+    Z0212  a whole-number division by zero
+    Z0213  a field was read from something that is not a record
+    Z0214  values that should share one type do not
+    Z0215  arithmetic on text
+    Z0216  text that is no level of a category, or a label given for a labelled number
+    Z0217  columns or lists of different lengths
+    Z0218  a column given to a parameter that takes one value
+    Z0219  a value whose type is unknown
+    Z0220  a failed value used outside a list
+    Z0221  an operator applied to types it does not take
+    Z0222  a mapping key, or a record field, written twice
+    Z0223  an infinite value in a model variable
+    Z0224  a negative weight
+    Z0225  a function's result does not match its declared type
+    Z0226  a comparison with the literal NA
+
+Z03xx  Syntax and layout
+    Z0301  a character or token that does not belong here
+    Z0302  a bracket or quote is never closed
+    Z0303  a closing bracket without an opener
+    Z0304  not available in this release
+    Z0305  a line begins with an operator
+    Z0306  an interaction outside a formula
+    Z0307  nested too deeply or a chain too long
+    Z0308  an operator that belongs in a model block
+    Z0309  a declaration in the wrong place
+    Z0310  a malformed number
+    Z0311  a string is never closed or has an unknown escape
+    Z0312  a line ends with a dot
+    Z0313  a word used outside its place
+    Z0314  operators that do not chain
+    Z0315  a token from another language
+    Z0316  the catch-all of a `case` out of place
+    Z0317  a pragma that cannot be applied
+    Z0318  a documentation line in the wrong place
+    Z0319  a module function without its complete page
+    Z0320  help text for a parameter the function does not have
+    Z0321  `.` alone outside the formulas of `learn` and `tune`
+    Z0322  a one-sided formula where none is taken
+    Z0323  a module file that is not one
+
+Z04xx  Arguments
+    Z0401  an argument of the wrong type
+    Z0402  not one of the allowed words
+    Z0403  a word written as text
+    Z0404  no such argument
+    Z0405  an argument given twice
+    Z0406  a required argument is missing
+    Z0407  too many arguments
+    Z0408  a positional argument after a named one
+    Z0409  a bad date format
+    Z0410  arguments that exclude each other
+    Z0411  sampling weights in a test
+    Z0412  a two-group test given one group or more than two
+    Z0413  a distribution parameter or probability outside its domain
+    Z0414  a term that the result does not have
+    Z0415  a restriction test cannot use
+    Z0416  two regressions that cannot be compared
+    Z0417  a definition derive cannot differentiate
+    Z0418  a seq that cannot be built
+    Z0419  a regular expression that cannot be read
+    Z0420  a direction given to Fisher's exact test on a table larger than 2 × 2
+    Z0421  more than 5,000 values given to the Shapiro–Wilk test
+    Z0422  `estimated: true` given to the Kolmogorov–Smirnov test with a distribution other than the normal
+
+Z05xx  Formulas and model blocks
+    Z0504  an instrumented variable that is not a regressor
+    Z0505  a variable on both sides of `instruments:`
+    Z0507  `event` given a reference period the data lack
+
+Z06xx  Data: import, merge, reshape
+    Z0601  a panel declaration refused
+    Z0602  a panel function without a panel
+    Z0603  a merge whose keys do not relate as stated
+    Z0604  both frames hold a column that is not a key
+    Z0605  a header the reader cannot use
+    Z0606  a value that does not fit its column's type
+    Z0607  a row with the wrong shape
+    Z0608  a file that is not UTF-8
+    Z0609  a column of two types across an append
+    Z0610  stub columns that to_long cannot turn into rows
+    Z0611  two rows for one cell of to_wide
+
+Z07xx  Projects, paths, data roots, versions, resources and reproducibility
+    Z0701  a path outside the project
+    Z0702  a path that differs only in case from the file's name
+    Z0704  a step would pass the memory budget
+    Z0705  the run was cancelled
+    Z0706  an edition this engine does not know
+    Z0707  a file cannot be written
+    Z0709  not inside a project
+    Z0710  the project pins another engine
+    Z0712  zeff.toml is not valid TOML
+    Z0713  zeff.toml is wrong for Zeff
+    Z0714  no such script in the project
+    Z0715  no file at the path
+    Z0716  a path names no format, or a format not yet written
+
+Z08xx  Estimation: convergence, identification
+    Z0801  no row remains to fit the model
+    Z0802  no residual degrees of freedom
+    Z0803  an outcome too large or too small to compute with
+    Z0804  an under-identified model
+
+Z9xxx  Internal errors: a bug in Zeff, not in the script
+    Z9001  an internal error: a bug in Zeff
+
+W0xxx  Warnings, numbered by the same areas
+    W0101  a binding hides a built-in function
+    W0102  a name is both a variable of the frame and a binding
+    W0201  missing values skipped by a statistic
+    W0202  a number with a fraction became NA under to(Int)
+    W0203  a value could not be converted and became NA
+    W0204  a division by zero gave an infinity
+    W0205  an operation with no value gave NA
+    W0206  a key of `recode` matches no value or level
+    W0207  a level the fit never saw
+    W0208  rows of a `case` that no arm matched
+    W0209  a method on a value that may have failed
+    W0210  values of `bin` outside every interval
+    W0211  expected counts below 5 in a chi-squared test
+    W0212  tied values in the Kolmogorov–Smirnov test
+    W0301  a `case` arm that can never be reached
+    W0302  a `let` that shadows a loop variable
+    W0303  a function without a summary line
+    W0401  an option that changes nothing in this call
+    W0503  a bracketed sum in a formula
+    W0601  text values differ only in their Unicode normalisation form
+    W0602  a category with more than 10,000 levels
+    W0701  a data root's file has changed since the last run
+    W0702  date-and-time values were converted to UTC
+    W0703  a value read from the clock
+    W0801  failed values skipped
+    W0805  iterate stopped at max: without converging
+
+W1xxx  Statistical warnings: the code is right but the result is fragile
+    W1001  near-singular regressors
+    W1002  few clusters
+    W1003  extreme weights
+    W1004  little variation left after the fixed effects
+    W1006  an observation drives a coefficient
+    W1007  weak instruments

@@ -8,6 +8,9 @@
 //   { type: "file", path, bytes }       a file of the project, as a Uint8Array
 //   { type: "run", script, text }       run the text of a script of the project
 //   { type: "frame", name }             a frame of the last run, by the name of its binding
+//   { type: "explain", code }           the explained page of a diagnostic code such as Z0101,
+//                                       or of the link a diagnostic carries; needs no project
+//   { type: "codes" }                   every code with a page, by family; needs no project
 // Messages out:
 //   { type: "ready", version }          once, when the engine is loaded
 //   { type: "opened", name }
@@ -16,6 +19,9 @@
 //                                       its bindings hold: [{ name, rows, variables }]
 //   { type: "frame", name, bytes }      the frame as an Arrow stream, in a Uint8Array whose
 //                                       buffer is passed to the interface and not copied
+//   { type: "explained", page }         the page: { code, kind, title, meaning, causes,
+//                                       example, fix, link, text, markdown }
+//   { type: "codes", families }         [{ name, area, codes: [{ code, kind, title }] }]
 //   { type: "error", message }          a message the worker could not act on
 //
 // A run is cancelled by the interface writing 1 into the flag: a worker that is computing
@@ -70,6 +76,12 @@ export function serve(engine, port, deviceBytes) {
         }
         break;
       }
+      case "explain":
+        port.postMessage(JSON.parse(engine.explain(String(said.code ?? ""))));
+        break;
+      case "codes":
+        port.postMessage(JSON.parse(engine.explained_codes()));
+        break;
       default:
         port.postMessage({ type: "error", message: `no such message: ${String(said.type)}` });
     }

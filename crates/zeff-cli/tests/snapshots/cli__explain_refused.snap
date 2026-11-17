@@ -1,0 +1,20 @@
+---
+source: crates/zeff-cli/tests/cli.rs
+expression: refused
+---
+$ zeff explain Z9999
+error: no code `Z9999`
+  = help: `zeff explain` lists the codes this version explains
+
+$ zeff explain mean
+error: `mean` is not a code: a code is Z or W and four digits, such as Z0402
+  = help: `zeff explain` lists the codes; `zeff help mean` prints the page of a function
+
+$ zeff explain Z0101 Z0102
+error: `zeff explain` takes one code, such as `zeff explain Z0402`, or none to list them
+
+run `zeff help` to see the commands
+
+$ zeff --format json explain Z9999
+error: no code `Z9999`
+  = help: `zeff explain` lists the codes this version explains

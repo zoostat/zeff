@@ -5913,3 +5913,23 @@ Done before parts 1 and 2 are read, because those wait for jobs that run for hou
 **Seen and left.** A table exported without a title writes an empty comment line (`% `) as its second line, the LaTeX writer's form since 0.4.0. Harmless in a document; noted for the page revision rather than changed here, since every stored `.tex` would move.
 
 **Reason.** The checklist's step 18; the testing handbook's script tests (section 1).
+
+## 17 November 2026: `zeff explain`, the editor's links and the page for Zemp (release 0.8.0, step 19)
+
+**Choice.** `zeff explain <code>` prints the explained page of a code, the very text `zeff help <code>` prints (one renderer); a code is taken in either case of its letter. `zeff explain` with no code lists every code by family with its title, which is the checklist's ruling: the command table of section 2.1 of the Engine Specification writes `zeff explain <code>`, and the list is what a reader who does not yet have a code needs. `--format json` writes the page as one record on one line, and the list as one record to a code. Exit code 1, with nothing on standard output, for a code no page explains, a word that is not a code (the message points to `zeff help` for a function) and more than one code.
+
+**One record.** `explain::json` in the engine writes the record all three readers get: `code`, `kind` (`error` or `warning`), `title`, `meaning`, `causes`, `example` (its lines), `fix`, `link`, `text` (the page as the command line prints it) and `markdown` (the page as it is written, for an interface that sets Markdown). The command line prints it, the language server parses it into its answer, and the browser's worker wraps it; none builds its own.
+
+**The families.** Twelve, in the order of the table of areas in section 11 of the Language Reference and in its words, the long row of Z07xx shortened to "Projects, paths, data roots, versions, resources and reproducibility". The table has no row for Z00xx, which holds one code, the error a script raises itself (Z0001): it is listed first under "Errors a script raises itself". Not a change to the normative text; if the owner wants the row in the table it is one line.
+
+**The link.** The protocol's `codeDescription.href` must be a link. No public website exists before 1.0 (the owner's ruling, recorded among the rulings of this release's checklist), so the link is of the engine's own scheme, `zeff://explain/Z0101`, and the server answers the request `zeff/explain` with the page, given the code (`{"code": "Z0101"}`) or the link itself (`{"href": ...}`). An editor's extension registers the scheme and asks; the capability is announced as `experimental.zeffExplain` beside `zeffStatementRange`. At 1.0 the link can become the website's address without a change to the request. A diagnostic whose code has no page would carry no link; the build check leaves no such code.
+
+**For Zemp (#74).** `zeff_web::explain(code)` gives a line of type `explained` with the record as `page`, or of type `error`; `zeff_web::explained_codes()` gives the list by family as a line of type `codes`. Both are bound for WebAssembly and carried by the worker as the messages `explain` and `codes`, which need no project open: the Log opens a page from a message's code or link, and the Help pane lists the codes.
+
+**Completions.** The four files gain the command and, after it, the codes alone, in order (after `zeff help` the functions and packages are offered too). A fifth kind of what follows a command, `After::Code`, beside script, topic and shell.
+
+**Dependency.** `serde_json` 1.0.154 (MIT or Apache-2.0), already pinned in the workspace for the language server and the reference tests, is added to the tests of `zeff-cli`, to read the command's JSON back. Nothing linked into the program changes.
+
+**Held by.** `cli.rs`: `zeff_explain_prints_a_codes_page_and_lists_the_codes` with four stored outputs (an error's page, a warning's, the list, the refusals), and the line `zeff explain W100` completed in each shell. `server.rs` of the language server: `a_diagnostic_links_to_its_page_and_the_page_is_answered`, and the stored conversation over the samples. `host.rs` of the web crate and `worker.test.mjs` under Node. Unit tests in `explain.rs` (every code in one family; the record's parts).
+
+**Reason.** Section 11.1 of the Language Reference, the row "Explained codes" (`zeff explain` and the editor links from 0.8.0); section 2.1 of the Engine Specification; the checklist's ruling on the link and its step 19; open decision #74.

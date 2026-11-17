@@ -1,11 +1,17 @@
-//! The explained-code pages (Language Reference, section 11, "Explained codes", from 0.2.0):
+//! The explained-code pages (Language Reference, section 11.1, "Explained codes", from 0.2.0):
 //! every diagnostic code the engine raises has a page with its meaning, its common causes, a small
 //! example and the fix. The pages are Markdown files in `crates/zeff-engine/codes/`, compiled into
-//! the engine like help pages, read with `zeff help Z0101` (the `zeff explain` command and the
-//! editor's links arrive with 0.8.0), and checked at `cargo test` and by `xtask check-messages`,
-//! so a code without a page fails the build.
+//! the engine like help pages, and checked at `cargo test` and by `xtask check-messages`, so a
+//! code without a page fails the build.
+//!
+//! Until 0.8.0 a page was read with `zeff help Z0101` alone. From 0.8.0 `zeff explain` prints it
+//! too, lists the codes by family when given none, and writes both as JSON; the language server
+//! gives every diagnostic a link ([`link`]) and answers the request `zeff/explain` with the
+//! page; and the browser's worker answers the same question for Zemp. All three write the one
+//! record of [`json`].
 
 use crate::explain_pages::PAGES;
+use zeff_diagnostics::json_string;
 
 /// One explained code.
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -169,6 +175,157 @@ pub fn render(page: &Explained) -> String {
     out
 }
 
+/// The page as it is written: the Markdown of its file, for an interface that sets Markdown.
+pub fn markdown(code: &str) -> Option<&'static str> {
+    PAGES
+        .iter()
+        .find(|(c, _)| *c == code)
+        .map(|(_, text)| *text)
+}
+
+/// Whether a code is an error's or a warning's: `Z` or `W`.
+pub fn kind(code: &str) -> &'static str {
+    if code.starts_with('W') {
+        "warning"
+    } else {
+        "error"
+    }
+}
+
+/// The link a diagnostic carries to its page (the protocol's `codeDescription.href`). No public
+/// website exists before 1.0, so the link is of the engine's own scheme: an editor's extension
+/// opens it by asking the language server `zeff/explain` for the code at its end.
+pub fn link(code: &str) -> String {
+    format!("zeff://explain/{code}")
+}
+
+/// The families of the codes, in the order `zeff explain` lists them: the first letters of a
+/// family's codes, how the family is written, and its area in the words of section 11 of the
+/// Language Reference (its table of areas; the errors a script raises itself, Z00xx, have no
+/// row there).
+pub const FAMILIES: &[(&str, &str, &str)] = &[
+    ("Z00", "Z00xx", "Errors a script raises itself"),
+    (
+        "Z01",
+        "Z01xx",
+        "Names: variables, bindings, functions, packages",
+    ),
+    ("Z02", "Z02xx", "Types and values"),
+    ("Z03", "Z03xx", "Syntax and layout"),
+    ("Z04", "Z04xx", "Arguments"),
+    ("Z05", "Z05xx", "Formulas and model blocks"),
+    ("Z06", "Z06xx", "Data: import, merge, reshape"),
+    (
+        "Z07",
+        "Z07xx",
+        "Projects, paths, data roots, versions, resources and reproducibility",
+    ),
+    ("Z08", "Z08xx", "Estimation: convergence, identification"),
+    (
+        "Z9",
+        "Z9xxx",
+        "Internal errors: a bug in Zeff, not in the script",
+    ),
+    ("W0", "W0xxx", "Warnings, numbered by the same areas"),
+    (
+        "W1",
+        "W1xxx",
+        "Statistical warnings: the code is right but the result is fragile",
+    ),
+];
+
+/// One family with its codes and their titles, in order.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct Family {
+    pub name: &'static str,
+    pub area: &'static str,
+    pub codes: Vec<(&'static str, String)>,
+}
+
+/// Every code with a page, by family; a family without a code is left out.
+pub fn families() -> Vec<Family> {
+    FAMILIES
+        .iter()
+        .map(|(prefix, name, area)| {
+            let mut codes: Vec<(&'static str, String)> = PAGES
+                .iter()
+                .filter(|(code, _)| code.starts_with(prefix))
+                .map(|(code, text)| {
+                    let title = text
+                        .lines()
+                        .next()
+                        .and_then(|line| line.split_once(" — "))
+                        .map_or(String::new(), |(_, title)| title.trim().to_string());
+                    (*code, title)
+                })
+                .collect();
+            codes.sort();
+            Family { name, area, codes }
+        })
+        .filter(|family| !family.codes.is_empty())
+        .collect()
+}
+
+/// What `zeff explain` prints when given no code: the codes by family, each with its title.
+pub fn render_list() -> String {
+    let families = families();
+    let count: usize = families.iter().map(|f| f.codes.len()).sum();
+    let mut out =
+        format!("{count} codes are explained; `zeff explain <code>` prints a code's page.\n");
+    for family in &families {
+        out.push_str(&format!("\n{}  {}\n", family.name, family.area));
+        for (code, title) in &family.codes {
+            out.push_str(&format!("    {code}  {title}\n"));
+        }
+    }
+    out
+}
+
+/// The list as JSON records, one code to a line: its code, kind, family and title.
+pub fn list_json() -> String {
+    let mut out = String::new();
+    for family in families() {
+        for (code, title) in &family.codes {
+            out.push_str(&format!(
+                "{{\"code\": {}, \"kind\": {}, \"family\": {}, \"area\": {}, \"title\": {}}}\n",
+                json_string(code),
+                json_string(kind(code)),
+                json_string(family.name),
+                json_string(family.area),
+                json_string(title)
+            ));
+        }
+    }
+    out
+}
+
+/// A page as one JSON record on a line: the record `zeff explain <code> --format json` prints,
+/// the language server gives for `zeff/explain`, and the browser's worker gives Zemp. `text`
+/// is the page as the command line prints it, `markdown` the page as it is written, and
+/// `link` what a diagnostic of this code carries.
+pub fn json(page: &Explained) -> String {
+    let list = |items: &[String]| -> String {
+        items
+            .iter()
+            .map(|item| json_string(item))
+            .collect::<Vec<_>>()
+            .join(", ")
+    };
+    format!(
+        "{{\"code\": {}, \"kind\": {}, \"title\": {}, \"meaning\": {}, \"causes\": [{}], \"example\": [{}], \"fix\": {}, \"link\": {}, \"text\": {}, \"markdown\": {}}}",
+        json_string(&page.code),
+        json_string(kind(&page.code)),
+        json_string(&page.title),
+        json_string(&page.meaning),
+        list(&page.causes),
+        list(&page.example),
+        json_string(&page.fix),
+        json_string(&link(&page.code)),
+        json_string(&render(page)),
+        json_string(markdown(&page.code).unwrap_or(""))
+    )
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -220,5 +377,44 @@ mod tests {
         ));
         assert_eq!(explain("Z0000"), Err(PageError::NoSuchCode("Z0000".into())));
         assert!(is_code("W0201") && !is_code("Z01") && !is_code("mean"));
+    }
+
+    #[test]
+    fn every_code_is_in_one_family() {
+        let families = families();
+        let listed: Vec<&str> = families
+            .iter()
+            .flat_map(|f| f.codes.iter().map(|(code, _)| *code))
+            .collect();
+        let mut sorted = listed.clone();
+        sorted.sort_unstable();
+        let mut all = codes();
+        all.sort_unstable();
+        assert_eq!(sorted, all, "a code in no family, or in two");
+        for family in &families {
+            for (code, title) in &family.codes {
+                assert!(!title.is_empty(), "{code} has no title");
+                assert_eq!(*title, explain(code).unwrap().title, "{code}");
+            }
+        }
+    }
+
+    #[test]
+    fn a_page_as_json_holds_its_parts() {
+        let page = explain("W1007").unwrap();
+        let record = json(&page);
+        assert!(!record.contains('\n'), "one line");
+        for part in [
+            "\"code\": \"W1007\"",
+            "\"kind\": \"warning\"",
+            "\"title\": \"weak instruments\"",
+            "\"link\": \"zeff://explain/W1007\"",
+            "\"causes\": [",
+            "\"example\": [",
+            "\"markdown\": \"# W1007",
+        ] {
+            assert!(record.contains(part), "{part}: {record}");
+        }
+        assert_eq!(kind("Z0101"), "error");
     }
 }

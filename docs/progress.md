@@ -72,89 +72,9 @@ The merges decided during 0.7.0, each old name refused with its rewrite: step 8g
 
 Step 9: the checker reads `instruments: educ ~ nearc4` and refuses its mistakes before anything runs (Z0504, Z0505, Z0804). Step 10: two-stage least squares on the kernels and the variance layer, Card's return to schooling 0.1323, eleven cases within 1e-8 of R. Step 11: the same with fixed effects projected out of both stages, 0.2252 on the specification's sample model, seven cases within 1e-7 of fixest. Step 12, split in three: 12a the eigenvalues of a symmetric matrix in the kernels, bit for bit on the four targets; 12b the first-stage F and the Cragg–Donald F (Stock and Yogo's, which Stata prints; fixest's divides by other degrees of freedom); 12c the Kleibergen–Paap F, the effective F with its critical value, and the warning W1007. `ivDiag` was not installed: the session's permissions declined it, and the effective F is held to its formula written two ways. Open decision #150 was raised at step 10 (Stata's large-sample standard errors; recommended: one form at 1.0, the page says how Stata differs). Each step green locally and on CI.
 
-## 16 November 2026, release 0.8.0, step 13a (the dataset `staff`)
+## 16 November 2026, release 0.8.0, steps 13a to 16 (folded)
 
-**Done.** Step 13 was too large for one step and is three in the checklist: 13a the dataset, 13b `ivreg` with its printed result and page, 13c the rest of its interface. Step 13a `[function]`: `dataset(staff)`, 2,400 employees of a firm with twelve sites, half of them offered a training course by lot. The true effect of the course on productivity is 4.5 by construction; least squares gives 5.93, because the able take the course more, and two-stage least squares with the offer as the instrument gives 4.60 (standard error 0.43), fixest's figures. `zeff help staff` prints its page with the generating model. One fault found and fixed on the way: `fe:` with no excluded instrument at all was an internal error.
-
-**Green.** Format, clippy with warnings denied, the tier, message and grammar checks, every test of the workspace; CI read after the push.
-
-**Next.** Step 13b `[function]`: `ivreg` itself, its printed result and its help page.
-
-**For the owner to decide.** The story and the parameters of `staff` are yours to change before 1.0 (the recommendation of question 2 was taken). Open decisions #149 and #150. Whether to add `ivDiag` by hand.
-
-## 16 November 2026, release 0.8.0, step 13b (`ivreg`)
-
-**Done.** Step 13b `[function]`: `ivreg` can be called. `staff.ivreg(productivity ~ training, instruments: training ~ offer)` prints the table in `reg`'s layout, and under it what was instrumented by what and the weak-instrument F; `fe:`, `se:`, `cluster:`, `weights:` and `level:` work as in `reg`; `first: true` prints the first stage above. The model of the specification's sample script on Card's data gives 0.2252 for schooling, fixest's figure. The result is an `IvFit`, read by `coef`, `ci`, `test` and the other methods of every fit. Its help page is complete, with examples on `staff`. `reg` is unchanged.
-
-**The printed form is yours to approve** (the step's own condition): the two lines under the table, no R², and the first-stage table above when asked for.
-
-**Green.** Format, clippy with warnings denied, the tier, message and grammar checks, every test of the workspace; CI read after the push.
-
-**Next.** Step 13c `[function]`: the rest of `ivreg`'s interface (`predict`, `residuals`, `design()`, `export`, `report` beside `reg` fits, the plots), its conformance case and the items moved from step 9.
-
-**For the owner to decide.** The printed form of `ivreg`. Open decisions #149 and #150. The story of `staff`. Whether to add `ivDiag` by hand.
-
-## 16 November 2026, release 0.8.0, step 13b2 (two messages)
-
-**Done.** Two suggestions of yours, passed on from the session that ran the finished steps against R. `hour(educ)` on a numeric column is now pointed to `datetime(x, epoch: seconds)`, and each such refusal names the conversion that suits what the function wants. The F under a first-stage table of `ivreg` now says "(robust)" or "(clustered by site)" when it stands on such errors. That session found every figure of the finished steps equal to R's.
-
-**Green.** Format, clippy with warnings denied, the tier, message and grammar checks, every test of the workspace; CI read after the push.
-
-**Next.** Step 13c `[function]`: the rest of `ivreg`'s interface.
-
-**For the owner to decide.** The printed form of `ivreg`. Open decisions #149 and #150. The story of `staff`. Whether to add `ivDiag` by hand.
-
-## 16 November 2026, release 0.8.0, step 13c (the rest of `ivreg`'s interface)
-
-**Done.** You approved the printed form of `ivreg`. Step 13c `[function]`: `iv.design()` gives the regressors as observed and the instruments; `report([ols, iv])` has a row naming the instruments and leaves the instrumented model's R² empty; `predict`, `residuals`, `export` and the plots work on the fit as on any other. A formula held in a name, or instruments written as a range, are checked when the statement runs, and the outcome given as an instrument is refused. Two conformance cases compare `ivreg` across the four targets. The nightly test draws the `staff` model a hundred times: the estimate averages 4.5007 against a truth of 4.5 and its intervals cover 96 per cent of the time.
-
-**Green.** Format, clippy with warnings denied, the tier, message and grammar checks, every test of the workspace; CI read after the push.
-
-**Next.** Step 14 `[function]`: `first_stage`, the first-stage tables with the partial R², the F statistics, Hansen's J and the Durbin–Wu–Hausman test.
-
-**For the owner to decide.** The `Instruments` row of `report` and the empty R² cell are a printed layout, yours to change. Open decisions #149 and #150. The story of `staff`. Whether to add `ivDiag` by hand.
-
-## 16 November 2026, release 0.8.0, step 14a (the diagnostics of the first stage)
-
-**Done.** Step 14 is two steps in the checklist: 14a the statistics, 14b the function `first_stage`. Step 14a `[engine]`: the partial R² of each first stage and Shea's; the test of the over-identifying restrictions, Sargan's under classical errors and Hansen's J under robust or clustered ones; and the Durbin–Wu–Hausman test of whether the regressor needed instrumenting. On Card's data with both proximity indicators: partial R² 0.0063, Sargan 2.651 on one degree of freedom, Wu–Hausman F 3.868, fixest's figures. Seven cases agree with R within 1e-7. Nothing a script can call changed.
-
-**Green.** Format, clippy with warnings denied, the tier, message and grammar checks, every test of the workspace; CI read after the push.
-
-**Next.** Step 14b `[function]`: `first_stage`, its printed form and its page.
-
-**For the owner to decide.** The `Instruments` row of `report`. Open decisions #149 and #150. The story of `staff`. Whether to add `ivDiag` by hand.
-
-## 16 November 2026, release 0.8.0, step 14b (`first_stage`)
-
-**Done.** Step 14b `[function]`: `iv.first_stage()` prints the first stage of each instrumented regressor with its partial R² and F, then the weak-instrument statistic, the over-identification test (Sargan's or Hansen's J, or the sentence for an exactly identified model) and the Durbin–Wu–Hausman test. On Card's data with both proximity indicators it gives fixest's figures: Sargan 2.65 (p = 0.103), Wu–Hausman 3.87 (p = 0.049). The statement `iv.first_stage()` of the specification's sample script now runs. Its help page is complete.
-
-**Green.** Format, clippy with warnings denied, the tier, message and grammar checks, every test of the workspace; CI read after the push.
-
-**Next.** Step 15 `[engine]`: the Anderson–Rubin test and confidence set.
-
-**For the owner to decide.** The printed form of `first_stage` and the `Instruments` row of `report` are layouts, yours to change. Open decisions #149 and #150. The story of `staff`. Whether to add `ivDiag` and `ivmodel` by hand (step 15 would use `ivmodel`).
-
-## 16 November 2026, release 0.8.0, step 15 (the Anderson–Rubin test and set)
-
-**Done.** Step 15 `[engine]`: the Anderson–Rubin test, which holds however weak the instruments, and the confidence set of the values it does not reject. On Card's data with both proximity indicators the set for the return to schooling is 0.086 to 0.317, against the usual interval of about 0.06 to 0.26; with the weaker indicator alone it is two rays, and on the first 400 rows the whole line: the data cannot bound the effect, and the set says so. Ten cases agree with R within 1e-6. Nothing a script can call changed: `ar_test` is next.
-
-**Not available.** `ivmodel` would have been the package reference; it cannot be installed from a session. The sets are held to two independent computations in base R.
-
-**Green.** Format, clippy with warnings denied, the tier, message and grammar checks, every test of the workspace; CI read after the push.
-
-**Next.** Step 16 `[function]`: `ar_test`, the function, its printed result and its page.
-
-**For the owner to decide.** The printed form of `first_stage` and the `Instruments` row of `report`. Open decisions #149 and #150. The story of `staff`. Whether to add `ivDiag` and `ivmodel` by hand.
-
-## 16 November 2026, release 0.8.0, step 16 (`ar_test`)
-
-**Done.** Step 16 `[function]`: `iv.ar_test()` prints the Anderson–Rubin test and its confidence set in words. On Card's data with both proximity indicators: F(2, 3,002) = 7.16, p = 0.001, and the set "from 0.0863 to 0.3166"; with the weaker indicator alone, "every value up to -1.4606 and every value from 0.1189 on"; on 400 rows, "every value". The nightly test draws a weak-instrument model four hundred times: the set holds the truth 95.3 per cent of the time, the usual interval 92.7 per cent. The three functions of the release's row, `ivreg`, `first_stage` and `ar_test`, are now all in, each with its page.
-
-**Green.** Format, clippy with warnings denied, the tier, message and grammar checks, every test of the workspace; CI read after the push.
-
-**Next.** Step 17 `[engine]`: leverage under one absorbed effect, which opens `se: hc2`, `hc3` and `influence` with one effect in `fe:`.
-
-**For the owner to decide.** The printed forms of `first_stage` and `ar_test` and the `Instruments` row of `report`. Open decisions #149 and #150. The story of `staff`. Whether to add `ivDiag` and `ivmodel` by hand.
+Steps 13 and 14 were each too large for one step and were split in the checklist. Step 13a: `dataset(staff)`, 2,400 employees offered a training course by lot, true effect 4.5; least squares gives 5.93 and two-stage least squares 4.60, fixest's figures. Step 13b: `ivreg` with its printed result and page, 0.2252 for schooling on the specification's sample model; the owner approved its printed form. Step 13b2: two suggestions of the owner's (a refusal of a date function on a number names the conversion; the first-stage F says "(robust)" or "(clustered by ...)"). Step 13c: `design`, `report` with its `Instruments` row, `predict`, `residuals`, `export` and the plots on an `IvFit`; the nightly draw of `staff` averages 4.5007 with 96 per cent coverage. Step 14a: partial R² and Shea's, Sargan's and Hansen's J, Durbin–Wu–Hausman (on Card's data 0.0063, 2.651 and 3.868, fixest's). Step 14b: `first_stage()`. Step 15: the Anderson–Rubin test and its confidence set (0.086 to 0.317 on Card's data; two rays with the weaker indicator; the whole line on 400 rows). Step 16: `ar_test()`; nightly, the set holds the truth 95.3 per cent of the time and the usual interval 92.7. Each step green locally and on CI.
 
 ## 16 November 2026, release 0.8.0, step 17 (leverage under one absorbed effect)
 
@@ -172,7 +92,7 @@ Step 9: the checker reads `instruments: educ ~ nearc4` and refuses its mistakes 
 
 **Green.** Format, clippy with warnings denied, the tier, message and grammar checks, every test of the workspace, locally. CI is not yet read for steps 17 (103bc4d) and 18 (8f8c45a): GitHub held both runs in its queue from 12:03 UTC, during a service incident it reported from 11:59, and they had not started at 12:50 when the session stopped at the owner's word. The CI of step 16 (f536adf) is green.
 
-**Next.** First read the CI runs of 103bc4d and 8f8c45a, and the scheduled run queued on f536adf. Then step 19 `[engine]`: `zeff explain`.
+**Next.** Step 19 `[engine]`: `zeff explain`. (The CI runs of 103bc4d and 8f8c45a were read on 17 November: both green.)
 
 **For the owner to decide.** The printed forms of `first_stage` and `ar_test` and the `Instruments` row of `report`. Open decisions #149 and #150. The story of `staff`. Whether to add `ivDiag` and `ivmodel` by hand.
 
@@ -185,3 +105,13 @@ Step 9: the checker reads `instruments: educ ~ nearc4` and refuses its mistakes 
 **Next.** The CI of 103bc4d, 8f8c45a and bfe2c90 is green; read the scheduled run on f536adf, still running at 14:19 UTC on 16 November, and every workflow after this push. Then step 19 `[engine]`: `zeff explain`.
 
 **For the owner to decide.** #151 (the licence), #156 (when to submit), #157 (packages written in Zeff during 1.x), #162 (the release 0.12.0), #163 (the methods brought forward) and the study of #155 wait for his word; #151 and #153 are due at 0.9.0. The earlier items stand: the printed forms of `first_stage` and `ar_test` and the `Instruments` row of `report`, open decisions #149 and #150, the story of `staff`, and whether to add `ivDiag` and `ivmodel` by hand.
+
+## 17 November 2026, release 0.8.0, step 19 (`zeff explain`)
+
+**Done.** Step 19 `[engine]`: `zeff explain W1007` prints the page of a code (its meaning, common causes, an example and the fix), which is the page `zeff help W1007` prints; `zeff explain` alone lists the 144 codes by family; `--format json` writes either as records. In an editor every message now carries a link to its code's page, and the language server gives the page when asked (`zeff/explain`); Zemp reads the same page and the same list through the browser's worker. The shells' completion files offer the codes after `zeff explain`.
+
+**Green.** Format, clippy with warnings denied, the tier, message and grammar checks, every test of the workspace, and the worker's messages under Node; CI read after the push.
+
+**Next.** Step 20a `[engine]`: `zeff report-bug`, the report.
+
+**For the owner to decide.** Nothing new from this step. The earlier items stand (see the entry on the article above, and steps 17 and 18).
