@@ -43,6 +43,11 @@ Commands:
   explain [code]    explain the code of an error or a warning, such as Z0402: its meaning,
                     its common causes, an example and the fix; without a code, list the
                     codes by family
+  report-bug [script]
+                    build a report of a failure of scripts/main.zeff, or of the script named,
+                    for you to read before you attach it to an issue: the error, the failing
+                    statement and the statements it depends on, and the names and types of
+                    the variables. It holds no data, and nothing is sent anywhere
   version           print the version of Zeff
   selftest          run the conformance cases shipped with the engine against their published
                     results and say whether this installation is conformant
@@ -64,6 +69,12 @@ Options:
   --deny-warnings         for `run`, `check` and `test`: a warning that no
                           `// zeff: allow(CODE) reason` pragma allows is an error (exit code 3)
   --check                 for `fmt`: write nothing; exit code 1 if a script would change
+  --include-data          for `report-bug`: write the data files the kept statements read
+                          beside the report, as they are
+  --line <n>              for `report-bug`, where nothing failed: a line of the statement
+                          whose result is wrong; needs --reference
+  --reference <file>      for `report-bug`: a text file holding the result that statement
+                          should give (what R or Stata prints, or a computation by hand)
   --stdio                 for `lsp`: talk on standard input and output, which it does anyway
   -q, --quiet             hide notes
   -v, --verbose           show timings and build details
@@ -154,6 +165,12 @@ struct Settings {
     stdio: bool,
     /// `--memory <size>`: the memory budget of the run, in bytes.
     memory: Option<u64>,
+    /// `--include-data`, of `zeff report-bug`: the data files come with the report.
+    include_data: bool,
+    /// `--line <n>`, of `zeff report-bug`: the statement whose result is believed wrong.
+    line: Option<u32>,
+    /// `--reference <file>`, of `zeff report-bug`: the result that statement should give.
+    reference: Option<String>,
 }
 
 impl Default for Settings {
@@ -170,6 +187,9 @@ impl Default for Settings {
             check: false,
             stdio: false,
             memory: None,
+            include_data: false,
+            line: None,
+            reference: None,
         }
     }
 }
@@ -262,6 +282,19 @@ fn take_options<'a>(words: &[&'a str]) -> Result<(Vec<&'a str>, Settings), Strin
                     }
                 };
             }
+            "--include-data" => settings.include_data = true,
+            "--line" => {
+                let written = value("a line of the script")?;
+                settings.line = match written.parse::<u32>() {
+                    Ok(line) if line >= 1 => Some(line),
+                    _ => {
+                        return Err(format!(
+                            "`--line {written}` is not a line: write the number of a line of the script, counted from 1"
+                        ));
+                    }
+                };
+            }
+            "--reference" => settings.reference = Some(value("a file")?.to_string()),
             "--help" | "-h" | "--version" | "-V" => rest.push(word),
             later if LATER_OPTIONS.contains(&later) => {
                 return Err(format!("`{later}` is not available in this release yet"));
@@ -451,6 +484,14 @@ pub fn run(
     if settings.stdio && words.first() != Some(&"lsp") {
         return usage_error(&mut err, "`--stdio` applies to `zeff lsp`");
     }
+    if (settings.include_data || settings.line.is_some() || settings.reference.is_some())
+        && words.first() != Some(&"report-bug")
+    {
+        return usage_error(
+            &mut err,
+            "`--include-data`, `--line` and `--reference` apply to `zeff report-bug`",
+        );
+    }
     let cwd = match &settings.project {
         Some(dir) => {
             let dir = cwd.join(dir);
@@ -488,6 +529,12 @@ pub fn run(
         ["selftest"] => selftest_command(&command, &mut out),
         ["selftest", ..] => usage_error(&mut err, "`zeff selftest` takes no arguments"),
         ["help", name] => help_command(&command, name, &mut out, &mut err),
+        ["report-bug"] => report_bug_command(&command, None, &mut out, &mut err),
+        ["report-bug", script] => report_bug_command(&command, Some(script), &mut out, &mut err),
+        ["report-bug", ..] => usage_error(
+            &mut err,
+            "`zeff report-bug` takes one script, or none for `scripts/main.zeff`",
+        ),
         ["explain"] => explain_command(&command, None, &mut out, &mut err),
         ["explain", code] => explain_command(&command, Some(code), &mut out, &mut err),
         ["explain", ..] => usage_error(
@@ -1372,6 +1419,113 @@ fn help_command(
             1
         }
     }
+}
+
+/// `zeff report-bug [script]` (Engine and Project Specification, section 2.1; Language
+/// Reference, section 11.1, "Bug reports"): the script is run, and where it fails a report is
+/// written into the project's `.zeff/reports/` for the user to read: what failed, the failing
+/// statement and the statements it depends on, and the schema of the data. With `--line` and
+/// `--reference` it reports a result believed wrong, where nothing failed; with
+/// `--include-data` the files those statements read are written beside it. Nothing is sent.
+/// Exit code 0 when a report was written; 1 when there is nothing to report or the report
+/// could not be built or written; 2 when the engine itself could not start.
+fn report_bug_command(
+    command: &Command<'_, '_>,
+    script: Option<&str>,
+    out: &mut dyn Write,
+    err: &mut dyn Write,
+) -> i32 {
+    use zeff_engine::bug_report::{self, Asked, Kind};
+    let (project, shown, text) = match script_of(command, script, err) {
+        Ok(found) => found,
+        Err(code) => return code,
+    };
+    if let Err(errors) = zeff_engine::registry::registry() {
+        return internal_error(err, errors);
+    }
+    // The reference is the user's own file, read from where the command was given.
+    let reference = match &command.settings.reference {
+        Some(written) => match command.fs.read_to_string(&command.cwd.join(written)) {
+            Ok(text) => Some((written.as_str(), text)),
+            Err(error) => {
+                let _ = writeln!(
+                    err,
+                    "error: cannot read the reference `{written}`: {error}\n  = help: `--reference` names a text file, by its path from the folder the command is given in"
+                );
+                return 1;
+            }
+        },
+        None => None,
+    };
+    let platform = format!("{} {}", std::env::consts::ARCH, std::env::consts::OS);
+    let asked = Asked {
+        script: &shown,
+        text: &text,
+        line: command.settings.line,
+        reference: reference
+            .as_ref()
+            .map(|(name, text)| (*name, text.as_str())),
+        include_data: command.settings.include_data,
+        platform: &platform,
+        options: command.run_options(),
+    };
+    let report = match bug_report::build(command.fs, &project, &asked) {
+        Ok(report) => report,
+        Err(none) => {
+            let _ = writeln!(err, "error: {none}");
+            return 1;
+        }
+    };
+    let written = match bug_report::write(command.fs, &project, &report) {
+        Ok(written) => written,
+        Err(error) => {
+            let _ = writeln!(
+                err,
+                "error: the report could not be written into `{}`: {error}",
+                bug_report::FOLDER
+            );
+            return 1;
+        }
+    };
+    let what = match (report.kind, &report.code) {
+        (Kind::Error, Some(code)) => format!("an error, {code}"),
+        (Kind::Error, None) => "an error".to_string(),
+        (Kind::InternalError, _) => "an internal error, a bug in Zeff".to_string(),
+        (Kind::WrongResult, _) => "a result believed wrong".to_string(),
+    };
+    let _ = writeln!(out, "report written: {}", written[0]);
+    let _ = writeln!(
+        out,
+        "  {what}; {} of the {} statements of {shown} are kept{}",
+        report.kept,
+        report.of,
+        if report.reduced || report.of == 0 {
+            ""
+        } else {
+            " (every statement up to the failure)"
+        }
+    );
+    let named = report.files.len();
+    if named == 0 {
+        let _ = writeln!(out, "  data: the statements kept read no file");
+    } else if written.len() > 1 {
+        let _ = writeln!(out, "  data: written beside it, as it is:");
+        for path in &written[1..] {
+            let _ = writeln!(out, "    {path}");
+        }
+    } else {
+        let _ = writeln!(
+            out,
+            "  data: not included; {named} {} named in the report (`--include-data` writes {} beside it)",
+            if named == 1 { "file is" } else { "files are" },
+            if named == 1 { "it" } else { "them" }
+        );
+    }
+    let _ = writeln!(
+        out,
+        "Read it before you attach it anywhere: nothing has been sent."
+    );
+    0
 }
 
 /// `zeff explain [code]` (Engine and Project Specification, section 2.1; Language Reference,

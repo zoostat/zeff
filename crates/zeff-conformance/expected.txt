@@ -265,6 +265,8 @@ functions/builtin_fixture/stdout 4cc2b7b1e74d82bd
 functions/builtin_fixture/stderr cbf29ce484222325
 export/sample.docx c1fd0481a8a88c3f
 export/sample.tex 79622a8e73235482
+tools/report_bug/name 0d5e744d7d8d0663
+tools/report_bug/report 161779fea40f5234
 plot/lines/stdout c69bf28498722bf2
 plot/lines/stderr 292ed9115946fd12
 plot/lines/scene 6a1463f916305adf

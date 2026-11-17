@@ -1,0 +1,79 @@
+---
+source: crates/zeff-cli/tests/cli.rs
+expression: digest(&said)
+---
+$ zeff report-bug
+report written: .zeff/reports/main-Z0604-<digest>.md
+  an error, Z0604; 3 of the 6 statements of scripts/main.zeff are kept
+  data: not included; 2 files are named in the report (`--include-data` writes them beside it)
+Read it before you attach it anywhere: nothing has been sent.
+exit code 0
+
+$ zeff report-bug --include-data
+report written: .zeff/reports/main-Z0604-<digest>.md
+  an error, Z0604; 3 of the 6 statements of scripts/main.zeff are kept
+  data: written beside it, as it is:
+    .zeff/reports/main-Z0604-<digest>-data/data/firms.csv
+    .zeff/reports/main-Z0604-<digest>-data/data/pay.csv
+Read it before you attach it anywhere: nothing has been sent.
+exit code 0
+
+$ zeff report-bug scripts/mean.zeff --line 3 --reference r.txt
+report written: .zeff/reports/mean-wrong-result-<digest>.md
+  a result believed wrong; 2 of the 3 statements of scripts/mean.zeff are kept
+  data: not included; 1 file is named in the report (`--include-data` writes it beside it)
+Read it before you attach it anywhere: nothing has been sent.
+exit code 0
+
+$ zeff report-bug scripts/mean.zeff
+error: the script ran without an error: there is nothing to report
+  = help: for a result you believe is wrong, name its statement and what it should give: `zeff report-bug --line <n> --reference <file>`
+exit code 1
+
+$ zeff report-bug scripts/mean.zeff --line 3
+error: a report of a wrong result needs the result it should agree with
+  = help: `--reference <file>` names a text file holding what R, Stata or a computation by hand gives
+exit code 1
+
+$ zeff report-bug scripts/mean.zeff --reference r.txt
+error: `--reference` needs the statement it is for
+  = help: `--line <n>` names a line of the statement whose result is wrong
+exit code 1
+
+$ zeff report-bug scripts/mean.zeff --line 9 --reference r.txt
+error: no statement of the script is written at line 9
+  = help: `--line` takes a line of the statement whose result is wrong
+exit code 1
+
+$ zeff report-bug scripts/mean.zeff --line 3 --reference nowhere.txt
+error: cannot read the reference `nowhere.txt`: <the system's message>
+  = help: `--reference` names a text file, by its path from the folder the command is given in
+exit code 1
+
+$ zeff report-bug --line 5 --reference r.txt
+error: the script stopped with an error, so the result of line 5 cannot be reported as wrong
+  = help: `zeff report-bug` without `--line` reports the error; correct it first if the wrong result is the matter
+exit code 1
+
+$ zeff report-bug --line 0
+error: `--line 0` is not a line: write the number of a line of the script, counted from 1
+
+run `zeff help` to see the commands
+exit code 1
+
+$ zeff report-bug scripts/nowhere.zeff
+error[Z0714]: no script `scripts/nowhere.zeff` in the project
+  = help: scripts live in `scripts/`; `zeff run` and `zeff check` alone use `scripts/main.zeff`
+exit code 1
+
+$ zeff report-bug scripts/main.zeff scripts/mean.zeff
+error: `zeff report-bug` takes one script, or none for `scripts/main.zeff`
+
+run `zeff help` to see the commands
+exit code 1
+
+$ zeff run --include-data
+error: `--include-data`, `--line` and `--reference` apply to `zeff report-bug`
+
+run `zeff help` to see the commands
+exit code 1

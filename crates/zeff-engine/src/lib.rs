@@ -1,8 +1,10 @@
 //! The engine: projects, the interpreter and the assembled function registry.
 
 pub mod budget;
+pub mod bug_report;
 pub mod control;
 pub mod create;
+pub mod dependencies;
 pub mod examples;
 pub mod explain;
 mod explain_pages;

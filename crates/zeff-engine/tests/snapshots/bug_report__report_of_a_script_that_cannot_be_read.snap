@@ -1,0 +1,48 @@
+---
+source: crates/zeff-engine/tests/bug_report.rs
+expression: unread.text
+---
+# Zeff bug report: an error, Z0302
+
+This file was written by `zeff report-bug` on your computer. Nothing has been sent
+anywhere. Read it before you attach it to an issue: it holds statements of your script,
+the names and types of your variables and the names of the files they were read from.
+It holds no rows of your data.
+A message is quoted as it was printed, and a message may name a value where it must (a
+text that could not be converted, the levels of a group): read those lines too.
+
+## What went wrong
+
+The script stopped with an error:
+
+    error[Z0302]: this `(` is never closed
+     --> scripts/main.zeff:1:17
+      |
+    1 | let pay = import("data/pay.csv"
+      |                 ^ opened here
+    2 | let x = (
+      | --- the statement seems to end before this line
+
+## Zeff
+
+- version: 0.8.0-dev
+- edition: preview
+- platform: the test's machine
+
+## The statements
+
+`scripts/main.zeff` could not be read into statements, so the script is kept whole:
+
+    let pay = import("data/pay.csv"
+    let x = (
+
+## The run
+
+- seed: none is set by these statements
+- warnings and notes before the failure: none
+
+## The data
+
+The statements kept hold no frame.
+
+The statements read no file.

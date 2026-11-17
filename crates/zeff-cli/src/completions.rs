@@ -61,6 +61,11 @@ pub const COMMANDS: &[(&str, After, &str)] = &[
         After::Code,
         "explain the code of an error or a warning",
     ),
+    (
+        "report-bug",
+        After::Script,
+        "build a report of a failure for you to read",
+    ),
     ("version", After::Nothing, "print the version of Zeff"),
     (
         "selftest",
@@ -142,6 +147,24 @@ pub const OPTIONS: &[(&str, Option<&str>, Takes, &str)] = &[
         None,
         Takes::Nothing,
         "for lsp: talk on standard input and output",
+    ),
+    (
+        "--include-data",
+        None,
+        Takes::Nothing,
+        "for report-bug: write the data files beside the report",
+    ),
+    (
+        "--line",
+        None,
+        Takes::Value,
+        "for report-bug: a line of the statement whose result is wrong",
+    ),
+    (
+        "--reference",
+        None,
+        Takes::Value,
+        "for report-bug: a file holding the result it should give",
     ),
     ("--quiet", Some("-q"), Takes::Nothing, "hide notes"),
     (

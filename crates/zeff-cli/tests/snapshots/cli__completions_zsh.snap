@@ -20,6 +20,7 @@ _zeff() {
         'eval:run one statement and print its value'
         'help:a help page, the functions of a package, or a code explained'
         'explain:explain the code of an error or a warning'
+        'report-bug:build a report of a failure for you to read'
         'version:print the version of Zeff'
         'selftest:check this installation against the published results'
         'completions:write the completions of a shell'
@@ -35,6 +36,9 @@ _zeff() {
         '--deny-warnings:a warning that no pragma allows is an error'
         '--check:for fmt: write nothing, say which scripts would change'
         '--stdio:for lsp: talk on standard input and output'
+        '--include-data:for report-bug: write the data files beside the report'
+        '--line:for report-bug: a line of the statement whose result is wrong'
+        '--reference:for report-bug: a file holding the result it should give'
         '--quiet:hide notes'
         '-q:hide notes'
         '--verbose:show timings and build details'
@@ -48,7 +52,7 @@ _zeff() {
     local -i i=2
     while (( i < CURRENT )); do
         case "${words[i]}" in
-            -p|--project|--format|--color|--width|--memory) (( i++ )) ;;
+            -p|--project|--format|--color|--width|--memory|--line|--reference) (( i++ )) ;;
             -*) ;;
             *) command="${words[i]}"; break ;;
         esac
@@ -60,6 +64,8 @@ _zeff() {
         --color) compadd auto always never; return ;;
         --width) return ;;
         --memory) return ;;
+        --line) return ;;
+        --reference) return ;;
     esac
     if [[ "${words[CURRENT]}" == -* ]]; then
         _describe 'option' options
@@ -70,7 +76,7 @@ _zeff() {
         help) compadd -a topics ;;
         explain) compadd -a codes ;;
         completions) compadd -a shells ;;
-        run|check|repl) _files -g '*.zeff' ;;
+        run|check|repl|report-bug) _files -g '*.zeff' ;;
     esac
 }
 # Run where zsh loads this file as the function itself; registered where it is sourced.

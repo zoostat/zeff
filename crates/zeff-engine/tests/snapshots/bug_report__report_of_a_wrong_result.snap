@@ -1,0 +1,78 @@
+---
+source: crates/zeff-engine/tests/bug_report.rs
+expression: report.text
+---
+# Zeff bug report: a result believed wrong
+
+This file was written by `zeff report-bug` on your computer. Nothing has been sent
+anywhere. Read it before you attach it to an issue: it holds statements of your script,
+the names and types of your variables and the names of the files they were read from.
+It holds no rows of your data.
+A message is quoted as it was printed, and a message may name a value where it must (a
+text that could not be converted, the levels of a group): read those lines too.
+
+## What went wrong
+
+The statement at line 6 ran without an error, and its result is believed to be
+wrong. Zeff printed:
+
+    reg · wage ~ hours
+    N = 4 (1 row dropped for NA in model variables)
+    standard errors: robust (HC1)
+
+      term          estimate   std.error   t value   p value   95% CI
+      (intercept)     9.6822     36.6140      0.26     0.816   [-147.8553, 167.2197]
+      hours           0.4195      0.9106      0.46     0.690   [-3.4985, 4.3375]
+
+    R² 0.051 · adjusted R² -0.423
+
+The reference it should agree with, as given in `r_output.txt`:
+
+    Call: lm(formula = wage ~ hours, data = pay)
+    (Intercept)  hours
+        -19.137  1.151
+
+## Zeff
+
+- version: 0.8.0-dev
+- edition: preview
+- platform: the test's machine
+
+## The statements
+
+The statement and the statements it depends on: 3 of the 5 statements of
+`scripts/main.zeff` (lines 1, 4 and 6). Run alone, they print the same result.
+
+    let pay = import("data/pay.csv")
+    let m = pay.reg(wage ~ hours,
+                    se: robust)
+    m
+
+## The run
+
+- seed: none is set by these statements
+- warnings and notes of these statements:
+
+    note: data/pay.csv read as CSV: 5 rows × 5 variables, types guessed; CSV carries no labels, value labels or categories (line 1)
+    warning[W1006]: 1 observation drives a coefficient: removing it moves an estimate by more than its standard error (row 5) (line 4)
+      = help: check the row's values; `influence()` lists leverage, Cook's distance and studentized residuals by row
+
+## The data
+
+The frames the statements hold: the names and types of their variables and how many
+values are missing. No value is written here.
+
+`pay`: 5 rows × 5 variables
+
+    worker    Int
+    firm      Int
+    wage      Float
+    hours     Int       1 missing
+    industry  Str
+
+The files the statements read:
+
+- `data/pay.csv`, 131 bytes
+
+They are not in this report. `zeff report-bug --include-data` writes them beside it,
+for a report whose reader needs the rows to see the failure.

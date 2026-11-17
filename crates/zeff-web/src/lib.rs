@@ -152,6 +152,13 @@ impl Host {
         zeff_columns::write_ipc(&frame.table).ok()
     }
 
+    /// Whether the project holds a file or a folder at this path from its folder.
+    pub fn holds(&self, path: &str) -> bool {
+        use zeff_engine::fs::FileSystem;
+        let at = format!("{ROOT}/{}", path.trim_start_matches('/'));
+        self.fs.is_file(Path::new(&at)) || self.fs.is_dir(Path::new(&at))
+    }
+
     /// Put a file into the project, by its path from the project's folder (`data/wages.csv`,
     /// `functions/clean.zeff`, `zeff.toml`); a file of that path is replaced.
     pub fn add_file(&self, path: &str, bytes: &[u8]) {
@@ -208,6 +215,75 @@ impl Host {
             &outcome.output.stdout,
             &outcome.output.stderr,
         )
+    }
+
+    /// "Report a problem" (Language Reference, section 11.1, "Bug reports"; release 0.8.0,
+    /// step 20a): the report `zeff report-bug` builds, of the text of `script` as it stands.
+    /// The script is run here, once whole and once with the statements kept; nothing is
+    /// written and nothing is sent: the report comes back as a line of JSON of type `report`
+    /// for the interface to show, with its name, its kind (`error`, `internal error` or
+    /// `wrong result`), its code, how many statements it keeps of how many, and the files the
+    /// kept statements read, by name. A result believed wrong is named by `line` with its
+    /// `reference` (the name of the user's file and its text). Where there is nothing to
+    /// report, the line is of type `error` and says why.
+    pub fn report_bug(
+        &self,
+        script: &str,
+        text: &str,
+        line: Option<u32>,
+        reference: Option<(&str, &str)>,
+        platform: &str,
+        device_bytes: Option<u64>,
+    ) -> String {
+        use zeff_engine::bug_report::{Asked, build};
+        let failed = |message: &str| {
+            format!(
+                "{{\"type\": \"error\", \"message\": {}}}",
+                json_string(message)
+            )
+        };
+        let Ok(project) = Project::open(&self.fs, Path::new(ROOT)) else {
+            return failed("the project's `zeff.toml` could not be read");
+        };
+        let asked = Asked {
+            script,
+            text,
+            line,
+            reference,
+            include_data: false,
+            platform,
+            options: RunOptions {
+                memory: match project.manifest.memory {
+                    Some(_) => None,
+                    None => Some(default_budget(device_bytes)),
+                },
+                ..RunOptions::default()
+            },
+        };
+        match build(&self.fs, &project, &asked) {
+            Ok(report) => {
+                let files: Vec<String> = report
+                    .files
+                    .iter()
+                    .map(|(name, _)| json_string(name))
+                    .collect();
+                format!(
+                    "{{\"type\": \"report\", \"name\": {}, \"kind\": {}, \"code\": {}, \"kept\": {}, \"of\": {}, \"reduced\": {}, \"files\": [{}], \"text\": {}}}",
+                    json_string(&report.name),
+                    json_string(report.kind.name()),
+                    report
+                        .code
+                        .as_deref()
+                        .map_or("null".to_string(), json_string),
+                    report.kept,
+                    report.of,
+                    report.reduced,
+                    files.join(", "),
+                    json_string(&report.text)
+                )
+            }
+            Err(none) => failed(&none.to_string()),
+        }
     }
 
     /// The outcome of a run as a line of JSON, with the frames its bindings hold: each by

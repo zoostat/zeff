@@ -271,3 +271,53 @@ fn a_code_is_explained_and_the_codes_are_listed() {
         );
     }
 }
+
+/// "Report a problem" (release 0.8.0, step 20a): the report of a failing script as a line of
+/// type `report`, with nothing written into the project; a result believed wrong with its
+/// reference; and a line of type `error` where there is nothing to report.
+#[test]
+fn a_problem_is_reported_as_a_line_of_json_and_nothing_is_written() {
+    let host = Host::new("demo");
+    host.add_file("data/pay.csv", b"id,wage\n1,23.5\n2,19\n3,31.25\n");
+    let script = "let pay = import(\"data/pay.csv\")\nprint(\"between\")\npay.mean(wagee)\n";
+    let line = host.report_bug("scripts/main.zeff", script, None, None, "a test", None);
+    assert!(!line.contains('\n'));
+    assert!(
+        line.starts_with(r#"{"type": "report", "name": "main-Z0101-"#),
+        "{line}"
+    );
+    for part in [
+        r##""kind": "error", "code": "Z0101", "kept": 2, "of": 3, "reduced": true, "files": ["data/pay.csv"], "text": "# Zeff bug report: an error, Z0101\n"##,
+        r"- platform: a test\n",
+        r"no variable `wagee` in `pay`",
+    ] {
+        assert!(line.contains(part), "{part}:\n{line}");
+    }
+    assert!(!line.contains("31.25"), "{line}");
+    // A result believed wrong, with what it should be.
+    let fine = "let pay = import(\"data/pay.csv\")\npay.mean(wage)\n";
+    let wrong = host.report_bug(
+        "scripts/main.zeff",
+        fine,
+        Some(2),
+        Some(("r.txt", "[1] 24.58333\n")),
+        "a test",
+        None,
+    );
+    assert!(
+        wrong.contains(r#""kind": "wrong result", "code": null, "kept": 2, "of": 2"#),
+        "{wrong}"
+    );
+    assert!(wrong.contains(r"[1] 24.58333"), "{wrong}");
+    // Nothing to report.
+    let none = host.report_bug("scripts/main.zeff", fine, None, None, "a test", None);
+    assert!(
+        none.starts_with(
+            r#"{"type": "error", "message": "the script ran without an error: there is nothing to report"#
+        ),
+        "{none}"
+    );
+    // Nothing was written into the project's reports.
+    assert!(host.holds("data/pay.csv"));
+    assert!(!host.holds(".zeff/reports"));
+}

@@ -707,6 +707,186 @@ fn zeff_explain_prints_a_codes_page_and_lists_the_codes() {
     assert_eq!(std::fs::read_dir(dir.path()).unwrap().count(), 0);
 }
 
+// ----- zeff report-bug -----
+
+/// `zeff report-bug` (Engine and Project Specification, section 2.1; Language Reference,
+/// section 11.1, "Bug reports"; release 0.8.0, step 20a): a report of a failing script written
+/// into `.zeff/reports/`, with the data only where `--include-data` asks; a result believed
+/// wrong reported with its reference; and exit code 1, with nothing written, where there is
+/// nothing to report or the command is not given as it must be.
+#[test]
+fn zeff_report_bug_writes_a_report_for_the_user_to_read() {
+    let (_dir, project) = demo();
+    std::fs::create_dir_all(project.join("data")).unwrap();
+    std::fs::write(
+        project.join("data/pay.csv"),
+        "worker,firm,wage\n1,10,23.5\n2,10,19.0\n3,20,31.25\n",
+    )
+    .unwrap();
+    std::fs::write(
+        project.join("data/firms.csv"),
+        "firm,size,wage\n10,120,1\n20,45,2\n",
+    )
+    .unwrap();
+    let script = "let wages = dataset(wages)\nwages.summary([wage])\nlet pay = import(\"data/pay.csv\")\nlet firms = import(\"data/firms.csv\")\nlet joined = pay.merge(firms, on: firm)\njoined\n";
+    std::fs::write(project.join("scripts/main.zeff"), script).unwrap();
+    let reports = project.join(".zeff/reports");
+    let listed = |folder: &Path| -> Vec<String> {
+        let mut names: Vec<String> = std::fs::read_dir(folder)
+            .map(|entries| {
+                entries
+                    .flatten()
+                    .map(|entry| entry.file_name().to_string_lossy().into_owned())
+                    .collect()
+            })
+            .unwrap_or_default();
+        names.sort();
+        names
+    };
+    let mut said = String::new();
+    let mut tell = |words: &[&str], o: &Output| {
+        said.push_str(&format!(
+            "$ zeff {}\n{}{}exit code {}\n\n",
+            words.join(" "),
+            out(o),
+            err(o),
+            code(o)
+        ));
+    };
+    // An error: one file, named after the script and the code, and nothing of the data.
+    let o = zeff(&project, &["report-bug"]);
+    assert_eq!(code(&o), 0, "{}", err(&o));
+    assert_eq!(err(&o), "");
+    tell(&["report-bug"], &o);
+    let names = listed(&reports);
+    assert_eq!(names.len(), 1, "{names:?}");
+    assert!(names[0].starts_with("main-Z0604-") && names[0].ends_with(".md"));
+    assert!(out(&o).starts_with(&format!("report written: .zeff/reports/{}\n", names[0])));
+    let report = std::fs::read_to_string(reports.join(&names[0])).unwrap();
+    assert!(report.starts_with("# Zeff bug report: an error, Z0604\n"));
+    assert!(report.contains(&format!("- version: {VERSION}\n- edition: preview\n")));
+    assert!(report.contains(&format!(
+        "- platform: {} {}\n",
+        std::env::consts::ARCH,
+        std::env::consts::OS
+    )));
+    assert!(report.contains("3 of the 6 statements of\n`scripts/main.zeff` (lines 3, 4 and 5)"));
+    assert!(!report.contains("wages.summary"));
+    for value in ["23.5", "31.25", "120"] {
+        assert!(!report.contains(value), "{value}:\n{report}");
+    }
+    // The same failure again: the same file, not a second one.
+    assert_eq!(code(&zeff(&project, &["report-bug"])), 0);
+    assert_eq!(listed(&reports), names);
+    // With the data: a second report, and the two files beside it as they are.
+    let o = zeff(&project, &["report-bug", "--include-data"]);
+    assert_eq!(code(&o), 0, "{}", err(&o));
+    tell(&["report-bug", "--include-data"], &o);
+    let all = listed(&reports);
+    assert_eq!(all.len(), 3, "{all:?}");
+    let folder = all.iter().find(|name| name.ends_with("-data")).unwrap();
+    assert_eq!(
+        std::fs::read_to_string(reports.join(folder).join("data/pay.csv")).unwrap(),
+        "worker,firm,wage\n1,10,23.5\n2,10,19.0\n3,20,31.25\n"
+    );
+    assert_eq!(
+        listed(&reports.join(folder).join("data")),
+        ["firms.csv", "pay.csv"]
+    );
+    // A result believed wrong, with its reference; and a script named.
+    std::fs::write(
+        project.join("scripts/mean.zeff"),
+        "let pay = import(\"data/pay.csv\")\nprint(\"a line between\")\npay.mean(wage)\n",
+    )
+    .unwrap();
+    std::fs::write(project.join("r.txt"), "[1] 24.58334\n").unwrap();
+    let words = [
+        "report-bug",
+        "scripts/mean.zeff",
+        "--line",
+        "3",
+        "--reference",
+        "r.txt",
+    ];
+    let o = zeff(&project, &words);
+    assert_eq!(code(&o), 0, "{}", err(&o));
+    tell(&words, &o);
+    let wrong = listed(&reports)
+        .into_iter()
+        .find(|name| name.starts_with("mean-wrong-result-"))
+        .unwrap();
+    let report = std::fs::read_to_string(reports.join(wrong)).unwrap();
+    assert!(report.contains(
+        "The reference it should agree with, as given in `r.txt`:\n\n    [1] 24.58334\n"
+    ));
+    assert!(report.contains("2 of the 3 statements"));
+    // Nothing to report, and the command not given as it must be: exit code 1, nothing written.
+    let before = listed(&reports);
+    for words in [
+        &["report-bug", "scripts/mean.zeff"][..],
+        &["report-bug", "scripts/mean.zeff", "--line", "3"],
+        &["report-bug", "scripts/mean.zeff", "--reference", "r.txt"],
+        &[
+            "report-bug",
+            "scripts/mean.zeff",
+            "--line",
+            "9",
+            "--reference",
+            "r.txt",
+        ],
+        &[
+            "report-bug",
+            "scripts/mean.zeff",
+            "--line",
+            "3",
+            "--reference",
+            "nowhere.txt",
+        ],
+        &["report-bug", "--line", "5", "--reference", "r.txt"],
+        &["report-bug", "--line", "0"],
+        &["report-bug", "scripts/nowhere.zeff"],
+        &["report-bug", "scripts/main.zeff", "scripts/mean.zeff"],
+        &["run", "--include-data"],
+    ] {
+        let o = zeff(&project, words);
+        assert_eq!(code(&o), 1, "{words:?}");
+        assert_eq!(out(&o), "", "{words:?}");
+        tell(words, &o);
+    }
+    assert_eq!(listed(&reports), before);
+    // The names of the files hold a digest of the report, which the platform line is part of:
+    // the stored text has them and the platform's file error left out.
+    let digest = |text: &str| -> String {
+        let mut cleaned = text.to_string();
+        for stem in ["main-Z0604-", "mean-wrong-result-"] {
+            let mut out = String::new();
+            let mut rest = cleaned.as_str();
+            while let Some(at) = rest.find(stem) {
+                let end = at + stem.len();
+                out.push_str(&rest[..end]);
+                out.push_str("<digest>");
+                rest = &rest[end + 8..];
+            }
+            out.push_str(rest);
+            cleaned = out;
+        }
+        cleaned
+            .lines()
+            .map(|line| match line.split_once("`nowhere.txt`: ") {
+                Some((before, _)) => format!("{before}`nowhere.txt`: <the system's message>"),
+                None => line.to_string(),
+            })
+            .collect::<Vec<_>>()
+            .join("\n")
+    };
+    insta::assert_snapshot!("report_bug", digest(&said));
+    // Outside a project there is nothing to run.
+    let outside = tempfile::tempdir().unwrap();
+    let o = zeff(outside.path(), &["report-bug"]);
+    assert_eq!(code(&o), 1);
+    assert!(err(&o).contains("Z0709"), "{}", err(&o));
+}
+
 #[test]
 fn zeff_help_lists_a_package_and_says_when_a_function_arrives() {
     let dir = tempfile::tempdir().unwrap();

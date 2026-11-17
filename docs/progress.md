@@ -115,3 +115,13 @@ Steps 13 and 14 were each too large for one step and were split in the checklist
 **Next.** Step 20a `[engine]`: `zeff report-bug`, the report.
 
 **For the owner to decide.** Nothing new from this step. The earlier items stand (see the entry on the article above, and steps 17 and 18).
+
+## 17 November 2026, release 0.8.0, step 20a (`zeff report-bug`, the report)
+
+**Done.** Step 20a `[engine]`: `zeff report-bug` runs a script and, where it fails, writes one file into `.zeff/reports/` for you to read before attaching it anywhere: the error as printed, the failing statement and only the statements it depends on (on the samples, 1 to 6 of 15 to 59), the seed, and the names and types of the variables. It holds no rows of the data, and nothing is sent. `--include-data` writes the data files beside it; `--line` with `--reference` reports a result believed wrong. The kept statements are run alone to see that they fail in the same way. Zemp's "Report a problem" gets the same report through the browser's worker.
+
+**Green.** Format, clippy with warnings denied, the tier, message and grammar checks, every test of the workspace, and the worker's messages under Node; CI read after the push. The CI of step 19 (87bc53c) is green.
+
+**Next.** Step 20b `[engine]`: `zeff report-bug`, shrinking.
+
+**For the owner to decide.** The wording and layout of the report (an example is in the step's report to you). The earlier items stand.

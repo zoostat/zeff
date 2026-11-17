@@ -1,0 +1,18 @@
+---
+source: crates/zeff-engine/tests/bug_report.rs
+expression: all
+---
+error: the script ran without an error: there is nothing to report
+  = help: for a result you believe is wrong, name its statement and what it should give: `zeff report-bug --line <n> --reference <file>`
+
+error: the script stopped with an error, so the result of line 3 cannot be reported as wrong
+  = help: `zeff report-bug` without `--line` reports the error; correct it first if the wrong result is the matter
+
+error: no statement of the script is written at line 40
+  = help: `--line` takes a line of the statement whose result is wrong
+
+error: a report of a wrong result needs the result it should agree with
+  = help: `--reference <file>` names a text file holding what R, Stata or a computation by hand gives
+
+error: `--reference` needs the statement it is for
+  = help: `--line <n>` names a line of the statement whose result is wrong

@@ -1721,6 +1721,50 @@ fn builtin_fixture_cases() -> Vec<Line> {
     ]
 }
 
+/// `zeff report-bug` (release 0.8.0, step 20a): the report of a script that fails on the
+/// shipped wages and a file of its own, with the machine named alike everywhere, so that the
+/// four targets prove the report identical: the statements the graph keeps, the messages, the
+/// schema of the frames and the name the report is written under.
+fn tools_cases() -> Vec<Line> {
+    use std::path::Path;
+    use zeff_engine::bug_report::{Asked, build};
+    use zeff_engine::fs::MemoryFileSystem;
+    use zeff_engine::project::Project;
+    let fs = MemoryFileSystem::new();
+    fs.add_file(
+        "/t/zeff.toml",
+        format!(
+            "[project]\nname = \"t\"\nzeff = \"{}\"\nedition = \"preview\"\n",
+            zeff_engine::VERSION
+        ),
+    );
+    fs.add_file(
+        "/t/data/sites.csv",
+        "firm,site\n1,North\n2,South\n3,North\n",
+    );
+    let project = match Project::open(&fs, Path::new("/t")) {
+        Ok(project) => project,
+        Err(_) => return vec![text("tools/report_bug/report", "the project did not open")],
+    };
+    let script = "let wages = dataset(wages)\nwages.summary([wage, hours], by: female)\nlet sites = import(\"data/sites.csv\")\nseed(3)\nlet young = wages.where(age < 30).sample(n: 400)\nprint(young.n_rows())\nlet placed = young.merge(sites, on: firm, relation: many_to_one)\nlet m = placed.reg(log(wage) ~ educ, fe: site + year, se: hc3)\nm\n";
+    let asked = Asked {
+        script: "scripts/main.zeff",
+        text: script,
+        line: None,
+        reference: None,
+        include_data: false,
+        platform: "every target",
+        options: zeff_engine::run::RunOptions::default(),
+    };
+    match build(&fs, &project, &asked) {
+        Ok(report) => vec![
+            text("tools/report_bug/name", &report.name),
+            text("tools/report_bug/report", &report.text),
+        ],
+        Err(none) => vec![text("tools/report_bug/report", &none.to_string())],
+    }
+}
+
 /// The exported files of release 0.4.0 (step 13): the sample table as Word and LaTeX, so that the
 /// four targets prove the bytes identical.
 fn export_cases() -> Vec<Line> {
@@ -3041,6 +3085,7 @@ fn all_cases() -> Vec<Line> {
     lines.extend(panel_cases());
     lines.extend(builtin_fixture_cases());
     lines.extend(export_cases());
+    lines.extend(tools_cases());
     lines.extend(plot_cases());
     lines.extend(kernels_cases());
     lines.extend(milestone_cases());

@@ -213,3 +213,37 @@ test("a code is explained and the codes are listed, with no project open", async
   assert.ok(all.some((entry) => entry.code === "W1007" && entry.kind === "warning"));
   await worker.terminate();
 });
+
+test("a problem is reported for the interface to show, and nothing is written", async () => {
+  const { worker, next } = await opened(0);
+  worker.postMessage({ type: "file", path: "data/pay.csv", bytes: bytes("id,wage\n1,23.5\n2,19\n3,31.25\n") });
+  const text = 'let pay = import("data/pay.csv")\nprint("between")\npay.mean(wagee)\n';
+  worker.postMessage({ type: "report", script: "scripts/main.zeff", text });
+  const report = await next("report");
+  assert.match(report.name, /^main-Z0101-[0-9a-f]{8}\.md$/);
+  assert.equal(report.kind, "error");
+  assert.equal(report.code, "Z0101");
+  assert.deepEqual([report.kept, report.of, report.reduced], [2, 3, true]);
+  assert.deepEqual(report.files, ["data/pay.csv"]);
+  assert.match(report.text, /^# Zeff bug report: an error, Z0101\n/);
+  assert.match(report.text, /- platform: WebAssembly, in a browser\n/);
+  assert.ok(!report.text.includes("31.25"));
+  // A result believed wrong, with its reference.
+  const fine = 'let pay = import("data/pay.csv")\npay.mean(wage)\n';
+  worker.postMessage({
+    type: "report",
+    script: "scripts/main.zeff",
+    text: fine,
+    line: 2,
+    reference: { name: "r.txt", text: "[1] 24.58333\n" },
+  });
+  const wrong = await next("report");
+  assert.equal(wrong.kind, "wrong result");
+  assert.equal(wrong.code, null);
+  assert.match(wrong.text, /\[1\] 24\.58333/);
+  // Nothing to report.
+  worker.postMessage({ type: "report", script: "scripts/main.zeff", text: fine });
+  const none = await next("error");
+  assert.match(none.message, /^the script ran without an error: there is nothing to report/);
+  await worker.terminate();
+});

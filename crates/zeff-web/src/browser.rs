@@ -55,6 +55,37 @@ impl Engine {
 
 #[wasm_bindgen]
 impl Engine {
+    /// "Report a problem": the bug report of a script as it stands, as a line of JSON of type
+    /// `report`, or of type `error` where there is nothing to report. `line` is the line of a
+    /// statement whose result is believed wrong, or 0; with it come the name and the text of
+    /// the reference it should agree with. Nothing is written and nothing is sent.
+    pub fn report_bug(
+        &self,
+        script: &str,
+        text: &str,
+        line: u32,
+        reference_name: Option<String>,
+        reference_text: Option<String>,
+        device_bytes: f64,
+    ) -> String {
+        let device = (device_bytes > 0.0).then_some(device_bytes as u64);
+        let reference = match (&reference_name, &reference_text) {
+            (Some(name), Some(text)) => Some((name.as_str(), text.as_str())),
+            _ => None,
+        };
+        self.host.report_bug(
+            script,
+            text,
+            (line > 0).then_some(line),
+            reference,
+            "WebAssembly, in a browser",
+            device,
+        )
+    }
+}
+
+#[wasm_bindgen]
+impl Engine {
     /// A frame of the last run as the bytes of an Arrow stream, or nothing where no binding of
     /// that name held a frame. The bytes arrive in a buffer of their own, which the worker
     /// script passes to the interface without a copy.
