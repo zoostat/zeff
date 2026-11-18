@@ -102,6 +102,8 @@ Date: 17 October 2026 · Source: Zeff Specification section 15, Zemp Specificati
 
 **Status (16 November 2026, the article for the Journal of Statistical Software).** The owner's draft of an article on Zeff for the Journal of Statistical Software (kept outside the repository) was checked against the journal's published rules for authors and its mission statement, and against both volumes, the catalogue and this register. The owner asked for the changes that give the article its best chance to be recorded here: #151 to #161, in the new group "Raised for the journal article" at the end of this register. No normative text is changed. Four of them (#151, #156, #157 and the choice of study in #155) reverse or extend a ruling of the owner or set the article's own course, so they wait for his word and are not taken under the standing instruction of 12 November 2026; the others are taken as recommended at their deadlines unless he says otherwise. Asked the same day which changes to the release plan would follow, the owner asked for two more to be recorded: #162 (a release 0.12.0 for the bridges to R and Python, before the names freeze) and #163 (Poisson regression with fixed effects, the wild cluster bootstrap and difference-in-differences brought forward to 1.2 and 1.3). Both change the plan the owner set, so both wait for his word.
 
+**Status (19 November 2026, the review against R on outside datasets).** Thirteen scripts on twenty datasets the owner supplied were run on the commit of step 20a and compared with R: 688 of 698 figures agree, and every difference is explained. The engine's faults are steps 20d to 20j of the 0.8.0 checklist. The design questions are recorded as #165 to #171, in a new group "Raised by the review against R": the length of each text value (#165), a row-wise count of missing values (#166), a row number (#167), one value out of a column (#168), widening a guessed type on import (#169), six smaller refusals (#170) and six printed layouts (#171). Deadline 0.9.0 for each; each is taken as recommended under the standing instruction of 12 November 2026 unless the owner says otherwise. No normative text is changed.
+
 **Status (17 November 2026, the owner's question on polynomial regression).** #164 recorded at the owner's request: R's `poly` and Stata's `orthpoly`, orthogonal polynomials of a continuous variable, have no counterpart in Zeff, where powers are written in the formula. Recommended as a formula term at 1.2; deadline 1.1. No normative text is changed.
 
 ## Summary
@@ -195,6 +197,13 @@ Date: 17 October 2026 · Source: Zeff Specification section 15, Zemp Specificati
 | 85 | The Games–Howell comparison in `posthoc` | Add `games_howell` to `method:` in the first release after 0.7.0 with room; until then Tukey's HSD after Welch's ANOVA prints a note | 0.9.0 |
 | 86 | Folding, snippets and the statement ranges behind **Run** in the language server | At 0.8.0, with Zemp's alpha; formatting through the server is built at 0.7.0 | decided 15 November 2026 (option A); built at 0.8.0, step 8b |
 | 87 | A variable name in an option record | Accept a `Vars` of exactly one variable where a parameter takes a `Var`, so that `{ se: robust, cluster: vars(firm) }` can be named once and spread | decided 15 November 2026 (option A); built at 0.8.0, step 4 |
+| 171 | Six printed layouts the review found | Recommended A for each: small coefficients in `report` by significant digits, sign kept; `labels:` applied to the parts of an interaction; thousands separators in every df column; facet titles "kids = 0"; long group names wrapped in the proportion test's hypotheses; the standard error of a t-test's difference in its estimates | open; deadline 0.9.0 |
+| 170 | Six smaller refusals with workarounds | Recommended per item: `equal` on columns; `category` on a list; a count from `duplicates`; `attempt` of a call to `error`; `map` over a list holding a failed value; `chi2_test(x, p:, levels:)` naming categories never observed | open; deadline 0.9.0 |
+| 169 | Widening a guessed Int to Float on import | Recommended A: a later value with a decimal widens the column to Float with a note; only text in a numeric column stops the import | open; deadline 0.9.0 |
+| 168 | One value out of a column | Recommended A: `first`, `last` and `x[i]` take a column, and `to(column, List)` gives a List | open; deadline 0.9.0 |
+| 167 | A row number | Recommended A: `row_number()` in `data`, within `by:` groups in `add`, as Stata's `_n` | open; deadline 0.9.0 |
+| 166 | A row-wise count of missing values | Recommended A: `row(vars, stat: n_missing)`, an option of `row` | open; deadline 0.9.0 |
+| 165 | The length of each text value in a column | Recommended A: a text function giving each value's length in code points, `n_chars(s)`, with a note when `len` of a column is spread over the rows of `add` | open; deadline 0.9.0 |
 | 164 | Orthogonal polynomials of a continuous variable in a formula | Recommended A: a formula term `poly(x, degree: Int, raw: Bool = false)` in `regress` at 1.2, orthogonal by default as R's `poly`, predictions on the fit's own basis; B: at 0.9.0; C: raw powers only | open; deadline 1.1 |
 | 163 | Poisson regression with fixed effects, the wild cluster bootstrap and difference-in-differences before the plan of #113 places them | Recommended A: Poisson with fixed effects and the wild cluster bootstrap at 1.2, two-period and staggered difference-in-differences at 1.3, the releases of #113 from 1.2 on moved two places later; B: Poisson and the two-period design only; C: #113 stands | open; the owner's word; deadline 1.1 |
 | 162 | A release 0.12.0 for the bridges to R and Python, before the names freeze | Recommended A: 0.12.0 "Bridges" with the R package, the Python wheel, the browser playground and the translation page (moved from 1.0.0 by #152 and #161); B: all of it in 1.0.0 | open; the owner's word; deadline 0.10.0 |
@@ -3253,3 +3262,91 @@ Two points of design go with any option that adds the term. Predictions and `des
 | C. No `poly`; the help page of `reg` shows the raw powers and how to read them | Nothing to build | The rule of decisions 98 and 99 unmet for a method both R and Stata offer |
 
 **Recommended: A.** Deadline 1.1, since release 1.2 is planned at the close of 1.1. Taken as recommended under the standing instruction of 12 November 2026 unless the owner says otherwise.
+
+## Raised by the review against R
+
+### 165. The length of each text value in a column
+
+Raised on 19 November 2026 by the review against R. Inside `add`, `len(job)` gives the number of rows (41,188 on every row of the bank-marketing file), as its page says a column's length is its row count; there is then no way to get the length of each value, which R gives by `nchar` and Stata by `strlen`. The result looks plausible and nothing warns.
+
+| Option | What it gives | What it costs |
+| --- | --- | --- |
+| A. A text function `n_chars(s)` in `text` at 0.9.0, the length of each value in code points as `len` counts a string, `NA` for `NA`; and a note when `len` of a column is spread over the rows of `add` | The per-row length; `len` keeps one meaning; the trap is signalled | A new catalogued function before 1.0 |
+| B. `len` of a Str column inside `add` gives each value's length | No new name | `len` of a column means two things by context |
+| C. Nothing; the page of `len` warns | Nothing to build | R's and Stata's method missing (decisions 98 and 99) |
+
+**Recommended: A.** Deadline 0.9.0. The name is the owner's to choose.
+
+### 166. A row-wise count of missing values
+
+Raised on 19 November 2026 by the review against R. `n_missing([x1, x2, x3])` inside `add` counts the three columns as the items of a list and gives 0 on every row. The count of missing values across variables in each row, R's `rowSums(is.na(...))` and Stata's `egen rowmiss()`, cannot be written; step 20j makes a list of columns an error.
+
+| Option | What it gives | What it costs |
+| --- | --- | --- |
+| A. `row(vars, stat: n_missing)`, a statistic of `row` beside `mean` and `sum`, at 0.9.0 | One function with an option (decision 97); Stata's form | One more value of `stat:` |
+| B. `n_missing` of a list of columns counts across each row | No new option | `n_missing` of a list means two things |
+
+**Recommended: A.** Deadline 0.9.0.
+
+### 167. A row number
+
+Raised on 19 November 2026 by the review against R. `add(id = seq(1, n()))` is refused, since a list is not a column; the review wrote `add(one = 1).add(id = running(one, stat: sum))`. R's `row_number()` and Stata's `_n`, within groups as `by: g` gives them, are used to number observations, to make an identifier before `to_long`, and to take the first row of each group.
+
+| Option | What it gives | What it costs |
+| --- | --- | --- |
+| A. `row_number()` in `data` at 0.9.0, the position of the row, within each group under `by:` | Stata's and dplyr's method | A new catalogued function |
+| B. `seq(1, n())` accepted inside `add` as a column | No new name | A list turned into a column by context |
+
+**Recommended: A.** Deadline 0.9.0. The name is the owner's to choose.
+
+### 168. One value out of a column
+
+Raised on 19 November 2026 by the review against R. `first(col)`, `last(col)` and `col[1]` are refused for a column, and `to(col, List)` converts each value and gives a Column<List>. One prediction had to be read as `frame(p = m.predict(newdata: b.head(1))).mean(p)`.
+
+| Option | What it gives | What it costs |
+| --- | --- | --- |
+| A. `first`, `last` and `x[i]` take a column, and `to(column, List)` gives the List of its values, at 0.9.0 | The reading R gives by `x[1]` | Three functions widened |
+| B. Only `to(column, List)` changed | One change | Two steps for one value |
+
+**Recommended: A.** Deadline 0.9.0.
+
+### 169. Widening a guessed Int to Float on import
+
+Raised on 19 November 2026 by the review against R. `import` guesses each type from the first 1,000 rows and stops when a later value does not fit (Z0606): the bank-marketing file stops at row 7,765, where `nr.employed` holds 5228.1. The message names the fix, but widening Int to Float loses nothing, and R's `read.csv` reads the file as it is.
+
+| Option | What it gives | What it costs |
+| --- | --- | --- |
+| A. A later value with a decimal widens an Int column to Float, with a note naming the row; only text in a numeric column, or a value in a Date column that is not a date, stops the import | The file read whole, the change reported | Section 6.1's rule amended and logged |
+| B. As now | Nothing to build | A whole-number column with a late decimal always needs `types:` |
+
+**Recommended: A.** Deadline 0.9.0.
+
+### 170. Six smaller refusals with workarounds
+
+Raised on 19 November 2026 by the review against R. Each has a workaround; together they are friction a user meets on a first real script.
+
+| Item | As now | Recommended |
+| --- | --- | --- |
+| `equal(a, b)` on two columns | refused | allowed, true when the values and their `NA` agree |
+| `category(["low", "high"], levels: ...)` on a list | refused | allowed, giving a Category column |
+| `duplicates(vars)` | a Table that cannot be counted | the Table kept; `n_rows()` and the frame of duplicates available from it |
+| `attempt(error("…"))` | refused, `error` having no value | allowed, giving a failed value |
+| `map` over a list holding a failed value | refused even to apply `is(Failed)` | allowed when the function is `is`; otherwise as now |
+| `chi2_test(x, p:)` when a category is never observed | refused for the count of values | `levels:` names the categories, the unobserved counting 0 |
+
+Deadline 0.9.0.
+
+### 171. Six printed layouts the review found
+
+Raised on 19 November 2026 by the review against R. Each is a printed layout and so the owner's to decide.
+
+| Item | As now | Recommended |
+| --- | --- | --- |
+| Small coefficients in `report` | `-0.0005` prints as `0.000`, `credit_score` as `0.000*` | significant digits below 0.0005, sign kept: `-0.00052` |
+| `labels:` of `report` | renames `lsize` but not `lsize:city=Mumbai` | applied to each part of an interaction |
+| The df column of Welch comparisons | `1762.3` | `1,762.3`, as elsewhere |
+| Facet titles | `0`, `1` | `kids = 0`, `kids = 1` |
+| Hypotheses of the proportion test with a Bool group | lines of 230 characters | the symbols' line wrapped under the words |
+| The estimates of a t-test | `std_error` is `NA` | the standard error of the difference |
+
+Deadline 0.9.0.

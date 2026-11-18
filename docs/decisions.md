@@ -5959,3 +5959,9 @@ Done before parts 1 and 2 are read, because those wait for jobs that run for hou
 **Held by.** `tests/dependencies.rs` of the engine (a script written for it, and the graph of every sample: the last statement of each needs 1 to 6 of its 15 to 59 statements); `tests/bug_report.rs` (a stored report of an error, of the same with its data, of an internal error planted by the test hook, of a wrong result with its reference, of an error of the check, of a script that cannot be read, and of a dependence through a file, with the refusals); `cli.rs` (`zeff_report_bug_writes_a_report_for_the_user_to_read`); the web crate's `host.rs` and `worker.test.mjs` under Node; the conformance cases `tools/report_bug/name` and `tools/report_bug/report`, whose machine is named alike on every target.
 
 **Reason.** Language Reference, section 11.1, the row `zeff report-bug`; Engine Specification, section 2.1; the checklist's ruling and its step 20a.
+
+## 19 November 2026: where the faults of the review against R go (release 0.8.0)
+
+**Choice.** The faults of shipped functions found by the owner's review against R are steps 20d to 20j of the 0.8.0 checklist, in a new section D2 placed after 20c, so that 20b and 20c stay next and the reproducers of the two internal errors can join the regressions folder of 20c. Every question that would change what a catalogued function does or prints is a register entry (#165 to #171), not a step, under the specification freeze.
+
+**Reason.** The owner asked for the findings to be recorded and fixed later; fixes to functions of this release belong to this release, and the freeze of #40 sends design questions to the register.
