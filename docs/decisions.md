@@ -6068,3 +6068,19 @@ Where the option is not a word written in the call (it comes from a record of op
 **Held by.** `data/tests/option_types.rs`: the four expressions of the review, checked and run to their values; every option of the two functions, on a column of Floats and on one of Ints, in arithmetic and in comparison, with the type each result has when it runs (stored); and seven mistakes with their messages (stored). `zeff-engine/tests/result_unions.rs`: the audit, and eleven uses that must check.
 
 **Reason.** The review against R of 19 November 2026; the checklist's step 20f.
+
+## 19 November 2026: two internal errors that the check let through (release 0.8.0, step 20g)
+
+**(a) A field a result's record does not have.** `m.r_squared().r2` and `m.fit_measures().wrong` passed `zeff check` and stopped the run with Z9001, "a record field the checker did not see": both methods declared their result as `Record`, any record, so the check had no fields to hold a name against. A signature can now write a record with its fields, in the notation a record type is printed in (`{r_squared: Float, adjusted: Float}`; `Ty::parse`), and the two methods declare theirs: `fit_measures` its five, `r_squared` its four. They are the only built-ins that return a record. A field that is not among them is Z0209 when the script is checked, with the fields listed, as for a record written out.
+
+*A field only some fits have.* `r_squared()` has `within` and `adjusted_within` only for a fit with fixed effects. The declared type holds all four, since the check does not know whether a fit has effects; `m.r_squared().within` on a fit without them is refused when it runs, as Z0209 with the two fields that record has. Giving every fit the four fields, two of them `NA`, would have made the type exact; it would also have changed what `r_squared()` prints for every plain fit, and was not done.
+
+**(b) An index into a test's intervals.** `t.ci()[1]` passed the check and stopped the run with Z9001, "indexing a value that is not a list or a mapping". The check's rule for a result method declared by term (`ByTerm<A, B>`) gave a test's result the one value A, which is right for `p_values()` (a test has one p-value) and wrong for `ci()`: a test's intervals are a table, of its estimate and its effect size, or of the rows of `posthoc`. `ci()` of a test without a term is now typed as the table it is, and the index is Z0221 at check time. The message for a table has its own help line: a table is printed, not indexed; `.estimates()` gives the intervals as a frame and `.ci(term)` one term's two ends as a list.
+
+**Never an internal error.** Where the check cannot know (a record or a result that came through a parameter typed `Record` or `Result`), the run now refuses with the same codes, Z0209 and Z0221, as mistakes of the script with exit code 1. The two internal-error texts are gone from the interpreter: neither condition is a fault of the engine.
+
+**The regressions.** `field_of_a_results_record` and `index_of_a_tests_intervals` join step 20c's folder, five rows each written into the script; each is refused by the check, and what the check says is the case. The checklist asks that "the two reports `zeff report-bug` wrote of them become regressions": the review's reports are kept outside the repository with its scripts, so the two scripts were written from the faults as reproduced here, in the form the folder's note asks.
+
+**Held by.** `zeff-engine/tests/result_records.rs`: six refusals of a field (four at check, two at run) and five readings of fields that are there; five refusals of an index (four at check, one at run) and four uses that are right; each stored, and none containing Z9001. `ty.rs`: a record type parsed and printed. The conformance cases of the two regressions and the test that `zeff selftest` runs them.
+
+**Reason.** The review against R of 19 November 2026; the checklist's step 20g.

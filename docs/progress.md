@@ -149,3 +149,13 @@ Step 19: `zeff explain <code>` prints a code's page and lists the 144 codes by f
 **Next.** Step 20g `[engine]`: two internal errors that `zeff check` passes.
 
 **For the owner to decide.** Nothing new. The earlier items stand.
+
+## 19 November 2026, release 0.8.0, step 20g (two internal errors the check let through)
+
+**Done.** Step 20g `[engine]`: `m.r_squared().r2` and `m.fit_measures().wrong` are refused when the script is checked, with the fields the record has (Z0209); `t.ci()[1]` is refused too, since a test's intervals are a table (Z0221), with a line saying how the numbers are read. Both used to pass `zeff check` and stop the run with an internal error. Where the check cannot know, the run refuses with the same codes. Two regressions join the conformance suite.
+
+**Green.** Format, clippy with warnings denied, the tier, message and grammar checks, every test of the workspace; CI read after the push. The CI of step 20f (13bbdbf) is green.
+
+**Next.** Step 20h `[engine]`: `cluster:` takes the variables `fe:` takes.
+
+**For the owner to decide.** Nothing new. The earlier items stand.

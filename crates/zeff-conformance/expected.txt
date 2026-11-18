@@ -277,6 +277,10 @@ regressions/test_result_as_latex/stderr cbf29ce484222325
 regressions/test_result_as_latex/output/one_mean.tex f32ffccb3de9be0e
 regressions/test_result_as_latex/output/two_groups.tex d3b283499c147375
 regressions/chain_from_the_lone_dot/formatted dd0199fa888aebfe
+regressions/field_of_a_results_record/stdout cbf29ce484222325
+regressions/field_of_a_results_record/stderr 581d40d27092567e
+regressions/index_of_a_tests_intervals/stdout cbf29ce484222325
+regressions/index_of_a_tests_intervals/stderr 2b8e797a9a8df4fb
 plot/lines/stdout c69bf28498722bf2
 plot/lines/stderr 292ed9115946fd12
 plot/lines/scene 6a1463f916305adf

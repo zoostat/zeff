@@ -1,0 +1,65 @@
+---
+source: crates/zeff-engine/tests/result_records.rs
+expression: all
+---
+==== t.ci()[1]
+error[Z0221]: `[ ]` indexes a list or a mapping, not a Table
+ --> scripts/main.zeff:6:1
+  |
+6 | t.ci()[1]
+  | ^^^^^^^^^ a Table
+  |
+  = help: a table is printed, not indexed: `.estimates()` gives a result's estimates and intervals as a frame, and `.ci(term)` the two ends of one term's interval as a list
+==== ph.ci()[1]
+error[Z0221]: `[ ]` indexes a list or a mapping, not a Table
+ --> scripts/main.zeff:6:1
+  |
+6 | ph.ci()[1]
+  | ^^^^^^^^^^ a Table
+  |
+  = help: a table is printed, not indexed: `.estimates()` gives a result's estimates and intervals as a frame, and `.ci(term)` the two ends of one term's interval as a list
+==== m.ci()[1]
+error[Z0221]: `[ ]` indexes a list or a mapping, not a Table
+ --> scripts/main.zeff:6:1
+  |
+6 | m.ci()[1]
+  | ^^^^^^^^^ a Table
+  |
+  = help: a table is printed, not indexed: `.estimates()` gives a result's estimates and intervals as a frame, and `.ci(term)` the two ends of one term's interval as a list
+==== m.vcov()[2]
+error[Z0221]: `[ ]` indexes a list or a mapping, not a Table
+ --> scripts/main.zeff:6:1
+  |
+6 | m.vcov()[2]
+  | ^^^^^^^^^^^ a Table
+  |
+  = help: a table is printed, not indexed: `.estimates()` gives a result's estimates and intervals as a frame, and `.ci(term)` the two ends of one term's interval as a list
+==== fn first_end(r: Result) -> Float {
+    r.ci()[1]
+}
+first_end(t)
+error[Z0221]: `[ ]` indexes a list or a mapping, not a Table
+ --> scripts/main.zeff:7:5
+  |
+7 |     r.ci()[1]
+  |     ^^^^^^^^^ a Table
+  |
+  = in: `first_end(r: TestResult)`, called at scripts/main.zeff:9:1
+  = help: `xs[2]` takes the second item of a list; `m[k]` looks a key up in a mapping; a result's numbers are read by its methods, such as `.estimates()`
+==== print(m.ci(educ)[1] < m.coef(educ), m.ci(educ)[2] > m.coef(educ))
+true true
+
+==== print(type_of(t.ci()), type_of(m.ci()), type_of(m.ci(educ)), type_of(t.p_values()))
+Table Table List<Float> Float
+
+==== t.ci()
+ci · 95%
+
+  term                         lower   upper
+  difference (male − female)   3.349   4.154
+  Hedges' g                     0.24    0.30
+
+==== t.estimates()["ci_lower"]
+Column<Float> · 2 values
+3.34947
+0.240686

@@ -120,9 +120,9 @@ fn top_level_bars(text: &str) -> Vec<&str> {
     let mut previous = ' ';
     for (i, c) in text.char_indices() {
         match c {
-            '<' | '(' => depth += 1,
+            '<' | '(' | '{' => depth += 1,
             '>' if previous != '-' => depth -= 1,
-            ')' => depth -= 1,
+            ')' | '}' => depth -= 1,
             '|' if depth == 0 => {
                 parts.push(text[start..i].trim());
                 start = i + 1;
@@ -154,6 +154,36 @@ impl Ty {
                 .map(|p| Ty::parse(p))
                 .collect::<Option<Vec<Ty>>>()
                 .map(Ty::Union);
+        }
+        // A record with its fields, `{r_squared: Float, adjusted: Float}`, as a record type
+        // is printed: what a result method that returns a record declares, so that a field it
+        // does not have is refused when the script is checked (release 0.8.0, step 20g).
+        if let Some(inner) = text.strip_prefix('{').and_then(|t| t.strip_suffix('}')) {
+            let mut fields = Vec::new();
+            let mut depth = 0i32;
+            let mut start = 0;
+            let mut parts = Vec::new();
+            for (i, c) in inner.char_indices() {
+                match c {
+                    '<' | '(' | '{' => depth += 1,
+                    '>' | ')' | '}' => depth -= 1,
+                    ',' if depth == 0 => {
+                        parts.push(&inner[start..i]);
+                        start = i + 1;
+                    }
+                    _ => {}
+                }
+            }
+            parts.push(&inner[start..]);
+            for part in parts {
+                let (name, ty) = part.split_once(':')?;
+                let name = name.trim();
+                if name.is_empty() {
+                    return None;
+                }
+                fields.push((name.to_string(), Ty::parse(ty)?));
+            }
+            return Some(Ty::Record(fields));
         }
         // A generic first, so that `List<n | missing>` is a list of words, not a union.
         if let Some(inner) = text
@@ -537,6 +567,22 @@ mod tests {
                 .accepts(&Ty::parse("List<Int>").unwrap())
         );
         assert!(Ty::AnyRecord.accepts(&Ty::Record(vec![("a".into(), Ty::Int)])));
+        // A record's fields as a signature writes them, and as they are printed again.
+        let record = Ty::parse("{r_squared: Float, adjusted: Float, by: List<Str>}");
+        assert_eq!(
+            record,
+            Some(Ty::Record(vec![
+                ("r_squared".into(), Ty::Float),
+                ("adjusted".into(), Ty::Float),
+                ("by".into(), Ty::List(Box::new(Ty::Str))),
+            ]))
+        );
+        assert_eq!(
+            record.map(|t| t.to_string()).as_deref(),
+            Some("{r_squared: Float, adjusted: Float, by: List<Str>}")
+        );
+        assert_eq!(Ty::parse("{a Float}"), None);
+        assert_eq!(Ty::parse("{: Float}"), None);
         assert!(Ty::Code.accepts(&Ty::Str) && !Ty::Str.accepts(&Ty::Code));
         assert!(!Ty::Str.accepts(&Ty::Int) && !Ty::Frame.accepts(&Ty::Table));
         assert!(Ty::parse("Var | Vars").unwrap().accepts(&Ty::Vars));

@@ -48,6 +48,21 @@ fn every_regression_gives_what_the_corrected_engine_gives() {
             "{tex}"
         );
     }
+    // The two of 0.8.0: each is refused when the script is checked, with its own code, and
+    // neither is an internal error.
+    let field = piece("regressions/field_of_a_results_record/stderr");
+    assert!(
+        field.starts_with("error[Z0209]: the record has no field `r2`"),
+        "{field}"
+    );
+    let index = piece("regressions/index_of_a_tests_intervals/stderr");
+    assert!(
+        index.starts_with("error[Z0221]: `[ ]` indexes a list or a mapping, not a Table"),
+        "{index}"
+    );
+    for said in [&field, &index] {
+        assert!(!said.contains("Z9001"), "{said}");
+    }
     // The chain from the lone dot: formatted, its first step beside the dot.
     assert_eq!(
         piece("regressions/chain_from_the_lone_dot/formatted"),

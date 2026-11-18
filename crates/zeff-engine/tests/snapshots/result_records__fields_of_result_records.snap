@@ -1,0 +1,67 @@
+---
+source: crates/zeff-engine/tests/result_records.rs
+expression: all
+---
+==== m.r_squared().r2
+error[Z0209]: the record has no field `r2`
+ --> scripts/main.zeff:6:15
+  |
+6 | m.r_squared().r2
+  |               ^^ its fields are r_squared, adjusted, within, adjusted_within
+==== m.r_squared().adjusted_r_squared
+error[Z0209]: the record has no field `adjusted_r_squared`
+ --> scripts/main.zeff:6:15
+  |
+6 | m.r_squared().adjusted_r_squared
+  |               ^^^^^^^^^^^^^^^^^^ its fields are r_squared, adjusted, within, adjusted_within
+==== m.fit_measures().wrong
+error[Z0209]: the record has no field `wrong`
+ --> scripts/main.zeff:6:18
+  |
+6 | m.fit_measures().wrong
+  |                  ^^^^^ its fields are log_likelihood, aic, bic, r_squared, adjusted
+==== m.fit_measures().loglik
+error[Z0209]: the record has no field `loglik`
+ --> scripts/main.zeff:6:18
+  |
+6 | m.fit_measures().loglik
+  |                  ^^^^^^ its fields are log_likelihood, aic, bic, r_squared, adjusted
+==== m.r_squared().within
+error[Z0209]: the record has no field `within`
+ --> scripts/main.zeff:6:1
+  |
+6 | m.r_squared().within
+  | ^^^^^^^^^^^^^^^^^^^^ its fields are r_squared, adjusted
+  |
+  = help: `keys(r)` lists the fields a record has; a field that depends on the fit, such as `within` of `r_squared()`, is there only when the fit has what it measures
+==== fn field(r: Record) -> Float {
+    r.nowhere
+}
+field(m.fit_measures())
+error[Z0209]: the record has no field `nowhere`
+ --> scripts/main.zeff:7:5
+  |
+7 |     r.nowhere
+  |     ^^^^^^^^^ its fields are log_likelihood, aic, bic, r_squared, adjusted
+  |
+  = in: `field(r: Record)`, called at scripts/main.zeff:9:1
+  = help: `keys(r)` lists the fields a record has; a field that depends on the fit, such as `within` of `r_squared()`, is there only when the fit has what it measures
+==== print(m.r_squared().r_squared, m.r_squared().adjusted)
+0.0774089 0.0773583
+
+==== print(fe.r_squared().within, fe.r_squared().adjusted_within)
+0.0797806 0.0797289
+
+==== print(m.fit_measures().aic, m.fit_measures().bic, m.fit_measures().log_likelihood)
+23836.5 23859.9 -11915.2
+
+==== print(m.fit_measures().r_squared == m.r_squared().r_squared)
+true
+
+==== print(keys(m.r_squared()), keys(fe.r_squared()))
+r_squared
+adjusted
+r_squared
+adjusted
+within
+adjusted_within

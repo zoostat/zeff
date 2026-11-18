@@ -1,0 +1,8 @@
+// Corrected at release 0.8.0 (step 20g). The intervals of a test's result, `t.ci()`, are a
+// table, and the check took them for a list: `t.ci()[1]` passed `zeff check` and stopped the
+// run with an internal error, Z9001 "indexing a value that is not a list or a mapping". The
+// check now types them as the table they are and refuses the index (Z0221), saying how the
+// numbers are read. Five rows.
+let d = frame(y = [1.0, 2.5, 2.0, 4.0, 3.5])
+let t = d.t_test(y, mu: 2)
+t.ci()[1]

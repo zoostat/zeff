@@ -2473,10 +2473,26 @@ impl<'a> Interpreter<'a> {
                             }
                         }
                     }
-                    _ => {
-                        return Err(
-                            self.internal(expr, "indexing a value that is not a list or a mapping")
-                        );
+                    // A value the checker could not type (it came through a parameter typed
+                    // `Result`, or from a method whose result depends on the receiver): the
+                    // mistake is the script's, Z0221 as at check time, never an internal
+                    // error (release 0.8.0, step 20g).
+                    other => {
+                        let found = zeff_core::types::type_name(&other);
+                        let a = if found.starts_with(['A', 'E', 'I', 'O', 'U']) {
+                            "an"
+                        } else {
+                            "a"
+                        };
+                        return Err(fail(
+                            Diagnostic::error(
+                                "Z0221",
+                                format!("`[ ]` indexes a list or a mapping, not {a} {found}"),
+                            )
+                            .in_file(self.script)
+                            .primary(expr.span, format!("{a} {found}"))
+                            .help("`xs[2]` takes the second item of a list; `m[k]` looks a key up in a mapping; a result's numbers are read by its methods, such as `.estimates()`"),
+                        ));
                     }
                 }
             }
@@ -2510,14 +2526,31 @@ impl<'a> Interpreter<'a> {
             ExprKind::Field { receiver, name } => {
                 let target = self.eval(receiver, printed, messages)?;
                 match target {
-                    Value::Record(fields) => match fields.into_iter().find(|(n, _)| n == name) {
-                        Some((_, v)) => v,
-                        None => {
-                            return Err(
-                                self.internal(expr, "a record field the checker did not see")
-                            );
+                    Value::Record(fields) => {
+                        let names: Vec<String> = fields.iter().map(|(n, _)| n.clone()).collect();
+                        match fields.into_iter().find(|(n, _)| n == name) {
+                            Some((_, v)) => v,
+                            // A record whose fields the checker could not know (it came
+                            // through a parameter typed `Record`), or one whose fields depend
+                            // on what was computed (`r_squared()` has `within` only for a fit
+                            // with fixed effects): the mistake is the script's, Z0209 as at
+                            // check time, never an internal error (release 0.8.0, step 20g).
+                            None => {
+                                return Err(fail(
+                                    Diagnostic::error(
+                                        "Z0209",
+                                        format!("the record has no field `{name}`"),
+                                    )
+                                    .in_file(self.script)
+                                    .primary(
+                                        expr.span,
+                                        format!("its fields are {}", names.join(", ")),
+                                    )
+                                    .help("`keys(r)` lists the fields a record has; a field that depends on the fit, such as `within` of `r_squared()`, is there only when the fit has what it measures"),
+                                ));
+                            }
                         }
-                    },
+                    }
                     // The checker could not type the receiver (a column of an unchecked frame, before
                     // the schema pass of 0.6.0): the mistake is the script's, Z0213 as at check time.
                     other => {

@@ -1824,8 +1824,9 @@ pub struct Regression {
 }
 
 /// Every regression, oldest first. The first three are the faults the pre-release routine of
-/// 0.7.0 found and corrected before its tag (release notes of 0.7.0, "Validation").
-pub const REGRESSIONS: [Regression; 3] = [
+/// 0.7.0 found and corrected before its tag (release notes of 0.7.0, "Validation"); the next
+/// two, the internal errors of step 20g of 0.8.0.
+pub const REGRESSIONS: [Regression; 5] = [
     Regression {
         name: "values_above_1e150",
         corrected: "0.7.0",
@@ -1843,6 +1844,20 @@ pub const REGRESSIONS: [Regression; 3] = [
         corrected: "0.7.0",
         held: Held::Format,
         script: include_str!("../regressions/chain_from_the_lone_dot.zeff"),
+    },
+    // The two internal errors the review against R of 19 November 2026 met, each from the
+    // report `zeff report-bug` wrote of it (release 0.8.0, step 20g).
+    Regression {
+        name: "field_of_a_results_record",
+        corrected: "0.8.0",
+        held: Held::Run,
+        script: include_str!("../regressions/field_of_a_results_record.zeff"),
+    },
+    Regression {
+        name: "index_of_a_tests_intervals",
+        corrected: "0.8.0",
+        held: Held::Run,
+        script: include_str!("../regressions/index_of_a_tests_intervals.zeff"),
     },
 ];
 

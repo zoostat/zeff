@@ -193,7 +193,7 @@ pub fn functions() -> Vec<Function> {
         result_method(
             "fit_measures",
             vec![],
-            "Record",
+            "{log_likelihood: Float, aic: Float, bic: Float, r_squared: Float, adjusted: Float}",
             vec![],
             include_str!("../help/fit_measures.md"),
             interface::fit_measures,

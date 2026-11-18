@@ -1,0 +1,8 @@
+// Corrected at release 0.8.0 (step 20g). `r_squared()` and `fit_measures()` return records
+// whose fields the check did not know, so a field they do not have passed `zeff check` and
+// stopped the run with an internal error, Z9001 "a record field the checker did not see".
+// The fields are now declared, and the mistake is refused when the script is checked
+// (Z0209), with the fields listed. Five rows.
+let d = frame(y = [1.0, 2.5, 2.0, 4.0, 3.5], x = [1.0, 2.0, 3.0, 4.0, 5.0])
+let m = d.reg(y ~ x)
+m.r_squared().r2

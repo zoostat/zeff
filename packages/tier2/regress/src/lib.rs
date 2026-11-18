@@ -310,7 +310,9 @@ pub fn functions() -> Vec<Function> {
                 method: true,
                 params: vec![ParamSpec::required("fit", "RegFit")],
                 rest: None,
-                returns: "Record",
+                // The fields a fit may have: the last two only with fixed effects, where the
+                // run says so of a fit without them.
+                returns: "{r_squared: Float, adjusted: Float, within: Float, adjusted_within: Float}",
                 diagnostics: vec![],
                 help: include_str!("../help/r_squared.md"),
                 accuracy: None,

@@ -25,3 +25,7 @@ To add one, when a bug is fixed:
 The first three are the faults the pre-release routine of 0.7.0 found and corrected before its
 tag: values above 1e150 in the tests that square them, a test's result exported as LaTeX, and
 a chain that starts from the lone `.` of a formula.
+
+A script that the check refuses is held like one that runs: nothing is printed, and what the
+check says is the case. Two of 0.8.0 are such: a field that a result's record does not have,
+and an index into the table of a test's intervals, each once an internal error.

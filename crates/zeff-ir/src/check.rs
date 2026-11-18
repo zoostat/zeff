@@ -4984,6 +4984,13 @@ impl Checker<'_> {
                     },
                 }
             }
+            // A table is what a result prints: its numbers are read from the result itself.
+            Ty::Table => self.wrong_operands(
+                span,
+                "`[ ]` indexes a list or a mapping, not a Table".to_string(),
+                "a Table".to_string(),
+                "a table is printed, not indexed: `.estimates()` gives a result's estimates and intervals as a frame, and `.ci(term)` the two ends of one term's interval as a list",
+            ),
             other => self.wrong_operands(
                 span,
                 format!(
@@ -6937,6 +6944,13 @@ impl Checker<'_> {
             let receiver_ty = slots.first().and_then(|s| s.as_ref()).map(|e| e.ty.clone());
             match (term_given, receiver_ty) {
                 (true, _) => Ty::parse(one).unwrap_or(Ty::Unknown),
+                // The intervals of a test's result are a table, as a fit's are: of its
+                // estimate and its effect size, or of the rows of `posthoc`. Typed as the
+                // one value, `t.ci()[1]` passed the check and stopped the run with an
+                // internal error (release 0.8.0, step 20g).
+                (false, Some(Ty::Result(Some(ResultKind::TestResult)))) if spec.name == "ci" => {
+                    Ty::parse(all).unwrap_or(Ty::Unknown)
+                }
                 (false, Some(Ty::Result(Some(ResultKind::TestResult)))) => {
                     Ty::parse(one).unwrap_or(Ty::Unknown)
                 }
