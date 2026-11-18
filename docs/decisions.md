@@ -6049,3 +6049,22 @@ Where its logarithm is below ln 2^−1074 = −744.44, the upper tail is 0, the 
 **Held by.** `kernel/zeff-numeric/tests/tukey_far.rs`: the far cases (the tail 0, the lower tail 1, the density 0, each within 10 ms), two near cases to their old values, and the grid: every tail a number between 0 and 1, the two tails making one, the upper tail falling as q grows and never above the bound, the density a finite number, the time limits. The existing reference grid of `dist.tukey` against the exact decimal reference, unchanged.
 
 **Reason.** The review against R of 19 November 2026; the checklist's step 20e.
+
+## 19 November 2026: results whose type an option decides (release 0.8.0, step 20f)
+
+**The fault.** `rank(x)` was typed "Column<Float> or Column<Int>" whatever `ties:` said, and `running(x, stat:)` likewise, so arithmetic and comparison on either were refused: `rank(x) / n()` gave Z0221, "`/` needs numbers, but one side is a Column<Float> or Column<Int>". Each page gives one type to each option; the checker did not read the option.
+
+**Choice.** The checker types such a call by the option written, or by the default where none is (`option_result_type` in `zeff-ir`, beside the rules that already give `min` and `max` the type of their variable and `p_adjust` the kind of its argument):
+
+- `rank(x, ties:)`: a column of Floats under `average`, which is the default (a tied rank may end in a half); of Ints under `min`, `max` and `first`.
+- `running(x, stat:)`: under `sum`, the type of `x`, Int for Int and Float for Float; under `product`, Floats.
+
+Where the option is not a word written in the call (it comes from a record of options), or the type of `x` is not known before the run (a frame whose schema the checker does not have), the result is a column whose row type the run decides, which every operator takes: nothing is refused that may be right, and what is wrong is said when it runs.
+
+**The audit.** Every registered function was read for a declared result that is a union of types. There are three: `rank` and `running` (now by their option) and `p_adjust` (a list for a list and a column for a column, by its first argument, since 0.7.0). The functions written in Zeff declare none. The other results that depend on the arguments are not unions but named rules, each with its branch in the checker (`Same`, `Join`, `Typed`, `Element`, `Keys`, `Appended`, `Number`, `NumberList`). `result_unions.rs` in the engine's tests holds the list: a function that gains a union without a rule fails there.
+
+**Messages.** A real mistake on such a result now names the one type the option gives: `upper(rank(x))` is refused for "a Column<Float>", no longer for one type or another.
+
+**Held by.** `data/tests/option_types.rs`: the four expressions of the review, checked and run to their values; every option of the two functions, on a column of Floats and on one of Ints, in arithmetic and in comparison, with the type each result has when it runs (stored); and seven mistakes with their messages (stored). `zeff-engine/tests/result_unions.rs`: the audit, and eleven uses that must check.
+
+**Reason.** The review against R of 19 November 2026; the checklist's step 20f.

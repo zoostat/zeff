@@ -7003,6 +7003,10 @@ impl Checker<'_> {
             // decision #96): a date or a time for one of dates or times, an Int for Ints, a
             // Float for the rest; where the checker does not know the variable, the run says.
             extreme
+        } else if let Some(resolved) = self.option_result_type(&spec, &slots) {
+            // A result whose type an option decides (`rank`, `running`): the one type the
+            // option written gives, not the union of all of them (release 0.8.0, step 20f).
+            resolved
         } else if spec.returns == "Number" || spec.returns == "NumberList" {
             let numbers = slots
                 .iter()
@@ -7184,6 +7188,75 @@ impl Checker<'_> {
             Some(ty @ (Ty::Date | Ty::DateTime | Ty::Int)) => ty,
             Some(Ty::Float | Ty::Bool) => Ty::Float,
             _ => Ty::Unknown,
+        })
+    }
+
+    /// The result of a function whose type depends on an option (release 0.8.0, step 20f): the
+    /// catalogue and the registry give such a result as a union, `Column<Float> | Column<Int>`,
+    /// and each page gives one type to an option; an expression is typed by the option
+    /// written, or by the default where none is, so that `rank(x) / n()` is arithmetic on a
+    /// column of numbers and not on "one type or another".
+    ///
+    /// * `rank(x, ties:)`: Floats under `average`, the default, since a tied rank may end in
+    ///   a half; Ints under `min`, `max` and `first`.
+    /// * `running(x, stat:)`: under `sum` the type of `x`, Int for Int and Float for Float;
+    ///   Floats under `product`.
+    ///
+    /// Where the option is not a word written in the call (it comes from a record of
+    /// options), or the type of `x` is not known before the run, the result is a column whose
+    /// row type the run decides, which every operator takes. `None` for any other function.
+    fn option_result_type(
+        &self,
+        spec: &zeff_registry::FunctionSpec,
+        slots: &[Option<Expr>],
+    ) -> Option<Ty> {
+        if spec.package != "data" || !matches!(spec.name, "rank" | "running") {
+            return None;
+        }
+        // The word an option was given: `Some(None)` where it is not written, `None` where it
+        // is written as something other than a word.
+        let word = |name: &str| -> Option<Option<&str>> {
+            let at = spec.params.iter().position(|p| p.name == name)?;
+            match slots.get(at).and_then(|s| s.as_ref()) {
+                None => Some(None),
+                Some(given) => match &given.kind {
+                    ExprKind::Word(word) => Some(Some(word.as_str())),
+                    _ => None,
+                },
+            }
+        };
+        let column = |row: Ty| Ty::Column(Box::new(row));
+        Some(match spec.name {
+            "rank" => match word("ties") {
+                Some(None | Some("average")) => column(Ty::Float),
+                Some(Some("min" | "max" | "first")) => column(Ty::Int),
+                _ => column(Ty::Unknown),
+            },
+            _ => match word("stat") {
+                Some(Some("product")) => column(Ty::Float),
+                Some(Some("sum")) => {
+                    // The row type of `x`: its own where it is typed, the frame's where it is
+                    // a variable of a frame whose schema is known.
+                    let x = slots.first().and_then(|s| s.as_ref());
+                    let known = match x.map(|e| (&e.ty, &e.kind)) {
+                        Some((Ty::Column(inner), _)) if **inner != Ty::Unknown => {
+                            Some(inner.as_ref().clone())
+                        }
+                        Some((_, ExprKind::Var(name))) => self
+                            .definition_schemas
+                            .last()
+                            .cloned()
+                            .flatten()
+                            .and_then(|schema| schema.column(name).cloned()),
+                        _ => None,
+                    };
+                    match known {
+                        Some(ty @ (Ty::Int | Ty::Float)) => column(ty),
+                        _ => column(Ty::Unknown),
+                    }
+                }
+                _ => column(Ty::Unknown),
+            },
         })
     }
 

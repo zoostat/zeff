@@ -1,0 +1,58 @@
+---
+source: packages/tier1/data/tests/option_types.rs
+expression: all
+---
+==== d.add(v = rank(x) + "a")
+error[Z0215]: `+` does not apply to text
+ --> scripts/main.zeff:2:11
+  |
+2 | d.add(v = rank(x) + "a")
+  |           ^^^^^^^^^^^^^ text in arithmetic
+  |
+  = help: `join` puts texts together and `format` builds text from values (release 0.5.0); a number in text converts with `to(x, Float)`
+==== d.add(v = rank(x, ties: min) + "a")
+error[Z0215]: `+` does not apply to text
+ --> scripts/main.zeff:2:11
+  |
+2 | d.add(v = rank(x, ties: min) + "a")
+  |           ^^^^^^^^^^^^^^^^^^^^^^^^ text in arithmetic
+  |
+  = help: `join` puts texts together and `format` builds text from values (release 0.5.0); a number in text converts with `to(x, Float)`
+==== d.add(v = running(k, stat: sum) && true)
+error[Z0221]: `&&` needs two Bools, but one side is a number
+ --> scripts/main.zeff:2:11
+  |
+2 | d.add(v = running(k, stat: sum) && true)
+  |           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ the operation, row by row
+  |
+  = help: `&&` and `||` combine comparisons, as in `age > 18 && female`
+==== d.add(v = running(x, stat: product) == "a")
+error[Z0221]: `==` compares values of one type, but these are a Float and a Str
+ --> scripts/main.zeff:2:11
+  |
+2 | d.add(v = running(x, stat: product) == "a")
+  |           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ different types
+  |
+  = help: Int and Float compare as numbers; text compares with text and Bool with Bool
+==== d.add(v = upper(rank(x)))
+error[Z0401]: `s` of `upper` must be a Str, but this is a Column<Float>
+ --> scripts/main.zeff:2:17
+  |
+2 | d.add(v = upper(rank(x)))
+  |                 ^^^^^^^ a Column<Float>
+  |
+  = help: usage: `upper(s)`
+==== d.add(v = rank(x, ties: last))
+error[Z0402]: `last` is not one of the allowed words
+ --> scripts/main.zeff:2:25
+  |
+2 | d.add(v = rank(x, ties: last))
+  |                         ^^^^ expected one of average, min, max, first
+==== d.add(v = running(x))
+error[Z0406]: `running` needs `stat:`
+ --> scripts/main.zeff:2:11
+  |
+2 | d.add(v = running(x))
+  |           ^^^^^^^ `stat:` is missing
+  |
+  = help: usage: `running(x, stat: sum)` for the running total, or `running(x, stat: product)` for the running product

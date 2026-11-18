@@ -1,0 +1,123 @@
+---
+source: packages/tier1/data/tests/option_types.rs
+expression: all
+---
+==== rank(x)
+Column<Float> Column<Float> Column<Float> Column<Float>
+frame · 4 rows × 6 variables
+
+        v   twice   half   more   above   same
+  1     4       8      2      7   true    false
+  2     1       2    0.5      2   false   true
+  3   2.5       5   1.25    4.5   true    false
+  4   2.5       5   1.25    4.5   true    false
+==== rank(x, ties: average)
+Column<Float> Column<Float> Column<Float> Column<Float>
+frame · 4 rows × 6 variables
+
+        v   twice   half   more   above   same
+  1     4       8      2      7   true    false
+  2     1       2    0.5      2   false   true
+  3   2.5       5   1.25    4.5   true    false
+  4   2.5       5   1.25    4.5   true    false
+==== rank(x, ties: min)
+Column<Int> Column<Int> Column<Float> Column<Int>
+frame · 4 rows × 6 variables
+
+      v   twice   half   more   above   same
+  1   4       8      2      7   true    false
+  2   1       2    0.5      2   false   true
+  3   2       4      1      4   false   true
+  4   2       4      1      4   false   true
+==== rank(x, ties: max)
+Column<Int> Column<Int> Column<Float> Column<Int>
+frame · 4 rows × 6 variables
+
+      v   twice   half   more   above   same
+  1   4       8      2      7   true    false
+  2   1       2    0.5      2   false   true
+  3   3       6    1.5      5   true    false
+  4   3       6    1.5      5   true    false
+==== rank(x, ties: first)
+Column<Int> Column<Int> Column<Float> Column<Int>
+frame · 4 rows × 6 variables
+
+      v   twice   half   more   above   same
+  1   4       8      2      7   true    false
+  2   1       2    0.5      2   false   true
+  3   2       4      1      4   false   true
+  4   3       6    1.5      5   true    false
+==== rank(k)
+Column<Float> Column<Float> Column<Float> Column<Float>
+frame · 4 rows × 6 variables
+
+        v   twice   half   more   above   same
+  1     4       8      2      7   true    false
+  2     1       2    0.5      2   false   true
+  3   2.5       5   1.25    4.5   true    false
+  4   2.5       5   1.25    4.5   true    false
+==== rank(k, ties: first)
+Column<Int> Column<Int> Column<Float> Column<Int>
+frame · 4 rows × 6 variables
+
+      v   twice   half   more   above   same
+  1   4       8      2      7   true    false
+  2   1       2    0.5      2   false   true
+  3   2       4      1      4   false   true
+  4   3       6    1.5      5   true    false
+==== running(x, stat: sum)
+Column<Float> Column<Float> Column<Float> Column<Float>
+frame · 4 rows × 6 variables
+
+      v   twice   half   more   above   same
+  1   3       6    1.5      6   true    true
+  2   4       8      2      5   true    false
+  3   6      12      3      8   true    false
+  4   8      16      4     10   true    false
+==== running(k, stat: sum)
+Column<Int> Column<Int> Column<Float> Column<Int>
+frame · 4 rows × 6 variables
+
+      v   twice   half   more   above   same
+  1   3       6    1.5      6   true    true
+  2   4       8      2      5   true    false
+  3   6      12      3      8   true    false
+  4   8      16      4     10   true    false
+==== running(x, stat: product)
+Column<Float> Column<Float> Column<Float> Column<Float>
+frame · 4 rows × 6 variables
+
+       v   twice   half   more   above   same
+  1    3       6    1.5      6   true    true
+  2    3       6    1.5      4   true    false
+  3    6      12      3      8   true    false
+  4   12      24      6     14   true    false
+==== running(k, stat: product)
+Column<Float> Column<Float> Column<Float> Column<Float>
+frame · 4 rows × 6 variables
+
+       v   twice   half   more   above   same
+  1    3       6    1.5      6   true    true
+  2    3       6    1.5      4   true    false
+  3    6      12      3      8   true    false
+  4   12      24      6     14   true    false
+==== by a group, and in where
+frame · 4 rows × 4 variables
+
+      x   k   g   share
+  1   3   3   1       1
+  2   1   1   1     0.5
+  3   2   2   2    0.75
+  4   2   2   2    0.75
+frame · 2 rows × 3 variables
+
+      x   k   g
+  1   1   1   1
+  2   2   2   2
+frame · 4 rows × 4 variables
+
+      x   k   g   tens
+  1   3   3   1     30
+  2   1   1   1     40
+  3   2   2   2     20
+  4   2   2   2     40

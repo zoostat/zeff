@@ -139,3 +139,13 @@ Step 19: `zeff explain <code>` prints a code's page and lists the 144 codes by f
 **Next.** Step 20f `[engine]`: return types that depend on an option.
 
 **For the owner to decide.** Nothing new. The checklist's sentence that the infinite-df limit bounds the tail above is not so (it bounds it below); the bound used is another, proved in the decisions. The earlier items stand.
+
+## 19 November 2026, release 0.8.0, step 20f (results whose type an option decides)
+
+**Done.** Step 20f `[engine]`: `rank(x) / n()`, `rank(x) > 2` and `running(x, stat: sum) * 2` are no longer refused. The checker now reads the option: `rank` gives Floats under `ties: average` (the default) and Ints under the other three; `running` gives the type of its column under `stat: sum` and Floats under `stat: product`. Every function was read for a result declared as "one type or another": there are three, and each has its rule.
+
+**Green.** Format, clippy with warnings denied, the tier, message and grammar checks, every test of the workspace; CI read after the push. The CI of step 20e (1415f88) is green.
+
+**Next.** Step 20g `[engine]`: two internal errors that `zeff check` passes.
+
+**For the owner to decide.** Nothing new. The earlier items stand.
