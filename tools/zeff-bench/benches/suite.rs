@@ -7,8 +7,8 @@ use std::time::Duration;
 
 use criterion::{Criterion, criterion_group, criterion_main};
 use zeff_bench::{
-    SIZES, aggregate_by, chain, csv, digests, import, mean_by, mismatches, reg, reg_two_way,
-    summary_by, with_units,
+    RANK_SUM_EXPECTED, RANK_SUM_ROWS, SIZES, aggregate_by, chain, csv, digests, import, mean_by,
+    mismatches, rank_sum, reg, reg_two_way, summary_by, with_units,
 };
 
 fn suite(c: &mut Criterion) {
@@ -45,6 +45,19 @@ fn suite(c: &mut Criterion) {
         group.bench_function("column chain", |b| b.iter(|| chain(black_box(&bytes))));
         group.finish();
     }
+    // The rank-sum test with its estimate and interval (release 0.8.0, step 20d), at a size
+    // where the pairwise differences it once stored are thousands of millions.
+    let bytes = csv(RANK_SUM_ROWS);
+    assert_eq!(
+        zeff_hash::hash_hex(rank_sum(&bytes).as_bytes()),
+        RANK_SUM_EXPECTED,
+        "the rank-sum test differs from its stored digest"
+    );
+    let mut group = c.benchmark_group(format!("{RANK_SUM_ROWS} rows"));
+    group.sample_size(10);
+    group.measurement_time(Duration::from_secs(10));
+    group.bench_function("rank-sum test", |b| b.iter(|| rank_sum(black_box(&bytes))));
+    group.finish();
 }
 
 criterion_group!(benches, suite);

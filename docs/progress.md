@@ -155,3 +155,13 @@ Steps 13 and 14 were each too large for one step and were split in the checklist
 **Next.** Step 20d `[engine]`: the rank-sum test at large samples (the first of the faults the review against R found).
 
 **For the owner to decide.** The wording of the four issue forms, which the public now meets at "New issue". The open questions of the reporting page (where reports live, the statuses, a promised time of reply) are untouched. The earlier items stand.
+
+## 19 November 2026, release 0.8.0, step 20d (the rank tests at large samples)
+
+**Done.** Step 20d `[engine]`: `wilcoxon_test` no longer stores the pairwise differences (or the Walsh averages) of a large sample. The review's case, 190,757 rows, runs in 1.4 s within 220 MB (it could not finish within 7 GB; R takes 5.5 s), with the same W as R and the shift −15.000 where R's root-finder prints −14.999977. Every earlier figure is unchanged to the bit.
+
+**Green.** Format, clippy with warnings denied, the tier, message and grammar checks, every test of the workspace; CI read after the push. The CI of step 20c (9334f19) is green.
+
+**Next.** Step 20e `[engine]`: the studentized range in its far upper tail.
+
+**For the owner to decide.** Nothing new. The earlier items stand.

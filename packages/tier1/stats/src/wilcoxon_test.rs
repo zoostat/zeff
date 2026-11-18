@@ -9,6 +9,13 @@
 //! interval R gives: from the order statistics in the exact case, from the root of the
 //! standardised statistic in the approximate one. Frequency weights replicate rows; analytic
 //! weights are refused; sampling weights by the shared rule (Z0411).
+//!
+//! In the approximate case the samples may be large, and nothing is stored that grows with
+//! their square (release 0.8.0, step 20d; `selection.rs`): the median of the pairs is selected
+//! by counting over the sorted samples, and the statistic at each shift the interval's search
+//! tries is one merge of them. Both give, bit for bit, what the stored pairs and the ranked
+//! pooled sample gave. The exact case keeps its pairs: it reads its bounds off them, and its
+//! samples are small.
 
 use std::rc::Rc;
 use zeff_columns::{Column, ColumnType, Value as Cell, WeightType, Weights};
@@ -25,6 +32,7 @@ use zeff_numeric::order::median;
 use zeff_numeric::wilcoxon::{Exact, rank_sum, rank_sum_plain, signed_rank, signed_rank_plain};
 
 use crate::proportion_test::z_p_value;
+use crate::selection::{Pairs, rank_sum_at, signed_rank_at};
 use crate::testing;
 
 const VAR: usize = 1;
@@ -278,9 +286,11 @@ fn signed_rank_interval(
     level: f64,
 ) -> (f64, (f64, f64)) {
     let n = x.len();
-    let diffs = walsh_averages(x);
     let alpha = 1.0 - level;
     if method.exact {
+        // An exact interval reads its bounds off the Walsh averages themselves, sorted: a
+        // small sample's, since the exact distribution is for small samples.
+        let diffs = walsh_averages(x);
         let estimate = median(&diffs).unwrap_or(f64::NAN);
         if !(method.ties || method.zeros > 0) {
             let dist = signed_rank_plain(n);
@@ -335,19 +345,16 @@ fn signed_rank_interval(
         return (estimate, ci);
     }
     // The approximation: the shift at which the standardised statistic meets the normal
-    // quantile, found between the smallest and largest value.
+    // quantile, found between the smallest and largest value. The sample is sorted once: the
+    // statistic at a shift is then one merge of the values above the shift with those below
+    // it (`selection::signed_rank_at`), which gives what ranking them gives.
+    let mut sorted = x.to_vec();
+    sorted.sort_by(f64::total_cmp);
     let w = |d: f64, corrected: bool| -> f64 {
-        let kept: Vec<f64> = x.iter().map(|v| v - d).filter(|v| *v != 0.0).collect();
-        let m = kept.len() as f64;
-        let r = ranks(&kept.iter().map(|v| v.abs()).collect::<Vec<_>>());
-        let zd: f64 = r
-            .iter()
-            .zip(&kept)
-            .filter(|(_, v)| **v > 0.0)
-            .map(|(rank, _)| *rank)
-            .sum::<f64>()
-            - m * (m + 1.0) / 4.0;
-        let sigma = (m * (m + 1.0) * (2.0 * m + 1.0) / 24.0 - tie_sum(&r) / 48.0).sqrt();
+        let (kept, rank_sum, ties) = signed_rank_at(&sorted, d);
+        let m = kept as f64;
+        let zd: f64 = rank_sum - m * (m + 1.0) / 4.0;
+        let sigma = (m * (m + 1.0) * (2.0 * m + 1.0) / 24.0 - ties / 48.0).sqrt();
         (zd - correction(zd, alternative, corrected)) / sigma
     };
     let (lo, hi) = (
@@ -356,9 +363,10 @@ fn signed_rank_interval(
     );
     // The estimate is the median of the Walsh averages in every case: R's root of the
     // standardised statistic lands anywhere in the interval where that statistic is exactly
-    // zero, which is the interval between the two middle Walsh averages.
-    let estimate = median(&diffs).unwrap_or(f64::NAN);
-    let ci = asymptotic_interval(|d| w(d, correct), lo, hi, alpha, alternative, &diffs);
+    // zero, which is the interval between the two middle Walsh averages. It is selected
+    // among them without their being stored: there are n(n + 1)/2 of them.
+    let estimate = Pairs::Walsh(&sorted).median().unwrap_or(f64::NAN);
+    let ci = asymptotic_interval(|d| w(d, correct), lo, hi, alpha, alternative, estimate);
     (estimate, ci)
 }
 
@@ -440,14 +448,13 @@ fn asymptotic_interval(
     hi: f64,
     alpha: f64,
     alternative: Alternative,
-    diffs: &[f64],
+    fallback: f64,
 ) -> (f64, f64) {
     let (w_lo, w_hi) = (w(lo), w(hi));
     if w_lo.is_nan() || w_hi.is_nan() {
         return (f64::NAN, f64::NAN);
     }
     let mut alpha = alpha;
-    let fallback = median(diffs).unwrap_or(f64::NAN);
     match alternative {
         Alternative::TwoSided => {
             loop {
@@ -573,16 +580,18 @@ fn rank_sum_interval(
     level: f64,
 ) -> (f64, (f64, f64)) {
     let (m, n) = (x.len(), y.len());
-    let mut diffs: Vec<f64> = Vec::with_capacity(m * n);
-    for a in x {
-        for b in y {
-            diffs.push(a - b);
-        }
-    }
-    diffs.sort_by(f64::total_cmp);
     let alpha = 1.0 - level;
-    let estimate = median(&diffs).unwrap_or(f64::NAN);
     if method.exact {
+        // An exact interval reads its bounds off the pairwise differences themselves, sorted:
+        // two small samples', since the exact distribution is for small samples.
+        let mut diffs: Vec<f64> = Vec::with_capacity(m * n);
+        for a in x {
+            for b in y {
+                diffs.push(a - b);
+            }
+        }
+        diffs.sort_by(f64::total_cmp);
+        let estimate = median(&diffs).unwrap_or(f64::NAN);
         if !method.ties {
             let dist = rank_sum_plain(m, n);
             let bound = |alpha: f64| -> Option<(usize, usize)> {
@@ -627,14 +636,21 @@ fn rank_sum_interval(
         let ci = searched_interval(&diffs, alpha, alternative, &ptail);
         return (estimate, ci);
     }
+    // The approximation. Both samples are sorted once. The estimate, the median of the
+    // n₁n₂ pairwise differences, is selected among them without their being stored
+    // (`selection::Pairs`); and the statistic at a shift is one merge of the two sorted
+    // samples (`selection::rank_sum_at`), which gives what ranking the pooled sample gives.
+    let mut xs = x.to_vec();
+    xs.sort_by(f64::total_cmp);
+    let mut ys = y.to_vec();
+    ys.sort_by(f64::total_cmp);
+    let estimate = Pairs::Differences(&xs, &ys).median().unwrap_or(f64::NAN);
     let (mf, nf) = (m as f64, n as f64);
     let total = mf + nf;
     let w = |d: f64, corrected: bool| -> f64 {
-        let pooled: Vec<f64> = x.iter().map(|v| v - d).chain(y.iter().copied()).collect();
-        let r = ranks(&pooled);
-        let dz = r[..m].iter().sum::<f64>() - mf * (mf + 1.0) / 2.0 - mf * nf / 2.0;
-        let sigma =
-            (mf * nf / 12.0 * ((total + 1.0) - tie_sum(&r) / (total * (total - 1.0)))).sqrt();
+        let (rank_sum, ties) = rank_sum_at(&xs, &ys, d);
+        let dz = rank_sum - mf * (mf + 1.0) / 2.0 - mf * nf / 2.0;
+        let sigma = (mf * nf / 12.0 * ((total + 1.0) - ties / (total * (total - 1.0)))).sqrt();
         (dz - correction(dz, alternative, corrected)) / sigma
     };
     let lo = x.iter().copied().fold(f64::INFINITY, f64::min)

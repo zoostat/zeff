@@ -4,7 +4,8 @@
 //! 18; the case of section 8.3, point 10 of the Engine and Project Specification), and a chain
 //! of five frame verbs run as a script through the engine (release 0.6.0, step 22: the column
 //! expressions of `where`, `add`, `update` and `aggregate`), at ten thousand, a million and ten
-//! million rows of generated data. Each case's result is checked against a stored digest before
+//! million rows of generated data; and the rank-sum test with its estimate and interval at two
+//! hundred thousand rows (release 0.8.0, step 20d). Each case's result is checked against a stored digest before
 //! it is timed, so that a case can never be made faster by a numerical change; the times are
 //! reported, not judged, and the release notes record them. The cases run through the package
 //! bodies, as the engine calls them, on a frame parsed once from the generated file; the chain
@@ -297,6 +298,34 @@ print(d)
 /// file, giving what the run printed and reported (its standard output, then its standard
 /// error), which the digest covers.
 pub fn chain(bytes: &[u8]) -> String {
+    script(bytes, CHAIN_SCRIPT, "the chain")
+}
+
+// ----- the rank-sum test at large samples (release 0.8.0, step 20d) -----
+
+/// The rows the rank-sum test is timed at: two groups of about 120,000 and 80,000, which have
+/// some 9.6 thousand million pairwise differences between them. Until step 20d of 0.8.0 the
+/// test stored every one of them for its estimate, and could not run at this size.
+pub const RANK_SUM_ROWS: usize = 200_000;
+
+/// The rank-sum test of the generated `y` between the two groups of `d`, with the
+/// Hodges–Lehmann estimate of the shift and its interval, printed.
+pub const RANK_SUM_SCRIPT: &str =
+    "let d = import(\"data/bench.csv\")\nd.wilcoxon_test(y, group: d)\n";
+
+/// The digest of what the rank-sum test prints at [`RANK_SUM_ROWS`] rows.
+pub const RANK_SUM_EXPECTED: &str =
+    "6ec874f3e762843f9e03579b5479587ef17d056961f6d1835cc362557946f977";
+
+/// The rank-sum test: the script above run in a project whose `data/bench.csv` is the
+/// generated file, giving what the run printed and reported.
+pub fn rank_sum(bytes: &[u8]) -> String {
+    script(bytes, RANK_SUM_SCRIPT, "the rank-sum test")
+}
+
+/// A script run in a project whose `data/bench.csv` is `bytes`: what it printed, then what it
+/// reported.
+fn script(bytes: &[u8], text: &str, what: &str) -> String {
     use zeff_engine::fs::MemoryFileSystem;
     use zeff_engine::project::Project;
     let fs = MemoryFileSystem::new();
@@ -309,10 +338,10 @@ pub fn chain(bytes: &[u8]) -> String {
     );
     fs.add_file("/b/data/bench.csv", bytes);
     let project = Project::open(&fs, std::path::Path::new("/b")).expect("the project opens");
-    let outcome = zeff_engine::run::run_script(&fs, &project, "scripts/main.zeff", CHAIN_SCRIPT);
+    let outcome = zeff_engine::run::run_script(&fs, &project, "scripts/main.zeff", text);
     assert_eq!(
         outcome.exit_code, 0,
-        "the chain failed:\n{}",
+        "{what} failed:\n{}",
         outcome.output.stderr
     );
     format!("{}{}", outcome.output.stdout, outcome.output.stderr)

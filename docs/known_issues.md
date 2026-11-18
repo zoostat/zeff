@@ -162,6 +162,12 @@ is never listed here as accepted: it is fixed or the function is withdrawn.
   interactions `a:b` joined by `+`; `*`, a range or an expression is refused (Z0401), as is a
   fixed effect that is also a variable of the formula. Two-way clustering arrives at 1.1.
   (Since 0.6.0; `ivreg` takes `fe:` from 0.8.0.)
+- **`wilcoxon_test` with `exact: true` on large samples stores every pair.** The exact
+  interval reads its bounds off the sorted Walsh averages or pairwise differences, so its
+  memory grows with the square of the sample; the exact distribution is itself for small
+  samples, and the rule without `exact:` uses the approximation from 50 observations, whose
+  memory grows with the sample alone (from 0.8.0: 190,757 rows in 1.4 s within 220 MB, where
+  0.7.0 could not finish within 7 GB). (Since 0.7.0.)
 - **`zeff report-bug` shrinks the data files it brings, within limits.** With `--include-data`
   or `--synthetic` a text file (CSV, TSV) the kept statements read is shrunk by lines; a
   shipped dataset, a frame written out in the script and a file that is not text are not

@@ -53,7 +53,11 @@ is the median of the Walsh averages (xᵢ + xⱼ)/2 or of the pairwise differenc
 exact interval takes its bounds from those order statistics at the quantiles of the exact
 distribution, searched among them when there are ties; the approximate interval's bounds are the
 shifts at which the standardised statistic meets the normal quantile, as R's `wilcox.test`
-with `conf.int = TRUE` finds them. A one-sided alternative gives a one-sided interval.
+with `conf.int = TRUE` finds them. A one-sided alternative gives a one-sided interval. With
+the approximation, which large samples use, the median is selected among the averages or the
+differences without their being stored, so the test's memory grows with the sample and not
+with its square; R's estimate there is the root of the standardised statistic, which lies
+within a rounding of that median.
 
 ## References
 Wilcoxon (1945), Individual comparisons by ranking methods, Biometrics Bulletin 1, 80–83.
