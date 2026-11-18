@@ -130,7 +130,7 @@ Steps 13 and 14 were each too large for one step and were split in the checklist
 
 **Done.** At the owner's request, Zeff at step 20a (ba3e0ca, release build) was tested on twenty outside datasets with thirteen scripts that chain methods and nest functions, each with a twin in R; 240 of the 250 functions shipped so far were called. 688 of 698 compared figures agree with R, most to 1e-12; in five of the differences Zeff is right and R is not (`fisher.test`, `qf`, `ptukey`, `qtukey`). Start-up is 0.02 s; on 190,757 rows Zeff is about as fast as base R and slower than data.table and fixest. Seventeen problems were found. The engine's faults became steps 20d to 20j of the checklist (the rank-sum test's memory, the studentized range's far tail, option-dependent return types, two internal errors, `cluster:` types, the truncated distribution's lower tail, six messages); the design questions became #165 to #171 of the register. The report, the scripts and the timings are kept outside the repository, in the owner's handbook folder. No code was changed.
 
-**Green.** Unchanged from step 20a; only documents were edited.
+**Green.** Unchanged from step 20a; only documents were edited. The message and grammar checks pass locally, and CI of 000da05 is green on every job; the scheduled run of 18 November is green.
 
 **Next.** Step 20b `[engine]`: `zeff report-bug`, shrinking. Steps 20d to 20j follow 20c.
 
