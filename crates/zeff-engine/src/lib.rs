@@ -26,6 +26,7 @@ pub mod run;
 pub mod schemas;
 pub mod scratch;
 pub mod session;
+pub mod shrink;
 pub mod testing;
 #[cfg(not(target_arch = "wasm32"))]
 pub mod worker;

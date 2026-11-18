@@ -162,6 +162,15 @@ is never listed here as accepted: it is fixed or the function is withdrawn.
   interactions `a:b` joined by `+`; `*`, a range or an expression is refused (Z0401), as is a
   fixed effect that is also a variable of the formula. Two-way clustering arrives at 1.1.
   (Since 0.6.0; `ivreg` takes `fe:` from 0.8.0.)
+- **`zeff report-bug` shrinks the data files it brings, within limits.** With `--include-data`
+  or `--synthetic` a text file (CSV, TSV) the kept statements read is shrunk by lines; a
+  shipped dataset, a frame written out in the script and a file that is not text are not
+  shrunk. A result believed wrong (`--line` with `--reference`) keeps every row, since its
+  reference was computed on them, and its values are never made up. The first line of a file
+  is always kept as it is, as the line of the variables' names: a file without such a line
+  keeps its first row, with `--synthetic` too, and the report says the first line is as it
+  was. Made-up values are chosen by column, so a column the failure needs keeps all the values
+  of the lines kept. The shrinking stops after 500 trial runs and says so. (Since 0.8.0.)
 - **The fixed effects are projected out by an iteration**, to a tolerance of 1e-8 on each
   column, so the estimates agree with fixest on the reference fits within 1e-7 rather than to
   the last digits of a closed form. A projection that has not converged in 10,000 passes stops

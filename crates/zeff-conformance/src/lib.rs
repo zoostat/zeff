@@ -1724,7 +1724,8 @@ fn builtin_fixture_cases() -> Vec<Line> {
 /// `zeff report-bug` (release 0.8.0, step 20a): the report of a script that fails on the
 /// shipped wages and a file of its own, with the machine named alike everywhere, so that the
 /// four targets prove the report identical: the statements the graph keeps, the messages, the
-/// schema of the frames and the name the report is written under.
+/// schema of the frames and the name the report is written under; and a second report, with
+/// its data shrunk and its values made up.
 fn tools_cases() -> Vec<Line> {
     use std::path::Path;
     use zeff_engine::bug_report::{Asked, build};
@@ -1753,16 +1754,50 @@ fn tools_cases() -> Vec<Line> {
         line: None,
         reference: None,
         include_data: false,
+        synthetic: false,
+        trials: zeff_engine::bug_report::TRIALS,
         platform: "every target",
         options: zeff_engine::run::RunOptions::default(),
     };
-    match build(&fs, &project, &asked) {
+    let mut lines = match build(&fs, &project, &asked) {
         Ok(report) => vec![
             text("tools/report_bug/name", &report.name),
             text("tools/report_bug/report", &report.text),
         ],
         Err(none) => vec![text("tools/report_bug/report", &none.to_string())],
+    };
+    // Shrinking (step 20b): one value at fault among five hundred rows of a file with a
+    // semicolon between its fields. The trials, the lines kept and the made-up values are the
+    // same on every target: the report, the file it brings and the count of trial runs.
+    let mut cases = String::from("id;site;x;note\n");
+    for id in 1..=500 {
+        let x = if id == 317 { 9000 } else { id % 61 };
+        cases.push_str(&format!("{id};\"s{}\";{x};n{}\n", id % 7, id % 3));
     }
+    fs.add_file("/t/data/cases.csv", &cases);
+    let script = "let cases = import(\"data/cases.csv\", delim: \";\")\nprint(cases.n_rows())\nassert(cases.max(x) < 1000, \"a value of x is 1000 or more\")\n";
+    let shrinking = Asked {
+        text: script,
+        synthetic: true,
+        ..asked
+    };
+    match build(&fs, &project, &shrinking) {
+        Ok(report) => {
+            lines.push(text("tools/report_bug/shrunk/report", &report.text));
+            for (name, data) in &report.files {
+                lines.push(bytes(
+                    &format!("tools/report_bug/shrunk/{name}"),
+                    data.as_deref().unwrap_or(&[]),
+                ));
+            }
+            lines.push(text(
+                "tools/report_bug/shrunk/trials",
+                &format!("{} {}", report.shrunk.trials, report.shrunk.stopped),
+            ));
+        }
+        Err(none) => lines.push(text("tools/report_bug/shrunk/report", &none.to_string())),
+    }
+    lines
 }
 
 /// The exported files of release 0.4.0 (step 13): the sample table as Word and LaTeX, so that the

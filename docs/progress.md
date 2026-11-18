@@ -135,3 +135,13 @@ Steps 13 and 14 were each too large for one step and were split in the checklist
 **Next.** Step 20b `[engine]`: `zeff report-bug`, shrinking. Steps 20d to 20j follow 20c.
 
 **For the owner to decide.** #165 to #171 (deadline 0.9.0), taken as recommended unless he says otherwise; the names in #165 and #167 and the layouts of #171 are his. The earlier items stand.
+
+## 19 November 2026, release 0.8.0, step 20b (`zeff report-bug`, shrinking)
+
+**Done.** Step 20b `[engine]`: a report's reproducer is now shrunk. With `--include-data` the data files come shrunk to the lines the failure needs (one row at fault among a million: the names and that row, found in about 45 trial runs); `--synthetic` also replaces the values by made-up ones wherever the failure still occurs, and the report says which values are still yours. Statements the failure does not need are left out by trial too. No run of `zeff report-bug` writes into the project any more: only the report and, when asked, the data beside it. The old fault of `mad` with a variable called `centre`, written out as a script, shrinks from 5,000 rows to one.
+
+**Green.** Format, clippy with warnings denied, the tier, message and grammar checks, every test of the workspace, and the worker's messages under Node; CI read after the push.
+
+**Next.** Step 20c `[engine]`: the issue templates and the regressions suite.
+
+**For the owner to decide.** Nothing new that waits: under your word of 19 November the recommended options are taken and recorded (here: "the same failure" is compared with the numbers in the message set apart; `--include-data` writes shrunk files). The earlier items stand.

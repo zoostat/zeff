@@ -83,5 +83,6 @@ The files the statements read:
 
 - `data/wages.csv`, 35,524 bytes
 
-They are not in this report. `zeff report-bug --include-data` writes them beside it,
-for a report whose reader needs the rows to see the failure.
+They are not in this report. `zeff report-bug --include-data` writes them beside it, shrunk
+to the lines the failure needs, and `--synthetic` does the same with made-up values, for a
+report whose reader needs the rows to see the failure.

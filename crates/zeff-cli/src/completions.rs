@@ -155,6 +155,12 @@ pub const OPTIONS: &[(&str, Option<&str>, Takes, &str)] = &[
         "for report-bug: write the data files beside the report",
     ),
     (
+        "--synthetic",
+        None,
+        Takes::Nothing,
+        "for report-bug: write the data files with made-up values",
+    ),
+    (
         "--line",
         None,
         Takes::Value,

@@ -778,21 +778,45 @@ fn zeff_report_bug_writes_a_report_for_the_user_to_read() {
     // The same failure again: the same file, not a second one.
     assert_eq!(code(&zeff(&project, &["report-bug"])), 0);
     assert_eq!(listed(&reports), names);
-    // With the data: a second report, and the two files beside it as they are.
+    // With the data: a second report, and the two files beside it, each shrunk to the lines
+    // the failure needs, its first line and one row; the project's own files are untouched.
     let o = zeff(&project, &["report-bug", "--include-data"]);
     assert_eq!(code(&o), 0, "{}", err(&o));
     tell(&["report-bug", "--include-data"], &o);
     let all = listed(&reports);
     assert_eq!(all.len(), 3, "{all:?}");
     let folder = all.iter().find(|name| name.ends_with("-data")).unwrap();
-    assert_eq!(
-        std::fs::read_to_string(reports.join(folder).join("data/pay.csv")).unwrap(),
-        "worker,firm,wage\n1,10,23.5\n2,10,19.0\n3,20,31.25\n"
-    );
+    let shrunk = std::fs::read_to_string(reports.join(folder).join("data/pay.csv")).unwrap();
+    assert_eq!(shrunk.lines().count(), 2, "{shrunk}");
+    assert!(shrunk.starts_with("worker,firm,wage\n"), "{shrunk}");
     assert_eq!(
         listed(&reports.join(folder).join("data")),
         ["firms.csv", "pay.csv"]
     );
+    assert_eq!(
+        std::fs::read_to_string(project.join("data/pay.csv")).unwrap(),
+        "worker,firm,wage\n1,10,23.5\n2,10,19.0\n3,20,31.25\n"
+    );
+    // With made-up values: a third report; no value of the files is in what it brings.
+    let o = zeff(&project, &["report-bug", "--synthetic"]);
+    assert_eq!(code(&o), 0, "{}", err(&o));
+    tell(&["report-bug", "--synthetic"], &o);
+    let all = listed(&reports);
+    assert_eq!(all.len(), 5, "{all:?}");
+    let made_up = all
+        .iter()
+        .find(|name| name.ends_with("-data") && *name != folder)
+        .unwrap();
+    for file in ["data/pay.csv", "data/firms.csv"] {
+        let text = std::fs::read_to_string(reports.join(made_up).join(file)).unwrap();
+        assert_eq!(text.lines().count(), 2, "{text}");
+        for value in ["23.5", "19.0", "31.25", "120", "45"] {
+            assert!(!text.contains(value), "{file}: {value} in {text}");
+        }
+    }
+    // Nothing but the reports was written: the script's runs left no file in the project.
+    assert!(listed(&project.join("output")).is_empty());
+    assert_eq!(listed(&project.join("data")), ["firms.csv", "pay.csv"]);
     // A result believed wrong, with its reference; and a script named.
     std::fs::write(
         project.join("scripts/mean.zeff"),

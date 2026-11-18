@@ -8,7 +8,7 @@ This file was written by `zeff report-bug` on your computer. Nothing has been se
 anywhere. Read it before you attach it to an issue: it holds statements of your script,
 the names and types of your variables and the names of the files they were read from.
 It holds no rows of your data itself; the files named at its end were written beside it
-because `--include-data` asked for them, and they hold your data as it is.
+because `--include-data` asked for them, and they hold rows of your data.
 A message is quoted as it was printed, and a message may name a value where it must (a
 text that could not be converted, the levels of a group): read those lines too.
 
@@ -61,41 +61,41 @@ The functions they call in `functions/clean.zeff` of the project:
 - seed: set at line 6, `seed(11)`
 - warnings and notes before the failure:
 
-    note: data/pay.csv read as CSV: 5 rows × 5 variables, types guessed; CSV carries no labels, value labels or categories (line 4)
-    note: data/firms.csv read as CSV: 3 rows × 3 variables, types guessed; CSV carries no labels, value labels or categories (line 5)
+    note: data/pay.csv read as CSV: 1 row × 5 variables, types guessed; CSV carries no labels, value labels or categories (line 4)
+    note: data/firms.csv read as CSV: 1 row × 3 variables, types guessed; CSV carries no labels, value labels or categories (line 5)
 
 ## The data
 
-The frames the statements hold: the names and types of their variables and how many
-values are missing. No value is written here.
+The frames the statements hold, on the files as they were shrunk: the names and types of
+their variables and how many values are missing. No value is written here.
 
-`pay`: 5 rows × 5 variables
+`pay`: 1 row × 5 variables
 
     worker    Int
     firm      Int
     wage      Float
-    hours     Int       1 missing
+    hours     Int
     industry  Str
 
-`firms`: 3 rows × 3 variables
+`firms`: 1 row × 3 variables
 
     firm      Int
     size      Int
     industry  Str
 
-`dear`: 5 rows × 6 variables
+`dear`: 1 row × 6 variables
 
     worker    Int
     firm      Int
     wage      Float
-    hours     Int       1 missing
+    hours     Int
     industry  Str
     wage2     Float
 
 The files the statements read:
 
-- `data/firms.csv`, 60 bytes
-- `data/pay.csv`, 131 bytes
+- `data/firms.csv`: 2 of its 4 lines are kept, 33 bytes; the failure persists without the others
+- `data/pay.csv`: 2 of its 6 lines are kept, 52 bytes; the failure persists without the others
 
-They were written beside this report as they are, because `--include-data` asked for
-them. They hold your data: read them too before you attach them.
+They were written beside this report as said above, because `--include-data` asked for
+them. What is kept of them is your data: read them too before you attach them.

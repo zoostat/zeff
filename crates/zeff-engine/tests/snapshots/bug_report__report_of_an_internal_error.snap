@@ -73,12 +73,12 @@ values are missing. No value is written here.
     hours     Int       1 missing
     industry  Str
 
-`dear`: 5 rows × 6 variables, as the check of the script knew it (the statement did not run)
+`dear`: 6 variables, as the check of the script knew it (the statement did not run)
 
     worker    Int
     firm      Int
     wage      Float
-    hours     Int       1 missing
+    hours     Int
     industry  Str
     wage2     (known when run)
 
@@ -86,5 +86,6 @@ The files the statements read:
 
 - `data/pay.csv`, 131 bytes
 
-They are not in this report. `zeff report-bug --include-data` writes them beside it,
-for a report whose reader needs the rows to see the failure.
+They are not in this report. `zeff report-bug --include-data` writes them beside it, shrunk
+to the lines the failure needs, and `--synthetic` does the same with made-up values, for a
+report whose reader needs the rows to see the failure.

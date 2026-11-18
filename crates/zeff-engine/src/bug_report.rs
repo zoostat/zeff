@@ -9,7 +9,9 @@
 //! types of the variables and how many values are missing. It holds no rows of the data; what
 //! a message itself names (a text that could not be converted, a level) is quoted with the
 //! message, and the report says so at its head. With `--include-data` the files those
-//! statements read are written beside it, as they are.
+//! statements read are written beside it, shrunk to the lines the failure needs, and with
+//! `--synthetic` with made-up values where the failure persists with them (step 20b; the
+//! shrinker's parts are in `shrink.rs`).
 //!
 //! Three kinds of report: an error of the script, an internal error (a bug in Zeff), and a
 //! result believed wrong, where nothing failed: its statement is named by its line and the
@@ -20,10 +22,12 @@
 
 use crate::control::Control;
 use crate::dependencies::{Graph, graph};
-use crate::fs::{FileInfo, FileSystem};
+use crate::fs::FileSystem;
 use crate::project::Project;
 use crate::run::{Frames, Outcome, RunOptions, check_in_project, run_script_keeping};
-use std::cell::RefCell;
+use crate::shrink::{
+    Budget, Cells, Overlay, by_halves, by_halves_keeping_the_first, lines_of, numbers_apart,
+};
 use std::collections::BTreeSet;
 use std::io;
 use std::path::{Path, PathBuf};
@@ -40,11 +44,52 @@ pub struct Asked<'a> {
     /// The reference a result believed wrong should agree with: the name of its file, and
     /// its text.
     pub reference: Option<(&'a str, &'a str)>,
-    /// `--include-data`: the files the kept statements read come with the report.
+    /// `--include-data`: the files the kept statements read come with the report, shrunk to
+    /// the lines the failure needs.
     pub include_data: bool,
+    /// `--synthetic`: the shrunk files come with the report, their values made up where the
+    /// failure persists with made-up values.
+    pub synthetic: bool,
+    /// How many trial runs the shrinking may make ([`TRIALS`] unless a test says otherwise).
+    pub trials: usize,
     /// The machine, as the report names it (`aarch64 macos`).
     pub platform: &'a str,
     pub options: RunOptions,
+}
+
+/// How many trial runs the shrinking of one report may make: a count, not a time, so that the
+/// same failure shrinks to the same reproducer on every machine. A halving of a file's lines
+/// takes about two trials, so a file of a million lines with one line at fault takes about
+/// forty-five; ten lines at fault spread over a file take a few hundred. The trials after the
+/// first few run on little data.
+pub const TRIALS: usize = 500;
+
+/// What the shrinking did to one data file.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct FileShrunk {
+    /// The file as the report names it, and where it is.
+    pub name: String,
+    pub path: PathBuf,
+    /// How many lines it has, and how many are kept.
+    pub lines: usize,
+    pub kept: usize,
+    /// With `--synthetic`: the variables whose values were made up, and those whose values
+    /// are the file's own, the failure not persisting without them.
+    pub made_up: Vec<String>,
+    pub real: Vec<String>,
+}
+
+/// What the shrinking did: to the data files, where the data is written, and to the
+/// statements.
+#[derive(Debug, Clone, PartialEq, Eq, Default)]
+pub struct Shrunk {
+    pub files: Vec<FileShrunk>,
+    /// The lines of the statements the graph kept that were left out after all, the failure
+    /// persisting without them.
+    pub statements: Vec<u32>,
+    /// How many trial runs were made, and whether the shrinking stopped at its limit.
+    pub trials: usize,
+    pub stopped: bool,
 }
 
 /// The kind of failure a report is of.
@@ -85,8 +130,11 @@ pub struct Report {
     /// up to the failing one is kept.
     pub reduced: bool,
     /// The files the kept statements read, by their path in the project (or their name, for a
-    /// file outside it), with their bytes when `--include-data` asked for them.
+    /// file outside it), with their bytes when `--include-data` or `--synthetic` asked for
+    /// them: shrunk, and with made-up values, as far as the failure allowed.
     pub files: Vec<(String, Option<Vec<u8>>)>,
+    /// What the shrinking did.
+    pub shrunk: Shrunk,
 }
 
 /// Why no report was built.
@@ -128,55 +176,6 @@ impl std::fmt::Display for NoReport {
                 "`--reference` needs the statement it is for\n  = help: `--line <n>` names a line of the statement whose result is wrong"
             ),
         }
-    }
-}
-
-/// A file system that notes which files are read: what a run's statements took from the
-/// project, for the report's list of data files.
-struct Noting<'a> {
-    inner: &'a dyn FileSystem,
-    read: RefCell<Vec<PathBuf>>,
-    /// The files the run wrote: one of these read back is the run's own product, not data
-    /// it was given.
-    written: RefCell<Vec<PathBuf>>,
-}
-
-impl FileSystem for Noting<'_> {
-    fn read(&self, path: &Path) -> io::Result<Vec<u8>> {
-        let bytes = self.inner.read(path)?;
-        let mut read = self.read.borrow_mut();
-        if !read.iter().any(|p| p == path) {
-            read.push(path.to_path_buf());
-        }
-        Ok(bytes)
-    }
-    fn metadata(&self, path: &Path) -> io::Result<FileInfo> {
-        self.inner.metadata(path)
-    }
-    fn list(&self, dir: &Path) -> io::Result<Vec<String>> {
-        self.inner.list(dir)
-    }
-    fn is_file(&self, path: &Path) -> bool {
-        self.inner.is_file(path)
-    }
-    fn is_dir(&self, path: &Path) -> bool {
-        self.inner.is_dir(path)
-    }
-    fn canonicalize(&self, path: &Path) -> io::Result<PathBuf> {
-        self.inner.canonicalize(path)
-    }
-    fn create_dir(&self, path: &Path) -> io::Result<()> {
-        self.inner.create_dir(path)
-    }
-    fn write(&self, path: &Path, bytes: &[u8]) -> io::Result<()> {
-        self.written.borrow_mut().push(path.to_path_buf());
-        self.inner.write(path, bytes)
-    }
-    fn remove_dir_all(&self, path: &Path) -> io::Result<()> {
-        self.inner.remove_dir_all(path)
-    }
-    fn now(&self) -> Option<i64> {
-        self.inner.now()
     }
 }
 
@@ -362,22 +361,29 @@ fn kept_lines(
     }
 }
 
-/// A run of `text` under a file system that notes what is read: the outcome, the frames its
-/// bindings held, the files it read that it had not written itself, and those it wrote.
-fn run_noting(
+/// One run of a script for the report: its outcome, the frames its bindings held, the files
+/// it read that it had not written itself, and those it wrote.
+struct Run {
+    outcome: Outcome,
+    frames: Frames,
+    read: Vec<PathBuf>,
+    written: Vec<PathBuf>,
+}
+
+/// A run of `text` over the project's files, with the files `given` standing for the
+/// project's own of their paths. What the run writes stays in memory: a report is built
+/// without a file of the project being touched.
+fn run_over(
     fs: &dyn FileSystem,
     project: &Project,
     script: &str,
     text: &str,
     options: &RunOptions,
-) -> (Outcome, Frames, Vec<PathBuf>, Vec<PathBuf>) {
-    let noting = Noting {
-        inner: fs,
-        read: RefCell::default(),
-        written: RefCell::default(),
-    };
+    given: &[(PathBuf, Vec<u8>)],
+) -> Run {
+    let overlay = Overlay::new(fs, given);
     let (outcome, frames) = run_script_keeping(
-        &noting,
+        &overlay,
         project,
         script,
         text,
@@ -385,14 +391,79 @@ fn run_noting(
         &Control::new(),
         None,
     );
-    let written = noting.written.into_inner();
-    let read = noting
-        .read
-        .into_inner()
-        .into_iter()
-        .filter(|path| !written.contains(path))
-        .collect();
-    (outcome, frames, read, written)
+    let (read, written) = overlay.into_read_and_written();
+    Run {
+        outcome,
+        frames,
+        read,
+        written,
+    }
+}
+
+/// The data files of a run of the lines kept: the files it read, and, where its statements
+/// never ran (an error the check found), the files their `import` calls name. Each by the name
+/// the report gives it, a file of the project by its path in it and any other by its name
+/// alone, with its place; the project's own files (its `zeff.toml`, scripts, functions and
+/// `.zeff`) and the files the run wrote itself are no data.
+#[allow(clippy::too_many_arguments)]
+fn data_files(
+    fs: &dyn FileSystem,
+    project: &Project,
+    program: &zeff_ir::Program,
+    source: &Source,
+    script: &str,
+    lines: &BTreeSet<u32>,
+    run: &Run,
+) -> Vec<(String, PathBuf)> {
+    let mut read = run.read.clone();
+    {
+        let mut tell = |found: zeff_ir::walk::Found<'_>| {
+            let zeff_ir::walk::Found::Expr(expr) = found else {
+                return;
+            };
+            let zeff_ir::ExprKind::Call(call) = &expr.kind else {
+                return;
+            };
+            if call.name != "import" || !lines.contains(&source.line_of(call.callee_span.start)) {
+                return;
+            }
+            if let Some(Some(first)) = call.args.first()
+                && let zeff_ir::ExprKind::Str(written) = &first.kind
+                && let Ok(path) = project.resolve_read(fs, written)
+                && fs.is_file(&path)
+                && !read.contains(&path)
+                && !run.written.contains(&path)
+            {
+                read.push(path);
+            }
+        };
+        zeff_ir::walk::walk(program, script, true, &mut tell);
+    }
+    let mut data: Vec<(String, PathBuf)> = Vec::new();
+    for path in &read {
+        let shown = match path.strip_prefix(&project.root) {
+            Ok(inside) => {
+                let inside = inside.to_string_lossy().replace('\\', "/");
+                if inside == "zeff.toml"
+                    || inside.starts_with("scripts/")
+                    || inside.starts_with("functions/")
+                    || inside.starts_with(".zeff/")
+                {
+                    continue;
+                }
+                inside
+            }
+            Err(_) => match path.file_name() {
+                Some(name) => format!("{} (a file outside the project)", name.to_string_lossy()),
+                None => continue,
+            },
+        };
+        if !data.iter().any(|(name, _)| *name == shown) {
+            data.push((shown, path.clone()));
+        }
+    }
+    data.sort();
+    data
 }
 
 /// What the statement that begins on `line` printed and said.
@@ -434,7 +505,10 @@ pub fn build(
         _ => {}
     }
     let source = Source::new(asked.script, asked.text);
-    let (whole, _, _, _) = run_noting(fs, project, asked.script, asked.text, &asked.options);
+    let run = |text: &str, given: &[(PathBuf, Vec<u8>)]| -> Run {
+        run_over(fs, project, asked.script, text, &asked.options, given)
+    };
+    let whole = run(asked.text, &[]).outcome;
     let kind = match (whole.exit_code, asked.line) {
         (0, None) => return Err(NoReport::NothingFailed),
         (0, Some(_)) => Kind::WrongResult,
@@ -496,67 +570,186 @@ pub fn build(
             None => (0..of).collect(),
         }
     };
-    let mut reduced = about.is_some();
-    let mut attempt = match about {
-        Some(index) => {
-            let needed = graph.needed_by(index);
-            kept_lines(
-                &source,
-                asked.script,
-                asked.text,
-                program,
-                &graph,
-                &needed.statements,
-                &needed.functions,
-            )
-        }
-        None => {
-            let all = all_until(None);
-            kept_lines(
-                &source,
-                asked.script,
-                asked.text,
-                program,
-                &graph,
-                &all,
-                &graph.called_by(&all),
-            )
-        }
-    };
-    // A script that could not be read into statements is kept whole.
-    if of == 0 {
-        attempt.lines = (1..=source.line_count() as u32).collect();
-        reduced = false;
-    }
-    let mut alone = run_noting(
-        fs,
-        project,
-        asked.script,
-        &blanked(&source, &attempt.lines),
-        &asked.options,
-    );
-    if reduced && (alone.0.exit_code != whole.exit_code || failure(&alone.0) != said) {
-        reduced = false;
-        let all = all_until(about);
-        attempt = kept_lines(
+    let lines_for = |statements: &[usize]| -> Kept {
+        kept_lines(
             &source,
             asked.script,
             asked.text,
             program,
             &graph,
-            &all,
-            &graph.called_by(&all),
-        );
-        alone = run_noting(
+            statements,
+            &graph.called_by(statements),
+        )
+    };
+    let mut reduced = about.is_some();
+    let mut statements: Vec<usize> = match about {
+        Some(index) => graph.needed_by(index).statements,
+        None => all_until(None),
+    };
+    let mut kept = lines_for(&statements);
+    // A script that could not be read into statements is kept whole.
+    if of == 0 {
+        kept.lines = (1..=source.line_count() as u32).collect();
+        reduced = false;
+    }
+    // Whether the failure persists in a run of the lines given over the files given: the same
+    // exit code, and the same error by its code and its message, the numbers in the message
+    // set apart (a message that names a row or counts rows changes as rows are removed). A
+    // result believed wrong persists only as the very same printed result.
+    let persists = |lines: &BTreeSet<u32>, given: &[(PathBuf, Vec<u8>)]| -> bool {
+        let trial = run(&blanked(&source, lines), given).outcome;
+        if trial.exit_code != whole.exit_code {
+            return false;
+        }
+        let now = failure(&trial);
+        match kind {
+            Kind::WrongResult => now == said,
+            _ => code_of(&now) == code_of(&said) && numbers_apart(&now) == numbers_apart(&said),
+        }
+    };
+    if reduced && !persists(&kept.lines, &[]) {
+        reduced = false;
+        statements = all_until(about);
+        kept = lines_for(&statements);
+    }
+
+    // ----- shrinking (step 20b) -----
+    // Rows first, where the data is to be written; then statements; then, where they are
+    // asked for, made-up values. Each trial is a run of the kept lines, and a change is kept
+    // only when the failure persists. A result believed wrong keeps its rows: its reference
+    // was computed on them.
+    let mut budget = Budget::of(asked.trials);
+    let mut given: Vec<(PathBuf, Vec<u8>)> = Vec::new();
+    let mut account = Shrunk::default();
+    let with_data = (asked.include_data || asked.synthetic) && kind != Kind::WrongResult;
+    if with_data {
+        let first = run(&blanked(&source, &kept.lines), &[]);
+        let files = data_files(
             fs,
             project,
+            program,
+            &source,
             asked.script,
-            &blanked(&source, &attempt.lines),
-            &asked.options,
+            &kept.lines,
+            &first,
         );
+        for (shown, path) in files {
+            let Some(text) = fs.read(&path).ok().and_then(|b| String::from_utf8(b).ok()) else {
+                // Not a text: it cannot be shrunk by lines, and is kept as it is.
+                continue;
+            };
+            let lines = lines_of(&text);
+            let all: Vec<u32> = (0..lines.len() as u32).collect();
+            let content = |keep: &[u32]| -> Vec<u8> {
+                let mut out = String::new();
+                for index in keep {
+                    out.push_str(lines[*index as usize]);
+                }
+                out.into_bytes()
+            };
+            let left = by_halves_keeping_the_first(all, &mut budget, &mut |keep| {
+                let mut trial = given.clone();
+                trial.push((path.clone(), content(keep)));
+                persists(&kept.lines, &trial)
+            });
+            if left.len() < lines.len() {
+                given.push((path.clone(), content(&left)));
+            }
+            account.files.push(FileShrunk {
+                name: shown,
+                path,
+                lines: lines.len(),
+                kept: left.len(),
+                made_up: Vec::new(),
+                real: Vec::new(),
+            });
+        }
     }
-    let (outcome, frames, read, written_by_the_run) = alone;
-    let kept = attempt;
+    if let Some(index) = about
+        && of > 0
+    {
+        // A statement that sets the seed is never tried: without it a draw takes a seed of
+        // the system's choosing, and a trial would say one thing today and another tomorrow.
+        let held: Vec<usize> = statements
+            .iter()
+            .copied()
+            .filter(|i| *i == index || graph.statements[*i].seeds)
+            .collect();
+        let others: Vec<usize> = statements
+            .iter()
+            .copied()
+            .filter(|i| !held.contains(i))
+            .collect();
+        let together = |others: &[usize]| -> Vec<usize> {
+            let mut all = others.to_vec();
+            all.extend(held.iter().copied());
+            all.sort_unstable();
+            all
+        };
+        let left = by_halves(others.clone(), &mut budget, &mut |others| {
+            persists(&lines_for(&together(others)).lines, &given)
+        });
+        if left.len() < others.len() {
+            account.statements = others
+                .iter()
+                .filter(|i| !left.contains(i))
+                .map(|i| source.line_of(graph.statements[*i].span.start))
+                .collect();
+            statements = together(&left);
+            kept = lines_for(&statements);
+        }
+    }
+    if asked.synthetic && with_data {
+        for file in account.files.iter_mut() {
+            let now: Vec<u8> = match given.iter().find(|(path, _)| *path == file.path) {
+                Some((_, bytes)) => bytes.clone(),
+                None => match fs.read(&file.path) {
+                    Ok(bytes) => bytes,
+                    Err(_) => continue,
+                },
+            };
+            let Some(cells) = String::from_utf8(now).ok().and_then(|t| Cells::read(&t)) else {
+                continue;
+            };
+            let columns: Vec<usize> = (0..cells.columns()).collect();
+            let others: Vec<(PathBuf, Vec<u8>)> = given
+                .iter()
+                .filter(|(path, _)| *path != file.path)
+                .cloned()
+                .collect();
+            let real = by_halves(columns.clone(), &mut budget, &mut |real| {
+                let mut trial = others.clone();
+                trial.push((file.path.clone(), cells.written(real).into_bytes()));
+                persists(&kept.lines, &trial)
+            });
+            if real.len() < columns.len() {
+                given = others;
+                given.push((file.path.clone(), cells.written(&real).into_bytes()));
+            }
+            file.made_up = columns
+                .iter()
+                .filter(|c| !real.contains(c))
+                .map(|c| cells.name(*c))
+                .collect();
+            file.real = real.iter().map(|c| cells.name(*c)).collect();
+        }
+    }
+    account.trials = asked.trials - budget.left;
+    account.stopped = budget.spent;
+    // The run the report describes: the kept lines over the files as they now are.
+    let last = run(&blanked(&source, &kept.lines), &given);
+    let data = data_files(
+        fs,
+        project,
+        program,
+        &source,
+        asked.script,
+        &kept.lines,
+        &last,
+    );
+    let Run {
+        outcome, frames, ..
+    } = last;
 
     // ----- the text -----
     let code = code_of(&said);
@@ -573,10 +766,15 @@ pub fn build(
     text.push_str(
         "This file was written by `zeff report-bug` on your computer. Nothing has been sent\nanywhere. Read it before you attach it to an issue: it holds statements of your script,\nthe names and types of your variables and the names of the files they were read from.\n",
     );
-    text.push_str(if asked.include_data {
-        "It holds no rows of your data itself; the files named at its end were written beside it\nbecause `--include-data` asked for them, and they hold your data as it is.\n"
-    } else {
-        "It holds no rows of your data.\n"
+    let with_files = asked.include_data || asked.synthetic;
+    text.push_str(match (with_files, asked.synthetic && with_data) {
+        (false, _) => "It holds no rows of your data.\n",
+        (true, false) => {
+            "It holds no rows of your data itself; the files named at its end were written beside it\nbecause `--include-data` asked for them, and they hold rows of your data.\n"
+        }
+        (true, true) => {
+            "It holds no rows of your data itself; the files named at its end were written beside it\nbecause `--synthetic` asked for them, with made-up values where the failure allows; the\nsection on the data says which values are still yours.\n"
+        }
     });
     text.push_str(
         "A message is quoted as it was printed, and a message may name a value where it must (a\ntext that could not be converted, the levels of a group): read those lines too.\n",
@@ -634,6 +832,13 @@ pub fn build(
         Kind::WrongResult => "print the same result",
         _ => "fail in the same way",
     };
+    // "Run alone, they fail in the same way", or of one statement, "it fails".
+    let alone_same = match (kind, kept.statements.len()) {
+        (Kind::WrongResult, 1) => "Run alone, it prints the same result",
+        (Kind::WrongResult, _) => "Run alone, they print the same result",
+        (_, 1) => "Run alone, it fails in the same way",
+        (_, _) => "Run alone, they fail in the same way",
+    };
     if of == 0 {
         text.push_str(&format!(
             "`{}` could not be read into statements, so the script is kept whole:\n\n",
@@ -641,7 +846,7 @@ pub fn build(
         ));
     } else if reduced {
         text.push_str(&format!(
-            "{what}: {} of the {} statements of\n`{}` ({}). Run alone, they {same}.\n\n",
+            "{what}: {} of the {} statements of\n`{}` ({}). {alone_same}.\n\n",
             kept.statements.len(),
             of,
             asked.script,
@@ -649,10 +854,11 @@ pub fn build(
         ));
     } else if about.is_some() {
         text.push_str(&format!(
-            "The statements the graph of the script gives did not {same} when run alone:\none of them depends on another through a file or the state of the run, which the graph\ndoes not see. So every statement up to it is kept: {} of the {} statements of\n`{}`.\n\n",
+            "The statements the graph of the script gives did not {same} when run alone:\none of them depends on another through a file or the state of the run, which the graph\ndoes not see. So every statement up to it was tried, and those the failure persists\nwithout were left out: {} of the {} statements of `{}` are kept\n({}).\n\n",
             kept.statements.len(),
             of,
-            asked.script
+            asked.script,
+            lines_text(&kept.statements)
         ));
     } else {
         text.push_str(&format!(
@@ -661,12 +867,24 @@ pub fn build(
             count(kept.statements.len())
         ));
     }
-    let mut statements = String::new();
-    for line in &kept.lines {
-        statements.push_str(source.line_text(*line));
-        statements.push('\n');
+    if reduced && !account.statements.is_empty() {
+        text.push_str(&match account.statements.as_slice() {
+            [line] => format!(
+                "One more that the graph of the script gives, at line {line}, was left out: the failure\npersists without it.\n\n"
+            ),
+            lines => format!(
+                "{} more that the graph of the script gives, at {}, were left out: the\nfailure persists without them.\n\n",
+                lines.len(),
+                lines_text(lines)
+            ),
+        });
     }
-    text.push_str(&block(&statements));
+    let mut shown_statements = String::new();
+    for line in &kept.lines {
+        shown_statements.push_str(source.line_text(*line));
+        shown_statements.push('\n');
+    }
+    text.push_str(&block(&shown_statements));
     // The functions of the project's modules that the statements call.
     let mut files: Vec<&str> = Vec::new();
     for (file, _, _) in &kept.module_functions {
@@ -850,87 +1068,93 @@ pub fn build(
     if schemas.is_empty() {
         text.push_str("The statements kept hold no frame.\n");
     } else {
-        text.push_str(
-            "The frames the statements hold: the names and types of their variables and how many\nvalues are missing. No value is written here.\n\n",
-        );
+        text.push_str(if given.is_empty() {
+            "The frames the statements hold: the names and types of their variables and how many\nvalues are missing. No value is written here.\n\n"
+        } else {
+            "The frames the statements hold, on the files as they were shrunk: the names and types of\ntheir variables and how many values are missing. No value is written here.\n\n"
+        });
         text.push_str(schemas.trim_end_matches('\n'));
         text.push('\n');
     }
-    // The files read: those of the project by their path in it, others by their name alone.
-    // Where the statements never ran (an error the check found), the files they import are
-    // read off the statements themselves.
-    let mut read = read;
-    {
-        let mut tell = |found: zeff_ir::walk::Found<'_>| {
-            let zeff_ir::walk::Found::Expr(expr) = found else {
-                return;
-            };
-            let zeff_ir::ExprKind::Call(call) = &expr.kind else {
-                return;
-            };
-            if call.name != "import"
-                || !kept.lines.contains(&source.line_of(call.callee_span.start))
-            {
-                return;
-            }
-            if let Some(Some(first)) = call.args.first()
-                && let zeff_ir::ExprKind::Str(written) = &first.kind
-                && let Ok(path) = project.resolve_read(fs, written)
-                && fs.is_file(&path)
-                && !read.contains(&path)
-                && !written_by_the_run.contains(&path)
-            {
-                read.push(path);
-            }
-        };
-        zeff_ir::walk::walk(program, asked.script, true, &mut tell);
-    }
-    let mut data: Vec<(String, PathBuf)> = Vec::new();
-    for path in &read {
-        let shown = match path.strip_prefix(&project.root) {
-            Ok(inside) => {
-                let inside = inside.to_string_lossy().replace('\\', "/");
-                if inside == "zeff.toml"
-                    || inside.starts_with("scripts/")
-                    || inside.starts_with("functions/")
-                    || inside.starts_with(".zeff/")
-                {
-                    continue;
-                }
-                inside
-            }
-            Err(_) => match path.file_name() {
-                Some(name) => format!("{} (a file outside the project)", name.to_string_lossy()),
-                None => continue,
-            },
-        };
-        if !data.iter().any(|(name, _)| *name == shown) {
-            data.push((shown, path.clone()));
-        }
-    }
-    data.sort();
+    // The files read, and what the shrinking did to them.
     let mut files: Vec<(String, Option<Vec<u8>>)> = Vec::new();
+    let listed = |words: &[String]| -> String {
+        let quoted: Vec<String> = words.iter().map(|w| format!("`{w}`")).collect();
+        match quoted.as_slice() {
+            [] => String::new(),
+            [one] => one.clone(),
+            [most @ .., last] => format!("{} and {last}", most.join(", ")),
+        }
+    };
     if data.is_empty() {
         text.push_str("\nThe statements read no file.\n");
     } else {
         text.push_str("\nThe files the statements read:\n\n");
         for (shown, path) in &data {
-            let size = fs.metadata(path).map_or(0, |info| info.size);
-            text.push_str(&format!("- `{shown}`, {} bytes\n", count(size as usize)));
-            files.push((
-                shown.clone(),
-                if asked.include_data {
-                    fs.read(path).ok()
-                } else {
-                    None
-                },
-            ));
+            let bytes = match given.iter().find(|(given, _)| given == path) {
+                Some((_, bytes)) => Some(bytes.clone()),
+                None => fs.read(path).ok(),
+            };
+            let size = bytes.as_ref().map_or(0, Vec::len);
+            let shrunk = account.files.iter().find(|file| file.path == *path);
+            let mut line = match shrunk {
+                Some(file) if file.kept < file.lines => format!(
+                    "- `{shown}`: {} of its {} lines are kept, {} bytes; the failure persists without the others",
+                    count(file.kept),
+                    count(file.lines),
+                    count(size)
+                ),
+                Some(file) if with_data => format!(
+                    "- `{shown}`: every one of its {} lines is kept, {} bytes; the failure does not persist without them",
+                    count(file.lines),
+                    count(size)
+                ),
+                _ => format!("- `{shown}`, {} bytes", count(size)),
+            };
+            if let Some(file) = shrunk
+                && asked.synthetic
+            {
+                line.push_str(&match (file.made_up.is_empty(), file.real.is_empty()) {
+                    (true, true) => String::new(),
+                    (false, true) => ". Every value in it is made up".to_string(),
+                    (true, false) => {
+                        ". Its values are your own: the failure does not persist with made-up ones"
+                            .to_string()
+                    }
+                    (false, false) => format!(
+                        ". The values of {} are made up; those of {} are your own, since the failure does not persist without them",
+                        listed(&file.made_up),
+                        listed(&file.real)
+                    ),
+                });
+            }
+            line.push('\n');
+            text.push_str(&line);
+            files.push((shown.clone(), if with_files { bytes } else { None }));
         }
-        text.push_str(if asked.include_data {
-            "\nThey were written beside this report as they are, because `--include-data` asked for\nthem. They hold your data: read them too before you attach them.\n"
-        } else {
-            "\nThey are not in this report. `zeff report-bug --include-data` writes them beside it,\nfor a report whose reader needs the rows to see the failure.\n"
+        text.push_str(match (with_files, with_data, asked.synthetic) {
+            (false, _, _) if kind == Kind::WrongResult => {
+                "\nThey are not in this report. `zeff report-bug --include-data` writes them beside it as they\nare, for a report whose reader needs the rows to compute the result.\n"
+            }
+            (false, _, _) => {
+                "\nThey are not in this report. `zeff report-bug --include-data` writes them beside it, shrunk\nto the lines the failure needs, and `--synthetic` does the same with made-up values, for a\nreport whose reader needs the rows to see the failure.\n"
+            }
+            (true, false, _) => {
+                "\nThey were written beside this report as they are: the reference of a result believed wrong\nwas computed on every row. They hold your data: read them too before you attach them.\n"
+            }
+            (true, true, false) => {
+                "\nThey were written beside this report as said above, because `--include-data` asked for\nthem. What is kept of them is your data: read them too before you attach them.\n"
+            }
+            (true, true, true) => {
+                "\nThey were written beside this report as said above, because `--synthetic` asked for them.\nA made-up value stands for one of yours, the same value by the same made-up one within its\nvariable: a whole number by a whole number, a number by a number, a text by a text. The\nfirst line of each file, which names its variables, and the cells that hold no value are\nas they were. Read the files too before you attach them.\n"
+            }
         });
+    }
+    if account.stopped {
+        text.push_str(&format!(
+            "\nThe shrinking stopped at its limit of {} trial runs: a smaller reproducer may exist.\n",
+            count(asked.trials)
+        ));
     }
     let stem = Path::new(asked.script)
         .file_stem()
@@ -951,6 +1175,7 @@ pub fn build(
         of,
         reduced,
         files,
+        shrunk: account,
     })
 }
 

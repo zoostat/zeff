@@ -66,6 +66,7 @@ complete -c zeff -l deny-warnings -d 'a warning that no pragma allows is an erro
 complete -c zeff -l check -d 'for fmt: write nothing, say which scripts would change'
 complete -c zeff -l stdio -d 'for lsp: talk on standard input and output'
 complete -c zeff -l include-data -d 'for report-bug: write the data files beside the report'
+complete -c zeff -l synthetic -d 'for report-bug: write the data files with made-up values'
 complete -c zeff -l line -x -d 'for report-bug: a line of the statement whose result is wrong'
 complete -c zeff -l reference -x -d 'for report-bug: a file holding the result it should give'
 complete -c zeff -l quiet -s q -d 'hide notes'

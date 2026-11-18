@@ -66,6 +66,8 @@ fn asked<'a>(text: &'a str) -> Asked<'a> {
         line: None,
         reference: None,
         include_data: false,
+        synthetic: false,
+        trials: zeff_engine::bug_report::TRIALS,
         platform: "the test's machine",
         options: RunOptions::default(),
     }
@@ -104,7 +106,15 @@ fn a_report_of_an_error() {
     assert_eq!(report.kind, Kind::Error);
     assert_eq!(report.code.as_deref(), Some("Z0604"));
     assert!(report.reduced);
+    // The graph keeps six statements, the seed set before the failure among them; no trial
+    // leaves one of them out.
     assert_eq!((report.kept, report.of), (6, 12));
+    assert!(report.shrunk.statements.is_empty());
+    assert!(
+        report.shrunk.files.is_empty(),
+        "no data is written, so no file is shrunk"
+    );
+    assert!(!report.shrunk.stopped);
     assert!(report.name.starts_with("main-Z0604-") && report.name.ends_with(".md"));
     // No value of the data is in it: not a wage, not a firm's size, not a level.
     for value in ["23.5", "31.25", "120", "Health", "Retail"] {
@@ -152,17 +162,28 @@ fn the_data_comes_only_when_asked_for() {
         ..asked(MERGE)
     };
     let report = report(&fs, &with).unwrap();
+    // Each file is shrunk to the lines the failure needs: its first line and one row, the
+    // last, which is what is left when the first half goes at every halving.
+    let firms = "firm,size,industry\n30,300,Retail\n";
+    let pay = "worker,firm,wage,hours,industry\n5,30,22.0,36,Retail\n";
     assert_eq!(
         report.files,
         [
             (
                 "data/firms.csv".to_string(),
-                Some(FIRMS.as_bytes().to_vec())
+                Some(firms.as_bytes().to_vec())
             ),
-            ("data/pay.csv".to_string(), Some(PAY.as_bytes().to_vec()))
+            ("data/pay.csv".to_string(), Some(pay.as_bytes().to_vec()))
         ]
     );
-    assert!(report.text.contains("`--include-data` asked for them"));
+    let shrunk: Vec<(&str, usize, usize)> = report
+        .shrunk
+        .files
+        .iter()
+        .map(|file| (file.name.as_str(), file.lines, file.kept))
+        .collect();
+    assert_eq!(shrunk, [("data/firms.csv", 4, 2), ("data/pay.csv", 6, 2)]);
+    assert!(report.text.contains("`--include-data` asked for\nthem"));
     let project = Project::open(&fs, Path::new("/p")).unwrap();
     let written = write(&fs, &project, &report).unwrap();
     let stem = report.name.trim_end_matches(".md");
@@ -177,7 +198,16 @@ fn the_data_comes_only_when_asked_for() {
     assert_eq!(
         fs.read_to_string(&Path::new("/p").join(&written[2]))
             .unwrap(),
+        pay
+    );
+    // The project's own files are as they were.
+    assert_eq!(
+        fs.read_to_string(Path::new("/p/data/pay.csv")).unwrap(),
         PAY
+    );
+    assert_eq!(
+        fs.read_to_string(Path::new("/p/data/firms.csv")).unwrap(),
+        FIRMS
     );
     insta::assert_snapshot!("report_with_its_data", report.text);
 }
@@ -332,7 +362,12 @@ print(\"after\")
     let report = self::report(&fs, &asked(script)).unwrap();
     assert_eq!(report.kind, Kind::Error);
     assert!(!report.reduced, "{}", report.text);
-    assert_eq!((report.kept, report.of), (6, 7));
+    // Of the six statements up to the failure, the trials leave out the two that the failure
+    // persists without: the second `save` and the `print`.
+    assert_eq!((report.kept, report.of), (4, 7));
+    assert_eq!(report.shrunk.statements, [4, 5]);
+    // Nothing a run of the report wrote is in the project.
+    assert!(!fs.is_file(Path::new("/p/output/t.csv")));
     assert!(!report.text.contains("print(\"after\")"));
     insta::assert_snapshot!("report_kept_up_to_the_failure", report.text);
 }

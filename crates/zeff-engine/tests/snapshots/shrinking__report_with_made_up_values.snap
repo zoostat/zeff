@@ -1,0 +1,68 @@
+---
+source: crates/zeff-engine/tests/shrinking.rs
+expression: report.text
+---
+# Zeff bug report: an error, Z0001
+
+This file was written by `zeff report-bug` on your computer. Nothing has been sent
+anywhere. Read it before you attach it to an issue: it holds statements of your script,
+the names and types of your variables and the names of the files they were read from.
+It holds no rows of your data itself; the files named at its end were written beside it
+because `--synthetic` asked for them, with made-up values where the failure allows; the
+section on the data says which values are still yours.
+A message is quoted as it was printed, and a message may name a value where it must (a
+text that could not be converted, the levels of a group): read those lines too.
+
+## What went wrong
+
+The script stopped with an error:
+
+    error[Z0001]: a wage of 50,000 or more
+     --> scripts/main.zeff:3:1
+      |
+    3 | assert(staff.max(wage) < 50000, "a wage of 50,000 or more")
+      | ^^^^^^ in this call
+
+## Zeff
+
+- version: 0.8.0-dev
+- edition: preview
+- platform: the test's machine
+
+## The statements
+
+The failing statement and the statements it depends on: 2 of the 3 statements of
+`scripts/main.zeff` (lines 1 and 3). Run alone, they fail in the same way.
+
+    let staff = import("data/staff.csv", delim: ";", decimal: ",")
+    assert(staff.max(wage) < 50000, "a wage of 50,000 or more")
+
+## The run
+
+- seed: none is set by these statements
+- warnings and notes before the failure:
+
+    note: data/staff.csv read as CSV: 1 row × 5 variables, types guessed; CSV carries no labels, value labels or categories (line 1)
+
+## The data
+
+The frames the statements hold, on the files as they were shrunk: the names and types of
+their variables and how many values are missing. No value is written here.
+
+`staff`: 1 row × 5 variables
+
+    worker  Int
+    site    Str
+    wage    Float
+    joined  Str
+    grade   Str
+
+The files the statements read:
+
+- `data/staff.csv`: 2 of its 8 lines are kept, 52 bytes; the failure persists without the others. The values of `worker`, `site`, `joined` and `grade` are made up; those of `wage` are your own, since the failure does not persist without them
+
+They were written beside this report as said above, because `--synthetic` asked for them.
+A made-up value stands for one of yours, the same value by the same made-up one within its
+variable: a whole number by a whole number, a number by a number, a text by a text. The
+first line of each file, which names its variables, and the cells that hold no value are
+as they were. Read the files too before you attach them.

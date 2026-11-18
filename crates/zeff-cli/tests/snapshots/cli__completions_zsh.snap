@@ -37,6 +37,7 @@ _zeff() {
         '--check:for fmt: write nothing, say which scripts would change'
         '--stdio:for lsp: talk on standard input and output'
         '--include-data:for report-bug: write the data files beside the report'
+        '--synthetic:for report-bug: write the data files with made-up values'
         '--line:for report-bug: a line of the statement whose result is wrong'
         '--reference:for report-bug: a file holding the result it should give'
         '--quiet:hide notes'

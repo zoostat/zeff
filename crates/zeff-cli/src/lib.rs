@@ -70,7 +70,9 @@ Options:
                           `// zeff: allow(CODE) reason` pragma allows is an error (exit code 3)
   --check                 for `fmt`: write nothing; exit code 1 if a script would change
   --include-data          for `report-bug`: write the data files the kept statements read
-                          beside the report, as they are
+                          beside the report, shrunk to the lines the failure needs
+  --synthetic             for `report-bug`: the same, with the values replaced by made-up
+                          ones wherever the failure persists with them
   --line <n>              for `report-bug`, where nothing failed: a line of the statement
                           whose result is wrong; needs --reference
   --reference <file>      for `report-bug`: a text file holding the result that statement
@@ -167,6 +169,8 @@ struct Settings {
     memory: Option<u64>,
     /// `--include-data`, of `zeff report-bug`: the data files come with the report.
     include_data: bool,
+    /// `--synthetic`, of `zeff report-bug`: they come with made-up values.
+    synthetic: bool,
     /// `--line <n>`, of `zeff report-bug`: the statement whose result is believed wrong.
     line: Option<u32>,
     /// `--reference <file>`, of `zeff report-bug`: the result that statement should give.
@@ -188,6 +192,7 @@ impl Default for Settings {
             stdio: false,
             memory: None,
             include_data: false,
+            synthetic: false,
             line: None,
             reference: None,
         }
@@ -283,6 +288,7 @@ fn take_options<'a>(words: &[&'a str]) -> Result<(Vec<&'a str>, Settings), Strin
                 };
             }
             "--include-data" => settings.include_data = true,
+            "--synthetic" => settings.synthetic = true,
             "--line" => {
                 let written = value("a line of the script")?;
                 settings.line = match written.parse::<u32>() {
@@ -484,12 +490,15 @@ pub fn run(
     if settings.stdio && words.first() != Some(&"lsp") {
         return usage_error(&mut err, "`--stdio` applies to `zeff lsp`");
     }
-    if (settings.include_data || settings.line.is_some() || settings.reference.is_some())
+    if (settings.include_data
+        || settings.synthetic
+        || settings.line.is_some()
+        || settings.reference.is_some())
         && words.first() != Some(&"report-bug")
     {
         return usage_error(
             &mut err,
-            "`--include-data`, `--line` and `--reference` apply to `zeff report-bug`",
+            "`--include-data`, `--synthetic`, `--line` and `--reference` apply to `zeff report-bug`",
         );
     }
     let cwd = match &settings.project {
@@ -1426,7 +1435,9 @@ fn help_command(
 /// written into the project's `.zeff/reports/` for the user to read: what failed, the failing
 /// statement and the statements it depends on, and the schema of the data. With `--line` and
 /// `--reference` it reports a result believed wrong, where nothing failed; with
-/// `--include-data` the files those statements read are written beside it. Nothing is sent.
+/// `--include-data` the files those statements read are written beside it, shrunk to the lines
+/// the failure needs, and with `--synthetic` with made-up values where the failure persists
+/// with them. Nothing is sent, and no file of the project but the report's is written.
 /// Exit code 0 when a report was written; 1 when there is nothing to report or the report
 /// could not be built or written; 2 when the engine itself could not start.
 fn report_bug_command(
@@ -1466,6 +1477,8 @@ fn report_bug_command(
             .as_ref()
             .map(|(name, text)| (*name, text.as_str())),
         include_data: command.settings.include_data,
+        synthetic: command.settings.synthetic,
+        trials: bug_report::TRIALS,
         platform: &platform,
         options: command.run_options(),
     };
@@ -1509,16 +1522,60 @@ fn report_bug_command(
     if named == 0 {
         let _ = writeln!(out, "  data: the statements kept read no file");
     } else if written.len() > 1 {
-        let _ = writeln!(out, "  data: written beside it, as it is:");
+        let _ = writeln!(
+            out,
+            "  data: written beside it, {}:",
+            match (report.kind, command.settings.synthetic) {
+                (Kind::WrongResult, _) => "as it is",
+                (_, true) =>
+                    "shrunk to the lines the failure needs, with made-up values where it allows",
+                (_, false) => "shrunk to the lines the failure needs",
+            }
+        );
         for path in &written[1..] {
-            let _ = writeln!(out, "    {path}");
+            // What the shrinking did to the file, where it was shrunk.
+            let shrunk = report.shrunk.files.iter().find(|file| {
+                path.ends_with(
+                    file.name
+                        .strip_suffix(" (a file outside the project)")
+                        .unwrap_or(&file.name),
+                )
+            });
+            let detail = match shrunk {
+                Some(file) => {
+                    let variables = file.made_up.len() + file.real.len();
+                    let made_up = if command.settings.synthetic && variables > 0 {
+                        format!(
+                            "; the values of {} of its {variables} variables made up",
+                            file.made_up.len()
+                        )
+                    } else {
+                        String::new()
+                    };
+                    format!(" ({} of {} lines{made_up})", file.kept, file.lines)
+                }
+                None => String::new(),
+            };
+            let _ = writeln!(out, "    {path}{detail}");
         }
     } else {
         let _ = writeln!(
             out,
-            "  data: not included; {named} {} named in the report (`--include-data` writes {} beside it)",
+            "  data: not included; {named} {} named in the report (`--include-data` writes {} beside it{})",
             if named == 1 { "file is" } else { "files are" },
-            if named == 1 { "it" } else { "them" }
+            if named == 1 { "it" } else { "them" },
+            if report.kind == Kind::WrongResult {
+                ""
+            } else {
+                ", `--synthetic` with made-up values"
+            }
+        );
+    }
+    if report.shrunk.stopped {
+        let _ = writeln!(
+            out,
+            "  the shrinking stopped at its limit of {} trial runs: a smaller reproducer may exist",
+            bug_report::TRIALS
         );
     }
     let _ = writeln!(

@@ -74,5 +74,5 @@ The files the statements read:
 
 - `data/pay.csv`, 131 bytes
 
-They are not in this report. `zeff report-bug --include-data` writes them beside it,
-for a report whose reader needs the rows to see the failure.
+They are not in this report. `zeff report-bug --include-data` writes them beside it as they
+are, for a report whose reader needs the rows to compute the result.

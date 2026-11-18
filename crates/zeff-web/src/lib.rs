@@ -251,6 +251,8 @@ impl Host {
             line,
             reference,
             include_data: false,
+            synthetic: false,
+            trials: zeff_engine::bug_report::TRIALS,
             platform,
             options: RunOptions {
                 memory: match project.manifest.memory {

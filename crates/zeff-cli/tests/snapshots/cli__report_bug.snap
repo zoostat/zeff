@@ -5,16 +5,25 @@ expression: digest(&said)
 $ zeff report-bug
 report written: .zeff/reports/main-Z0604-<digest>.md
   an error, Z0604; 3 of the 6 statements of scripts/main.zeff are kept
-  data: not included; 2 files are named in the report (`--include-data` writes them beside it)
+  data: not included; 2 files are named in the report (`--include-data` writes them beside it, `--synthetic` with made-up values)
 Read it before you attach it anywhere: nothing has been sent.
 exit code 0
 
 $ zeff report-bug --include-data
 report written: .zeff/reports/main-Z0604-<digest>.md
   an error, Z0604; 3 of the 6 statements of scripts/main.zeff are kept
-  data: written beside it, as it is:
-    .zeff/reports/main-Z0604-<digest>-data/data/firms.csv
-    .zeff/reports/main-Z0604-<digest>-data/data/pay.csv
+  data: written beside it, shrunk to the lines the failure needs:
+    .zeff/reports/main-Z0604-<digest>-data/data/firms.csv (2 of 3 lines)
+    .zeff/reports/main-Z0604-<digest>-data/data/pay.csv (2 of 4 lines)
+Read it before you attach it anywhere: nothing has been sent.
+exit code 0
+
+$ zeff report-bug --synthetic
+report written: .zeff/reports/main-Z0604-<digest>.md
+  an error, Z0604; 3 of the 6 statements of scripts/main.zeff are kept
+  data: written beside it, shrunk to the lines the failure needs, with made-up values where it allows:
+    .zeff/reports/main-Z0604-<digest>-data/data/firms.csv (2 of 3 lines; the values of 3 of its 3 variables made up)
+    .zeff/reports/main-Z0604-<digest>-data/data/pay.csv (2 of 4 lines; the values of 3 of its 3 variables made up)
 Read it before you attach it anywhere: nothing has been sent.
 exit code 0
 
@@ -73,7 +82,7 @@ run `zeff help` to see the commands
 exit code 1
 
 $ zeff run --include-data
-error: `--include-data`, `--line` and `--reference` apply to `zeff report-bug`
+error: `--include-data`, `--synthetic`, `--line` and `--reference` apply to `zeff report-bug`
 
 run `zeff help` to see the commands
 exit code 1
