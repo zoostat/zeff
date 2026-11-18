@@ -145,3 +145,13 @@ Steps 13 and 14 were each too large for one step and were split in the checklist
 **Next.** Step 20c `[engine]`: the issue templates and the regressions suite.
 
 **For the owner to decide.** Nothing new that waits: under your word of 19 November the recommended options are taken and recorded (here: "the same failure" is compared with the numbers in the message set apart; `--include-data` writes shrunk files). The earlier items stand.
+
+## 19 November 2026, release 0.8.0, step 20c (issue templates and the regressions suite)
+
+**Done.** Step 20c `[engine]`: four issue forms on GitHub (a wrong result, which cannot be sent without the result it should have been; a crash or an internal error; an unclear message; slow), each saying what `zeff report-bug` or `zeff explain` does for the reporter. A `regressions/` folder in the conformance suite, with the reproducers of the three faults corrected at the close of 0.7.0; `zeff selftest` runs them on every installation. The testing handbook's section on bugs was read against the command and is right as it stands. Block D (the two commands) is complete.
+
+**Green.** Format, clippy with warnings denied, the tier, message and grammar checks, every test of the workspace; CI read after the push. The CI of step 20b (8906a3f) is green.
+
+**Next.** Step 20d `[engine]`: the rank-sum test at large samples (the first of the faults the review against R found).
+
+**For the owner to decide.** The wording of the four issue forms, which the public now meets at "New issue". The open questions of the reporting page (where reports live, the statuses, a promised time of reply) are untouched. The earlier items stand.

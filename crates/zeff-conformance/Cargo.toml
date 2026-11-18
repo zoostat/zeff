@@ -26,9 +26,9 @@ zeff-core.workspace = true
 zeff-results.workspace = true
 zeff-plot.workspace = true
 zeff-datasets.workspace = true
+zeff-syntax.workspace = true
 
 [dev-dependencies]
-zeff-syntax.workspace = true
 insta = "=1.49.0"
 
 [target.'cfg(target_arch = "wasm32")'.dependencies]

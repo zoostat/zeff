@@ -270,6 +270,13 @@ tools/report_bug/report bf543d9ed157ffcb
 tools/report_bug/shrunk/report 06f1e0d790953271
 tools/report_bug/shrunk/data/cases.csv b6bd3f928a180133
 tools/report_bug/shrunk/trials 5bb26eaa977ae0a8
+regressions/values_above_1e150/stdout a8c54f9fe814bbc1
+regressions/values_above_1e150/stderr cbf29ce484222325
+regressions/test_result_as_latex/stdout cbf29ce484222325
+regressions/test_result_as_latex/stderr cbf29ce484222325
+regressions/test_result_as_latex/output/one_mean.tex f32ffccb3de9be0e
+regressions/test_result_as_latex/output/two_groups.tex d3b283499c147375
+regressions/chain_from_the_lone_dot/formatted dd0199fa888aebfe
 plot/lines/stdout c69bf28498722bf2
 plot/lines/stderr 292ed9115946fd12
 plot/lines/scene 6a1463f916305adf

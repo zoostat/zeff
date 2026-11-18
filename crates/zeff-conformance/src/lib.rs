@@ -1800,6 +1800,115 @@ fn tools_cases() -> Vec<Line> {
     lines
 }
 
+/// How a regression is held: by what its script prints, says and writes when it is run, or by
+/// what the formatter makes of its text.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum Held {
+    Run,
+    Format,
+}
+
+/// The reproducer of a fixed bug (Language Reference, section 11.1, "Every fix becomes a
+/// test": the shrunk reproducer of each fixed bug joins the conformance suite; testing
+/// handbook, section 3). A script of `regressions/`, compiled in: a few statements on a few
+/// rows written into it, or a text the formatter once could not format, with the release
+/// that corrected the fault. What it gives is a case of the report, so that `zeff selftest`
+/// proves on every installation that the fault has not come back.
+pub struct Regression {
+    /// The file under `regressions/`, without `.zeff`, and the name of its cases.
+    pub name: &'static str,
+    /// The release that corrected the fault.
+    pub corrected: &'static str,
+    pub held: Held,
+    pub script: &'static str,
+}
+
+/// Every regression, oldest first. The first three are the faults the pre-release routine of
+/// 0.7.0 found and corrected before its tag (release notes of 0.7.0, "Validation").
+pub const REGRESSIONS: [Regression; 3] = [
+    Regression {
+        name: "values_above_1e150",
+        corrected: "0.7.0",
+        held: Held::Run,
+        script: include_str!("../regressions/values_above_1e150.zeff"),
+    },
+    Regression {
+        name: "test_result_as_latex",
+        corrected: "0.7.0",
+        held: Held::Run,
+        script: include_str!("../regressions/test_result_as_latex.zeff"),
+    },
+    Regression {
+        name: "chain_from_the_lone_dot",
+        corrected: "0.7.0",
+        held: Held::Format,
+        script: include_str!("../regressions/chain_from_the_lone_dot.zeff"),
+    },
+];
+
+/// What a regression gives, piece by piece and by name: for a script that is run, what it
+/// printed, what it said and each file it wrote under `output/`; for a text that is
+/// formatted, the formatted text, or the reason it was left as it was.
+pub fn regression_pieces(regression: &Regression) -> Vec<(String, Vec<u8>)> {
+    use std::path::Path;
+    use zeff_engine::fs::{FileSystem, MemoryFileSystem};
+    use zeff_engine::project::Project;
+    let name = regression.name;
+    match regression.held {
+        Held::Format => {
+            let written = match zeff_syntax::format::format("main.zeff", regression.script) {
+                Ok(written) => written,
+                Err(why) => format!("not formatted: {why:?}\n"),
+            };
+            vec![(
+                format!("regressions/{name}/formatted"),
+                written.into_bytes(),
+            )]
+        }
+        Held::Run => {
+            let fs = MemoryFileSystem::new();
+            fs.add_file(
+                "/r/zeff.toml",
+                format!(
+                    "[project]\nname = \"r\"\nzeff = \"{}\"\nedition = \"preview\"\n",
+                    zeff_engine::VERSION
+                ),
+            );
+            let Ok(project) = Project::open(&fs, Path::new("/r")) else {
+                return vec![(
+                    format!("regressions/{name}/stderr"),
+                    b"the project did not open\n".to_vec(),
+                )];
+            };
+            let outcome = run_script(&fs, &project, "scripts/main.zeff", regression.script);
+            let mut pieces = vec![
+                (
+                    format!("regressions/{name}/stdout"),
+                    outcome.output.stdout.into_bytes(),
+                ),
+                (
+                    format!("regressions/{name}/stderr"),
+                    outcome.output.stderr.into_bytes(),
+                ),
+            ];
+            for file in fs.list(Path::new("/r/output")).unwrap_or_default() {
+                if let Ok(data) = fs.read(Path::new(&format!("/r/output/{file}"))) {
+                    pieces.push((format!("regressions/{name}/output/{file}"), data));
+                }
+            }
+            pieces
+        }
+    }
+}
+
+fn regression_cases() -> Vec<Line> {
+    REGRESSIONS
+        .iter()
+        .flat_map(regression_pieces)
+        .map(|(name, data)| bytes(&name, &data))
+        .collect()
+}
+
 /// The exported files of release 0.4.0 (step 13): the sample table as Word and LaTeX, so that the
 /// four targets prove the bytes identical.
 fn export_cases() -> Vec<Line> {
@@ -3121,6 +3230,7 @@ fn all_cases() -> Vec<Line> {
     lines.extend(builtin_fixture_cases());
     lines.extend(export_cases());
     lines.extend(tools_cases());
+    lines.extend(regression_cases());
     lines.extend(plot_cases());
     lines.extend(kernels_cases());
     lines.extend(milestone_cases());

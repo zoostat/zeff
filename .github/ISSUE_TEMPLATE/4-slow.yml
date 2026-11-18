@@ -1,0 +1,47 @@
+name: Slow
+description: A statement that takes far longer, or far more memory, than its work should.
+title: "Slow: "
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Tell us what was slow, on how much data, and what you compared it with. A time in R, Stata or another program on the same data is the most useful thing you can add.
+  - type: textarea
+    id: statement
+    attributes:
+      label: The statement
+      description: The one statement that is slow, and the statements it needs.
+      render: text
+    validations:
+      required: true
+  - type: input
+    id: size
+    attributes:
+      label: The size of the data
+      description: Rows and variables, and for a model the number of groups, fixed effects or clusters.
+      placeholder: "190,000 rows × 12 variables; 40,000 firms"
+    validations:
+      required: true
+  - type: input
+    id: time
+    attributes:
+      label: How long it took
+      description: The time, and the memory if you saw it. `zeff run -v` prints the time of the run and the memory each frame holds.
+      placeholder: "4 minutes 10 seconds; 7 GB"
+    validations:
+      required: true
+  - type: textarea
+    id: compared
+    attributes:
+      label: Compared with
+      description: The same task in R, Stata or another program on the same data, with the command and its time; or the time Zeff took on a smaller part of the data.
+    validations:
+      required: false
+  - type: input
+    id: version
+    attributes:
+      label: Version and platform
+      description: What `zeff version -v` prints, and the machine's memory.
+      placeholder: "zeff 0.8.0, aarch64 macos, 16 GB"
+    validations:
+      required: true

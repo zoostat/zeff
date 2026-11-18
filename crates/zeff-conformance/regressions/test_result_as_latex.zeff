@@ -1,0 +1,8 @@
+// Corrected at the close of release 0.7.0 (step 40a). A test's result exported as LaTeX did
+// not compile: a result without a table of groups was written as a `tabular` with no column,
+// and the Greek letters of its hypotheses were written raw. The lines of such a result now
+// stand in one column between two rules, and every symbol is its command. Six rows; one
+// result without a table of groups, and one with.
+let d = frame(x = [1.0, 3.0, 2.0, 5.0, 4.0, 7.0], g = ["a", "a", "a", "b", "b", "b"])
+d.t_test(x, mu: 0).export("output/one_mean.tex")
+d.t_test(x, group: g).export("output/two_groups.tex")

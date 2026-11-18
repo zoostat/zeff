@@ -1,0 +1,69 @@
+---
+source: crates/zeff-conformance/tests/regressions.rs
+expression: all
+---
+==== values_above_1e150 (corrected at 0.7.0)
+// Corrected at the close of release 0.7.0 (step 40a). A test that squares its values cannot
+// compute with one above 1e150 in size. Until then `t_test` printed a standard deviation of
+// `Inf`, t = 0.00 and p = 1.000 for such a variable, the classical one-way `anova` printed
+// F = `Inf`, and Pearson's `correlation` printed 0: wrong figures without an error. Each
+// now refuses the variable (Z0803), as `reg` does. Nine rows, of which one is beyond.
+let beyond = frame(y = [0.2, 0.4, 1.1e150, 1.0, 0.1, 0.3, 0.9, 0.5, 0.7],
+                   z = [1.0, 2, 3, 4, 5, 6, 7, 8, 10],
+                   g = [1, 1, 1, 2, 2, 2, 3, 3, 3])
+attempt(beyond.t_test(y, mu: 0.5))
+attempt(beyond.anova(y, group: g, equal_var: true))
+attempt(beyond.correlation([y, z]))
+---- regressions/values_above_1e150/stdout
+failed · Z0803 at line 9: `y` has values too large to compute with (above 1e150 in size)
+failed · Z0803 at line 10: `y` has values too large to compute with (above 1e150 in size)
+failed · Z0803 at line 11: `y` has values too large to compute with (above 1e150 in size)
+---- regressions/values_above_1e150/stderr
+==== test_result_as_latex (corrected at 0.7.0)
+// Corrected at the close of release 0.7.0 (step 40a). A test's result exported as LaTeX did
+// not compile: a result without a table of groups was written as a `tabular` with no column,
+// and the Greek letters of its hypotheses were written raw. The lines of such a result now
+// stand in one column between two rules, and every symbol is its command. Six rows; one
+// result without a table of groups, and one with.
+let d = frame(x = [1.0, 3.0, 2.0, 5.0, 4.0, 7.0], g = ["a", "a", "a", "b", "b", "b"])
+d.t_test(x, mu: 0).export("output/one_mean.tex")
+d.t_test(x, group: g).export("output/two_groups.tex")
+---- regressions/test_result_as_latex/stdout
+---- regressions/test_result_as_latex/stderr
+---- regressions/test_result_as_latex/output/one_mean.tex
+% requires \usepackage{booktabs}
+% t_test · one-sample · x
+\begin{tabular}{@{}l@{}}
+\toprule
+  H0: the population mean of x equals 0            $\mu$ = 0 \\
+  H1: the population mean of x differs from 0      $\mu$ $\neq$ 0 \\
+ \\
+N = 6   mean = 3.667   sd = 2.160 \\
+difference (mean $-$ 0) = 3.667   95\% CI [1.400, 5.934] \\
+t = 4.16   df = 5   p = 0.009 \\
+decision at $\alpha$ = 0.05: reject H0 (p = 0.009) \\
+\bottomrule
+\end{tabular}
+---- regressions/test_result_as_latex/output/two_groups.tex
+% requires \usepackage{booktabs}
+% t_test · Welch two-sample · x by g
+\begin{tabular}{lrrr}
+\toprule
+group & N & mean & sd \\
+\midrule
+a & 3 & 2.000 & 1.000 \\
+b & 3 & 5.333 & 1.528 \\
+\bottomrule
+\multicolumn{4}{@{}l@{}}{\footnotesize   H0: the population means of x are equal in a and b        $\mu$(a) $-$ $\mu$(b) = 0} \\
+\multicolumn{4}{@{}l@{}}{\footnotesize   H1: the population means of x differ between a and b      $\mu$(a) $-$ $\mu$(b) $\neq$ 0} \\
+\multicolumn{4}{@{}l@{}}{\footnotesize difference (a $-$ b) = -3.333   95\% CI [-6.454, -0.212]} \\
+\multicolumn{4}{@{}l@{}}{\footnotesize t = -3.16   df = 3.4   p = 0.042} \\
+\multicolumn{4}{@{}l@{}}{\footnotesize Hedges' g = -2.07   95\% CI [-3.80, -0.33]} \\
+\multicolumn{4}{@{}l@{}}{\footnotesize decision at $\alpha$ = 0.05: reject H0 (p = 0.042)} \\
+\end{tabular}
+==== chain_from_the_lone_dot (corrected at 0.7.0)
+.    .coord(type: flip)
+    .labels(x: "")
+---- regressions/chain_from_the_lone_dot/formatted
+. .coord(type: flip)
+    .labels(x: "")

@@ -1,0 +1,11 @@
+// Corrected at the close of release 0.7.0 (step 40a). A test that squares its values cannot
+// compute with one above 1e150 in size. Until then `t_test` printed a standard deviation of
+// `Inf`, t = 0.00 and p = 1.000 for such a variable, the classical one-way `anova` printed
+// F = `Inf`, and Pearson's `correlation` printed 0: wrong figures without an error. Each
+// now refuses the variable (Z0803), as `reg` does. Nine rows, of which one is beyond.
+let beyond = frame(y = [0.2, 0.4, 1.1e150, 1.0, 0.1, 0.3, 0.9, 0.5, 0.7],
+                   z = [1.0, 2, 3, 4, 5, 6, 7, 8, 10],
+                   g = [1, 1, 1, 2, 2, 2, 3, 3, 3])
+attempt(beyond.t_test(y, mu: 0.5))
+attempt(beyond.anova(y, group: g, equal_var: true))
+attempt(beyond.correlation([y, z]))

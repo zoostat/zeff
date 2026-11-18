@@ -911,6 +911,86 @@ fn zeff_report_bug_writes_a_report_for_the_user_to_read() {
     assert!(err(&o).contains("Z0709"), "{}", err(&o));
 }
 
+/// The four issue templates (testing handbook, section 3; release 0.8.0, step 20c): a wrong
+/// result, with its reference required; a crash or an internal error; an unclear message;
+/// slow. Each asks for the version, and names no command and no option that `zeff help` does
+/// not have.
+#[test]
+fn the_issue_templates_ask_for_what_a_report_needs() {
+    let folder = Path::new(env!("CARGO_MANIFEST_DIR")).join("../../.github/ISSUE_TEMPLATE");
+    let mut names: Vec<String> = std::fs::read_dir(&folder)
+        .unwrap()
+        .flatten()
+        .map(|entry| entry.file_name().to_string_lossy().into_owned())
+        .collect();
+    names.sort();
+    assert_eq!(
+        names,
+        [
+            "1-wrong-result.yml",
+            "2-crash-or-internal-error.yml",
+            "3-unclear-message.yml",
+            "4-slow.yml"
+        ]
+    );
+    let dir = tempfile::tempdir().unwrap();
+    let usage = out(&zeff(dir.path(), &["help"]));
+    // The parts of a form: each begins `  - type:`, and one that must be filled says so.
+    let required = |text: &str, id: &str| -> bool {
+        text.split("\n  - type: ")
+            .find(|part| part.contains(&format!("\n    id: {id}\n")))
+            .is_some_and(|part| {
+                part.trim_end()
+                    .ends_with("\n    validations:\n      required: true")
+            })
+    };
+    for name in &names {
+        let text = std::fs::read_to_string(folder.join(name)).unwrap();
+        for key in ["name: ", "description: ", "title: \"", "body:\n"] {
+            assert!(
+                text.lines()
+                    .any(|line| line.starts_with(key.trim_end_matches('\n'))),
+                "{name}: no `{key}`"
+            );
+        }
+        assert!(
+            required(&text, "version"),
+            "{name}: the version is asked for"
+        );
+        // Every command and option a template names is the command line's own.
+        for (at, _) in text.match_indices("`zeff ") {
+            let command: String = text[at + 6..]
+                .chars()
+                .take_while(|c| c.is_ascii_lowercase() || *c == '-')
+                .collect();
+            assert!(
+                usage.contains(&format!("\n  {command} "))
+                    || usage.contains(&format!("\n  {command}\n")),
+                "{name}: `zeff {command}` is not a command of `zeff help`"
+            );
+        }
+        for word in text.split(|c: char| !(c.is_ascii_alphanumeric() || c == '-')) {
+            if word.starts_with("--") && word.len() > 2 {
+                assert!(
+                    usage.contains(&format!("  {word} ")) || usage.contains(&format!(", {word} ")),
+                    "{name}: `{word}` is not an option of `zeff help`"
+                );
+            }
+        }
+    }
+    let wrong = std::fs::read_to_string(folder.join("1-wrong-result.yml")).unwrap();
+    for id in ["statements", "printed", "reference", "data"] {
+        assert!(required(&wrong, id), "a wrong result needs `{id}`");
+    }
+    assert!(!required(&wrong, "report"));
+    let crash = std::fs::read_to_string(folder.join("2-crash-or-internal-error.yml")).unwrap();
+    assert!(required(&crash, "message") && required(&crash, "statements"));
+    let unclear = std::fs::read_to_string(folder.join("3-unclear-message.yml")).unwrap();
+    assert!(required(&unclear, "message") && required(&unclear, "unclear"));
+    let slow = std::fs::read_to_string(folder.join("4-slow.yml")).unwrap();
+    assert!(required(&slow, "size") && required(&slow, "time"));
+}
+
 #[test]
 fn zeff_help_lists_a_package_and_says_when_a_function_arrives() {
     let dir = tempfile::tempdir().unwrap();

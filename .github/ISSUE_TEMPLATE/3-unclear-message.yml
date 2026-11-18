@@ -1,0 +1,40 @@
+name: An unclear message
+description: An error, a warning or a note that is wrong, misleading or hard to act on, or a help page that is.
+title: "Unclear message: "
+body:
+  - type: markdown
+    attributes:
+      value: |
+        A message should say what went wrong, where, and what to do next. If one did not, tell us what you read and what you needed to know.
+
+        Every message has a code, such as Z0402. `zeff explain Z0402` prints its page: the meaning, the common causes, an example and the fix. If that page did not help either, say so.
+  - type: textarea
+    id: message
+    attributes:
+      label: The message
+      description: As it was printed, whole, with its code.
+      render: text
+    validations:
+      required: true
+  - type: textarea
+    id: statement
+    attributes:
+      label: The statement that raised it
+      render: text
+    validations:
+      required: true
+  - type: textarea
+    id: unclear
+    attributes:
+      label: What was unclear
+      description: What you understood from the message, what turned out to be the matter, and what the message could have said.
+    validations:
+      required: true
+  - type: input
+    id: version
+    attributes:
+      label: Version
+      description: What `zeff version` prints.
+      placeholder: "zeff 0.8.0"
+    validations:
+      required: true
