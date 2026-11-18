@@ -106,25 +106,9 @@ Steps 13 and 14 were each too large for one step and were split in the checklist
 
 **For the owner to decide.** #151 (the licence), #156 (when to submit), #157 (packages written in Zeff during 1.x), #162 (the release 0.12.0), #163 (the methods brought forward) and the study of #155 wait for his word; #151 and #153 are due at 0.9.0. The earlier items stand: the printed forms of `first_stage` and `ar_test` and the `Instruments` row of `report`, open decisions #149 and #150, the story of `staff`, and whether to add `ivDiag` and `ivmodel` by hand.
 
-## 17 November 2026, release 0.8.0, step 19 (`zeff explain`)
+## 17 to 19 November 2026, release 0.8.0, steps 19 to 20c (folded)
 
-**Done.** Step 19 `[engine]`: `zeff explain W1007` prints the page of a code (its meaning, common causes, an example and the fix), which is the page `zeff help W1007` prints; `zeff explain` alone lists the 144 codes by family; `--format json` writes either as records. In an editor every message now carries a link to its code's page, and the language server gives the page when asked (`zeff/explain`); Zemp reads the same page and the same list through the browser's worker. The shells' completion files offer the codes after `zeff explain`.
-
-**Green.** Format, clippy with warnings denied, the tier, message and grammar checks, every test of the workspace, and the worker's messages under Node; CI read after the push.
-
-**Next.** Step 20a `[engine]`: `zeff report-bug`, the report.
-
-**For the owner to decide.** Nothing new from this step. The earlier items stand (see the entry on the article above, and steps 17 and 18).
-
-## 17 November 2026, release 0.8.0, step 20a (`zeff report-bug`, the report)
-
-**Done.** Step 20a `[engine]`: `zeff report-bug` runs a script and, where it fails, writes one file into `.zeff/reports/` for you to read before attaching it anywhere: the error as printed, the failing statement and only the statements it depends on (on the samples, 1 to 6 of 15 to 59), the seed, and the names and types of the variables. It holds no rows of the data, and nothing is sent. `--include-data` writes the data files beside it; `--line` with `--reference` reports a result believed wrong. The kept statements are run alone to see that they fail in the same way. Zemp's "Report a problem" gets the same report through the browser's worker.
-
-**Green.** Format, clippy with warnings denied, the tier, message and grammar checks, every test of the workspace, and the worker's messages under Node; CI read after the push. The CI of step 19 (87bc53c) is green.
-
-**Next.** Step 20b `[engine]`: `zeff report-bug`, shrinking.
-
-**For the owner to decide.** The wording and layout of the report (an example is in the step's report to you). The earlier items stand.
+Step 19: `zeff explain <code>` prints a code's page and lists the 144 codes by family; every message in an editor links to its page; Zemp reads the same page. Step 20a: `zeff report-bug` writes a report of a failure for the user to read: the error, the failing statement and only the statements it depends on, the schema of the data and no rows. Step 20b: the reproducer is shrunk by trial runs, rows by halves (one row at fault in a million: the names and that row, in about 45 trials), then statements, then with `--synthetic` made-up values; no run of the command writes into the project. Step 20c: four issue forms on GitHub and a `regressions/` folder in the conformance suite with the reproducers of the three faults corrected at the close of 0.7.0; `zeff selftest` counts 537 cases. Each step green locally and on CI. For the owner, none urgent: the wording of the report and of the four forms.
 
 ## 19 November 2026, release 0.8.0 (outside the checklist: the review against R)
 
@@ -136,26 +120,6 @@ Steps 13 and 14 were each too large for one step and were split in the checklist
 
 **For the owner to decide.** #165 to #171 (deadline 0.9.0), taken as recommended unless he says otherwise; the names in #165 and #167 and the layouts of #171 are his. The earlier items stand.
 
-## 19 November 2026, release 0.8.0, step 20b (`zeff report-bug`, shrinking)
-
-**Done.** Step 20b `[engine]`: a report's reproducer is now shrunk. With `--include-data` the data files come shrunk to the lines the failure needs (one row at fault among a million: the names and that row, found in about 45 trial runs); `--synthetic` also replaces the values by made-up ones wherever the failure still occurs, and the report says which values are still yours. Statements the failure does not need are left out by trial too. No run of `zeff report-bug` writes into the project any more: only the report and, when asked, the data beside it. The old fault of `mad` with a variable called `centre`, written out as a script, shrinks from 5,000 rows to one.
-
-**Green.** Format, clippy with warnings denied, the tier, message and grammar checks, every test of the workspace, and the worker's messages under Node; CI read after the push.
-
-**Next.** Step 20c `[engine]`: the issue templates and the regressions suite.
-
-**For the owner to decide.** Nothing new that waits: under your word of 19 November the recommended options are taken and recorded (here: "the same failure" is compared with the numbers in the message set apart; `--include-data` writes shrunk files). The earlier items stand.
-
-## 19 November 2026, release 0.8.0, step 20c (issue templates and the regressions suite)
-
-**Done.** Step 20c `[engine]`: four issue forms on GitHub (a wrong result, which cannot be sent without the result it should have been; a crash or an internal error; an unclear message; slow), each saying what `zeff report-bug` or `zeff explain` does for the reporter. A `regressions/` folder in the conformance suite, with the reproducers of the three faults corrected at the close of 0.7.0; `zeff selftest` runs them on every installation. The testing handbook's section on bugs was read against the command and is right as it stands. Block D (the two commands) is complete.
-
-**Green.** Format, clippy with warnings denied, the tier, message and grammar checks, every test of the workspace; CI read after the push. The CI of step 20b (8906a3f) is green.
-
-**Next.** Step 20d `[engine]`: the rank-sum test at large samples (the first of the faults the review against R found).
-
-**For the owner to decide.** The wording of the four issue forms, which the public now meets at "New issue". The open questions of the reporting page (where reports live, the statuses, a promised time of reply) are untouched. The earlier items stand.
-
 ## 19 November 2026, release 0.8.0, step 20d (the rank tests at large samples)
 
 **Done.** Step 20d `[engine]`: `wilcoxon_test` no longer stores the pairwise differences (or the Walsh averages) of a large sample. The review's case, 190,757 rows, runs in 1.4 s within 220 MB (it could not finish within 7 GB; R takes 5.5 s), with the same W as R and the shift −15.000 where R's root-finder prints −14.999977. Every earlier figure is unchanged to the bit.
@@ -165,3 +129,13 @@ Steps 13 and 14 were each too large for one step and were split in the checklist
 **Next.** Step 20e `[engine]`: the studentized range in its far upper tail.
 
 **For the owner to decide.** Nothing new. The earlier items stand.
+
+## 19 November 2026, release 0.8.0, step 20e (the studentized range far out)
+
+**Done.** Step 20e `[engine]`: far out in its upper tail `dist.tukey` now answers at once. Where the tail is below the smallest number a double holds it is 0, by a proved bound, without an integral: such a call took 28 s before, and some returned a wrong 8.9e-16 or, for the density, not-a-number. `posthoc()` on the review's 190,757 rows takes 0.48 s (29 s before), with R's figures. Every earlier value is unchanged.
+
+**Green.** Format, clippy with warnings denied, the tier, message and grammar checks, every test of the workspace; CI read after the push. The CI of step 20d (07fc5a4) is green.
+
+**Next.** Step 20f `[engine]`: return types that depend on an option.
+
+**For the owner to decide.** Nothing new. The checklist's sentence that the infinite-df limit bounds the tail above is not so (it bounds it below); the bound used is another, proved in the decisions. The earlier items stand.

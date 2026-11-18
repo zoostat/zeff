@@ -38,6 +38,9 @@ const WIDEST: f64 = 60.0;
 /// deviation to every digit a double holds, and the studentized range is the range itself.
 const KNOWN_VARIANCE: f64 = 1e30;
 
+/// The logarithm of the smallest positive double, 2^−1074: a probability below it is nothing.
+const LN_SMALLEST: f64 = -744.440_071_921_381_2;
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 enum Kind {
     Lower,
@@ -314,6 +317,16 @@ fn range(kind: Kind, w: f64, k: f64, centre: f64) -> f64 {
 /// to a typical range, and never to the right of ½ ln(1 + (k − 1)/ν), where the weight
 /// overtakes the power law of a small range.
 fn studentized(kind: Kind, q: f64, k: f64, nu: f64) -> f64 {
+    // So far out that the tail, or the density, is below the smallest double: nothing, and
+    // the lower tail is the whole (step 20e).
+    match kind {
+        Kind::Upper if ln_upper_bound(q, k, nu) < LN_SMALLEST => return f64::NEG_INFINITY,
+        Kind::Lower if ln_upper_bound(q, k, nu) < LN_SMALLEST => return 0.0,
+        Kind::Density if q > 0.0 && ln_density_bound(q, k, nu) < LN_SMALLEST => {
+            return f64::NEG_INFINITY;
+        }
+        _ => {}
+    }
     let centre = normal_quantile(1.0 / (k + 1.0), true);
     if nu >= KNOWN_VARIANCE {
         return range(kind, q, k, centre);
@@ -338,6 +351,47 @@ fn studentized(kind: Kind, q: f64, k: f64, nu: f64) -> f64 {
         }
     };
     log_integral(logf, guess, 1.0 / sqrt(2.0 * nu + 2.0))
+}
+
+/// A bound from above on ln P(Q > q), in closed form (release 0.8.0, step 20e).
+///
+/// The range of k standard normals exceeds w only if two of them differ by more than w:
+/// P(W > w) ≤ k(k − 1)(1 − Φ(w/√2)) ≤ ½ k(k − 1) e^(−w²/4), for whole k by counting the pairs
+/// and for any k ≥ 2 from the integral itself (1 − (1 − x)^(k−1) ≤ (k − 1)x). Taking the
+/// mean over S, with ν S² chi-squared on ν degrees of freedom,
+///
+///   P(Q > q) ≤ ½ k(k − 1) (1 + q²/(2ν))^(−ν/2),
+///
+/// which tends to ½ k(k − 1) e^(−q²/4) as ν grows. The power is also the height of the
+/// integrand's peak, so the bound is within a small factor of the tail itself, and wherever
+/// the tail is below the smallest double the bound says so without an integral. That matters
+/// for more than time: out there the integrand's peak lies beyond the widest range the inner
+/// integral returns, the outer integrand ends in a cliff, and the quadrature took half a
+/// minute to return nothing, or a wrong 8.9e-16, or not-a-number.
+fn ln_upper_bound(q: f64, k: f64, nu: f64) -> f64 {
+    let pairs = log(k) + log(k - 1.0) - std::f64::consts::LN_2;
+    if nu >= KNOWN_VARIANCE {
+        pairs - 0.25 * q * q
+    } else {
+        pairs - 0.5 * nu * log1p(q * q / (2.0 * nu))
+    }
+}
+
+/// A bound from above on the logarithm of the density of Q at q, as [`ln_upper_bound`] is of
+/// the tail. The density of the range is at most that of the pairs' differences together,
+/// p(w) ≤ k(k − 1) e^(−w²/4) / (2√π); and in the mean of s p(q s) over S, the factor
+/// s e^(−q² s²/64) is at most √32 e^(−½) / q, which leaves fifteen sixteenths of the
+/// exponent to the same mean as before:
+///
+///   p(q) ≤ k(k − 1) √(16/(π e)) / q · (1 + 15 q²/(32 ν))^(−ν/2).
+fn ln_density_bound(q: f64, k: f64, nu: f64) -> f64 {
+    let front =
+        log(k) + log(k - 1.0) + 0.5 * (log(16.0) - log(std::f64::consts::PI) - 1.0) - log(q);
+    if nu >= KNOWN_VARIANCE {
+        front - 15.0 / 64.0 * q * q
+    } else {
+        front - 0.5 * nu * log1p(15.0 * q * q / (32.0 * nu))
+    }
 }
 
 /// Whether `groups` and `df` are a studentized range's: 2 or more groups, 1 or more degrees of
@@ -376,10 +430,20 @@ pub fn tails(q: f64, groups: f64, df: f64) -> Tails {
     } else {
         (Kind::Lower, Kind::Upper)
     };
-    let mut small = exp(studentized(first, q, groups, df)).min(1.0);
+    // An integral that is not a number stays one: `min` would make a one of it, and the
+    // other tail a rounding of nothing (step 20e).
+    let tail = |kind: Kind| -> f64 {
+        let value = exp(studentized(kind, q, groups, df));
+        if value.is_nan() {
+            value
+        } else {
+            value.min(1.0)
+        }
+    };
+    let mut small = tail(first);
     let mut kind = first;
-    if small > 0.5 {
-        small = exp(studentized(second, q, groups, df)).min(1.0);
+    if small.is_nan() || small > 0.5 {
+        small = tail(second);
         kind = second;
     }
     if kind == Kind::Lower {

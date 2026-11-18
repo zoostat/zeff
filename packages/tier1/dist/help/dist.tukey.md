@@ -30,7 +30,11 @@ ln s; for integrands of this kind the rule gains digits geometrically as its ste
 step is divided by three until three interleaved sums agree. The upper tail has its own integral,
 k ∫ φ(z) Φ(z)^(k−1) {1 − [1 − Φ(z − w)/Φ(z)]^(k−1)} dz, and so has the density, so that a far tail
 such as `cdf(50, upper: true)` keeps its relative accuracy and `pdf` is not a difference of two
-probabilities. The quantile solves the distribution function on its smaller tail.
+probabilities. The quantile solves the distribution function on its smaller tail. Where the
+upper tail is below the smallest number a double holds, about 5e-324, it is given as 0 and the
+density as 0 without an integral: the tail is at most ½ k(k − 1) (1 + q²/(2ν))^(−ν/2) for k
+groups on ν degrees of freedom, since the range exceeds w only if two of the k normals differ by
+more than w.
 
 The values agree with an exact decimal reference to a relative 1e-12 in both tails and in the
 density, from 2 to 200 groups, from 1 degree of freedom to a million million, and down to tails of
