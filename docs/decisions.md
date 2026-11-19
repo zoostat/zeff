@@ -6504,3 +6504,15 @@ The library takes `hypher` with every language, and a crate that uses the librar
 
 **Reason.** The testing handbook, sections 1 and 2.4; the checklist's step 24a2c.
 
+## 20 November 2026: the weekly mutation run read, part three: a dropped instrumented regressor still counted, and a list of the recorded survivors (release 0.8.0, step 24a2c; still open)
+
+**A fault found by writing a test for a survivor.** One mutant changed the condition of the note "dropped, so nothing is instrumented" so that it would also appear when only one of two instrumented regressors is dropped. The test for it, a fit of `productivity ~ age + a + training` with `a` twice `age` and both `a` and `training` instrumented, showed something else: the fit dropped `a` as collinear, printed "instrumented: training", and under it "Kleibergen–Paap F 0.18" with the warning of weak instruments (W1007), where the same model written without `a` has 402.49 and no warning. `first_stage` printed Shea's partial R² as for two regressors, and `ar_test` said that the confidence set was not available. The estimates, their standard errors, Hansen's J and the Durbin–Wu–Hausman test were right. The dropped regressor was still on the list of instrumented ones, so every statistic that joins them took the pair, and a regressor that the included ones explain exactly has no first stage to speak of.
+
+*The choice.* When the second stage drops an instrumented regressor and another remains, the list of instrumented regressors is that of the ones that remain, from the fit onwards: the line under the fit, `first_stage` and `ar_test` then give what the model without the dropped regressor gives, to the last printed digit, which a test holds line by line. When every one is dropped nothing changes: the fit says that nothing is instrumented and the estimates are those of least squares, and `first_stage` and `ar_test` say so before they compute anything. The page of `ivreg` says it under "Identification".
+
+**More tests for survivors.** The note above, which must not appear when one instrumented regressor remains; a level of exactly 0 or 1 refused by `ar_test` (two mutants let an edge through).
+
+**The recorded survivors as a list.** Until now the accepted survivors were prose in this file, by release, and "the new ones" had to be found by reading them against it: at 0.7.0 that matching took most of a day. They are now also a list, `tools/mutants/recorded.txt`: the path, the mutation as the tool words it without line and column (which move with every edit), how many times it is recorded in that routine, and the key of its reason, the reasons staying here. `tools/mutants/compare.py` compares a run's lists with it and prints what is not on it; the weekly job prints that in every shard's note and keeps it with the reports. The list is filled when this run is read to its end; until then every survivor shows as new, which is true of a list that is empty.
+
+**Reason.** The testing handbook, sections 1 and 2.3 ("a short note of any surviving mutants"); the checklist's step 24a2c.
+
