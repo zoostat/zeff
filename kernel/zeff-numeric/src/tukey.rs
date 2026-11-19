@@ -593,6 +593,68 @@ mod tests {
         assert_eq!((found.lower, found.upper), (1.0, 0.0));
     }
 
+    /// The two closed-form bounds at chosen points, against their formulas worked in R. For the
+    /// tail, with `pairs <- log(k) + log(k - 1) - log(2)`: `pairs - nu / 2 * log1p(q^2 / (2 *
+    /// nu))`, and with a known variance `pairs - q^2 / 4`. For the density, with `front <-
+    /// log(k) + log(k - 1) + (log(16) - log(pi) - 1) / 2 - log(q)`: `front - nu / 2 * log1p(15 *
+    /// q^2 / (32 * nu))`, and with a known variance `front - 15 / 64 * q^2`. The surviving
+    /// mutants of release 0.8.0, step 24a2c, changed an operation in a bound and were seen by
+    /// no test, since the tests only asked whether a bound was below the smallest double far
+    /// out, where every changed form still was.
+    #[test]
+    fn the_bounds_are_their_formulas() {
+        let known = 2.0 * KNOWN_VARIANCE;
+        for (q, k, nu, tail, density) in [
+            (4.0, 3.0, 10.0, -1.840_321_035_842_49, -2.078_684_413_373_76),
+            (25.0, 7.0, 2.5, -3.000_829_945_965_92, -5.132_617_221_412_99),
+            (
+                6.0,
+                5.0,
+                known,
+                -6.697_414_907_005_95,
+                -6.919_597_777_478_87,
+            ),
+        ] {
+            close("the tail's bound", ln_upper_bound(q, k, nu), tail, 1e-14);
+            close(
+                "the density's bound",
+                ln_density_bound(q, k, nu),
+                density,
+                1e-14,
+            );
+        }
+    }
+
+    /// The bounds are bounds: on a grid from the middle of the distribution to far out, the
+    /// logarithm of the upper tail and of the density, each from its integral, is never above
+    /// its bound; and the tail's bound is no more than e^8 above the tail, which is what
+    /// "within a small factor" comes to on this grid.
+    #[test]
+    fn the_bounds_stand_above_what_they_bound() {
+        for &k in &[2.0, 3.0, 10.0, 50.0] {
+            for &nu in &[1.0, 3.0, 10.0, 100.0, 1e4, 2.0 * KNOWN_VARIANCE] {
+                for &q in &[0.5, 2.0, 5.0, 10.0, 30.0] {
+                    let tail = studentized(Kind::Upper, q, k, nu);
+                    let bound = ln_upper_bound(q, k, nu);
+                    if tail.is_finite() {
+                        assert!(
+                            bound >= tail - 1e-9 && bound <= tail + 8.0,
+                            "tail at q = {q}, k = {k}, nu = {nu:e}: {tail} under {bound}"
+                        );
+                    }
+                    let density = studentized(Kind::Density, q, k, nu);
+                    if density.is_finite() {
+                        assert!(
+                            ln_density_bound(q, k, nu) >= density - 1e-9,
+                            "density at q = {q}, k = {k}, nu = {nu:e}: {density} under {}",
+                            ln_density_bound(q, k, nu)
+                        );
+                    }
+                }
+            }
+        }
+    }
+
     #[test]
     fn two_groups_on_one_and_two_degrees_of_freedom_have_closed_forms() {
         // With t = q / sqrt(2): (2 / pi) atan(t) below q on one degree of freedom, and

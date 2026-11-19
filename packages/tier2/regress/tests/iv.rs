@@ -955,6 +955,25 @@ fn the_non_central_chi_square_points_agree_with_r() {
     // Without non-centrality it is the chi-square's own point: 3.841 for one degree.
     let central = zeff_regress::iv::noncentral_chi_square_point(1.0, 0.0, 0.05);
     assert!((central - 3.841_458_820_694_124).abs() < 1e-10, "{central}");
+    // Far from the table's corner (release 0.8.0, step 24a2c: ten mutants of the reach of the
+    // Poisson weights and of the first bracket survived, since every point above had a small
+    // non-centrality and a probability of 5 per cent): large non-centralities, where the
+    // weights that matter stand far from zero, and points deep in either tail. R's
+    // `qchisq(u, d, ncp = l, lower.tail = FALSE)`.
+    for (degrees, noncentrality, upper, want, tolerance) in [
+        (3.0, 2000.0, 0.05, 2_151.862_220_862_23, 1e-10),
+        (2.5, 10_000.0, 0.5, 10_001.500_024_998_5, 1e-10),
+        (1.0, 400.0, 1e-3, 533.158_827_952_958, 1e-10),
+        (7.0, 250.0, 0.999, 167.205_754_464_911, 1e-10),
+        // R's own upper tail is good to about eight digits this far out.
+        (4.0, 40.0, 1e-12, 182.726_825_701_645, 1e-7),
+    ] {
+        let got = zeff_regress::iv::noncentral_chi_square_point(degrees, noncentrality, upper);
+        assert!(
+            close(got, want, tolerance, 0.0),
+            "{degrees} degrees, non-centrality {noncentrality}, upper {upper:e}: {got} against {want}"
+        );
+    }
 }
 
 /// The joint variance of the first stages holds each stage's own variance on its diagonal, to
@@ -1382,6 +1401,76 @@ fn a_diagnostic_that_cannot_be_computed_is_not() {
     let test = found.over_identification.unwrap();
     assert!(test.hansen && test.df == 3);
     assert_eq!(test.statistic, None);
+}
+
+/// The test of the over-identifying restrictions, the Durbin–Wu–Hausman test and the
+/// statistics of weak instruments do not depend on the units of the data: the outcome times a
+/// hundred million, the instrumented regressor in millionths and an instrument times a hundred
+/// thousand give the same statistics, under classical, robust and clustered errors. The
+/// columns are scaled inside each routine for the sake of its factorisations, and the seven
+/// mutants of those scales that survived at release 0.8.0, step 24a2c, change nothing a unit
+/// does not change; this test holds what they rest on.
+#[test]
+fn the_statistics_of_the_first_stage_do_not_depend_on_the_units() {
+    let card = reference_data("card");
+    let plain = model(
+        "lwage ~ exper + expersq + black + south + smsa + educ",
+        "educ",
+        "nearc4 + nearc2",
+    );
+    let scaled = model(
+        "(lwage * 1e8) ~ exper + expersq + black + south + smsa + (educ * 1e-6)",
+        "(educ * 1e-6)",
+        "(nearc4 * 1e5) + nearc2",
+    );
+    for (kind, cluster) in [
+        (Kind::Classical, None),
+        (Kind::Hc1, None),
+        (Kind::Hc3, None),
+        (Kind::Cluster, Some("age")),
+    ] {
+        let with_cluster = |m: &Model<'static>| Model {
+            cluster,
+            ..m.clone()
+        };
+        let (a, b) = (with_cluster(&plain), with_cluster(&scaled));
+        let (da, db) = (
+            diagnostics_of(&card, &a, kind, cluster),
+            diagnostics_of(&card, &b, kind, cluster),
+        );
+        let (ja, jb) = (
+            da.over_identification.unwrap().statistic.unwrap(),
+            db.over_identification.unwrap().statistic.unwrap(),
+        );
+        assert!(close(ja, jb, 1e-7, 0.0), "{kind:?}: J {ja} against {jb}");
+        let (ea, eb) = (
+            da.endogeneity.unwrap().statistic,
+            db.endogeneity.unwrap().statistic,
+        );
+        assert!(
+            close(ea, eb, 1e-7, 0.0),
+            "{kind:?}: endogeneity {ea} against {eb}"
+        );
+        let (wa, wb) = (
+            weak_of(&card, &a, kind, cluster),
+            weak_of(&card, &b, kind, cluster),
+        );
+        let same = |x: Option<f64>, y: Option<f64>, what: &str| {
+            let (x, y) = (x.unwrap(), y.unwrap());
+            assert!(close(x, y, 1e-7, 0.0), "{kind:?}: {what} {x} against {y}");
+        };
+        same(wa.f[0], wb.f[0], "F");
+        same(wa.wald[0], wb.wald[0], "Wald F");
+        same(wa.cragg_donald, wb.cragg_donald, "Cragg-Donald F");
+        if kind != Kind::Classical {
+            same(wa.kleibergen_paap, wb.kleibergen_paap, "Kleibergen-Paap F");
+            same(
+                wa.effective.map(|e| e.f),
+                wb.effective.map(|e| e.f),
+                "effective F",
+            );
+        }
+    }
 }
 
 // ----- the Anderson–Rubin test and set -----

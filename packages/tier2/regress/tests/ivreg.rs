@@ -628,6 +628,27 @@ fn the_residuals_of_a_weighted_fit_are_the_outcome_less_the_fitted_values() {
     assert_eq!(out, "1\n", "{out}");
 }
 
+/// A range of variables, `e1..e3`, stands for the variables from the first to the last in the
+/// frame's order, on either side of `instruments:`: the fit with three instrumented regressors
+/// given as a range, by three instruments given as a range, is the fit with all six written
+/// out. (No test had a range in `instruments:`; a surviving mutant of release 0.8.0, step
+/// 24a2c, read a range as its two ends alone.)
+#[test]
+fn a_range_of_variables_in_the_instruments_is_the_variables_written_out() {
+    let frame = "let staff = dataset(staff).add(e1 = training, e2 = tenure, e3 = age, z1 = offer, z2 = distance, z3 = site)\n";
+    let ranged = printed(&format!(
+        "{frame}staff.ivreg(productivity ~ e1 + e2 + e3, instruments: e1..e3 ~ (z1..z3) + employee)\n"
+    ));
+    let written = printed(&format!(
+        "{frame}staff.ivreg(productivity ~ e1 + e2 + e3, instruments: e1 + e2 + e3 ~ z1 + z2 + z3 + employee)\n"
+    ));
+    assert!(
+        ranged.contains("instrumented: e1, e2, e3 · instruments: z1, z2, z3, employee"),
+        "{ranged}"
+    );
+    assert_eq!(from_the_table(&ranged), from_the_table(&written));
+}
+
 /// The lines of a printed result from the table of coefficients to its end, without the count
 /// of rows, which says how the rows came to be left out.
 fn from_the_table(printed: &str) -> String {
