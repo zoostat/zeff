@@ -1,0 +1,40 @@
+---
+source: crates/zeff-engine/tests/misleading_messages.rs
+expression: "[format!(\"{data}let r = report([d.reg(y ~ x), d.reg(y ~ x + z), d.reg(y ~ x, se: classical)])\\n\"),\nformat!(\"{data}for f in [y ~ x, y ~ x + z, y ~ z] {{\\n  let m = d.reg(f)\\n}}\\n\"),\nformat!(\"{data}let fits = map([y ~ x, y ~ x + z], fn(f) d.reg(f))\\n\"),\nformat!(\"{data}let r = report([d.reg(y ~ x), d.reg(y ~ x + z), d.reg(z ~ w)])\\n\"),\nformat!(\"{data}let m1 = d.reg(y ~ x)\\nlet m2 = d.reg(y ~ x + z)\\nlet r = report([m1, m2])\\n\"),].iter().map(|script|\nmessages(script)).collect::<Vec<_>>().join(\"\\n====\\n\")"
+---
+let r = report([d.reg(y ~ x), d.reg(y ~ x + z), d.reg(y ~ x, se: classical)])
+---- exit code 0
+warning[W1006]: 1 observation drives a coefficient: removing it moves an estimate by more than its standard error (row 8); the same for 3 fits (line 2)
+  = help: check the row's values; `influence()` lists leverage, Cook's distance and studentized residuals by row
+
+====
+for f in [y ~ x, y ~ x + z, y ~ z] {
+  let m = d.reg(f)
+}
+---- exit code 0
+warning[W1006]: 1 observation drives a coefficient: removing it moves an estimate by more than its standard error (row 8); the same for 3 fits (line 2)
+  = help: check the row's values; `influence()` lists leverage, Cook's distance and studentized residuals by row
+
+====
+let fits = map([y ~ x, y ~ x + z], fn(f) d.reg(f))
+---- exit code 0
+warning[W1006]: 1 observation drives a coefficient: removing it moves an estimate by more than its standard error (row 8); the same for 2 fits (line 2)
+  = help: check the row's values; `influence()` lists leverage, Cook's distance and studentized residuals by row
+
+====
+let r = report([d.reg(y ~ x), d.reg(y ~ x + z), d.reg(z ~ w)])
+---- exit code 0
+warning[W1006]: 1 observation drives a coefficient: removing it moves an estimate by more than its standard error (row 8); the same for 2 fits (line 2)
+  = help: check the row's values; `influence()` lists leverage, Cook's distance and studentized residuals by row
+warning[W1006]: 2 observations drive a coefficient: removing one moves an estimate by more than its standard error (rows 1, 2) (line 2)
+  = help: check the row's values; `influence()` lists leverage, Cook's distance and studentized residuals by row
+
+====
+let m1 = d.reg(y ~ x)
+let m2 = d.reg(y ~ x + z)
+let r = report([m1, m2])
+---- exit code 0
+warning[W1006]: 1 observation drives a coefficient: removing it moves an estimate by more than its standard error (row 8) (line 2)
+  = help: check the row's values; `influence()` lists leverage, Cook's distance and studentized residuals by row
+warning[W1006]: 1 observation drives a coefficient: removing it moves an estimate by more than its standard error (row 8) (line 3)
+  = help: check the row's values; `influence()` lists leverage, Cook's distance and studentized residuals by row

@@ -6156,3 +6156,19 @@ Where the option is not a word written in the call (it comes from a record of op
 
 **Reason.** The review against R of 19 November 2026; Language Reference, sections 3.7 and 5.1; the checklist's step 20k.
 
+## 19 November 2026: what one statement says several times is said once, with a count (release 0.8.0, step 20l)
+
+**The fault.** W1006, "an observation drives a coefficient", is raised by every fit. Three fits in one statement (the columns of `report([d.reg(...), d.reg(...), d.reg(...)])`, the passes of a loop over formulas, the items of `map`) printed it three times word for word, the same row named in each. And every `append` of a chain, `a.append(b).append(c)`, printed its own note, so a script that stacks ten yearly files printed ten.
+
+**The choice.** When a statement has run, before its messages are printed:
+- W1006 raised several times with the same words (so the same rows named), the same help and the same place is said once, ending "; the same for 3 fits". A fit that names other rows differs in its words and is said beside it. Step 8o had left warnings out of the merging of a loop's passes ("warnings ask for attention"); this warning is the one the review met, and it loses nothing by being counted.
+- The notes of a chain of appends become one. A chain is recognised by its arithmetic: each note adds below the rows the one before it ended with. The one note says how many times, the rows added in all, below how many, and what was filled, each thing once: "append, 4 times: 8 rows added below 2 rows". Where a step after the first says a variable was "only in the frame", the merged note says "only in the frames above". Two appends of one statement that do not follow each other keep their notes, and one append says what it always said.
+
+**Not changed: fits on lines of their own.** `let m1 = d.reg(...)` and `let m2 = d.reg(...)` on two lines each keep the warning at their line. A message belongs to the statement that raised it, is printed when the statement ends, and is what an editor shows beside the line; saying it once for the run would need the run's end, or a later line silently saying less than an earlier one. If the owner wants one line for the whole run instead, that is a design question for the register and not this step's.
+
+**How.** `once_for_the_statement` in the interpreter, after the statement's own messages and those of its reads are gathered and before the pragmas that silence. It reads the note of `append` as that function writes it, as the merging of the NA warnings of `aggregate` already reads its warning; a note it cannot read is left alone.
+
+**Held by.** `zeff-engine/tests/misleading_messages.rs`: five cases of fits (a report, a loop, `map`, a fit naming other rows, fits on their own lines) and five of appends (a chain with variables filled, a chain with none, `reduce`, two that are not a chain, one alone). The explained page of W1006 and the help page of `append` each have the sentence.
+
+**Reason.** The review against R of 19 November 2026; the checklist's step 20l.
+

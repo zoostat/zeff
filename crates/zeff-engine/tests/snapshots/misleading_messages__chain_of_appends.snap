@@ -1,0 +1,41 @@
+---
+source: crates/zeff-engine/tests/misleading_messages.rs
+expression: "[format!(\"{data}a.append(b).append(c).append(b)\\n\"),\nformat!(\"{data}let whole = a.append(e).append(a).append(e).append(e)\\nwhole.n_rows()\\n\"),\nformat!(\"{data}let parts = [e, a, e]\\nlet stacked = reduce(parts, fn(so_far, part) so_far.append(part), a)\\nstacked.n_rows()\\n\"),\nformat!(\"{data}let both = [a.append(e), e.append(a)]\\n\"),\nformat!(\"{data}let one = a.append(b)\\n\"),].iter().map(|script|\nmessages(script)).collect::<Vec<_>>().join(\"\\n====\\n\")"
+---
+a.append(b).append(c).append(b)
+---- exit code 0
+frame · 5 rows × 4 variables
+
+      k   v      w   u
+  1   1   a     NA   NA
+  2   2   b     NA   NA
+  3   3   NA   1.5   NA
+  4   4   c     NA   true
+  5   3   NA   1.5   NA
+note: append, 3 times: 3 rows added below 2 rows; `v` only in a, filled with NA below; `w` only in b, filled with NA above; `w` only in the frames above, filled with NA below; `u` only in c, filled with NA above; `v`, `u` only in the frames above, filled with NA below (line 5)
+
+====
+let whole = a.append(e).append(a).append(e).append(e)
+whole.n_rows()
+---- exit code 0
+10
+note: append, 4 times: 8 rows added below 2 rows (line 5)
+
+====
+let parts = [e, a, e]
+let stacked = reduce(parts, fn(so_far, part) so_far.append(part), a)
+stacked.n_rows()
+---- exit code 0
+8
+note: append, 3 times: 6 rows added below 2 rows (line 6)
+
+====
+let both = [a.append(e), e.append(a)]
+---- exit code 0
+note: append: 2 rows added below 2 rows (line 5)
+note: append: 2 rows added below 2 rows (line 5)
+
+====
+let one = a.append(b)
+---- exit code 0
+note: append: 1 row added below 2 rows; `v` only in a, filled with NA below; `w` only in b, filled with NA above (line 5)

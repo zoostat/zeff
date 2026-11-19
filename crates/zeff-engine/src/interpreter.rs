@@ -624,6 +624,7 @@ impl<'a> Interpreter<'a> {
             // The messages the statement's reads left behind (a data root's file that
             // changed, W0701) join the statement's own.
             messages.extend(self.files.take_messages());
+            once_for_the_statement(&mut messages);
             self.silence(span.start, 0, &mut messages);
             output.allowed.append(&mut self.allowed);
             // `--deny-warnings` (section 11.1): a warning that no pragma allows is an error,
@@ -4825,6 +4826,119 @@ const BODY_COLUMNS: &[(&str, &str, &str, &str)] = &[
     ("data", "standardize", "value", "x"),
     ("data", "center", "value", "x"),
 ];
+
+/// What one statement says several times in the same words, or step by step of one chain, is
+/// said once with a count (release 0.8.0, step 20l).
+///
+/// W1006, "an observation drives a coefficient", is raised by every fit: three fits of the
+/// same rows in one statement (the columns of a `report`, the passes of a loop) said it three
+/// times word for word, the same row named in each. It is said once, "the same for 3 fits".
+/// Two fits that name different rows differ in their words and are both said.
+///
+/// `append` notes what it added and which variables it filled; a chain of them,
+/// `a.append(b).append(c)`, or a loop that stacks a frame in each pass, printed one note for
+/// each step. The notes of a chain (each begins with the rows the one before it ended with)
+/// become one: how many times, the rows added in all, below how many, and what was filled.
+fn once_for_the_statement(messages: &mut Vec<Diagnostic>) {
+    let mut at = 0;
+    while at < messages.len() {
+        if messages[at].code != "W1006" {
+            at += 1;
+            continue;
+        }
+        let mut times = 1u64;
+        let mut later = at + 1;
+        while later < messages.len() {
+            if messages[later].code == "W1006"
+                && messages[later].message == messages[at].message
+                && messages[later].help == messages[at].help
+                && messages[later].labels == messages[at].labels
+            {
+                messages.remove(later);
+                times += 1;
+            } else {
+                later += 1;
+            }
+        }
+        if times > 1 {
+            messages[at].message.push_str(&format!(
+                "; the same for {} fits",
+                zeff_diagnostics::count(times)
+            ));
+        }
+        at += 1;
+    }
+    let mut at = 0;
+    while at < messages.len() {
+        let Some((mut added, below, first)) = append_note(&messages[at]) else {
+            at += 1;
+            continue;
+        };
+        let mut filled: Vec<String> = first.into_iter().collect();
+        let mut times = 1u64;
+        let mut later = at + 1;
+        while later < messages.len() {
+            match append_note(&messages[later]) {
+                // The next step of the chain: it adds below what this one ended with.
+                Some((more, under, what)) if under == below + added => {
+                    added += more;
+                    times += 1;
+                    for part in what {
+                        if !filled.contains(&part) {
+                            filled.push(part);
+                        }
+                    }
+                    messages.remove(later);
+                }
+                _ => later += 1,
+            }
+        }
+        if times > 1 {
+            let rows = |n: u64| {
+                format!(
+                    "{} {}",
+                    zeff_diagnostics::count(n),
+                    if n == 1 { "row" } else { "rows" }
+                )
+            };
+            let mut note = format!(
+                "append, {} times: {} added below {}",
+                zeff_diagnostics::count(times),
+                rows(added),
+                rows(below)
+            );
+            for part in filled {
+                note.push_str("; ");
+                // A step after the first appends to what the steps before it made.
+                note.push_str(&part.replace(" only in the frame,", " only in the frames above,"));
+            }
+            messages[at].message = note;
+        }
+        at += 1;
+    }
+}
+
+/// The note of an `append` taken apart: the rows it added, the rows it added them below, and
+/// what it says of the variables it filled. `None` for any other message.
+fn append_note(message: &Diagnostic) -> Option<(u64, u64, Vec<String>)> {
+    if message.severity != zeff_diagnostics::Severity::Note || !message.code.is_empty() {
+        return None;
+    }
+    let said = message.message.strip_prefix("append: ")?;
+    let (added, rest) = said.split_once(" added below ")?;
+    let (below, filled) = match rest.split_once("; ") {
+        Some((below, filled)) => (below, filled.split("; ").map(str::to_string).collect()),
+        None => (rest, Vec::new()),
+    };
+    let rows = |text: &str| -> Option<u64> {
+        let (number, word) = text.split_once(' ')?;
+        if word != "row" && word != "rows" {
+            return None;
+        }
+        number.replace(',', "").parse().ok()
+    };
+    Some((rows(added)?, rows(below)?, filled))
+}
 
 /// A note raised word for word in several passes of one loop, or for several items of `map`,
 /// `filter` or `reduce`, is said once, with the count (release 0.8.0, step 8o): a simulation

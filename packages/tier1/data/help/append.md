@@ -12,6 +12,9 @@ column have one type. The left frame's rows come first, in their order, then the
 and value labels are kept where the left frame has the column, and taken from the right for a
 column only it has. A panel declaration survives when both frames carry the same one. Like R's
 `rbind` on matching names and Stata's `append`.
+A chain of appends in one statement, `a.append(b).append(c)`, or a loop that stacks a frame in
+each pass, gives one note for the chain: how many times, the rows added in all, and what was
+filled.
 
 ## Arguments
 - data: The frame whose rows come first.

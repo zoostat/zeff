@@ -148,3 +148,13 @@ Step 20d `[engine]`: `wilcoxon_test` no longer stores the pairwise differences o
 
 **For the owner to decide.** Nothing new. The earlier items stand.
 
+## 19 November 2026, release 0.8.0, step 20l (said once, with a count)
+
+**Done.** Step 20l `[function]`: several fits of one statement that are driven by the same observation say W1006 once, "the same for 3 fits", and a chain of appends gives one note, "append, 4 times: 8 rows added below 2 rows", with what was filled. With it the six messages of the review (steps 20j to 20l) are done, and block D of the checklist with them.
+
+**Green.** Format, clippy with warnings denied, the tier, message and grammar checks, every test of the workspace; CI read after the push. The CI of step 20k (fb80b05) is green.
+
+**Next.** Step 21a `[engine]`: `export("….typ")`, the first step of block E.
+
+**For the owner to decide.** Fits on lines of their own each keep W1006 at their line; say if one line for the whole run is wanted instead. The earlier items stand.
+

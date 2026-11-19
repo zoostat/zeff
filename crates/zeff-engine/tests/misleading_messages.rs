@@ -207,3 +207,76 @@ fn aggregate_notes_a_name_it_has_just_redefined() {
         ])
     );
 }
+
+/// Step 20l (f). W1006, "an observation drives a coefficient", was printed once for every fit
+/// of a statement, word for word: three columns of a `report`, three passes of a loop, three
+/// warnings naming the same row. It is said once, with the number of fits. Fits that name
+/// different rows are each said, and a fit on a line of its own keeps its warning at its line.
+#[test]
+fn a_warning_of_several_fits_of_one_statement_is_said_once() {
+    let data = "let d = frame(y = [1.0, 2.0, 4.0, 3.0, 6.0, 5.0, 8.0, 30.0], x = [1.0, 2.0, 3.0, 4.0, 5.0, 6.0, 7.0, 20.0], z = [2.0, 1.0, 4.0, 3.0, 6.0, 5.0, 8.0, 7.0], w = [40.0, 1.0, 4.0, 3.0, 6.0, 5.0, 8.0, 7.0])\n";
+    let messages = |script: &str| -> String {
+        let outcome = run(script);
+        format!(
+            "{}---- exit code {}\n{}",
+            script.strip_prefix(data).unwrap(),
+            outcome.exit_code,
+            outcome.output.stderr
+        )
+    };
+    insta::assert_snapshot!(
+        "fits_of_one_statement",
+        [
+            // Three fits in one statement: the columns of a report, the passes of a loop, the
+            // items of `map`.
+            format!("{data}let r = report([d.reg(y ~ x), d.reg(y ~ x + z), d.reg(y ~ x, se: classical)])\n"),
+            format!("{data}for f in [y ~ x, y ~ x + z, y ~ z] {{\n  let m = d.reg(f)\n}}\n"),
+            format!("{data}let fits = map([y ~ x, y ~ x + z], fn(f) d.reg(f))\n"),
+            // A fit that names another row is said beside them.
+            format!("{data}let r = report([d.reg(y ~ x), d.reg(y ~ x + z), d.reg(z ~ w)])\n"),
+            // Each on its own line: each at its line.
+            format!("{data}let m1 = d.reg(y ~ x)\nlet m2 = d.reg(y ~ x + z)\nlet r = report([m1, m2])\n"),
+        ]
+        .iter()
+        .map(|script| messages(script))
+        .collect::<Vec<_>>()
+        .join("\n====\n")
+    );
+}
+
+/// Step 20l (f). Every `append` of a chain printed its own note. The notes of a chain (each
+/// adds below the rows the one before it ended with) are one note: how many times, the rows
+/// added in all, and what was filled, each thing said once. Two appends that are not a chain
+/// keep their notes, and one append says what it always said.
+#[test]
+fn the_notes_of_a_chain_of_appends_are_one_note() {
+    let data = "let a = frame(k = [1, 2], v = [\"a\", \"b\"])\nlet b = frame(k = [3], w = [1.5])\nlet c = frame(k = [4], v = [\"c\"], u = [true])\nlet e = frame(k = [5, 6], v = [\"e\", \"f\"])\n";
+    let messages = |script: &str| -> String {
+        let outcome = run(script);
+        format!(
+            "{}---- exit code {}\n{}{}",
+            script.strip_prefix(data).unwrap(),
+            outcome.exit_code,
+            outcome.output.stdout,
+            outcome.output.stderr
+        )
+    };
+    insta::assert_snapshot!(
+        "chain_of_appends",
+        [
+            format!("{data}a.append(b).append(c).append(b)\n"),
+            // The same variables in every frame: nothing filled, one line.
+            format!("{data}let whole = a.append(e).append(a).append(e).append(e)\nwhole.n_rows()\n"),
+            // A loop that stacks a frame in each pass.
+            format!("{data}let parts = [e, a, e]\nlet stacked = reduce(parts, fn(so_far, part) so_far.append(part), a)\nstacked.n_rows()\n"),
+            // Not a chain: two appends of one statement that do not follow each other.
+            format!("{data}let both = [a.append(e), e.append(a)]\n"),
+            // One append.
+            format!("{data}let one = a.append(b)\n"),
+        ]
+        .iter()
+        .map(|script| messages(script))
+        .collect::<Vec<_>>()
+        .join("\n====\n")
+    );
+}
