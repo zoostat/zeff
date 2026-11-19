@@ -1826,7 +1826,7 @@ pub struct Regression {
 /// Every regression, oldest first. The first three are the faults the pre-release routine of
 /// 0.7.0 found and corrected before its tag (release notes of 0.7.0, "Validation"); the next
 /// two, the internal errors of step 20g of 0.8.0.
-pub const REGRESSIONS: [Regression; 6] = [
+pub const REGRESSIONS: [Regression; 7] = [
     Regression {
         name: "values_above_1e150",
         corrected: "0.7.0",
@@ -1865,6 +1865,14 @@ pub const REGRESSIONS: [Regression; 6] = [
         corrected: "0.8.0",
         held: Held::Run,
         script: include_str!("../regressions/truncation_near_its_bound.zeff"),
+    },
+    // The internal error the nightly fuzz target met in a truncated count distribution whose
+    // bound stood a hair from a whole number (step 20n).
+    Regression {
+        name: "truncation_beside_a_whole_number",
+        corrected: "0.8.0",
+        held: Held::Run,
+        script: include_str!("../regressions/truncation_beside_a_whole_number.zeff"),
     },
 ];
 

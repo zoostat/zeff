@@ -41,6 +41,16 @@ pub fn pdf(d: &Distribution, x: f64) -> f64 {
             lower,
             upper,
         } => {
+            if is_discrete(inner) {
+                let (bottom, top) = whole_bounds(*lower, *upper);
+                return match whole(x) {
+                    // A probability: the quotient of two computed numbers is held at one.
+                    Some(k) if k >= bottom && k <= top => {
+                        (pdf(inner, k) / truncated_mass(inner, *lower, *upper)).min(1.0)
+                    }
+                    _ => 0.0,
+                };
+            }
             if x < *lower || x > *upper {
                 return 0.0;
             }
@@ -185,6 +195,23 @@ fn floor_whole(x: f64) -> f64 {
     // R's fuzz: an absolute 1e-7, so that 2.9999999 counts as 3. It was once relative (1e-7 of
     // x), which at x = 1e9 added 100 and gave P(X ≤ 1e9 + 100) for P(X ≤ 1e9).
     (x + 1e-7).floor()
+}
+
+/// The whole numbers a truncation of a count distribution keeps, as its first and its last: the
+/// smallest at or above `lower` and the largest at or below `upper`, where a bound within 1e-7
+/// of a whole number counts as that number, by the allowance for noise of `floor_whole`. The
+/// density, the distribution function, the quantile and the probability of the interval all
+/// read the bounds through here, so that they agree on which numbers are kept. The first
+/// exceeds the last where the interval holds no whole number; an upper bound below zero, however
+/// near it, keeps none, as the families give no probability to a negative argument.
+fn whole_bounds(lower: f64, upper: f64) -> (f64, f64) {
+    let bottom = if lower <= 0.0 {
+        0.0
+    } else {
+        // The sum with zero turns a negative zero, as the rounding of -5e-8 gives, into zero.
+        (lower - 1e-7).ceil().max(0.0) + 0.0
+    };
+    (bottom, floor_whole(upper))
 }
 
 /// The negative binomial's size and success probability, from either parameterisation.
@@ -436,17 +463,6 @@ fn t_quantile(df: f64, p: f64) -> f64 {
     if negative { -magnitude } else { magnitude }
 }
 
-/// P(X < x): the lower tail just below x, which for a discrete distribution leaves out the mass at
-/// x itself.
-fn below(d: &Distribution, x: f64) -> f64 {
-    let at = cdf(d, x);
-    if is_discrete(d) {
-        (at.lower - pdf(d, x)).max(0.0)
-    } else {
-        at.lower
-    }
-}
-
 /// The probability a distribution gives to [lower, upper].
 pub fn truncated_mass(inner: &Distribution, lower: f64, upper: f64) -> f64 {
     Cut::new(inner, lower, upper).mass
@@ -497,6 +513,7 @@ fn mixed(d: &Distribution) -> bool {
 /// points instead.
 struct Cut<'a> {
     inner: &'a Distribution,
+    /// The bounds; for a count distribution, the first and the last whole number kept.
     lower: f64,
     upper: f64,
     /// P(X < lower) and P(X ≥ lower).
@@ -513,6 +530,12 @@ struct Cut<'a> {
 impl<'a> Cut<'a> {
     fn new(inner: &'a Distribution, lower: f64, upper: f64) -> Cut<'a> {
         let discrete = is_discrete(inner);
+        // A count distribution is cut at whole numbers: the first and the last it keeps.
+        let (lower, upper) = if discrete {
+            whole_bounds(lower, upper)
+        } else {
+            (lower, upper)
+        };
         let below = if lower == f64::NEG_INFINITY {
             Tails {
                 lower: 0.0,
@@ -549,7 +572,17 @@ impl<'a> Cut<'a> {
             smooth: integrable(inner),
             agrees: if mixed(inner) { AGREES_CLOSELY } else { AGREES },
         };
-        cut.mass = cut.between(lower, below, upper, above);
+        cut.mass = if discrete && lower > upper {
+            // No whole number in the interval: the two tails may differ in their last digit,
+            // and the difference is not left to say so.
+            0.0
+        } else if discrete && lower == upper {
+            // One whole number: its own probability, which the difference of two tails gives
+            // to a digit less.
+            pdf(inner, lower)
+        } else {
+            cut.between(lower, below, upper, above)
+        };
         cut
     }
 
@@ -675,8 +708,11 @@ impl<'a> Cut<'a> {
     /// searched from `first`.
     fn smallest_with(&self, first: f64, p: f64) -> f64 {
         let reaches = |k: f64| self.lower_at(k, cdf(self.inner, k)) >= p;
-        let bottom = self.lower.max(0.0).ceil();
-        let top = self.upper.floor();
+        let (bottom, top) = (self.lower, self.upper);
+        if bottom > top {
+            // An interval with no whole number has no quantile; `dist.truncated` refuses it.
+            return f64::NAN;
+        }
         let start = if first.is_finite() {
             first.clamp(bottom, top)
         } else {
@@ -745,19 +781,27 @@ pub fn cdf(d: &Distribution, x: f64) -> Tails {
             lower,
             upper,
         } => {
-            if x < *lower {
+            // A count distribution is read at the whole number at or below x, and against the
+            // first and the last whole number kept.
+            let (x, lower, upper) = if is_discrete(inner) {
+                let (bottom, top) = whole_bounds(*lower, *upper);
+                (floor_whole(x), bottom, top)
+            } else {
+                (x, *lower, *upper)
+            };
+            if x < lower {
                 return Tails {
                     lower: 0.0,
                     upper: 1.0,
                 };
             }
-            if x >= *upper {
+            if x >= upper {
                 return Tails {
                     lower: 1.0,
                     upper: 0.0,
                 };
             }
-            let cut = Cut::new(inner, *lower, *upper);
+            let cut = Cut::new(inner, lower, upper);
             let at = cdf(inner, x);
             return Tails {
                 lower: cut.lower_at(x, at),
@@ -918,12 +962,22 @@ pub fn quantile(d: &Distribution, p: f64) -> f64 {
             lower,
             upper,
         } => {
+            if is_discrete(inner) {
+                // Every answer is a whole number between the first and the last kept; the
+                // bounds as written need not be whole, and are not answers themselves.
+                let (bottom, top) = whole_bounds(*lower, *upper);
+                if p <= 0.0 {
+                    // The first number kept, or the inner distribution's own first where that
+                    // is higher (a truncation of a truncation).
+                    return quantile(inner, 0.0).max(bottom).min(top);
+                }
+                if p >= 1.0 {
+                    return quantile(inner, 1.0).min(top);
+                }
+                return Cut::new(inner, bottom, top).quantile(p);
+            }
             if p <= 0.0 {
-                return if is_discrete(inner) {
-                    quantile(inner, below(inner, *lower) + f64::EPSILON * 0.0).max(*lower)
-                } else {
-                    *lower
-                };
+                return *lower;
             }
             if p >= 1.0 {
                 return *upper;

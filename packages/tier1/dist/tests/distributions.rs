@@ -409,6 +409,26 @@ fn a_quantile_where_the_distribution_function_is_na_answers_instead_of_searching
 }
 
 #[test]
+fn a_count_distribution_truncated_beside_a_whole_number_answers_instead_of_failing() {
+    // Found by the nightly fuzz target (release 0.8.0, step 20n): a Poisson truncated to
+    // [1e-10, 0.5]. The probability of the interval counted 0, since a count distribution reads
+    // 1e-10 as 0, but the quantile searched from 1 up to 0 and ended in an internal error
+    // (Z9001), and so did every draw. Now the bounds keep the same whole numbers everywhere.
+    // The second distribution is the fuzz target's own input: denormal bounds.
+    let (code, out, stderr) = go(
+        "let d = dist.truncated(dist.poisson(lambda: 3), lower: 1e-10, upper: 0.5)\nprint([d.quantile(0), d.quantile(0.5), d.quantile(1), d.pdf(0), d.cdf(0)])\nprint(d.draw(2, seed: 1))\nlet f = dist.truncated(dist.poisson(lambda: 7.1e-304), lower: 4e-323, upper: 2.1e-314)\nprint(f.quantile(0.5))\nprint(f.draw(2, seed: 1))\nlet b = dist.truncated(dist.binomial(n: 10, p: 0.5), lower: 1e-10, upper: 0.5)\nprint(b.draw(2, seed: 1))\n",
+    );
+    assert_eq!(code, 0, "{stderr}");
+    let zeros = "Column<Int> · 2 values\n0\n0\n";
+    assert_eq!(out, format!("0\n0\n0\n1\n1\n{zeros}0\n{zeros}{zeros}"));
+    // An interval that keeps no whole number is refused as before, not searched.
+    let (code, _, stderr) =
+        go("let d = dist.truncated(dist.poisson(lambda: 3), lower: 0.2, upper: 0.5)\n");
+    assert_eq!(code, 1);
+    assert!(stderr.contains("error[Z0413]"), "{stderr}");
+}
+
+#[test]
 fn the_discrete_families_hold_r_at_large_parameters() {
     // Found in the review before the 0.3.0 tag: the point x was floored with a fuzz of 1e-7 of x,
     // so P(X ≤ 1e9) was computed as P(X ≤ 1e9 + 100), wrong by 2.5e-3. R 4.6.0's values, from

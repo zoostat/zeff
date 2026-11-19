@@ -32,3 +32,7 @@ and an index into the table of a test's intervals, each once an internal error.
 
 One of 0.8.0 is a wrong number and no error at all: a truncated distribution beside its bound,
 where the difference of two nearly equal tails kept five digits.
+
+One of 0.8.0 came from the nightly fuzz target and not from a review: a count distribution
+truncated beside a whole number, where the probability of the interval and the quantile read
+the bound differently and the quantile ended in an internal error.

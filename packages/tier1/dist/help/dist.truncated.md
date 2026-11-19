@@ -39,8 +39,14 @@ F(lower⁻) + p Z, on the lower tail up to one half and on the upper tail beyond
 that is not zero it is the double nearest the root. For a discrete distribution the interval is
 closed at both ends, so the mass at `lower:` is kept (the `truncdist` package drops it: its
 interval is open below), and the quantile is the smallest whole number whose probability at or
-below reaches p. A draw is the inverse CDF of one uniform number of the stream, so it is exact
-and never rejects.
+below reaches p. A discrete distribution keeps the whole numbers of the interval, from the
+smallest at or above `lower:` to the largest at or below `upper:`, and a bound within 1e-7 of a
+whole number counts as that number, as the count distributions read their own argument: with
+`lower: 1e-10, upper: 0.5` the truncation is the single value 0, and with `lower: 0.2` it is
+refused, since no whole number lies between 0.2 and 0.5. Its quantile at 0 is the first number
+kept and its quantile at 1 the last, or the largest the distribution can give where that is
+smaller; a bound that is not a whole number is never returned. A draw is the inverse CDF of one
+uniform number of the stream, so it is exact and never rejects.
 
 ## See also
 dist.mixture, dist.normal, dist.poisson

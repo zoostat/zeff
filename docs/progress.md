@@ -150,3 +150,12 @@ Steps 22a, 22a2, 22b and 22b2 `[function]`, two steps of the checklist counted a
 
 **For the owner to decide.** The heading of a shared footnote, `(1) to (3)`, and the new look of the Typst notes are layouts and so the owner's; say if another is wanted. The earlier items stand.
 
+## 19 November 2026, release 0.8.0, step 20n (a crash the nightly fuzz job found)
+
+**Done.** Step 20n `[engine]`, added from the nightly fuzz job: a count distribution truncated to an interval whose bound stood a hair from a whole number (`lower: 1e-10, upper: 0.5`) ended in an internal error at every quantile and draw, a fault of step 20i. The bounds are now read by one rule everywhere (within 1e-7 of a whole number counts as that number), a quantile is always a whole number the interval keeps, and two quieter disagreements of the same kind are gone with it. No released version had the fault.
+
+**Green.** Format, clippy with warnings denied, the tier, message and grammar checks, every test of the workspace; CI read after the push, and the next nightly run is to be read too.
+
+**Next.** Step 22c2 `[function]`: the 10 pages of `time`.
+
+**For the owner to decide.** Nothing new. The earlier items stand.

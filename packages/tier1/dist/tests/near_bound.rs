@@ -199,7 +199,7 @@ fn a_discrete_quantile_gives_back_the_point_of_its_probability() {
             }
             let p = families::cdf(&d, k).lower;
             if p >= 1.0 {
-                // The quantile at 1 is the upper bound, whatever the point.
+                // The quantile at 1 is the last whole number kept, whatever the point.
                 continue;
             }
             let back = families::quantile(&d, p);
@@ -208,6 +208,219 @@ fn a_discrete_quantile_gives_back_the_point_of_its_probability() {
                 back == k || (back < k && families::cdf(&d, back).lower == p),
                 "{d:?}: the quantile of P(X <= {k}) = {p:e} is {back}"
             );
+        }
+    }
+}
+
+/// One of the count distributions with parameters drawn from the stream, and the largest whole
+/// number it can give.
+fn any_count(stream: &mut Stream) -> (Distribution, f64) {
+    let u = |stream: &mut Stream, low: f64, high: f64| low + (high - low) * stream.uniform();
+    match (stream.uniform() * 3.0) as usize {
+        0 => (
+            family("poisson", vec![("lambda", u(stream, 0.2, 30.0))]),
+            f64::INFINITY,
+        ),
+        1 => {
+            let n = u(stream, 1.0, 60.0).floor();
+            (
+                family("binomial", vec![("n", n), ("p", u(stream, 0.05, 0.95))]),
+                n,
+            )
+        }
+        _ => (
+            family(
+                "negbinomial",
+                vec![("size", u(stream, 0.5, 20.0)), ("p", u(stream, 0.1, 0.9))],
+            ),
+            f64::INFINITY,
+        ),
+    }
+}
+
+/// A truncation of a count distribution keeps the whole numbers of its interval, and a bound
+/// within 1e-7 of a whole number counts as that number, as the families themselves read their
+/// argument. Every function of the truncation reads the bounds the same way: the density, the
+/// distribution function, the quantile and the draws agree with the probabilities of the kept
+/// numbers, summed one by one, wherever the bounds are written (on a whole number, a hair to
+/// either side of one, or between two).
+#[test]
+fn a_count_distribution_is_cut_at_the_whole_numbers_its_bounds_keep() {
+    let mut stream = Stream::new(20_261_119, 2, 0);
+    // What a lower bound may stand below or beside its whole number, and an upper bound above
+    // or beside its own, without changing which numbers are kept.
+    let lower_offsets = [0.0, 1e-10, -1e-10, 9e-8, -9e-8, -0.4, -0.9];
+    let upper_offsets = [0.0, 1e-10, -1e-10, 9e-8, -9e-8, 0.4, 0.9];
+    let cases = property_cases(600);
+    let mut tried = 0;
+    for case in 0..cases {
+        let (inner, last) = any_count(&mut stream);
+        let a = (stream.uniform() * 30.0).floor();
+        let b = a + (stream.uniform() * 12.0).floor();
+        let lower = a + lower_offsets[case as usize % 7];
+        let upper = b + upper_offsets[(case as usize / 7) % 7];
+        if lower >= upper {
+            // `dist.truncated` refuses it.
+            continue;
+        }
+        if upper < 0.0 {
+            // An upper bound below zero, however near, keeps nothing: the families give no
+            // probability to a negative argument.
+            assert_eq!(families::truncated_mass(&inner, lower, upper), 0.0);
+            continue;
+        }
+        let kept: Vec<f64> = (a as i64..=b as i64).map(|k| k as f64).collect();
+        let weights: Vec<f64> = kept.iter().map(|&k| families::pdf(&inner, k)).collect();
+        let total: f64 = weights.iter().sum();
+        if total < 1e-250 {
+            continue;
+        }
+        let d = truncated(inner.clone(), lower, upper);
+        let what = format!("{inner:?} on [{lower:e}, {upper:e}]");
+        let mass = families::truncated_mass(&inner, lower, upper);
+        assert!(
+            relative(mass, total) < 1e-9,
+            "{what}: mass {mass:e}, {total:e}"
+        );
+        // The density and the distribution function, at each kept number and beside the ends.
+        let mut cumulative = 0.0;
+        for (&k, &w) in kept.iter().zip(&weights) {
+            cumulative += w;
+            let density = families::pdf(&d, k);
+            assert!(
+                (density - w / total).abs() <= 1e-9 * (w / total),
+                "{what}: density at {k} is {density:e}, not {:e}",
+                w / total
+            );
+            let at = families::cdf(&d, k).lower;
+            assert!(
+                (at - cumulative / total).abs() <= 1e-9,
+                "{what}: P(X <= {k}) is {at:e}, not {:e}",
+                cumulative / total
+            );
+            // Between this number and the next, the distribution function stays.
+            assert_eq!(families::cdf(&d, k + 0.5).lower, at, "{what} at {k} + 0.5");
+        }
+        assert_eq!(families::pdf(&d, a - 1.0), 0.0, "{what}: below the first");
+        assert_eq!(families::pdf(&d, b + 1.0), 0.0, "{what}: above the last");
+        assert_eq!(families::pdf(&d, a + 0.5), 0.0, "{what}: between two");
+        assert_eq!(families::cdf(&d, a - 1.0).lower, 0.0, "{what}");
+        assert_eq!(families::cdf(&d, b).lower, 1.0, "{what}");
+        assert_eq!(families::cdf(&d, b).upper, 0.0, "{what}");
+        // The quantile: a kept number, the smallest whose probability at or below reaches p.
+        assert_eq!(families::quantile(&d, 0.0), a, "{what}: the quantile at 0");
+        assert_eq!(
+            families::quantile(&d, 1.0),
+            b.min(last),
+            "{what}: the quantile at 1"
+        );
+        let mut ps = vec![1e-300, 1e-12, 0.5, 1.0 - 1e-12];
+        ps.extend((0..6).map(|_| stream.uniform()));
+        for p in ps {
+            let q = families::quantile(&d, p);
+            assert!(
+                q.fract() == 0.0 && (a..=b).contains(&q),
+                "{what}: the quantile at {p:e} is {q:e}"
+            );
+            assert!(families::cdf(&d, q).lower >= p, "{what} at {p:e}: {q}");
+            assert!(
+                q == a || families::cdf(&d, q - 1.0).lower < p,
+                "{what} at {p:e}: {q} is not the smallest"
+            );
+        }
+        for _ in 0..10 {
+            let x = families::draw(&d, &mut stream);
+            assert!(
+                x.fract() == 0.0 && (a..=b).contains(&x),
+                "{what}: a draw of {x:e}"
+            );
+        }
+        tried += 1;
+    }
+    assert!(tried >= cases / 2, "{tried} of {cases} trials");
+}
+
+/// The cases the nightly fuzz target found (release 0.8.0, step 20n): an interval whose only
+/// whole number, 0, lies a hair below its lower bound. The probability of the interval counted
+/// 0, as the families read 1e-10, while the quantile searched from the next whole number up, 1,
+/// to the last, 0, and the search failed with an internal error.
+#[test]
+fn a_lower_bound_a_hair_above_a_whole_number_keeps_that_number() {
+    let poisson = family("poisson", vec![("lambda", 3.0)]);
+    let d = truncated(poisson.clone(), 1e-10, 0.5);
+    // The probability of the interval is that of 0, e^-3 = 0.0497870683678639 in R.
+    let mass = families::truncated_mass(&poisson, 1e-10, 0.5);
+    assert!(relative(mass, 0.049_787_068_367_863_9) < 1e-14, "{mass:e}");
+    for p in [0.0, 1e-300, 0.5, 1.0 - 1e-12, 1.0] {
+        assert_eq!(families::quantile(&d, p), 0.0, "at {p:e}");
+    }
+    assert_eq!(families::pdf(&d, 0.0), 1.0);
+    assert_eq!(families::cdf(&d, 0.0).lower, 1.0);
+    let mut stream = Stream::new(1, 0, 0);
+    assert_eq!(families::draw(&d, &mut stream), 0.0);
+    // The input as the fuzz target wrote it: denormal bounds, and a mean of 7.1e-304.
+    let tiny = family("poisson", vec![("lambda", 7.1e-304)]);
+    let d = truncated(tiny, 4e-323, 2.1e-314);
+    for p in [0.0, 0.5, 1.0] {
+        assert_eq!(families::quantile(&d, p), 0.0, "at {p:e}");
+    }
+    assert_eq!(families::draw(&d, &mut stream), 0.0);
+    // The same hair at both ends of a wider interval: 1 and 2 are kept, with R's
+    // `dpois(1:2, 3) / sum(dpois(1:2, 3))`, 0.4 and 0.6.
+    let d = truncated(poisson.clone(), 0.999_999_999_9, 2.000_000_000_1);
+    assert!((families::pdf(&d, 1.0) - 0.4).abs() < 1e-15);
+    assert!((families::pdf(&d, 2.0) - 0.6).abs() < 1e-15);
+    assert_eq!(families::quantile(&d, 0.0), 1.0);
+    assert_eq!(families::quantile(&d, 0.4 - 1e-12), 1.0);
+    assert_eq!(families::quantile(&d, 0.4 + 1e-12), 2.0);
+    assert_eq!(families::quantile(&d, 1.0), 2.0);
+}
+
+/// Bounds that are not whole numbers are not answers: the quantile at 0 is the first kept
+/// number, and the quantile at 1 the last the distribution can give. A binomial of ten trials
+/// on [2.5, 20.5] keeps 3 to 10; R 4.6.0, with `p <- dbinom(3:10, 10, 0.5); p <- p / sum(p)`,
+/// gives p[1] = 0.12396694214876036, p[8] = 0.00103305785123967 and the quantiles 3, 5 and 7 at
+/// 0.1, 0.5 and 0.9.
+#[test]
+fn a_bound_between_two_whole_numbers_is_not_a_quantile() {
+    let d = truncated(family("binomial", vec![("n", 10.0), ("p", 0.5)]), 2.5, 20.5);
+    assert_eq!(families::quantile(&d, 0.0), 3.0);
+    assert_eq!(families::quantile(&d, 1.0), 10.0);
+    for (p, want) in [(0.1, 3.0), (0.5, 5.0), (0.9, 7.0)] {
+        assert_eq!(families::quantile(&d, p), want, "at {p}");
+    }
+    assert!((families::pdf(&d, 3.0) - 0.123_966_942_148_760_36).abs() < 1e-14);
+    assert!((families::pdf(&d, 10.0) - 0.001_033_057_851_239_67).abs() < 1e-15);
+    assert_eq!(families::pdf(&d, 2.5), 0.0);
+    assert_eq!(families::pdf(&d, 2.0), 0.0);
+    assert_eq!(families::cdf(&d, 2.9).lower, 0.0);
+    assert!((families::cdf(&d, 3.0).lower - 0.123_966_942_148_760_36).abs() < 1e-14);
+    assert_eq!(families::cdf(&d, 10.0).lower, 1.0);
+}
+
+/// An interval between two whole numbers keeps none: its probability is exactly zero, which
+/// `dist.truncated` refuses (Z0413), and nothing asked of it fails.
+#[test]
+fn an_interval_with_no_whole_number_holds_no_probability() {
+    for inner in [
+        family("poisson", vec![("lambda", 3.0)]),
+        family("binomial", vec![("n", 10.0), ("p", 0.5)]),
+        family("negbinomial", vec![("size", 3.0), ("p", 0.4)]),
+    ] {
+        for (lower, upper) in [
+            (0.2, 0.5),
+            (1e-6, 0.5),
+            (3.1, 3.9),
+            (-5.0, -1.0),
+            (7.3, 7.300_001),
+        ] {
+            assert_eq!(
+                families::truncated_mass(&inner, lower, upper),
+                0.0,
+                "{inner:?} on [{lower}, {upper}]"
+            );
+            let d = truncated(inner.clone(), lower, upper);
+            assert!(families::quantile(&d, 0.5).is_nan());
         }
     }
 }

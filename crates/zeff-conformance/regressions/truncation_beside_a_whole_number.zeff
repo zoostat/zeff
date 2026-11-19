@@ -1,0 +1,18 @@
+// Corrected at release 0.8.0 (step 20n). A count distribution truncated to an interval whose
+// lower bound stood a hair above a whole number, as `lower: 1e-10, upper: 0.5`, ended in an
+// internal error at every quantile and every draw. The probability of the interval counted 0,
+// since a count distribution reads 1e-10 as 0, while the quantile searched from the next whole
+// number up, 1, to the last, 0. The nightly fuzz target found it. A bound within 1e-7 of a
+// whole number now counts as that number in every function of the truncation, and a quantile
+// is always a whole number that the interval keeps. No rows.
+let d = dist.truncated(dist.poisson(lambda: 3), lower: 1e-10, upper: 0.5)
+d.quantile(0.5)
+d.quantile(0)
+d.quantile(1)
+d.pdf(0)
+d.draw(3, seed: 1)
+dist.truncated(dist.poisson(lambda: 7.1e-304), lower: 4e-323, upper: 2.1e-314).draw(2, seed: 1)
+let b = dist.truncated(dist.binomial(n: 10, p: 0.5), lower: 2.5, upper: 20.5)
+b.quantile(0)
+b.quantile(1)
+b.pdf(3)

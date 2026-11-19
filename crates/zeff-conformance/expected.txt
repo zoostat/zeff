@@ -284,6 +284,8 @@ regressions/index_of_a_tests_intervals/stdout cbf29ce484222325
 regressions/index_of_a_tests_intervals/stderr 2b8e797a9a8df4fb
 regressions/truncation_near_its_bound/stdout fd0f83f98d7ef264
 regressions/truncation_near_its_bound/stderr cbf29ce484222325
+regressions/truncation_beside_a_whole_number/stdout 04f40781d297278f
+regressions/truncation_beside_a_whole_number/stderr cbf29ce484222325
 plot/lines/stdout c69bf28498722bf2
 plot/lines/stderr 292ed9115946fd12
 plot/lines/scene 6a1463f916305adf
