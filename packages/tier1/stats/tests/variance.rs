@@ -364,7 +364,18 @@ proptest! {
             }
         }
         let (a, b) = (bartlett(&samples).unwrap(), bartlett(&moved).unwrap());
-        prop_assert!(same(a.statistic, b.statistic) || (a.statistic.abs() < 1e-9 && b.statistic.abs() < 1e-9), "bartlett {} {}", a.statistic, b.statistic);
+        // Bartlett's statistic is a difference of sums of logarithms, each of size N ln s²: when
+        // the groups' variances are nearly equal it is the rounding left of that difference,
+        // and no unit keeps its seventh digit. Two groups with variances 65.967 and 65.981 give
+        // 6.5258966e-8 in one unit and 6.5258959e-8 in another, here and in R's
+        // `bartlett.test` to the last digit (the seed kept in `variance.proptest-regressions`,
+        // met by CI on 19 November 2026). So the statistic is held to seven digits or to 1e-12
+        // of a chi-square, whichever is the larger; the clause for a statistic below 1e-9,
+        // which this replaces, drew the line too low.
+        prop_assert!(
+            same(a.statistic, b.statistic) || (a.statistic - b.statistic).abs() <= 1e-12,
+            "bartlett {} {}", a.statistic, b.statistic
+        );
         prop_assert!(same(a.p, b.p) || (a.p > 1.0 - 1e-6 && b.p > 1.0 - 1e-6), "bartlett p {} {}", a.p, b.p);
         let (a, b) = (
             ratio(&samples[0], &samples[1], 0.95).unwrap(),

@@ -6281,3 +6281,15 @@ The library takes `hypher` with every language, and a crate that uses the librar
 
 **Reason.** Open decision #103; the checklist's step 22a2.
 
+## 19 November 2026: a property of the variance tests that CI failed, and its tolerance (after step 22a2)
+
+**What happened.** The CI of step 22a2 (6ee904c) failed in one test that the step did not touch: `moving_or_scaling_the_variable_changes_no_test` of `stats/tests/variance.rs`, a property with random cases, which had passed on every run since step 8j. GitHub's machine drew two groups whose variances are 65.967 and 65.981. Bartlett's statistic for them is 6.5258966e-8, and after every value is multiplied by 9/8 it is 6.5258959e-8: the eighth digit differs, and the property asked for seven.
+
+**Whose fault.** The test's. R's `bartlett.test` gives the same two numbers to the last digit (6.5258965759874231e-08 and 6.5258959165715590e-08), so the engine computes what R computes. The statistic is a difference of sums of logarithms; when the variances are nearly equal it is what rounding leaves of that difference, about 7e-15 in absolute terms, and no arithmetic keeps seven digits of it. The p-value is 0.99980 in both units to ten digits. The property had a clause for this, "or both statistics are below 1e-9", and the line was drawn too low.
+
+**The change.** Bartlett's statistic is held to seven digits or to 1e-12 of a chi-square, whichever is the larger. A difference of 1e-12 in a chi-square statistic changes no p-value in its twelfth digit; a real fault of scaling would move the statistic by far more. The case CI found is kept in `variance.proptest-regressions`, so it runs first on every machine from now on; the property passes on it and on 2,560 fresh cases. Nothing of the engine changed.
+
+**For the record of the rule "never weaken a test to make it pass".** A tolerance was widened, and the reason is not that the test failed but that the reference software fails it identically: the property as written was false of the mathematics in floating point.
+
+**Reason.** The CI run of 6ee904c; the testing handbook's routine on every change (CI read after a push).
+

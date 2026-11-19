@@ -162,3 +162,13 @@ Step 20h `[engine]`: a text variable, a date and a time serve as `cluster:`, as 
 
 **For the owner to decide.** Nothing new. The earlier items stand.
 
+## 19 November 2026, after step 22a2: a random case that CI met in the variance tests
+
+**Done.** The CI of step 22a2 (6ee904c) failed in a property of the variance tests that the step had not touched: two groups with almost equal variances give a Bartlett statistic of 6.5e-8, whose eighth digit changes with the unit, in R exactly as in Zeff. The property's tolerance for a statistic near zero is corrected, the case is kept as a seed that runs first everywhere, and the decisions say why this is not a test weakened to pass. Nothing of the engine changed.
+
+**Green.** Format, clippy with warnings denied, the tests of `stats`; the rest of the workspace as at step 22a2, which was green here and on CI but for this test. CI read after the push.
+
+**Next.** Step 22b `[function]`: the other 36 pages of `core`.
+
+**For the owner to decide.** Nothing.
+
