@@ -335,6 +335,22 @@ impl<'a> Parser<'a> {
             K::Assign if self.previous_ends_an_expression() => Diagnostic::error("Z0315", format!("expected {expected}, found `=`"))
                 .primary(span, "`=` binds a name; it does not compare")
                 .help("write `==` to compare; `=` is for `let name = value` and for defining a column, as in `add(x = ...)`"),
+            // A reserved word where a value is read or a variable defined is meant as a name:
+            // `add(as = asin(x))`, `where(in > 0)`. At the start of a line it is a statement
+            // out of place (`else` with no `if`), which the plain message says better.
+            K::Keyword(keyword)
+                if expected == "an expression"
+                    && !keyword.is_reserved_for_later()
+                    && (self.pos > 0 && !matches!(self.tokens[self.pos - 1].kind, K::Newline)
+                        || self.tokens.get(self.pos + 1).is_some_and(|next| matches!(next.kind, K::Assign))) =>
+            {
+                Diagnostic::error("Z0301", format!("`{}` is a reserved word and cannot be a name", keyword.as_str()))
+                    .primary(span, "reserved word")
+                    .help(format!(
+                        "a variable with this name is written in backticks: `` `{}` ``; any other name needs none",
+                        keyword.as_str()
+                    ))
+            }
             K::Keyword(keyword) if keyword.is_reserved_for_later() => {
                 Diagnostic::error("Z0301", format!("`{}` is reserved for later use", keyword.as_str()))
                     .primary(span, "reserved word")
@@ -1280,6 +1296,16 @@ impl<'a> Parser<'a> {
             K::LBrace => self.record(),
             K::Keyword(Keyword::If) => self.if_expr(),
             K::Keyword(Keyword::Case) => self.case_expr(),
+            // `model = x * 2` inside a call defines a variable called `model`: the word is
+            // reserved, which the message for a name says, and no block was meant.
+            K::Keyword(Keyword::Model | Keyword::Dag)
+                if self
+                    .tokens
+                    .get(self.pos + 1)
+                    .is_some_and(|next| matches!(next.kind, K::Assign)) =>
+            {
+                Err(self.unexpected("an expression"))
+            }
             K::Keyword(Keyword::Model) => self.model_block(),
             K::Keyword(Keyword::Dag) => self.dag_block(),
             K::Keyword(Keyword::Fn) => self.fn_literal(),

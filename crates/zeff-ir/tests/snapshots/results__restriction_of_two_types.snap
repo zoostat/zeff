@@ -3,9 +3,9 @@ source: crates/zeff-ir/tests/results.rs
 expression: render(text)
 ---
 error[Z0221]: `==` compares values of one type, but these are a Float and a Str
- --> scripts/main.zeff:4:8
+ --> scripts/main.zeff:4:17
   |
 4 | m.test(hours == "a")
-  |        ^^^^^^^^^^^^ different types
+  |                 ^^^ text, not a term of the fit
   |
-  = help: Int and Float compare as numbers; text compares with text and Bool with Bool
+  = help: a term is written bare, not in quotes: `a`; `coef()` lists the names

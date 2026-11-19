@@ -1,0 +1,62 @@
+---
+source: crates/zeff-engine/tests/misleading_messages.rs
+expression: "all(&[&format!(\"{data}d.add(k = n_missing([x1, x2, x3]))\\n\"),\n&format!(\"{data}d.add(k = n_missing([x1]))\\n\"),\n&format!(\"{data}d.aggregate(k = n_missing([x1, x2]))\\n\"),\n&format!(\"{data}d.add(k = to(is_missing(x1), Int) + to(is_missing(x2), Int) + to(is_missing(x3), Int))\\n\"),\n&format!(\"{data}n_missing([1, NA, 3])\\nn_missing(d[\\\"x1\\\"])\\nd.aggregate(k = n_missing(x1))\\n\"),])"
+---
+let d = frame(x1 = [1.0, NA, 3.0], x2 = [NA, NA, 1.0], x3 = [1.0, 2.0, 3.0])
+d.add(k = n_missing([x1, x2, x3]))
+---- exit code 1
+error[Z0401]: `n_missing` counts the missing values of one variable or of a list of values, but this is a list of 3 variables
+ --> scripts/main.zeff:2:21
+  |
+2 | d.add(k = n_missing([x1, x2, x3]))
+  |                     ^^^^^^^^^^^^ a list of variables
+  |
+  = help: for the count across variables in each row, add the tests up: `to(is_missing(x1), Int) + to(is_missing(x2), Int)`; for one variable, `n_missing(x1)`
+
+====
+let d = frame(x1 = [1.0, NA, 3.0], x2 = [NA, NA, 1.0], x3 = [1.0, 2.0, 3.0])
+d.add(k = n_missing([x1]))
+---- exit code 1
+error[Z0401]: `n_missing` counts the missing values of one variable or of a list of values, but this is a list of 1 variable
+ --> scripts/main.zeff:2:21
+  |
+2 | d.add(k = n_missing([x1]))
+  |                     ^^^^ a list of variables
+  |
+  = help: for the count across variables in each row, add the tests up: `to(is_missing(x1), Int) + to(is_missing(x2), Int)`; for one variable, `n_missing(x1)`
+
+====
+let d = frame(x1 = [1.0, NA, 3.0], x2 = [NA, NA, 1.0], x3 = [1.0, 2.0, 3.0])
+d.aggregate(k = n_missing([x1, x2]))
+---- exit code 1
+error[Z0401]: `n_missing` counts the missing values of one variable or of a list of values, but this is a list of 2 variables
+ --> scripts/main.zeff:2:27
+  |
+2 | d.aggregate(k = n_missing([x1, x2]))
+  |                           ^^^^^^^^ a list of variables
+  |
+  = help: for the count across variables in each row, add the tests up: `to(is_missing(x1), Int) + to(is_missing(x2), Int)`; for one variable, `n_missing(x1)`
+
+====
+let d = frame(x1 = [1.0, NA, 3.0], x2 = [NA, NA, 1.0], x3 = [1.0, 2.0, 3.0])
+d.add(k = to(is_missing(x1), Int) + to(is_missing(x2), Int) + to(is_missing(x3), Int))
+---- exit code 0
+frame · 3 rows × 4 variables
+
+      x1   x2   x3   k
+  1    1   NA    1   1
+  2   NA   NA    2   2
+  3    3    1    3   0
+
+====
+let d = frame(x1 = [1.0, NA, 3.0], x2 = [NA, NA, 1.0], x3 = [1.0, 2.0, 3.0])
+n_missing([1, NA, 3])
+n_missing(d["x1"])
+d.aggregate(k = n_missing(x1))
+---- exit code 0
+1
+1
+frame · 1 row × 1 variable
+
+      k
+  1   1

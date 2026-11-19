@@ -286,6 +286,25 @@ pub fn test(ctx: &mut CallContext<'_>, args: Args) -> Result<Value, Fail> {
             }
             Err(NotLinear::Term(trouble)) => return Err(term_error(ctx, &fit, trouble, span)),
             Err(NotLinear::Shape(what)) => {
+                // Text in a restriction is a term's name written in quotes.
+                let quoted = text
+                    .split_once('"')
+                    .and_then(|(_, rest)| rest.split_once('"'))
+                    .map(|(name, _)| name);
+                let plain = |name: &str| {
+                    let mut chars = name.chars();
+                    chars.next().is_some_and(|c| c.is_alphabetic() || c == '_')
+                        && chars.all(|c| c.is_alphanumeric() || c == '_')
+                };
+                let help = match quoted {
+                    Some(name) if plain(name) => format!(
+                        "a term is written bare, not in quotes: `{name}`; `coef()` lists the names"
+                    ),
+                    Some(name) => format!(
+                        "a term is written in backticks, not in quotes: `` `{name}` ``; `coef()` lists the names"
+                    ),
+                    None => "`test` takes equalities linear in the coefficients, `educ == exper` or `educ + exper == 1`; `derive` computes a nonlinear combination with its standard error".to_string(),
+                };
                 return Err(fail(
                     Diagnostic::error(
                         "Z0415",
@@ -293,7 +312,7 @@ pub fn test(ctx: &mut CallContext<'_>, args: Args) -> Result<Value, Fail> {
                     )
                     .in_file(ctx.script)
                     .primary(span, "not linear in the coefficients")
-                    .help("`test` takes equalities linear in the coefficients, `educ == exper` or `educ + exper == 1`; `derive` computes a nonlinear combination with its standard error"),
+                    .help(help),
                 ));
             }
         }

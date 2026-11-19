@@ -91,6 +91,28 @@ pub fn coalesce_as(name: &str, ctx: &mut CallContext<'_>, args: Args) -> Result<
 fn n_missing(ctx: &mut CallContext<'_>, mut args: Args) -> Result<Value, Fail> {
     match args.take(0) {
         Some(Value::List(items)) => {
+            // A list of columns, as `n_missing([x1, x2, x3])` inside `add`, is not a list of
+            // values: counting its items would give 0 in every row, where the count of missing
+            // values across the variables in each row was meant (open decision #166).
+            let columns = items.iter().filter(|v| matches!(v, Value::Column(_))).count();
+            if columns > 0 {
+                return Err(fail(
+                    Diagnostic::error(
+                        "Z0401",
+                        format!(
+                            "`n_missing` counts the missing values of one variable or of a list of values, but this is a list of {}",
+                            if columns == 1 {
+                                "1 variable".to_string()
+                            } else {
+                                format!("{} variables", zeff_diagnostics::count(columns as u64))
+                            }
+                        ),
+                    )
+                    .in_file(ctx.script)
+                    .primary(ctx.span_of(0), "a list of variables")
+                    .help("for the count across variables in each row, add the tests up: `to(is_missing(x1), Int) + to(is_missing(x2), Int)`; for one variable, `n_missing(x1)`"),
+                ));
+            }
             let failed = items.iter().filter(|v| matches!(v, Value::Failed(_))).count();
             if failed > 0 {
                 let causes: Vec<String> = items
@@ -152,10 +174,16 @@ pub fn functions() -> Vec<Function> {
                 params: vec![ParamSpec::required("x", "List | Column")],
                 rest: None,
                 returns: "Int",
-                diagnostics: vec![zeff_registry::DiagnosticDecl::new(
-                    "W0801",
-                    "the list holds failed values, which are skipped and counted",
-                )],
+                diagnostics: vec![
+                    zeff_registry::DiagnosticDecl::new(
+                        "W0801",
+                        "the list holds failed values, which are skipped and counted",
+                    ),
+                    zeff_registry::DiagnosticDecl::new(
+                        "Z0401",
+                        "a list of variables, whose missing values are counted one variable at a time",
+                    ),
+                ],
                 help: include_str!("../help/n_missing.md"),
                 accuracy: None,
             },

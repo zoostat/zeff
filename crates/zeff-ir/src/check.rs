@@ -4699,6 +4699,32 @@ impl Checker<'_> {
                         return Expr::error(span);
                     }
                     let (l, r) = (left.ty.clone(), right.ty.clone());
+                    // Inside a restriction over the terms of a fit, text beside a number is a
+                    // term's name written in quotes: a term is written bare, or in backticks
+                    // when it is not a plain name (`rank=Associate`).
+                    if self.term_depth > 0
+                        && let Some((text, at)) =
+                            [&left, &right]
+                                .into_iter()
+                                .find_map(|side| match &side.kind {
+                                    ExprKind::Str(text) => Some((text.clone(), side.span)),
+                                    _ => None,
+                                })
+                    {
+                        self.report(
+                            Diagnostic::error(
+                                "Z0221",
+                                format!("`{symbol}` compares values of one type, but these are {} and {}", l.with_article(), r.with_article()),
+                            )
+                            .primary(at, "text, not a term of the fit")
+                            .help(if is_plain_name(&text) {
+                                format!("a term is written bare, not in quotes: `{text}`; `coef()` lists the names")
+                            } else {
+                                format!("a term is written in backticks, not in quotes: `` `{text}` ``; `coef()` lists the names")
+                            }),
+                        );
+                        return Expr::error(span);
+                    }
                     return self.wrong_operands(
                         span,
                         format!("`{symbol}` compares values of one type, but these are {} and {}", l.with_article(), r.with_article()),
@@ -9196,4 +9222,12 @@ pub(crate) fn result_field_help(ty: &Ty, name: &str) -> String {
         ),
         _ => format!("a method call has parentheses: `.{name}()`"),
     }
+}
+
+/// Whether a text is a name that needs no backticks: letters, digits and `_`, not starting
+/// with a digit.
+fn is_plain_name(text: &str) -> bool {
+    let mut chars = text.chars();
+    chars.next().is_some_and(|c| c.is_alphabetic() || c == '_')
+        && chars.all(|c| c.is_alphanumeric() || c == '_')
 }

@@ -1,0 +1,103 @@
+---
+source: crates/zeff-engine/tests/misleading_messages.rs
+expression: "all(&[&format!(\"{data}d.add(as = asin(x))\\n\"),\n&format!(\"{data}d.where(in > 0.1)\\n\"), &format!(\"{data}let y = 1 + use\\n\"),\n&format!(\"{data}d.add(model = x * 2, dag = x)\\n\"),\n&format!(\"{data}let as = 3\\n\"), &format!(\"{data}d.add(while = x)\\n\"),\n&format!(\"{data}d.add(`as` = asin(x)).where(`as` > 0.15)\\n\"),\n&format!(\"{data}else\\n\"), &format!(\"{data}d.add(y = )\\n\"),])"
+---
+let d = frame(x = [0.1, 0.2])
+d.add(as = asin(x))
+---- exit code 1
+error[Z0301]: `as` is a reserved word and cannot be a name
+ --> scripts/main.zeff:2:7
+  |
+2 | d.add(as = asin(x))
+  |       ^^ reserved word
+  |
+  = help: a variable with this name is written in backticks: `` `as` ``; any other name needs none
+
+====
+let d = frame(x = [0.1, 0.2])
+d.where(in > 0.1)
+---- exit code 1
+error[Z0301]: `in` is a reserved word and cannot be a name
+ --> scripts/main.zeff:2:9
+  |
+2 | d.where(in > 0.1)
+  |         ^^ reserved word
+  |
+  = help: a variable with this name is written in backticks: `` `in` ``; any other name needs none
+
+====
+let d = frame(x = [0.1, 0.2])
+let y = 1 + use
+---- exit code 1
+error[Z0301]: `use` is a reserved word and cannot be a name
+ --> scripts/main.zeff:2:13
+  |
+2 | let y = 1 + use
+  |             ^^^ reserved word
+  |
+  = help: a variable with this name is written in backticks: `` `use` ``; any other name needs none
+
+====
+let d = frame(x = [0.1, 0.2])
+d.add(model = x * 2, dag = x)
+---- exit code 1
+error[Z0301]: `model` is a reserved word and cannot be a name
+ --> scripts/main.zeff:2:7
+  |
+2 | d.add(model = x * 2, dag = x)
+  |       ^^^^^ reserved word
+  |
+  = help: a variable with this name is written in backticks: `` `model` ``; any other name needs none
+
+====
+let d = frame(x = [0.1, 0.2])
+let as = 3
+---- exit code 1
+error[Z0301]: `as` is a reserved word and cannot be a name
+ --> scripts/main.zeff:2:5
+  |
+2 | let as = 3
+  |     ^^ reserved word
+  |
+  = help: a column with this name is written in backticks: `` `as` ``
+
+====
+let d = frame(x = [0.1, 0.2])
+d.add(while = x)
+---- exit code 1
+error[Z0301]: `while` is reserved for later use
+ --> scripts/main.zeff:2:7
+  |
+2 | d.add(while = x)
+  |       ^^^^^ reserved word
+  |
+  = help: Zeff has no `while`; loops are `for` over a known length, and `iterate` repeats until convergence
+
+====
+let d = frame(x = [0.1, 0.2])
+d.add(`as` = asin(x)).where(`as` > 0.15)
+---- exit code 0
+frame · 1 row × 2 variables
+
+        x         as
+  1   0.2   0.201358
+
+====
+let d = frame(x = [0.1, 0.2])
+else
+---- exit code 1
+error[Z0301]: expected an expression, found `else`
+ --> scripts/main.zeff:2:1
+  |
+2 | else
+  | ^^^^ expected an expression
+
+====
+let d = frame(x = [0.1, 0.2])
+d.add(y = )
+---- exit code 1
+error[Z0301]: expected an expression, found `)`
+ --> scripts/main.zeff:2:11
+  |
+2 | d.add(y = )
+  |           ^ expected an expression

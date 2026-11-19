@@ -391,9 +391,9 @@ error[Z0221]: `==` compares values of one type, but these are a Str and an Int
  --> scripts/main.zeff:3:8
   |
 3 | m.test("educ" == 1)
-  |        ^^^^^^^^^^^ different types
+  |        ^^^^^^ text, not a term of the fit
   |
-  = help: Int and Float compare as numbers; text compares with text and Bool with Bool
+  = help: a term is written bare, not in quotes: `educ`; `coef()` lists the names
 [exit 1]
 
 > let wages = dataset(wages)

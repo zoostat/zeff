@@ -180,3 +180,13 @@ Step 19: `zeff explain <code>` prints a code's page and lists the 144 codes by f
 
 **For the owner to decide.** Nothing new. The earlier items stand.
 
+## 19 November 2026, release 0.8.0, step 20j (three refusals that misled)
+
+**Done.** Step 20j `[function]`, split in three in the checklist (20j, 20k, 20l), since its six messages sit on three pieces of machinery. Done here: `n_missing([x1, x2, x3])` inside `add` is refused where it gave 0 in every row, with the line that counts across a row; a term written as text inside `test` is answered with the term as it should be written; a reserved word used as a name (`add(as = asin(x))`) is said to be one.
+
+**Green.** Format, clippy with warnings denied, the tier, message and grammar checks, every test of the workspace; CI read after the push. The CI of step 20i (86ec67a) is green.
+
+**Next.** Step 20k `[function]`: the warning of a branch of `case` counts the rows the branch decides, and a note names a variable reused in `aggregate`.
+
+**For the owner to decide.** Nothing new. The earlier items stand.
+

@@ -6126,3 +6126,17 @@ Where the option is not a word written in the call (it comes from a record of op
 
 **Reason.** The review against R of 19 November 2026; Engine and Project Specification, section 13 (tails computed directly) and section 8.3, point 3; the checklist's step 20i.
 
+## 19 November 2026: three refusals that said nothing the writer could act on (release 0.8.0, step 20j), and the step split in three
+
+**The split.** Step 20j of the checklist held six messages, (a) to (f), on three different pieces of machinery. It is split, the parts keeping their letters: 20j the three refusals (b), (d), (e); 20k the warning of a branch of `case` and the name reused in `aggregate`, (a) and (c); 20l what is said once with a count, (f).
+
+**(b) `n_missing` of a list of variables.** `add(k = n_missing([x1, x2, x3]))` counted three items, none of them `NA`, and gave 0 in every row without a word. A list holding a variable is now refused by `n_missing` (Z0401, the caret under the list). The help line says what can be written today, `to(is_missing(x1), Int) + to(is_missing(x2), Int)`, which was run before it was stored; it does not promise `row(vars, stat: n_missing)`, which is open decision #166 and not yet the owner's. A list of values and one variable count as before.
+
+**(d) A term written as text inside `test`.** `m.test("rank=Associate" == 0)` was answered that a Str is compared with an Int, with the general help of comparisons. Inside a restriction or a definition over the terms, the caret now stands under the text, labelled "text, not a term of the fit", and the help gives the term as it is written: in backticks when it is not a plain name, bare when it is (`"educ" == 0` is answered `educ`). Two terms both written as text pass the check (text compares with text) and are refused when the test runs (Z0415); that refusal carries the same help.
+
+**(e) A reserved word used as a name.** `add(as = asin(x))` was answered "expected an expression, found `as`". A reserved word where a value is read or a variable defined is now answered "`as` is a reserved word and cannot be a name", with the backticks that make it a name; `model = x` and `dag = x` inside a call, which were answered "expected `{` and the lines of the model", say the same. A reserved word at the start of a line (`else` with no `if`) is a statement out of place and keeps the plain message; the eight words reserved for later keep theirs.
+
+**Held by.** `zeff-engine/tests/misleading_messages.rs`, one test for each part with what was said before; the stored messages of `zeff-ir/tests/results.rs` and `results/tests/inference.rs`, which changed with (d). The help page of `n_missing` has the sentence and an example.
+
+**Reason.** The review against R of 19 November 2026; the checklist's step 20j; open decision #166.
+
