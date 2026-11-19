@@ -359,6 +359,10 @@ jobs:
       SELECTED: ${{ !inputs.shard || contains(format(',{0},', inputs.shard), format(',{0} {1}/{2},', matrix.package, matrix.shard, matrix.of)) }}
     strategy:
       fail-fast: false
+      # Fourteen shards at once, so that six runners are left for the checks of a push: the run
+      # of 19 November 2026 took all twenty for hours, and the checks of three commits waited
+      # behind it (docs/decisions.md, 20 November 2026).
+      max-parallel: 14
       matrix:
         include:
           - { package: zeff-numeric, shard: 0, of: 24, uses: "zeff-dist zeff-stats zeff-kernels zeff-conformance" }

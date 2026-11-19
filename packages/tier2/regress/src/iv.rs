@@ -2518,6 +2518,48 @@ mod tests {
         assert_eq!(quadratic_form(&matrix(&[&[4.0]]), &[2.0]), Some(1.0));
     }
 
+    /// The warning for weak instruments at its two edges: an F of exactly 10 is not under 10,
+    /// and an effective F equal to its critical value is not under it. (Two surviving mutants
+    /// of release 0.8.0, step 24a2c, moved the edges; no data lands on them.)
+    #[test]
+    fn the_warning_for_weak_instruments_at_its_edges() {
+        let weak = |f: f64, effective: Option<(f64, f64)>, robust: bool| Weak {
+            df1: 1,
+            df2: 100.0,
+            f: vec![Some(f)],
+            wald: vec![Some(f)],
+            cragg_donald: Some(f),
+            kleibergen_paap: Some(f),
+            effective: effective.map(|(f, critical)| Effective {
+                f,
+                degrees: 1.0,
+                critical,
+            }),
+            robust,
+        };
+        for robust in [false, true] {
+            assert!(weak(WEAK_F, None, robust).warning().is_none());
+            assert!(weak(WEAK_F - 1e-9, None, robust).warning().is_some());
+        }
+        assert!(weak(50.0, Some((23.0, 23.0)), true).warning().is_none());
+        let under = weak(50.0, Some((22.9, 23.0)), true).warning().unwrap();
+        assert!(
+            under
+                .message
+                .contains("the effective F is 22.90, under its critical value of 23.00"),
+            "{}",
+            under.message
+        );
+        // Both reasons in one sentence.
+        let both = weak(4.0, Some((3.0, 23.0)), true).warning().unwrap();
+        assert!(
+            both.message
+                .contains("the Kleibergen–Paap F is 4.00, under 10, and the effective F is 3.00"),
+            "{}",
+            both.message
+        );
+    }
+
     /// The inverse and the inverse root by eigenvalues, and nothing for a singular matrix.
     #[test]
     fn the_inverse_and_its_root() {

@@ -614,6 +614,20 @@ fn a_variable_too_large_or_too_small_to_scale_is_named_so() {
     }
 }
 
+/// The residuals and the fitted values of a weighted fit are those of the rows as observed:
+/// the outcome less the fitted value is the residual, `predict` on the fitted frame is
+/// `fitted`, and the residuals' standard deviation is R's (two stages by `lm` with weights,
+/// the residuals from the regressors as observed: 5.918511). A surviving mutant of release
+/// 0.8.0, step 24a2c, took the remainder where the residuals are divided by the roots of the
+/// weights; the only test of this identity had no weights.
+#[test]
+fn the_residuals_of_a_weighted_fit_are_the_outcome_less_the_fitted_values() {
+    let out = printed(
+        "let staff = dataset(staff)\nlet iv = staff.ivreg(productivity ~ age + training, instruments: training ~ offer, weights: tenure, weight_type: analytic)\nlet d = staff.add(p = iv.predict(staff), f = iv.fitted(), e = iv.residuals())\nlet c = d.add(gap = abs(p - f), left = abs(productivity - f - e)).aggregate(largest_gap = max(gap), largest_left = max(left), spread = sd(e))\nprint(c.where(largest_gap < 1e-10 && largest_left < 1e-10 && abs(spread - 5.918511) < 1e-6).n_rows())\n",
+    );
+    assert_eq!(out, "1\n", "{out}");
+}
+
 /// The lines of a printed result from the table of coefficients to its end, without the count
 /// of rows, which says how the rows came to be left out.
 fn from_the_table(printed: &str) -> String {

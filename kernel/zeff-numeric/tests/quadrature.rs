@@ -72,6 +72,39 @@ fn a_function_the_rule_cannot_follow_is_given_up() {
     assert_eq!(integral(&gap, 0.0, 1.0), None);
 }
 
+/// The agreement asked of two halves is a share of the integral's size, whatever that size is:
+/// an integrand a million times larger or smaller settles to the same digits. The rule cannot
+/// follow e^x sin(30x) on [0, 1] in one piece, so the halving decides the answer, which is
+/// e^x (sin(30x) − 30 cos(30x)) / 901 between the ends. (A surviving mutant of release 0.8.0,
+/// step 24a2c, divided by the size where the agreement multiplies by it: no test had an
+/// integral whose size was not near one.)
+#[test]
+fn the_agreement_is_a_share_of_the_integral_whatever_its_size() {
+    let primitive = |x: f64| x.exp() * ((30.0 * x).sin() - 30.0 * (30.0 * x).cos()) / 901.0;
+    let exact = primitive(1.0) - primitive(0.0);
+    for scale in [1e-6, 1.0, 1e6, 1e150] {
+        let got = integral(&|x: f64| scale * x.exp() * (30.0 * x).sin(), 0.0, 1.0)
+            .unwrap_or_else(|| panic!("given up at a scale of {scale:e}"));
+        assert!(
+            relative(got, scale * exact) < 1e-12,
+            "at a scale of {scale:e}: {got:e} against {:e}",
+            scale * exact
+        );
+    }
+}
+
+/// A steep end on the right is given up as one on the left is: each half is halved at most
+/// ten times, the right one too. (Two surviving mutants of the same step let the right half
+/// be halved without end; the only steep end in the tests was on the left, where the left
+/// half gives up first.)
+#[test]
+fn a_steep_end_on_the_right_is_given_up_too() {
+    assert_eq!(
+        integral(&|x: f64| 1.0 / (1.0 - x).sqrt(), 0.0, 1.0 - 1e-10),
+        None
+    );
+}
+
 #[test]
 fn the_same_bits_on_every_call() {
     let f = |x: f64| (-0.5 * x * x).exp();
