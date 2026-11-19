@@ -17,12 +17,35 @@ line. Like R's `choose()` and Stata's `comb()`.
 ## Value
 A Float; a column of Floats when either argument is a column.
 
+## Missing values
+`NA` in either argument gives `NA`. A negative `n` also gives `NA`, with warning W0205, and a result beyond the largest Float gives `Inf`, with warning W0204; in columns the rows of each are counted in one warning.
+
 ## Details
 The coefficient is computed as a product of exact integers, C(n − k + i, i) at each step, in
 128-bit arithmetic while it fits, so every value below 2^53 is exact; beyond that each step
 rounds once, and the result is within a few units in the last place of the exact value on every
 target. Once `k` exceeds 600 (so `n` exceeds 1,200) the result exceeds the largest Float whatever
 `n` is, and is `Inf` at once.
+
+## A common mistake
+Asking for a coefficient that no Float holds. The result is `Inf`, and the warning gives the form that stays finite:
+
+> choose(1100, 550)
+Inf
+warning[W0204]: choose beyond the largest Float gave Inf (line 5)
+  = help: `log_gamma(n + 1) - log_gamma(k + 1) - log_gamma(n - k + 1)` gives the logarithm, which stays finite
+
+Work with the logarithm: `log_gamma(1101) - 2 * log_gamma(551)` is the logarithm of that coefficient.
+
+## Coming from R or Stata
+| choose(n, k) | choose(n, k) | comb(n, k) |
+
+For `k` below 0 or above `n` Zeff and R give 0, the number of ways there are; Stata's `comb` takes
+`k` from 0 to `n` only.
+
+## Related tasks
+- For the number of orders, use `factorial`.
+- For the probability of k successes in n trials, use `dist.binomial`.
 
 ## References
 Abramowitz, M. and Stegun, I. A. (1964). *Handbook of Mathematical Functions*, section 24.1.1.
@@ -32,13 +55,26 @@ National Bureau of Standards.
 factorial, gamma, log_gamma
 
 ## Examples
+// Two of five.
 > choose(5, 2)
 10
-> choose(50, 25)
-126410606437752
+
+// Six numbers of forty-nine, as in a lottery.
+> choose(49, 6)
+13983816
+
+// More than there are: no way.
 > choose(5, 7)
 0
-> choose(1100, 550)
-Inf
-warning[W0204]: choose beyond the largest Float gave Inf (line 4)
-  = help: `log_gamma(n + 1) - log_gamma(k + 1) - log_gamma(n - k + 1)` gives the logarithm, which stays finite
+
+// Row by row: the row of Pascal's triangle for five.
+> frame(k = [0, 1, 2, 3, 4, 5]).add(ways = choose(5, k))
+frame · 6 rows × 2 variables
+
+      k   ways
+  1   0      1
+  2   1      5
+  3   2     10
+  4   3     10
+  5   4      5
+  6   5      1

@@ -152,3 +152,13 @@ Step 20h `[engine]`: a text variable, a date and a time serve as `cluster:`, as 
 
 **For the owner to decide.** Nothing new. The one example frame used on every page (worker 19 of the wages) is a choice of presentation; say if another is wanted. The earlier items stand.
 
+## 19 November 2026, release 0.8.0, step 22a2 (the pages of `core`, part 1b)
+
+**Done.** Step 22a2 `[function]`: the 17 pages from `sin` to `E` brought to the contract as the 18 of step 22a were. The 35 pages of maths and constants are off the list of unrevised pages, which now holds 204.
+
+**Green.** Format, clippy with warnings denied, the tier, message and grammar checks, every test of the workspace; CI read after the push. The CI of step 22a (500aadb) is green.
+
+**Next.** Step 22b `[function]`: the other 36 pages of `core` (missing values, types, collections and control).
+
+**For the owner to decide.** Nothing new. The earlier items stand.
+

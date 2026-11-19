@@ -3,23 +3,6 @@
 # decision #103). A page listed here is held to the contract as it stood; one not listed, to the
 # contract in full. A line is struck when its page is revised, and the list is empty at 0.10.0.
 # One line per page: the package and the function's catalogue name.
-core sin
-core cos
-core tan
-core asin
-core acos
-core atan
-core atan2
-core logit
-core inv_logit
-core factorial
-core choose
-core gamma
-core log_gamma
-core beta
-core is_finite
-core PI
-core E
 core to
 core is
 core type_of

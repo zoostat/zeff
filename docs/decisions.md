@@ -6267,3 +6267,17 @@ The library takes `hypher` with every language, and a crate that uses the librar
 
 **Reason.** Open decision #103; Engine and Project Specification, section 9.1, "The contract of 0.8.0"; the checklist's step 22a.
 
+## 19 November 2026: the pages of `core` revised, part 1b (release 0.8.0, step 22a2; open decision #103)
+
+**Done as step 22a was**, for the 17 pages from `sin` to `E`: trigonometry (7), the logistic pair (2, written in Zeff), the special functions (5), `is_finite` and the two constants. The maths and the constants of `core`, 35 pages, are now off the list of unrevised pages, which holds 204.
+
+**The common mistake of `sin`, `cos` and `tan`.** The likeliest mistake is an angle in degrees, and the engine can print nothing for it: `sin(90)` is a number. The contract asks the part to show a diagnostic the engine prints. The part therefore says the mistake in words, with the conversion, and then shows the one thing the function does warn of, an infinite angle. A warning for an angle "that looks like degrees" was not added: any number is a valid angle.
+
+**Examples in degrees.** The row-by-row example of the trigonometric pages is a frame of angles written in the statement, in degrees, converted inside the call; the wages have no angle in them, and a sine of hours worked would teach nothing. `sin` of 180 degrees prints `1.22465e-16`, which the page's Details explain; it is left to be seen.
+
+**Stata, said with care.** The table of `beta` gives Stata's form through `lngamma`, which is certain; the description's older sentence that Stata has `lnbeta()` was left as it stood. `choose`: Stata's `comb` is said to take `k` from 0 to `n`, without a claim about what it returns outside. `atan2`: the three are said to take the vertical coordinate first, with the note that a spreadsheet does not.
+
+**Held by.** The example runner and the contract tests, as before; no page's output was typed by hand.
+
+**Reason.** Open decision #103; the checklist's step 22a2.
+

@@ -8,24 +8,34 @@
 ///
 /// p: A probability, or a column of probabilities.
 /// returns: The log odds, a Float; a column when `p` is one.
+/// missing values: `NA` gives `NA`. A probability of 0 gives `-Inf` and one of 1 gives `Inf`, each with warning W0204, and a value outside 0 to 1 gives `NA` with warning W0205; in a column the rows of each are counted in one warning.
 /// details: Computed as `log(p / (1 - p))`, as R's `qlogis` does, so near 1 it loses the digits that `1 - p` loses; for a probability that small a difference from one, work with the odds instead.
 /// reference: Johnson, N. L., Kotz, S. and Balakrishnan, N. (1995) Continuous Univariate Distributions, volume 2, 2nd edition, chapter 23 (the logistic distribution).
 /// reference: R Core Team, the `qlogis` function of the stats package.
+/// coming from: logit(p) | qlogis(p) | logit(p)
+/// coming from: R names it as the quantile function of the logistic distribution. Outside 0 to 1 R returns `NaN` with a warning and Stata missing without a word; Zeff returns `NA` and counts the rows.
+/// related: To turn log odds back into a probability, use `inv_logit`.
 /// see also: inv_logit, log, exp
+/// example: Even odds.
 /// > logit(0.5)
 /// 0
+/// example: Nine to one.
 /// > logit(0.9)
 /// 2.19722
-/// > logit(0.1)
-/// -2.19722
+/// example: A probability of zero has no finite log odds, and the warning says so.
 /// > logit(0)
 /// -Inf
-/// warning[W0204]: log of zero gave -Inf (line 4)
+/// warning[W0204]: log of zero gave -Inf (line 3)
 ///   = help: `log1p(x)` is log(1 + x) and is finite at zero; or keep the rows with `where(x > 0)`
-/// > logit(1)
-/// Inf
-/// warning[W0204]: division by zero gave Inf (line 5)
-///   = help: test the divisor first, as in `b != 0 && a / b > 1`; on a frame, `where(b != 0)`
+/// example: Row by row, on shares; the missing share stays missing.
+/// > frame(share = [0.1, 0.5, 0.9, NA]).add(log_odds = logit(share))
+/// frame · 4 rows × 2 variables
+///
+///       share   log_odds
+///   1     0.1   -2.19722
+///   2     0.5          0
+///   3     0.9    2.19722
+///   4      NA         NA
 fn logit(p: Float) -> Float {
     log(p / (1 - p))
 }
