@@ -17,15 +17,35 @@ first, `all(xs >= 0)` on a column. Like R's `all`, which gives the same answers 
 ## Value
 A Bool, or `NA` when no item is `false` and some are missing.
 
+## Missing values
+An `NA` among the items is an unknown truth. If some item is `false` the answer is `false` whatever is unknown; if none is, and some are `NA`, the answer is `NA`. Nothing is skipped: for the answer among the known items, test them first, `all(coalesce(x > 0, true))`.
+
+## Coming from R or Stata
+| all(xs) | all(xs) | no single function |
+| all(d["x"] > 0) | all(d$x > 0) | count if !(x > 0), then r(N) == 0 |
+
+R gives the same answers with `NA`. In Stata a comparison with a missing value is not unknown:
+missing counts as larger than every number, so `x > 0` is true of a missing `x` there.
+
+## Related tasks
+- For a test of at least one item, use `any`.
+
 ## See also
 any, is_in, is_missing
 
 ## Examples
+// Every item is true.
 > all([true, true])
 true
+
+// None is false and one is unknown: unknown.
 > all([true, NA])
 NA
+
+// One is false: the unknown one cannot change that.
 > all([false, NA])
 false
-> all([])
-true
+
+// On a column of the shipped wages: the hours have missing values, so whether all are positive is unknown.
+> all(dataset(wages)["hours"] > 0)
+NA

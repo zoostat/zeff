@@ -172,3 +172,13 @@ Step 20h `[engine]`: a text variable, a date and a time serve as `cluster:`, as 
 
 **For the owner to decide.** Nothing.
 
+## 19 November 2026, release 0.8.0, step 22b (the pages of `core`, part 2a: collections)
+
+**Done.** Step 22b `[function]`, split in three by kind (22b, 22b2, 22b3). Done here: the 17 pages on lists, records and mappings, `len` to `reduce`, brought to the contract as the maths pages were. The list of unrevised pages holds 187.
+
+**Green.** Format, clippy with warnings denied, the tier, message and grammar checks, every test of the workspace; CI read after the push. The CI of the correction after step 22a2 (32d4852) is green.
+
+**Next.** Step 22b2 `[function]`: the 10 pages on types, categories and missing values.
+
+**For the owner to decide.** Nothing new. The earlier items stand.
+

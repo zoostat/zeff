@@ -23,25 +23,53 @@ error: count down with `step: -1`. Like R's `seq(from, to, by)`, to the bit.
 ## Value
 A list of Ints when `from`, `to` and `step` are all Ints, otherwise a list of Floats.
 
+## A common mistake
+Counting down without saying so, as R's `seq(5, 1)` does by itself. The step is 1 unless given, and 1 never reaches a smaller number:
+
+> seq(5, 1)
+error[Z0418]: `seq` cannot reach `to` with this `step`
+  = help: the step has the sign of `to - from`: `seq(5, 1, step: -1)` counts down, and `seq(1, 5)` counts up
+
+Give the step its sign: `seq(5, 1, step: -1)`.
+
+## Coming from R or Stata
+| seq(1, 5) | seq(1, 5) or 1:5 | numlist "1/5" |
+| seq(0, 1, step: 0.25) | seq(0, 1, by = 0.25) | numlist "0(0.25)1" |
+| seq(5, 1, step: -1) | seq(5, 1) or 5:1 | numlist "5(-1)1" |
+
+R counts down by itself when `to` is below `from`; here that is an error, since a loop over
+`seq(1, n)` with `n` at 0 would otherwise run twice, over 1 and 0. The values agree with R's to
+the last bit.
+
+## Related tasks
+- To go over the values, use `map`.
+
 ## See also
 len, first, last, reversed
 
 ## Examples
+// Whole numbers, a step of 1.
 > seq(1, 5)
 1
 2
 3
 4
 5
+
+// A step with a fraction.
 > seq(0, 1, step: 0.25)
 0
 0.25
 0.5
 0.75
 1
+
+// Counting down, with the step's sign given.
 > seq(10, 0, step: -5)
 10
 5
 0
+
+// Eleven values from 0 to 1, with no error built up along the way.
 > len(seq(0, 1, step: 0.1))
 11

@@ -6293,3 +6293,17 @@ The library takes `hypher` with every language, and a crate that uses the librar
 
 **Reason.** The CI run of 6ee904c; the testing handbook's routine on every change (CI read after a push).
 
+## 19 November 2026: the pages of `core` revised, part 2a, the collections (release 0.8.0, step 22b; open decision #103)
+
+**The split.** The 36 other pages of `core` are of three kinds: collections (17), types, categories and missing values (10), the program (9). Step 22b is the first; 22b2 and 22b3 the others.
+
+**Done as steps 22a and 22a2 were**, for `len`, `first`, `last`, `unique`, `sorted`, `reversed`, `any`, `all`, `append`, `keys`, `is_in`, `seq`, `equal`, `table`, `map`, `filter` and `reduce`. The list of unrevised pages holds 187.
+
+**The mistakes chosen.** Each is the call a reader coming from R is likeliest to write, and each is refused with a message of the engine's that the page now shows: `len` of a frame (R's `nrow` or `length`); `first` and `last` of an empty list; `append` of a text to numbers (R's `c` would turn the numbers into text); `seq(5, 1)`, which counts down in R; a `table` with columns of two lengths; `map` over a column (R's `lapply` over a variable); `filter` with a comparison that is unknown for a missing item; `reduce` of Floats from a whole-number start.
+
+**The Stata column.** Stata has no list of values, record or mapping. Where a local macro of words has the same operation the table gives it (`: word count`, `: word 1 of`, `: list uniq`, `: list sort`, `foreach`, a `numlist`); where the data in memory is what Stata works on, it gives that (`_N`, `count if`, `inlist`, `list`); elsewhere it says "no single function". One cell of a row may say so; a row with neither R nor Stata is refused by the build.
+
+**Three things said that a reader of R would not expect**, each checked against the engine: R's `table` counts values and is `tabulate` here, while `table` here builds a table from loose values; R's `identical(1L, 1)` is false and `equal(1, 1.0)` is true; `dplyr::filter` chooses rows and is `where` here.
+
+**Reason.** Open decision #103; the checklist's step 22b.
+

@@ -20,7 +20,7 @@ fn page(name: &str, args: &[&str], rest: bool) -> &'static str {
         text.push_str("- ...: More.\n");
     }
     text.push_str(&format!(
-        "\n## Value\nA value.\n\n## Details\nFixture.\n\n## Coming from R or Stata\n| {name}(x) | {name}(x) | {name}(x) |\n\n## References\nNone (1900).\n\n## See also\nprint\n\n## Examples\n// The one example of the fixture's page.\n> {name}\n1\n"
+        "\n## Value\nA value.\n\n## Missing values\nNone in the fixture.\n\n## Details\nFixture.\n\n## Coming from R or Stata\n| {name}(x) | {name}(x) | {name}(x) |\n\n## References\nNone (1900).\n\n## See also\nprint\n\n## Examples\n// The one example of the fixture's page.\n> {name}\n1\n"
     ));
     Box::leak(text.into_boxed_str())
 }
@@ -176,7 +176,12 @@ fn the_value_section_lists_the_methods_of_the_type_returned() {
     let section = |page: &str| -> String {
         let start = page.find("\nVALUE\n").expect("a Value section");
         let rest = &page[start + 1..];
-        let end = rest.find("\nDETAILS\n").expect("a Details section");
+        // The Value section ends where the next one begins: the part on missing values, which
+        // the fixture's page carries since release 0.8.0, step 22b, or the Details.
+        let end = rest
+            .find("\nMISSING VALUES\n")
+            .or_else(|| rest.find("\nDETAILS\n"))
+            .expect("a section after Value");
         rest[..end].to_string()
     };
     let reg = registry.function("regress", "reg").unwrap();

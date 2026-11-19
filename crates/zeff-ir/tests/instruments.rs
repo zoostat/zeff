@@ -14,7 +14,7 @@ use zeff_registry::{Catalogue, FunctionSpec, ParamSpec, Registry};
 /// A page of `ivreg` that meets the help contract of release 0.8.0, as short as it allows.
 const IVREG: &str = "# ivreg\n\n## Summary\nA fixture for ivreg\n\n## In brief\n- `d.ivreg(y ~ x + e, instruments: e ~ z)`: a fixture.\n\n## Description\nTests only.\n\n## Arguments\n- data: The frame.\n- formula: The formula.\n- fe: The effects.\n- instruments: The instruments.\n- first: Whether the first stage prints.\n\n## Value\nA value.\n\n## Missing values\nNone here.\n\n## Details\n### Fixture\nFixture.\n\n## A common mistake\nNone here:\n\n> d.ivreg(y ~ x, instruments: e ~ z)\nerror[Z0504]: `e` is instrumented but is not a regressor\n\nWrite the regressor.\n\n## Coming from R or Stata\n| d.ivreg(y ~ x + e, instruments: e ~ z) | tsls(y, x, e, z, d) | ivregress 2sls y x (e = z) |\n\n## Related tasks\n- To print, use `print`.\n\n## References\nNone (1900).\n\n## See also\nprint\n\n## Examples\n// A fixture.\n> d.ivreg(y ~ x + e, fe: g, instruments: e ~ z, first: true)\n1\n";
 
-const PLAIN: &str = "# {name}\n\n## Summary\nA fixture\n\n## Description\nTests only.\n\n## Arguments\n- {arg}: The value.\n\n## Value\nA value.\n\n## Coming from R or Stata\n| {name}(x) | {name}(x) | {name}(x) |\n\n## See also\nprint\n\n## Examples\n// The one example of the fixture's page.\n> {name}\n1\n";
+const PLAIN: &str = "# {name}\n\n## Summary\nA fixture\n\n## Description\nTests only.\n\n## Arguments\n- {arg}: The value.\n\n## Value\nA value.\n\n## Missing values\nNone in the fixture.\n\n## Coming from R or Stata\n| {name}(x) | {name}(x) | {name}(x) |\n\n## See also\nprint\n\n## Examples\n// The one example of the fixture's page.\n> {name}\n1\n";
 
 fn registry() -> Registry {
     use ParamSpec as P;

@@ -18,15 +18,36 @@ same answers with `NA`.
 ## Value
 A Bool, or `NA` when no item is `true` and some are missing.
 
+## Missing values
+An `NA` among the items is an unknown truth. If some item is `true` the answer is `true` whatever is unknown; if none is, and some are `NA`, the answer is `NA`. Nothing is skipped: for the answer among the known items, test them first, `any(coalesce(x > 0, false))`.
+
+## Coming from R or Stata
+| any(xs) | any(xs) | no single function |
+| any(d["x"] > 0) | any(d$x > 0) | count if x > 0, then r(N) > 0 |
+
+R gives the same answers with `NA`. In Stata a comparison with a missing value is not unknown:
+missing counts as larger than every number, so `x > 0` is true of a missing `x` there.
+
+## Related tasks
+- For a test of every item, use `all`.
+- For whether a value is among others, use `is_in`.
+
 ## See also
 all, is_in, is_missing
 
 ## Examples
+// One item is true.
 > any([false, true, false])
 true
+
+// None is true and one is unknown: unknown.
 > any([false, NA])
 NA
+
+// One is true: the unknown one cannot change that.
 > any([true, NA])
 true
-> any([])
-false
+
+// On a column of the shipped wages: some wage is above 150.
+> any(dataset(wages)["wage"] > 150)
+true

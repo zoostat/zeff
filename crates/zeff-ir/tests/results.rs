@@ -21,7 +21,7 @@ fn page(name: &str, args: &[&str], rest: bool) -> &'static str {
         text.push_str("- ...: More.\n");
     }
     text.push_str(&format!(
-        "\n## Value\nA value.\n\n## Details\nFixture.\n\n## Coming from R or Stata\n| {name}(x) | {name}(x) | {name}(x) |\n\n## References\nNone (1900).\n\n## See also\nprint\n\n## Examples\n// The one example of the fixture's page.\n> {name}\n1\n"
+        "\n## Value\nA value.\n\n## Missing values\nNone in the fixture.\n\n## Details\nFixture.\n\n## Coming from R or Stata\n| {name}(x) | {name}(x) | {name}(x) |\n\n## References\nNone (1900).\n\n## See also\nprint\n\n## Examples\n// The one example of the fixture's page.\n> {name}\n1\n"
     ));
     Box::leak(text.into_boxed_str())
 }

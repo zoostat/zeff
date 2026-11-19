@@ -19,7 +19,7 @@ fn page(name: &str, args: &[&str], statistical: bool, rest: bool) -> &'static st
     if rest {
         text.push_str("- ...: More.\n");
     }
-    text.push_str("\n## Value\nA value.\n");
+    text.push_str("\n## Value\nA value.\n\n## Missing values\nNone in the fixture.\n");
     if statistical {
         text.push_str("\n## Details\nFixture.\n");
     }
