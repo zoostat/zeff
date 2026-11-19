@@ -6223,3 +6223,21 @@ The library takes `hypher` with every language, and a crate that uses the librar
 
 **Reason.** Open decision #73 and the checklist's step 21b; the standard checks of a dependency (licence, size, the identity of the bytes); risk R4.
 
+## 19 November 2026: the Typst library measured on every target, and #73 decided (release 0.8.0, step 21c)
+
+**The bytes.** The workflow `typst-trial`, started by hand on commit b063024, built the tool on the five targets of the identity jobs and set the fixed document on each: Linux on x86-64, Linux on x86-64 at level v3, Linux on ARM64, macOS on ARM64, and the browser's target under Node. Each printed the same line, the line this machine prints: a PDF of 42,327 bytes with one hash (3e9ed06a…8647). With the fonts, the date, the creator and the identifier fixed, a PDF set through the Typst library is the same bytes on every target. The question the trial of 12 November left open is answered, and it is not what stands in the way.
+
+**What stands in the way**, from step 21b:
+- The licences. As published, the library compiles in the hyphenation patterns of 48 languages; 13 are under the LaTeX Project Public License alone and the Hungarian under the MPL, the GPL or the LGPL. The rule for dependencies allows MIT, Apache-2.0, BSD, ISC, Zlib and Unicode, and a crate that uses the library cannot leave a language out. (Typst's own fonts, one of which is under the GPL with exceptions, are no obstacle: they are off unless asked for.)
+- The size. About 26 MB on an engine of 17.5 MB. In the browser 7.2 MB compressed, where the engine's whole bundle is 2.76 MB and its limit 5 MB.
+
+**The decision on #73.** The register's entry reads "nothing is linked unless the figures allow and the owner agrees". The figures do not allow it: the engine does not link Typst. What 0.8.0 ships is step 21a: `export` writes `.typ`, and the Typst a user has installed sets the PDF. This is taken on the figures, under the standing instruction that a decision goes by the recommendation, and is the owner's to overturn.
+
+**What it leaves open** is recorded as #172: whether Zemp carries Typst as a module of its own, fetched on first use, built with the permissive patterns only (recommended), with every language under a widened rule, not at all, or later. That is a question for the Zemp release that builds **Export script with output**, and the one part of it only the owner can answer is whether the LPPL and the MPL may ever be accepted.
+
+**The tool stays.** `tools/typst-trial` and its workflow remain in the repository: a later Typst is measured by changing three version numbers and starting the workflow, and option A of #172 would begin from it. A changed copy of the hyphenation crate put in by a `[patch]` was not tried; it is the first thing to try when #172 is taken up.
+
+**Not measured.** The cold start of a page that fetches the module (it is a second fetch, after the engine's own start); the size with the unused parts of Typst cut away, which the library as published does not offer.
+
+**Reason.** Open decision #73; the checklist's steps 21b and 21c; risk R4; the rule for dependencies.
+

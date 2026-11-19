@@ -178,3 +178,13 @@ Step 20d `[engine]`: `wilcoxon_test` no longer stores the pairwise differences o
 
 **For the owner to decide.** Nothing yet; the decision on #73 comes with step 21c, and it will not link anything without the owner's word.
 
+## 19 November 2026, release 0.8.0, step 21c (the four targets, and #73 decided)
+
+**Done.** Step 21c `[engine]`: the measuring tool ran on GitHub's machines for the five targets of the identity jobs, and each set the same PDF, byte for byte. #73 is decided on the figures: the engine does not link Typst (the licences of 14 sets of hyphenation patterns, and the size: 26 MB, and 7.2 MB compressed in the browser against a limit of 5 MB). `export` writes `.typ`, which is what 0.8.0 ships. Block E of the checklist is complete. A new open decision, #172, asks whether Zemp carries Typst as a module of its own.
+
+**Green.** Format, clippy with warnings denied, the tier, message and grammar checks, every test of the workspace; CI read after the push. The CI of step 21b (b063024) is green.
+
+**Next.** Step 22a `[function]`: the pages of `core`, part 1, the first step of block F (the pages revised).
+
+**For the owner to decide.** #73 as decided here may be overturned. #172, recommended A; whether the LPPL and the MPL may ever be accepted for data compiled into Zemp is the owner's alone. The earlier items stand.
+
