@@ -139,6 +139,16 @@ is never listed here as accepted: it is fixed or the function is withdrawn.
   lists the job gave for the four older packages at 0.7.0 were completed by runs on the
   development machine; the first scheduled run of the two passes is read at the close of 0.8.0.
   (Since 0.7.0; the job repaired at 0.8.0.)
+- **A probability below the smallest double has few digits, and a truncation far in a tail
+  shows it.** A double holds a number below 2.2e-308 with fewer digits and nothing below
+  4.9e-324, so `dist.normal().cdf(-38.4)` is 6.4e-323 to two digits, in Zeff as in R. Inside a
+  truncation that lies wholly that far out the same loss appears in probabilities of ordinary
+  size: for `dist.truncated(dist.normal(), upper: -37)` the distribution function is right to
+  nine digits down to −37.8, 5 per cent off at −38.4 and 0 from −38.5 (R on the log scale:
+  1.15e-23 at −38.4), and `quantile(1e-300)` is −38.49 where −52.44 is right; an exponential
+  cut at 700 mean lifetimes behaves the same beyond 740. Nearer than 37 standard deviations
+  nothing is lost. A log scale for the tails, as R's `log.p`, is open decision #173. (Since
+  0.3.0 for the distributions; seen in a truncation at 0.8.0.)
 - **A one-sided interval of `wilcoxon_test` at a level of exactly 50 per cent is not unique under
   the normal approximation.** The standardised statistic can equal the quantile, which is 0
   there, along a whole step of the shift, and any point of the step is a bound. Zeff gives the

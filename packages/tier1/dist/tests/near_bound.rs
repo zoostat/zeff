@@ -610,6 +610,92 @@ fn a_truncation_cut_again_is_the_truncation_to_what_both_keep() {
     }
 }
 
+/// A truncation whose whole probability is near the smallest double (open decision #173): a
+/// standard normal cut at −37, whose probability is 5.7e-300, and an exponential cut at 700
+/// mean lifetimes. Near the bound the results keep their digits: R on the log scale,
+/// `exp(pnorm(x, log.p = TRUE) - pnorm(-37, log.p = TRUE))` and
+/// `qnorm(log(p) + pnorm(-37, log.p = TRUE), log.p = TRUE)`. Further in the inner tail is
+/// below 2.2e-308, where a double has fewer digits, and below 4.9e-324, where it has none:
+/// the distribution function is then 0 and the quantile the last point the tail can tell,
+/// which is the limit stated on the help page, held here so that it is not passed unseen.
+/// Nothing asked of such a truncation fails or runs on: the search for a quantile ends on
+/// every branch (release 0.8.0, step 24a2b; the coverage report showed these branches unrun).
+#[test]
+fn far_in_a_tail_the_digits_hold_down_to_the_smallest_double() {
+    let d = truncated(standard_normal(), f64::NEG_INFINITY, -37.0);
+    for (x, want, tolerance) in [
+        (-37.1, 0.024_534_005_633_961_5, 1e-11),
+        (-37.4, 3.412_203_753_510_62e-7, 1e-11),
+        (-37.5, 8.043_482_179_497_52e-9, 1e-11),
+        (-37.6, 1.877_212_260_252_2e-10, 1e-11),
+        (-37.8, 9.922_754_904_460_43e-14, 1e-9),
+        (-38.0, 5.039_546_707_091_25e-17, 1e-6),
+    ] {
+        let got = families::cdf(&d, x).lower;
+        assert!(
+            relative(got, want) < tolerance,
+            "at {x}: {got:e} against {want:e}"
+        );
+    }
+    for (p, want, tolerance) in [
+        (1e-2, -37.124_165_306_319, 1e-13),
+        (1e-6, -37.371_260_104_451_8, 1e-13),
+        (1e-8, -37.494_197_725_069_7, 1e-13),
+        (1e-10, -37.616_734_135_361_8, 1e-12),
+        (1e-14, -37.860_618_865_445_3, 1e-9),
+        (1e-20, -38.223_532_392_204_3, 1e-6),
+    ] {
+        let got = families::quantile(&d, p);
+        assert!(
+            relative(got, want) < tolerance,
+            "at {p:e}: {got} against {want}"
+        );
+    }
+    // Past the edge: zero, and the last point the tail can tell.
+    assert_eq!(families::cdf(&d, -39.0).lower, 0.0);
+    assert_eq!(families::cdf(&d, -39.0).upper, 1.0);
+    for p in [1e-30, 1e-100, 1e-300] {
+        let q = families::quantile(&d, p);
+        assert!((-38.6..-38.4).contains(&q), "at {p:e}: {q}");
+    }
+    assert_eq!(families::quantile(&d, 0.0), f64::NEG_INFINITY);
+    assert_eq!(families::quantile(&d, 1.0), -37.0);
+    // The mirror image: the upper tails of a cut at +37 are the lower tails of the cut at −37.
+    let mirror = truncated(standard_normal(), 37.0, f64::INFINITY);
+    for x in [37.1, 37.6, 38.0] {
+        let (a, b) = (families::cdf(&mirror, x).upper, families::cdf(&d, -x).lower);
+        assert!(relative(a, b) < 1e-12, "at {x}: {a:e} and {b:e}");
+    }
+    assert!(
+        relative(
+            families::quantile(&mirror, 1.0 - 1e-8),
+            37.494_197_725_069_7
+        ) < 1e-9
+    );
+
+    // The exponential: the probability beyond 700 + t, given beyond 700, is e^-t.
+    let e = truncated(
+        family("exponential", vec![("rate", 1.0)]),
+        700.0,
+        f64::INFINITY,
+    );
+    for (t, want) in [
+        (5.0, 0.006_737_946_999_085_47),
+        (8.0, 0.000_335_462_627_902_512),
+        (12.0, 6.144_212_353_328_21e-6),
+    ] {
+        let got = families::cdf(&e, 700.0 + t).upper;
+        // The inner tail at 708 and beyond is below 2.2e-308.
+        let tolerance = if t < 8.0 { 1e-12 } else { 1e-6 };
+        assert!(
+            relative(got, want) < tolerance,
+            "at 700 + {t}: {got:e} against {want:e}"
+        );
+    }
+    assert!(relative(families::quantile(&e, 0.5), 700.693_147_180_56) < 1e-13);
+    assert_eq!(families::cdf(&e, 750.0).upper, 0.0);
+}
+
 /// A mixture with a component far narrower than the interval between a bound and a point: the
 /// rule that integrates the density steps over it, the disagreement with the tails shows, and
 /// the difference of the tails is kept.

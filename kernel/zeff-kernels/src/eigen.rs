@@ -51,13 +51,14 @@ pub fn symmetric_eigen(a: &Matrix) -> SymmetricEigen {
                     continue;
                 }
                 // The tangent of the rotation angle: the smaller root of t² + 2θt − 1 = 0, so
-                // that the rotation is by at most a quarter turn.
+                // that the rotation is by at most a quarter turn. θ² cannot overflow: an entry
+                // rotated here is above the floor, ε² of the largest entry, and the difference
+                // of two diagonal entries is at most twice the largest, so |θ| is below 1/ε²,
+                // about 2e31. (An arm for |θ| above 1e150 stood here until release 0.8.0, step
+                // 24a2b; the coverage report showed it never ran, and this is why.)
                 let theta = (aqq - app) / (2.0 * apq);
-                let t = if theta.abs() > 1e150 {
-                    0.5 / theta
-                } else {
-                    theta.signum() / (theta.abs() + (1.0 + theta * theta).sqrt())
-                };
+                debug_assert!(theta.abs() < 1e40);
+                let t = theta.signum() / (theta.abs() + (1.0 + theta * theta).sqrt());
                 let c = 1.0 / (1.0 + t * t).sqrt();
                 let s = c * t;
                 w.set(p, p, app - t * apq);

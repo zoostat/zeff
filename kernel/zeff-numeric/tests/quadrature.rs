@@ -59,6 +59,17 @@ fn a_function_the_rule_cannot_follow_is_given_up() {
     // A function that is not finite.
     assert_eq!(integral(&|_: f64| f64::NAN, 0.0, 1.0), None);
     assert_eq!(integral(&|_: f64| f64::INFINITY, 0.0, 1.0), None);
+    // Not finite on a stretch that the first eight points miss and the halves find: the points
+    // of [0, 1] nearest its middle are 0.4083 and 0.5917, and the last point of [0, 0.5] is
+    // 0.4901 (release 0.8.0, step 24a2b, from the coverage report).
+    let gap = |x: f64| {
+        if (0.49..0.51).contains(&x) {
+            f64::NAN
+        } else {
+            1.0
+        }
+    };
+    assert_eq!(integral(&gap, 0.0, 1.0), None);
 }
 
 #[test]

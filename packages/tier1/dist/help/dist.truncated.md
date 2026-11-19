@@ -34,6 +34,14 @@ density of a continuous distribution is integrated between the two points instea
 then keeps thirteen digits (held against the series of that integral for the normal and
 Student's t, and against the closed form for the exponential). The studentized range is the
 exception: its density is itself a sum, and its truncation keeps the difference of the tails.
+One limit is that of the numbers themselves: a probability of the inner distribution below
+2.2e-308 is held with fewer digits, and below 4.9e-324 it is zero. A truncation that lies
+wholly that far out (a normal distribution cut beyond 37 standard deviations, an exponential
+beyond 700 mean lifetimes) is exact near its bound and loses its digits further in: for a
+standard normal cut at −37, the distribution function agrees with R's on the log scale to nine
+digits down to −37.8, is 5 per cent off at −38.4 and is 0 from −38.5, and the quantile below a
+probability of about 1e-24 is the last point the tail can still tell. No software that holds
+probabilities and not their logarithms does better there.
 The quantile is the root of that distribution function, searched from the inner quantile at
 F(lower⁻) + p Z, on the lower tail up to one half and on the upper tail beyond; beside a bound
 that is not zero it is the double nearest the root. For a discrete distribution the interval is

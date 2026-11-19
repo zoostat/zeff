@@ -578,6 +578,21 @@ mod tests {
         );
     }
 
+    /// So far out that the upper tail is below the smallest double, the logarithm of the lower
+    /// tail is zero and that of the upper tail and of the density minus infinity, each without
+    /// its integral (release 0.8.0, step 24a2b: `tails` asks for the upper tail first out
+    /// there and takes the lower by subtraction, so the lower arm ran in no test).
+    #[test]
+    fn far_out_each_form_is_its_limit() {
+        let (q, k, nu) = (400.0, 3.0, 1e6);
+        assert!(ln_upper_bound(q, k, nu) < LN_SMALLEST);
+        assert_eq!(studentized(Kind::Lower, q, k, nu), 0.0);
+        assert_eq!(studentized(Kind::Upper, q, k, nu), f64::NEG_INFINITY);
+        assert_eq!(studentized(Kind::Density, q, k, nu), f64::NEG_INFINITY);
+        let found = tails(q, k, nu);
+        assert_eq!((found.lower, found.upper), (1.0, 0.0));
+    }
+
     #[test]
     fn two_groups_on_one_and_two_degrees_of_freedom_have_closed_forms() {
         // With t = q / sqrt(2): (2 / pi) atan(t) below q on one degree of freedom, and

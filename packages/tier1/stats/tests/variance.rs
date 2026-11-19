@@ -473,6 +473,10 @@ fn every_form_and_every_message() {
         "frame(x = [2, 2, 2, 4, 5], g = [1, 1, 1, 2, 2]).variance_test(x, group: g, method: bartlett)\n",
         "frame(x = [2, 2, 2, 4, 5], g = [1, 1, 1, 2, 2]).variance_test(x, group: g, method: f)\n",
         "frame(x = [1, 2, 3], g = [1, 2, 3]).variance_test(x, group: g)\n",
+        // Added at release 0.8.0, step 24a2b, from the coverage report: no group with a value
+        // at all, and Levene's test about the mean where every group is a pair.
+        "frame(x = [1.0, NA, NA, NA], g = [NA, \"a\", \"b\", \"b\"]).variance_test(x, group: g)\n",
+        "frame(x = [1.0, 2.0, 3.0, 5.0, 2.0, 2.5], g = [1, 1, 2, 2, 3, 3]).variance_test(x, group: g, center: mean)\n",
         "frame(x = [2, 2, 2, 2], g = [1, 1, 2, 2]).variance_test(x, group: g)\n",
         "frame(x = [1, 3, 2, 8], g = [1, 1, 2, 2]).variance_test(x, group: g)\n",
         "frame(x = [1, 2, 3, 4], g = [1, 1, 2, 2]).variance_test(x, group: g, method: bartlett, center: mean)\n",

@@ -148,3 +148,13 @@ Step 22b3: the last nine pages of `core` brought to the help contract (the funct
 
 **For the owner to decide.** Nothing that stops the work. For the list: a perfect first stage prints a Cragg–Donald F of twenty-one digits.
 
+## 20 November 2026, release 0.8.0, step 24a2b (the untested lines of the kernel, the distributions, the tests and the results)
+
+**Done.** Step 24a2b `[engine]`: the 28 untested places of the other result-bearing packages, each with a test or a recorded reason. An unreachable arm of the eigenvalue routine removed, with the proof where it stood. A limit stated and held by a test against R: a truncation whose whole probability is near the smallest double (a normal cut beyond 37 standard deviations) keeps its digits near the bound and loses them further in, as any probability below 2.2e-308 does (open decision #173, option A on the recommendation; tails on the log scale after 1.0).
+
+**Green.** Format, clippy with warnings denied, the tier, message and grammar checks, every test of the workspace; CI read after the push.
+
+**Next.** Step 24a2c `[engine]`: the weekly mutation run 44578380798, each new survivor a test or a recorded reason.
+
+**For the owner to decide.** #173 is decided for A on the recommendation and is his to overturn.
+

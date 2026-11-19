@@ -102,6 +102,25 @@ error[Z0401]: every group of `g` has one value of `x`, so no spread can be compa
   |
   = help: a test of variances needs a group with two values or more
 
+frame(x = [1.0, NA, NA, NA], g = [NA, "a", "b", "b"]).variance_test(x, group: g)
+note: 4 rows with NA in x or g dropped (line 1)
+error[Z0401]: `group:` of `variance_test` has no value, but the test compares two or more
+ --> scripts/main.zeff:1:79
+  |
+1 | frame(x = [1.0, NA, NA, NA], g = [NA, "a", "b", "b"]).variance_test(x, group: g)
+  |                                                                               ^ `g`
+  |
+  = help: the groups are the values of the variable among the rows kept; `where` or `recode` may give more
+
+frame(x = [1.0, 2.0, 3.0, 5.0, 2.0, 2.5], g = [1, 1, 2, 2, 3, 3]).variance_test(x, group: g, center: mean)
+error[Z0401]: within every group of `g` the values of `x` lie at one distance from the group's mean, so Levene's test has no variation to compare with
+ --> scripts/main.zeff:1:81
+  |
+1 | frame(x = [1.0, 2.0, 3.0, 5.0, 2.0, 2.5], g = [1, 1, 2, 2, 3, 3]).variance_test(x, group: g, center: mean)
+  |                                                                                 ^ no variation within the groups
+  |
+  = help: this happens when every group holds one value repeated, or two distinct values; the test needs groups whose values differ in more than that
+
 frame(x = [2, 2, 2, 2], g = [1, 1, 2, 2]).variance_test(x, group: g)
 error[Z0401]: within every group of `g` the values of `x` lie at one distance from the group's median, so Levene's test has no variation to compare with
  --> scripts/main.zeff:1:57
