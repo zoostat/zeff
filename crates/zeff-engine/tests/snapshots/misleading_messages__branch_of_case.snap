@@ -1,0 +1,148 @@
+---
+source: crates/zeff-engine/tests/misleading_messages.rs
+expression: "all(&[&format!(\"{data}{clean}c.add(floor = case {{ floor_txt == \\\"Ground\\\" => 0, floor_txt == \\\"Upper\\\" => 99, floor_txt == \\\"Lower\\\" => -1, _ => to(floor_txt, Int) }})\\n\"),\n&format!(\"{data}d.add(floor = case {{ floor_txt == \\\"Ground\\\" => 0, floor_txt == \\\"Upper\\\" => 99, floor_txt == \\\"Lower\\\" => -1, _ => to(floor_txt, Int) }})\\n\"),\n&format!(\"{data}d.add(r = case {{ y > 0 => x / y, _ => 0 }})\\n\"),\n&format!(\"{data}d.add(r = case {{ y >= 0 => x / y, _ => 0 }})\\n\"),\n&format!(\"{data}d.add(r = x / y)\\n\"),\n&format!(\"{data}d.add(r = case {{ y > 0 => x - mean(x), _ => 0 }})\\n\"),\n&format!(\"{data}d.where(case {{ floor_txt == \\\"Ground\\\" => true, floor_txt == \\\"Upper\\\" => false, floor_txt == \\\"Lower\\\" => false, _ => to(floor_txt, Int) > 5 }})\\n\"),\n&format!(\"{data}d.add(by: g, f = case {{ floor_txt == \\\"Ground\\\" => 0, _ => to(floor_txt, Int) }})\\n\"),\n&format!(\"{data}d.add(m = case {{ floor_txt == \\\"Ground\\\" => 0, _ => case {{ y > 0 => x / y, _ => to(floor_txt, Float) }} }})\\n\"),])"
+---
+let d = frame(floor_txt = ["Ground", "3", "Upper", "x7", "Lower", "12", "none"], g = ["a", "a", "a", "b", "b", "b", "b"], x = [1.0, 0.0, 3.0, 0.0, 5.0, 6.0, 0.0], y = [0.0, 0.0, 1.0, 0.0, 2.0, 1.0, 3.0])
+let c = d.where(floor_txt != "x7" && floor_txt != "none")
+c.add(floor = case { floor_txt == "Ground" => 0, floor_txt == "Upper" => 99, floor_txt == "Lower" => -1, _ => to(floor_txt, Int) })
+---- exit code 0
+frame · 5 rows × 5 variables
+
+      floor_txt   g   x   y   floor
+  1   Ground      a   1   0       0
+  2   3           a   0   0       3
+  3   Upper       a   3   1      99
+  4   Lower       b   5   2      -1
+  5   12          b   6   1      12
+
+====
+let d = frame(floor_txt = ["Ground", "3", "Upper", "x7", "Lower", "12", "none"], g = ["a", "a", "a", "b", "b", "b", "b"], x = [1.0, 0.0, 3.0, 0.0, 5.0, 6.0, 0.0], y = [0.0, 0.0, 1.0, 0.0, 2.0, 1.0, 3.0])
+d.add(floor = case { floor_txt == "Ground" => 0, floor_txt == "Upper" => 99, floor_txt == "Lower" => -1, _ => to(floor_txt, Int) })
+---- exit code 0
+frame · 7 rows × 5 variables
+
+      floor_txt   g   x   y   floor
+  1   Ground      a   1   0       0
+  2   3           a   0   0       3
+  3   Upper       a   3   1      99
+  4   x7          b   0   0      NA
+  5   Lower       b   5   2      -1
+  6   12          b   6   1      12
+  7   none        b   0   3      NA
+warning[W0203]: 2 values could not be converted to Int and became NA: "x7", "none" (line 2)
+  = help: the page of `to` lists what converts; `is_missing` finds the NA afterwards
+
+====
+let d = frame(floor_txt = ["Ground", "3", "Upper", "x7", "Lower", "12", "none"], g = ["a", "a", "a", "b", "b", "b", "b"], x = [1.0, 0.0, 3.0, 0.0, 5.0, 6.0, 0.0], y = [0.0, 0.0, 1.0, 0.0, 2.0, 1.0, 3.0])
+d.add(r = case { y > 0 => x / y, _ => 0 })
+---- exit code 0
+frame · 7 rows × 5 variables
+
+      floor_txt   g   x   y     r
+  1   Ground      a   1   0     0
+  2   3           a   0   0     0
+  3   Upper       a   3   1     3
+  4   x7          b   0   0     0
+  5   Lower       b   5   2   2.5
+  6   12          b   6   1     6
+  7   none        b   0   3     0
+
+====
+let d = frame(floor_txt = ["Ground", "3", "Upper", "x7", "Lower", "12", "none"], g = ["a", "a", "a", "b", "b", "b", "b"], x = [1.0, 0.0, 3.0, 0.0, 5.0, 6.0, 0.0], y = [0.0, 0.0, 1.0, 0.0, 2.0, 1.0, 3.0])
+d.add(r = case { y >= 0 => x / y, _ => 0 })
+---- exit code 0
+frame · 7 rows × 5 variables
+
+      floor_txt   g   x   y     r
+  1   Ground      a   1   0   Inf
+  2   3           a   0   0    NA
+  3   Upper       a   3   1     3
+  4   x7          b   0   0    NA
+  5   Lower       b   5   2   2.5
+  6   12          b   6   1     6
+  7   none        b   0   3     0
+warning[W0204]: division by zero gave Inf or -Inf in 1 row (line 2)
+  = help: `where(b != 0)` keeps the rows with a divisor; the infinities stay otherwise
+warning[W0205]: 0 / 0 gave NA in 2 rows (line 2)
+
+====
+let d = frame(floor_txt = ["Ground", "3", "Upper", "x7", "Lower", "12", "none"], g = ["a", "a", "a", "b", "b", "b", "b"], x = [1.0, 0.0, 3.0, 0.0, 5.0, 6.0, 0.0], y = [0.0, 0.0, 1.0, 0.0, 2.0, 1.0, 3.0])
+d.add(r = x / y)
+---- exit code 0
+frame · 7 rows × 5 variables
+
+      floor_txt   g   x   y     r
+  1   Ground      a   1   0   Inf
+  2   3           a   0   0    NA
+  3   Upper       a   3   1     3
+  4   x7          b   0   0    NA
+  5   Lower       b   5   2   2.5
+  6   12          b   6   1     6
+  7   none        b   0   3     0
+warning[W0204]: division by zero gave Inf or -Inf in 1 row (line 2)
+  = help: `where(b != 0)` keeps the rows with a divisor; the infinities stay otherwise
+warning[W0205]: 0 / 0 gave NA in 2 rows (line 2)
+
+====
+let d = frame(floor_txt = ["Ground", "3", "Upper", "x7", "Lower", "12", "none"], g = ["a", "a", "a", "b", "b", "b", "b"], x = [1.0, 0.0, 3.0, 0.0, 5.0, 6.0, 0.0], y = [0.0, 0.0, 1.0, 0.0, 2.0, 1.0, 3.0])
+d.add(r = case { y > 0 => x - mean(x), _ => 0 })
+---- exit code 0
+frame · 7 rows × 5 variables
+
+      floor_txt   g   x   y          r
+  1   Ground      a   1   0          0
+  2   3           a   0   0          0
+  3   Upper       a   3   1   0.857143
+  4   x7          b   0   0          0
+  5   Lower       b   5   2    2.85714
+  6   12          b   6   1    3.85714
+  7   none        b   0   3   -2.14286
+
+====
+let d = frame(floor_txt = ["Ground", "3", "Upper", "x7", "Lower", "12", "none"], g = ["a", "a", "a", "b", "b", "b", "b"], x = [1.0, 0.0, 3.0, 0.0, 5.0, 6.0, 0.0], y = [0.0, 0.0, 1.0, 0.0, 2.0, 1.0, 3.0])
+d.where(case { floor_txt == "Ground" => true, floor_txt == "Upper" => false, floor_txt == "Lower" => false, _ => to(floor_txt, Int) > 5 })
+---- exit code 0
+frame · 2 rows × 4 variables
+
+      floor_txt   g   x   y
+  1   Ground      a   1   0
+  2   12          b   6   1
+warning[W0203]: 2 values could not be converted to Int and became NA: "x7", "none" (line 2)
+  = help: the page of `to` lists what converts; `is_missing` finds the NA afterwards
+note: 2 rows dropped where `case { floor_txt == "Ground" => true, floor_txt == "Upper" => false, floor_txt == "Lower" => false, _ => to(floor_txt, Int) > 5 }` was NA (line 2)
+
+====
+let d = frame(floor_txt = ["Ground", "3", "Upper", "x7", "Lower", "12", "none"], g = ["a", "a", "a", "b", "b", "b", "b"], x = [1.0, 0.0, 3.0, 0.0, 5.0, 6.0, 0.0], y = [0.0, 0.0, 1.0, 0.0, 2.0, 1.0, 3.0])
+d.add(by: g, f = case { floor_txt == "Ground" => 0, _ => to(floor_txt, Int) })
+---- exit code 0
+frame · 7 rows × 5 variables
+
+      floor_txt   g   x   y    f
+  1   Ground      a   1   0    0
+  2   3           a   0   0    3
+  3   Upper       a   3   1   NA
+  4   x7          b   0   0   NA
+  5   Lower       b   5   2   NA
+  6   12          b   6   1   12
+  7   none        b   0   3   NA
+warning[W0203]: 1 value could not be converted to Int and became NA: "Upper" (line 2)
+  = help: the page of `to` lists what converts; `is_missing` finds the NA afterwards
+warning[W0203]: 3 values could not be converted to Int and became NA: "x7", "Lower", "none" (line 2)
+  = help: the page of `to` lists what converts; `is_missing` finds the NA afterwards
+
+====
+let d = frame(floor_txt = ["Ground", "3", "Upper", "x7", "Lower", "12", "none"], g = ["a", "a", "a", "b", "b", "b", "b"], x = [1.0, 0.0, 3.0, 0.0, 5.0, 6.0, 0.0], y = [0.0, 0.0, 1.0, 0.0, 2.0, 1.0, 3.0])
+d.add(m = case { floor_txt == "Ground" => 0, _ => case { y > 0 => x / y, _ => to(floor_txt, Float) } })
+---- exit code 0
+frame · 7 rows × 5 variables
+
+      floor_txt   g   x   y     m
+  1   Ground      a   1   0     0
+  2   3           a   0   0     3
+  3   Upper       a   3   1     3
+  4   x7          b   0   0    NA
+  5   Lower       b   5   2   2.5
+  6   12          b   6   1     6
+  7   none        b   0   3     0
+warning[W0203]: 1 value could not be converted to Float and became NA: "x7" (line 2)
+  = help: the page of `to` lists what converts; `is_missing` finds the NA afterwards

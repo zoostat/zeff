@@ -28,6 +28,11 @@ Exact: the rows are grouped by the kernel's identity on the key values (section 
 Language Reference), each definition is evaluated on each group's rows as the reducer defines it,
 and the values are placed in key order; nothing else is computed. The reducers' warnings for the
 rows with `NA` skipped are counted once over the groups, as `summary` counts them.
+A definition that takes the name of a variable of the frame, `spend = mean(spend)`, is that
+variable for the definitions after it, one value for each group: `sd(spend)` written after it is
+the spread of that single value, 0. A later definition that reads such a name is told so in a
+note, which says to define it first or to give the summary a name of its own,
+`mean_spend = mean(spend)`.
 
 ## See also
 add, summary, mean, n, n_distinct, distinct

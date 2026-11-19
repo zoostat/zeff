@@ -1,0 +1,72 @@
+---
+source: crates/zeff-engine/tests/misleading_messages.rs
+expression: "all(&[&format!(\"{data}d.aggregate(by: g, spend = mean(spend), share = sum(spend) / sum(spend), sd_spend = sd(spend))\\n\"),\n&format!(\"{data}d.aggregate(spend = mean(spend), n = sum(n), ratio = sum(spend) / sum(n))\\n\"),\n&format!(\"{data}d.aggregate(by: g, spend = mean(spend), twice = spend * 2)\\n\"),\n&format!(\"{data}d.aggregate(by: g, sd_spend = sd(spend), spend = mean(spend))\\n\"),\n&format!(\"{data}d.aggregate(by: g, mean_spend = mean(spend), top = max(spend) - mean_spend)\\n\"),\n&format!(\"{data}d.add(spend = spend * 2, more = spend + 1)\\n\"),])"
+---
+let d = frame(g = ["a", "a", "b", "b"], spend = [10.0, 20.0, 30.0, 50.0], n = [1, 2, 3, 4])
+d.aggregate(by: g, spend = mean(spend), share = sum(spend) / sum(spend), sd_spend = sd(spend))
+---- exit code 0
+frame · 2 rows × 4 variables
+
+      g   spend   share   sd_spend
+  1   a      15       1          0
+  2   b      40       1          0
+note: `share` reads `spend` as this call has just defined it, one value for each group, not the variable of d (line 2)
+  = help: to summarise the variable, define `share` before `spend`, or give that summary a name of its own
+note: `sd_spend` reads `spend` as this call has just defined it, one value for each group, not the variable of d (line 2)
+  = help: to summarise the variable, define `sd_spend` before `spend`, or give that summary a name of its own
+
+====
+let d = frame(g = ["a", "a", "b", "b"], spend = [10.0, 20.0, 30.0, 50.0], n = [1, 2, 3, 4])
+d.aggregate(spend = mean(spend), n = sum(n), ratio = sum(spend) / sum(n))
+---- exit code 0
+frame · 1 row × 3 variables
+
+      spend    n   ratio
+  1    27.5   10    2.75
+note: `ratio` reads `spend` and `n` as this call has just defined them, a single value, not the variables of d (line 2)
+  = help: to summarise the variables, define `ratio` before them, or give those summaries names of their own
+
+====
+let d = frame(g = ["a", "a", "b", "b"], spend = [10.0, 20.0, 30.0, 50.0], n = [1, 2, 3, 4])
+d.aggregate(by: g, spend = mean(spend), twice = spend * 2)
+---- exit code 0
+frame · 2 rows × 3 variables
+
+      g   spend   twice
+  1   a      15      30
+  2   b      40      80
+note: `twice` reads `spend` as this call has just defined it, one value for each group, not the variable of d (line 2)
+  = help: to summarise the variable, define `twice` before `spend`, or give that summary a name of its own
+
+====
+let d = frame(g = ["a", "a", "b", "b"], spend = [10.0, 20.0, 30.0, 50.0], n = [1, 2, 3, 4])
+d.aggregate(by: g, sd_spend = sd(spend), spend = mean(spend))
+---- exit code 0
+frame · 2 rows × 3 variables
+
+      g   sd_spend   spend
+  1   a    7.07107      15
+  2   b    14.1421      40
+
+====
+let d = frame(g = ["a", "a", "b", "b"], spend = [10.0, 20.0, 30.0, 50.0], n = [1, 2, 3, 4])
+d.aggregate(by: g, mean_spend = mean(spend), top = max(spend) - mean_spend)
+---- exit code 0
+frame · 2 rows × 3 variables
+
+      g   mean_spend   top
+  1   a           15     5
+  2   b           40    10
+
+====
+let d = frame(g = ["a", "a", "b", "b"], spend = [10.0, 20.0, 30.0, 50.0], n = [1, 2, 3, 4])
+d.add(spend = spend * 2, more = spend + 1)
+---- exit code 0
+frame · 4 rows × 4 variables
+
+      g   spend   n   more
+  1   a      20   1     21
+  2   a      40   2     41
+  3   b      60   3     61
+  4   b     100   4    101
+note: `spend` replaced the variable of that name (line 2)

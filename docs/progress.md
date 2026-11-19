@@ -76,25 +76,9 @@ Step 9: the checker reads `instruments: educ ~ nearc4` and refuses its mistakes 
 
 Steps 13 and 14 were each too large for one step and were split in the checklist. Step 13a: `dataset(staff)`, 2,400 employees offered a training course by lot, true effect 4.5; least squares gives 5.93 and two-stage least squares 4.60, fixest's figures. Step 13b: `ivreg` with its printed result and page, 0.2252 for schooling on the specification's sample model; the owner approved its printed form. Step 13b2: two suggestions of the owner's (a refusal of a date function on a number names the conversion; the first-stage F says "(robust)" or "(clustered by ...)"). Step 13c: `design`, `report` with its `Instruments` row, `predict`, `residuals`, `export` and the plots on an `IvFit`; the nightly draw of `staff` averages 4.5007 with 96 per cent coverage. Step 14a: partial R² and Shea's, Sargan's and Hansen's J, Durbin–Wu–Hausman (on Card's data 0.0063, 2.651 and 3.868, fixest's). Step 14b: `first_stage()`. Step 15: the Anderson–Rubin test and its confidence set (0.086 to 0.317 on Card's data; two rays with the weaker indicator; the whole line on 400 rows). Step 16: `ar_test()`; nightly, the set holds the truth 95.3 per cent of the time and the usual interval 92.7. Each step green locally and on CI.
 
-## 16 November 2026, release 0.8.0, step 17 (leverage under one absorbed effect)
+## 16 November 2026, release 0.8.0, steps 17 and 18 (folded)
 
-**Done.** Step 17 `[engine]`: with one effect in `fe:`, `se: hc2`, `se: hc3` (in `reg` and `ivreg`), `influence()` and the warning W1006 work as without `fe:`; the leverage is the demeaned columns' plus the row's share of its level. On `wagepan` with the person absorbed the HC2 and HC3 errors, the leverages, Cook's distances and studentized residuals equal R's on the model with 545 indicators written out, to eight digits. With several effects the three are refused in words that name release 1.1. The known-issues entry and the pages of `reg`, `ivreg` and `influence` say so.
-
-**Green.** Format, clippy with warnings denied, the tier, message and grammar checks, every test of the workspace. CI not yet read: see step 18.
-
-**Next.** Step 18 `[function]`: the sample `instruments` and section 7 of the specification's script.
-
-**For the owner to decide.** The printed forms of `first_stage` and `ar_test` and the `Instruments` row of `report`. Open decisions #149 and #150. The story of `staff`. Whether to add `ivDiag` and `ivmodel` by hand.
-
-## 16 November 2026, release 0.8.0, step 18 (the sample `instruments`)
-
-**Done.** Step 18 `[function]`: the sample project `samples/instruments` on `staff`, from the regression that misleads (5.93) through the instrumented fit (4.60, the truth being 4.5), two instruments, a weak instrument with the Anderson–Rubin set, to the exported table; section 7 of the specification's script runs whole on Card's data in its own test. `zeff selftest` counts 525 cases. Block C (instrumental variables) is complete.
-
-**Green.** Format, clippy with warnings denied, the tier, message and grammar checks, every test of the workspace, locally. CI is not yet read for steps 17 (103bc4d) and 18 (8f8c45a): GitHub held both runs in its queue from 12:03 UTC, during a service incident it reported from 11:59, and they had not started at 12:50 when the session stopped at the owner's word. The CI of step 16 (f536adf) is green.
-
-**Next.** Step 19 `[engine]`: `zeff explain`. (The CI runs of 103bc4d and 8f8c45a were read on 17 November: both green.)
-
-**For the owner to decide.** The printed forms of `first_stage` and `ar_test` and the `Instruments` row of `report`. Open decisions #149 and #150. The story of `staff`. Whether to add `ivDiag` and `ivmodel` by hand.
+Step 17 `[engine]`: with one effect in `fe:`, `se: hc2`, `se: hc3` (in `reg` and `ivreg`), `influence()` and the warning W1006 work as without `fe:`, the leverage being the demeaned columns' plus the row's share of its level; on `wagepan` with the person absorbed they equal R's on the 545 indicators written out, to eight digits; several effects are refused in words that name release 1.1. Step 18 `[function]`: the sample project `samples/instruments` on `staff`, and section 7 of the specification's script run whole on Card's data; block C (instrumental variables) complete. Both green locally and on CI (103bc4d, 8f8c45a, read on 17 November after GitHub's queue had held them). For the owner, still open: the printed forms of `first_stage` and `ar_test` and the `Instruments` row of `report`; open decisions #149 and #150; the story of `staff`; whether to add `ivDiag` and `ivmodel` by hand.
 
 ## 16 November 2026, the article for the Journal of Statistical Software (outside the release's checklist)
 
@@ -120,45 +104,9 @@ Step 19: `zeff explain <code>` prints a code's page and lists the 144 codes by f
 
 **For the owner to decide.** #165 to #171 (deadline 0.9.0), taken as recommended unless he says otherwise; the names in #165 and #167 and the layouts of #171 are his. The earlier items stand.
 
-## 19 November 2026, release 0.8.0, step 20d (the rank tests at large samples)
+## 19 November 2026, release 0.8.0, steps 20d to 20g (folded)
 
-**Done.** Step 20d `[engine]`: `wilcoxon_test` no longer stores the pairwise differences (or the Walsh averages) of a large sample. The review's case, 190,757 rows, runs in 1.4 s within 220 MB (it could not finish within 7 GB; R takes 5.5 s), with the same W as R and the shift −15.000 where R's root-finder prints −14.999977. Every earlier figure is unchanged to the bit.
-
-**Green.** Format, clippy with warnings denied, the tier, message and grammar checks, every test of the workspace; CI read after the push. The CI of step 20c (9334f19) is green.
-
-**Next.** Step 20e `[engine]`: the studentized range in its far upper tail.
-
-**For the owner to decide.** Nothing new. The earlier items stand.
-
-## 19 November 2026, release 0.8.0, step 20e (the studentized range far out)
-
-**Done.** Step 20e `[engine]`: far out in its upper tail `dist.tukey` now answers at once. Where the tail is below the smallest number a double holds it is 0, by a proved bound, without an integral: such a call took 28 s before, and some returned a wrong 8.9e-16 or, for the density, not-a-number. `posthoc()` on the review's 190,757 rows takes 0.48 s (29 s before), with R's figures. Every earlier value is unchanged.
-
-**Green.** Format, clippy with warnings denied, the tier, message and grammar checks, every test of the workspace; CI read after the push. The CI of step 20d (07fc5a4) is green.
-
-**Next.** Step 20f `[engine]`: return types that depend on an option.
-
-**For the owner to decide.** Nothing new. The checklist's sentence that the infinite-df limit bounds the tail above is not so (it bounds it below); the bound used is another, proved in the decisions. The earlier items stand.
-
-## 19 November 2026, release 0.8.0, step 20f (results whose type an option decides)
-
-**Done.** Step 20f `[engine]`: `rank(x) / n()`, `rank(x) > 2` and `running(x, stat: sum) * 2` are no longer refused. The checker now reads the option: `rank` gives Floats under `ties: average` (the default) and Ints under the other three; `running` gives the type of its column under `stat: sum` and Floats under `stat: product`. Every function was read for a result declared as "one type or another": there are three, and each has its rule.
-
-**Green.** Format, clippy with warnings denied, the tier, message and grammar checks, every test of the workspace; CI read after the push. The CI of step 20e (1415f88) is green.
-
-**Next.** Step 20g `[engine]`: two internal errors that `zeff check` passes.
-
-**For the owner to decide.** Nothing new. The earlier items stand.
-
-## 19 November 2026, release 0.8.0, step 20g (two internal errors the check let through)
-
-**Done.** Step 20g `[engine]`: `m.r_squared().r2` and `m.fit_measures().wrong` are refused when the script is checked, with the fields the record has (Z0209); `t.ci()[1]` is refused too, since a test's intervals are a table (Z0221), with a line saying how the numbers are read. Both used to pass `zeff check` and stop the run with an internal error. Where the check cannot know, the run refuses with the same codes. Two regressions join the conformance suite.
-
-**Green.** Format, clippy with warnings denied, the tier, message and grammar checks, every test of the workspace; CI read after the push. The CI of step 20f (13bbdbf) is green.
-
-**Next.** Step 20h `[engine]`: `cluster:` takes the variables `fe:` takes.
-
-**For the owner to decide.** Nothing new. The earlier items stand.
+Step 20d `[engine]`: `wilcoxon_test` no longer stores the pairwise differences or the Walsh averages of a large sample; the review's 190,757 rows run in 1.4 s within 220 MB (R: 5.5 s), with R's W and the shift −15.000 where R's root-finder prints −14.999977. Step 20e `[engine]`: `dist.tukey` far out in its upper tail answers at once from a proved bound (28 s before, and some values wrong); `posthoc()` on the same rows takes 0.48 s; the checklist's sentence that the infinite-df limit bounds the tail above is not so, and the bound used is proved in the decisions. Step 20f `[engine]`: the checker reads the option that decides a result's type, so `rank(x) / n()` and `running(x, stat: sum) * 2` are no longer refused. Step 20g `[engine]`: a field a result's record lacks and an index into a test's intervals are refused at the check (Z0209, Z0221) where they stopped the run with an internal error; two regressions joined the conformance suite. Each green locally and on CI (07fc5a4, 1415f88, 13bbdbf, d3b43b5).
 
 ## 19 November 2026, release 0.8.0, step 20h (`cluster:` takes the variables `fe:` takes)
 
@@ -187,6 +135,16 @@ Step 19: `zeff explain <code>` prints a code's page and lists the 144 codes by f
 **Green.** Format, clippy with warnings denied, the tier, message and grammar checks, every test of the workspace; CI read after the push. The CI of step 20i (86ec67a) is green.
 
 **Next.** Step 20k `[function]`: the warning of a branch of `case` counts the rows the branch decides, and a note names a variable reused in `aggregate`.
+
+**For the owner to decide.** Nothing new. The earlier items stand.
+
+## 19 November 2026, release 0.8.0, step 20k (a branch of `case`, and a name reused in `aggregate`)
+
+**Done.** Step 20k `[function]`: a warning raised inside one branch of `case` now counts the rows that branch decides, so `to(floor_txt, Int)` after the branches that take "Ground", "Upper" and "Lower" says nothing of those three, and a division guarded by its branch says nothing at all; the values are unchanged. In `aggregate`, a later definition that reads a name the call has just redefined (`spend = mean(spend)`, then `sd(spend)`) is told so in a note.
+
+**Green.** Format, clippy with warnings denied, the tier, message and grammar checks, every test of the workspace; CI read after the push. The CI of step 20j (f01825b) is green.
+
+**Next.** Step 20l `[function]`: W1006 and the note of `append` said once, with a count.
 
 **For the owner to decide.** Nothing new. The earlier items stand.
 

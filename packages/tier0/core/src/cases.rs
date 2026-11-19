@@ -3,8 +3,10 @@
 //!
 //! The arms are taken in order and the first true one wins; its value alone is evaluated. The
 //! first condition that is a column turns the rest row-wise: each later arm's condition is
-//! evaluated over every row and its value over every row it supplies, the first true arm
-//! winning in each row. A row no arm matches is `NA`, and is counted.
+//! evaluated over every row, and so is the value of an arm that supplies any row (a reducer
+//! inside it sees the frame whole), the first true arm winning in each row. A row no arm
+//! matches is `NA`, and is counted. What a value has to say of its rows is said of the rows
+//! its arm decides, which `choose_over` tells the evaluator (release 0.8.0, step 20k).
 //!
 //! The kernel asks for the parts of the arms it needs, so that whoever holds the arms
 //! evaluates them: the interpreter, for a `case` in a script, and the `plot` package, for one
@@ -93,7 +95,19 @@ impl Chosen {
 /// the kernel asks for it; a value is asked for only when its arm supplies a row.
 pub fn choose<E>(
     conditions: &[bool],
+    part: impl FnMut(Part) -> Result<Value, E>,
+) -> Result<Chosen, Failed<E>> {
+    choose_over(conditions, part, |_, _, _| {})
+}
+
+/// As [`choose`], and tells which rows an arm decides before its value is asked for row by
+/// row: `decides(arm, rows, of)`, the rows counted from 0 out of `of`. The value is still one
+/// column over every row; whoever evaluates it may use the rows to say of them alone what the
+/// value has to say (a count of what could not be converted).
+pub fn choose_over<E>(
+    conditions: &[bool],
     mut part: impl FnMut(Part) -> Result<Value, E>,
+    decides: impl FnMut(usize, &[usize], usize),
 ) -> Result<Chosen, Failed<E>> {
     let one = |value: Value| Chosen {
         value,
@@ -107,7 +121,7 @@ pub fn choose<E>(
         match part(Part::Condition(k)).map_err(Failed::Other)? {
             Value::Bool(true) => return Ok(one(part(Part::Value(k)).map_err(Failed::Other)?)),
             Value::Bool(false) | Value::Na => {}
-            Value::Column(column) => return by_rows(conditions, k, column, part),
+            Value::Column(column) => return by_rows(conditions, k, column, part, decides),
             other => {
                 return Err(Failed::Trouble(Box::new(Trouble::Condition {
                     arm: k,
@@ -129,6 +143,7 @@ fn by_rows<E>(
     start: usize,
     first: zeff_columns::Column,
     mut part: impl FnMut(Part) -> Result<Value, E>,
+    mut decides: impl FnMut(usize, &[usize], usize),
 ) -> Result<Chosen, Failed<E>> {
     let trouble = |trouble: Trouble| Err(Failed::Trouble(Box::new(trouble)));
     let rows = first.len();
@@ -181,6 +196,7 @@ fn by_rows<E>(
         if covers.is_empty() {
             continue;
         }
+        decides(k, &covers, rows);
         let value = part(Part::Value(k)).map_err(Failed::Other)?;
         if let Value::Column(column) = &value
             && column.len() != rows
@@ -528,5 +544,84 @@ mod tests {
         let conditions = [true];
         let passed: Result<Chosen, Failed<&str>> = choose(&conditions, |_| Err("stopped"));
         assert!(matches!(passed, Err(Failed::Other("stopped"))));
+    }
+
+    /// `choose_over` tells, before each value asked for row by row, which rows its arm
+    /// decides: the rows its condition holds in that no earlier arm took.
+    #[test]
+    fn the_rows_each_arm_decides_are_told_before_its_value() {
+        let arms = [
+            (
+                Some(bools(&[
+                    Some(true),
+                    Some(false),
+                    None,
+                    Some(true),
+                    Some(false),
+                ])),
+                Value::Int(1),
+            ),
+            (
+                Some(bools(&[
+                    Some(true),
+                    Some(true),
+                    Some(false),
+                    Some(false),
+                    Some(false),
+                ])),
+                Value::Int(2),
+            ),
+            (None, Value::Int(3)),
+        ];
+        let conditions: Vec<bool> = arms.iter().map(|(c, _)| c.is_some()).collect();
+        let told = std::cell::RefCell::new(Vec::new());
+        let order = std::cell::RefCell::new(Vec::new());
+        let chosen: Result<Chosen, Failed<String>> = choose_over(
+            &conditions,
+            |part| {
+                order.borrow_mut().push(format!("{part:?}"));
+                match part {
+                    Part::Condition(k) => Ok(arms[k].0.clone().unwrap()),
+                    Part::Value(k) => Ok(arms[k].1.clone()),
+                    Part::Arm(_) => Err("an arm is not a part to evaluate".to_string()),
+                }
+            },
+            |arm, rows, of| {
+                order.borrow_mut().push(format!("decides {arm}"));
+                told.borrow_mut().push((arm, rows.to_vec(), of));
+            },
+        );
+        assert!(chosen.is_ok());
+        assert_eq!(
+            *told.borrow(),
+            [(0, vec![0, 3], 5), (1, vec![1], 5), (2, vec![2, 4], 5)]
+        );
+        // The first condition is asked before anything is known to be row by row; from then on
+        // each arm's rows are told just before its value.
+        assert_eq!(
+            *order.borrow(),
+            [
+                "Condition(0)",
+                "decides 0",
+                "Value(0)",
+                "Condition(1)",
+                "decides 1",
+                "Value(1)",
+                "decides 2",
+                "Value(2)"
+            ]
+        );
+        // A `case` over single values tells nothing.
+        let told = std::cell::RefCell::new(0);
+        let one: Result<Chosen, Failed<String>> = choose_over(
+            &[true, false],
+            |part| match part {
+                Part::Condition(_) => Ok(Value::Bool(false)),
+                _ => Ok(Value::Int(7)),
+            },
+            |_, _, _| *told.borrow_mut() += 1,
+        );
+        assert_eq!(one.unwrap().value, Value::Int(7));
+        assert_eq!(*told.borrow(), 0);
     }
 }

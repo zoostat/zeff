@@ -6140,3 +6140,19 @@ Where the option is not a word written in the call (it comes from a record of op
 
 **Reason.** The review against R of 19 November 2026; the checklist's step 20j; open decision #166.
 
+## 19 November 2026: what a branch of `case` says, and a name reused in `aggregate` (release 0.8.0, step 20k)
+
+**(a) A branch of `case`.** A `case` over columns evaluates the value of each branch over every row and keeps, in each row, the value of the branch that decides it. A warning raised inside a branch therefore counted every row: with `to(floor_txt, Int)` after the branches that take "Ground", "Upper" and "Lower", the review was told that 961 values could not be converted, of rows the conversion never decides.
+
+*The choice.* The value is still evaluated over every row, since a reducer inside a branch (`x - mean(x)`) and a neighbouring row (`lag`) must see the frame whole, and no figure changes. When that evaluation warns, and the branch decides only some of the rows, the value is evaluated once more on the rows the branch decides (the frame's rows taken out, through the same view a group has under `by:`), and what that second evaluation says replaces what the first said. Its value is dropped, it prints nothing, and the run's randomness is put back as it was, so no draw moves. The cost is one more evaluation of a branch, paid only by a branch that warns.
+
+*Not chosen.* Evaluating a branch on its own rows alone, which the kernel's comment had described ("its value over every row it supplies"): `mean(x)` inside a branch would then be the mean of the branch's rows, a change of results. And a mask handed to every function that counts rows: a dozen places to change, and each new function one more to remember.
+
+*Limits, known.* If the second evaluation fails (a branch that builds a column of a fixed length, `draw(4)`), the first evaluation's messages are kept as they were. A `case` on columns that are not the frame's (outside a frame method) is as before. A reducer inside a branch that itself warns of `NA` skipped would, on the second evaluation, count the branch's rows; no figure depends on it. `kernel`: `cases::choose_over` tells the evaluator which rows a branch decides; `choose` is unchanged for the `plot` package.
+
+**(c) A name reused in `aggregate`.** `aggregate(by: g, spend = mean(spend), sd_spend = sd(spend))` gave 0 for the spread: a definition is a variable for the definitions after it (section 3.7, "Definitions in one call"), so `sd` saw one value for each group. Nothing said so. A definition that reads a name which an earlier definition of the same call took from a variable of the frame now gets a note: "`sd_spend` reads `spend` as this call has just defined it, one value for each group, not the variable of d", with the help "define `sd_spend` before `spend`, or give that summary a name of its own". It is a note and not a refusal, since reading the summary may be meant (`twice = spend * 2`); `add` is left alone, where the new variable has a value in every row and already says that it replaced the old one.
+
+**Held by.** `zeff-engine/tests/misleading_messages.rs`: nine cases of a branch (the review's, a guarded division, a reducer inside a branch, `where`, `by:`, a `case` inside a branch), a test that a draw is not moved, six cases of `aggregate`; the kernel's test of the rows told. No stored output of any earlier test changed.
+
+**Reason.** The review against R of 19 November 2026; Language Reference, sections 3.7 and 5.1; the checklist's step 20k.
+

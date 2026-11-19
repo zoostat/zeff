@@ -167,11 +167,20 @@ struct Receiver {
     /// With `view`, the rows of `extended` that the group holds, in order, counted from 0.
     view_rows: Option<std::rc::Rc<[usize]>>,
     used: Vec<String>,
+    /// The variables the definition being evaluated has read so far, so that `aggregate` can
+    /// say when one of them is a name the call has just redefined (release 0.8.0, step 20k).
+    read_now: Vec<String>,
+    /// The rows a branch of `case` decides, while what its value says is said again of those
+    /// rows alone (step 20k): the frame a name sees in the meantime.
+    subset: Option<Frame>,
 }
 
 impl Receiver {
     /// The frame a name or a reducer inside the call sees now.
     fn current(&self) -> &Frame {
+        if let Some(subset) = &self.subset {
+            return subset;
+        }
         match (&self.view, self.in_definition) {
             (Some(view), true) => view,
             (_, true) => &self.extended,
@@ -182,6 +191,9 @@ impl Receiver {
     /// The rows of the group a definition under `by:` is being evaluated on, for a call inside
     /// it; `None` when the call sees the whole frame.
     fn group_rows(&self) -> Option<std::rc::Rc<[usize]>> {
+        if self.subset.is_some() {
+            return None;
+        }
         match (&self.view, self.in_definition) {
             (Some(_), true) => self.view_rows.clone(),
             _ => None,
@@ -1203,13 +1215,31 @@ impl<'a> Interpreter<'a> {
     ) -> Result<Value, Fail> {
         use zeff_core::cases::{self, Failed, Part};
         let conditions: Vec<bool> = arms.iter().map(|arm| arm.condition.is_some()).collect();
-        let outcome = cases::choose(&conditions, |part| match part {
-            Part::Condition(k) => match &arms[k].condition {
-                Some(condition) => self.eval(condition, printed, messages),
-                None => Ok(Value::Bool(true)),
+        // The rows the arm about to be evaluated decides, when it decides only some of them.
+        let decided: std::cell::RefCell<Option<(usize, Vec<usize>, usize)>> =
+            std::cell::RefCell::new(None);
+        let outcome = cases::choose_over(
+            &conditions,
+            |part| match part {
+                Part::Condition(k) => match &arms[k].condition {
+                    Some(condition) => self.eval(condition, printed, messages),
+                    None => Ok(Value::Bool(true)),
+                },
+                Part::Value(k) | Part::Arm(k) => {
+                    let some = decided
+                        .borrow_mut()
+                        .take()
+                        .filter(|(arm, rows, of)| *arm == k && rows.len() < *of);
+                    match some {
+                        Some((_, rows, of)) => {
+                            self.eval_branch(&arms[k].value, &rows, of, printed, messages)
+                        }
+                        None => self.eval(&arms[k].value, printed, messages),
+                    }
+                }
             },
-            Part::Value(k) | Part::Arm(k) => self.eval(&arms[k].value, printed, messages),
-        });
+            |arm, rows, of| *decided.borrow_mut() = Some((arm, rows.to_vec(), of)),
+        );
         match outcome {
             Ok(chosen) => {
                 messages.extend(chosen.warning());
@@ -1232,6 +1262,73 @@ impl<'a> Interpreter<'a> {
                 Err(fail(cases::diagnostic(&trouble, self.script, at, text)))
             }
         }
+    }
+
+    /// A variable named to a function inside a definition (`mean(spend)`): noted as read by
+    /// the definition being evaluated.
+    fn reads(&mut self, name: &str) {
+        if let Some(receiver) = self.receivers.last_mut()
+            && receiver.in_definition
+            && !receiver.read_now.iter().any(|read| read == name)
+        {
+            receiver.read_now.push(name.to_string());
+        }
+    }
+
+    /// The value of a branch of `case` that decides only some of the rows. It is one column over
+    /// every row, as the reducers and the neighbouring rows inside it need; but a warning that
+    /// counts rows (values that could not be converted, divisions that gave `NA`) would count
+    /// rows the branch never decides, "961 values could not be converted" of rows that earlier
+    /// branches took. When the value warns, it is evaluated once more on the rows the branch
+    /// decides, and what that evaluation says is what the script is told; a branch whose own
+    /// rows give no trouble says nothing (release 0.8.0, step 20k).
+    fn eval_branch(
+        &mut self,
+        value: &Expr,
+        rows: &[usize],
+        of: usize,
+        printed: &mut String,
+        messages: &mut Vec<Diagnostic>,
+    ) -> Result<Value, Fail> {
+        let mut said = Vec::new();
+        let result = self.eval(value, printed, &mut said)?;
+        let warned = said
+            .iter()
+            .any(|d| d.severity == zeff_diagnostics::Severity::Warning);
+        if warned
+            && matches!(result, Value::Column(_))
+            && let Some(again) = self.said_of_rows(value, rows, of)
+        {
+            said = again;
+        }
+        messages.extend(said);
+        Ok(result)
+    }
+
+    /// What `value` says when it is evaluated on `rows` of the frame whose method is being
+    /// called, which has `of` rows; `None` when there is no such frame or the evaluation fails,
+    /// and the caller then keeps what the evaluation on every row said. Nothing of this
+    /// evaluation is kept but its messages: its value is dropped, it prints nothing, and the
+    /// run's randomness is put back as it was.
+    fn said_of_rows(&mut self, value: &Expr, rows: &[usize], of: usize) -> Option<Vec<Diagnostic>> {
+        let receiver = self.receivers.last_mut()?;
+        let current = receiver.current().clone();
+        if current.table.rows() != of {
+            return None;
+        }
+        let before = receiver.subset.replace(Frame {
+            table: std::rc::Rc::new(current.table.take_rows(rows)),
+            ..current
+        });
+        let random = self.random.clone();
+        let mut again = Vec::new();
+        let mut unprinted = String::new();
+        let outcome = self.eval(value, &mut unprinted, &mut again);
+        self.random = random;
+        if let Some(receiver) = self.receivers.last_mut() {
+            receiver.subset = before;
+        }
+        outcome.ok().map(|_| again)
     }
 
     /// A call of a function the script defines (section 5.3): the arguments evaluated in the
@@ -2180,8 +2277,16 @@ impl<'a> Interpreter<'a> {
                     }
                 }
             }
-            ExprKind::Var(name) => Value::Var(name.clone()),
-            ExprKind::Vars(names) => Value::Vars(names.clone()),
+            ExprKind::Var(name) => {
+                self.reads(name);
+                Value::Var(name.clone())
+            }
+            ExprKind::Vars(names) => {
+                for name in names {
+                    self.reads(name);
+                }
+                Value::Vars(names.clone())
+            }
             ExprKind::Formula(formula) => {
                 let outcome = match &formula.outcome {
                     Some(term) => Some(self.term_value(term, expr)?),
@@ -2777,6 +2882,9 @@ impl<'a> Interpreter<'a> {
         if let Some(column) = frame.table.column(name) {
             if !receiver.used.iter().any(|u| u == name) {
                 receiver.used.push(name.to_string());
+            }
+            if receiver.in_definition && !receiver.read_now.iter().any(|u| u == name) {
+                receiver.read_now.push(name.to_string());
             }
             let column = column.clone();
             if let Some(id) = binding {
@@ -3396,6 +3504,8 @@ impl<'a> Interpreter<'a> {
         let merges_under_by =
             call.package == "data" && matches!(call.name.as_str(), "add" | "update");
         let mut raw_warnings: Vec<Vec<Diagnostic>> = Vec::new();
+        // The definitions of an `aggregate` so far that took the name of a variable of the frame.
+        let mut redefined: Vec<String> = Vec::new();
         if call.implicit_receiver
             && let Some(receiver) = self.receivers.last()
         {
@@ -3467,6 +3577,8 @@ impl<'a> Interpreter<'a> {
                                 view: None,
                                 view_rows: None,
                                 used: Vec::new(),
+                                read_now: Vec::new(),
+                                subset: None,
                             });
                             pushed = true;
                         }
@@ -3484,6 +3596,8 @@ impl<'a> Interpreter<'a> {
                                 view: None,
                                 view_rows: None,
                                 used: Vec::new(),
+                                read_now: Vec::new(),
+                                subset: None,
                             });
                             pushed = true;
                         } else if on_a_plot
@@ -3538,6 +3652,7 @@ impl<'a> Interpreter<'a> {
                 Slot::Definition(i) => {
                     if pushed && let Some(receiver) = self.receivers.last_mut() {
                         receiver.in_definition = true;
+                        receiver.read_now.clear();
                     }
                     if merges_warnings || (merges_under_by && groups.is_some()) {
                         raw_warnings.push(Vec::new());
@@ -3564,6 +3679,58 @@ impl<'a> Interpreter<'a> {
                         receiver.in_definition = false;
                         receiver.view = None;
                         receiver.view_rows = None;
+                        // A summary that takes the name of a variable is that variable for the
+                        // definitions after it, one value for each group: `spend = mean(spend)`
+                        // followed by `sd_spend = sd(spend)` gives the spread of a single
+                        // value. A later definition that reads the name is told (step 20k).
+                        if merges_warnings {
+                            let name = &call.definitions[*i].0;
+                            let taken: Vec<&String> = receiver
+                                .read_now
+                                .iter()
+                                .filter(|read| redefined.contains(read))
+                                .collect();
+                            if evaluated.is_ok() && !taken.is_empty() {
+                                let names = taken
+                                    .iter()
+                                    .map(|n| format!("`{n}`"))
+                                    .collect::<Vec<_>>()
+                                    .join(" and ");
+                                let several = taken.len() > 1;
+                                messages.push(
+                                    Diagnostic::plain_note(format!(
+                                        "`{name}` reads {names} as this call has just defined {}, {}, not the variable{} of {}",
+                                        if several { "them" } else { "it" },
+                                        if groups.is_some() {
+                                            "one value for each group"
+                                        } else {
+                                            "a single value"
+                                        },
+                                        if several { "s" } else { "" },
+                                        receiver.original.shown_name()
+                                    ))
+                                    .help(format!(
+                                        "to summarise the variable{}, define `{name}` before {}, or give {}",
+                                        if several { "s" } else { "" },
+                                        if several {
+                                            "them".to_string()
+                                        } else {
+                                            format!("`{}`", taken[0])
+                                        },
+                                        if several {
+                                            "those summaries names of their own"
+                                        } else {
+                                            "that summary a name of its own"
+                                        },
+                                    )),
+                                );
+                            }
+                            if receiver.original.table.column(name).is_some()
+                                && !redefined.contains(name)
+                            {
+                                redefined.push(name.clone());
+                            }
+                        }
                     }
                     match evaluated {
                         Ok(v) => {

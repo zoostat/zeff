@@ -90,3 +90,120 @@ fn a_reserved_word_used_as_a_name_is_named_as_one() {
         ])
     );
 }
+
+/// Step 20k (a). A warning raised inside one branch of `case` counted every row of the frame:
+/// with `to(floor_txt, Int)` after the branches that take "Ground", "Upper" and "Lower", the
+/// script was told that those three could not be converted, though no row reaches the
+/// conversion with them. What a branch says is now said of the rows it decides: nothing when
+/// they give no trouble, and the true count when they do. The values are the same as before,
+/// reducers inside a branch still see every row, and a branch that decides every row says what
+/// it always said.
+#[test]
+fn a_branch_of_case_warns_of_the_rows_it_decides() {
+    let data = "let d = frame(floor_txt = [\"Ground\", \"3\", \"Upper\", \"x7\", \"Lower\", \"12\", \"none\"], g = [\"a\", \"a\", \"a\", \"b\", \"b\", \"b\", \"b\"], x = [1.0, 0.0, 3.0, 0.0, 5.0, 6.0, 0.0], y = [0.0, 0.0, 1.0, 0.0, 2.0, 1.0, 3.0])\n";
+    let clean = "let c = d.where(floor_txt != \"x7\" && floor_txt != \"none\")\n";
+    insta::assert_snapshot!(
+        "branch_of_case",
+        all(&[
+            // The review's case: every text that is not a number is taken by an earlier branch.
+            &format!(
+                "{data}{clean}c.add(floor = case {{ floor_txt == \"Ground\" => 0, floor_txt == \"Upper\" => 99, floor_txt == \"Lower\" => -1, _ => to(floor_txt, Int) }})\n"
+            ),
+            // Two texts do reach the conversion: they are counted, and only they.
+            &format!(
+                "{data}d.add(floor = case {{ floor_txt == \"Ground\" => 0, floor_txt == \"Upper\" => 99, floor_txt == \"Lower\" => -1, _ => to(floor_txt, Int) }})\n"
+            ),
+            // A division guarded by its branch says nothing; unguarded, what it always said.
+            &format!("{data}d.add(r = case {{ y > 0 => x / y, _ => 0 }})\n"),
+            &format!("{data}d.add(r = case {{ y >= 0 => x / y, _ => 0 }})\n"),
+            &format!("{data}d.add(r = x / y)\n"),
+            // A reducer inside a branch still sees every row: the mean of x is 15 / 7.
+            &format!("{data}d.add(r = case {{ y > 0 => x - mean(x), _ => 0 }})\n"),
+            // In `where`, under `by:`, and a `case` inside a branch.
+            &format!(
+                "{data}d.where(case {{ floor_txt == \"Ground\" => true, floor_txt == \"Upper\" => false, floor_txt == \"Lower\" => false, _ => to(floor_txt, Int) > 5 }})\n"
+            ),
+            &format!(
+                "{data}d.add(by: g, f = case {{ floor_txt == \"Ground\" => 0, _ => to(floor_txt, Int) }})\n"
+            ),
+            &format!(
+                "{data}d.add(m = case {{ floor_txt == \"Ground\" => 0, _ => case {{ y > 0 => x / y, _ => to(floor_txt, Float) }} }})\n"
+            ),
+        ])
+    );
+}
+
+/// A draw inside a branch is made once: the second evaluation that recounts a warning leaves
+/// the run's randomness as it was, so the numbers are those of the branch alone.
+#[test]
+fn recounting_a_warning_moves_no_draw() {
+    let data = "seed(7)\nlet d = frame(t = [\"1\", \"x\", \"3\", \"y\"], k = [1, 2, 3, 4])\n";
+    let warned = run(&format!(
+        "{data}let a = d.add(v = case {{ k == 2 => 0.0, _ => to(t, Float) + dist.normal().draw(n()) }})\nlet b = d.add(w = dist.normal().draw(n()))\nprint(a)\nprint(b)\n"
+    ));
+    let plain = run(&format!(
+        "{data}let a = d.add(v = case {{ k == 2 => 0.0, k == 4 => 0.0, _ => to(t, Float) + dist.normal().draw(n()) }})\nlet b = d.add(w = dist.normal().draw(n()))\nprint(a)\nprint(b)\n"
+    ));
+    assert_eq!(warned.exit_code, 0, "{}", warned.output.stderr);
+    assert_eq!(plain.exit_code, 0, "{}", plain.output.stderr);
+    // The first warns of "y" and is evaluated twice; the second warns of nothing. Rows 1 and
+    // 3 of `v` and every row of `w` are the same in both.
+    assert!(
+        warned
+            .output
+            .stderr
+            .contains("1 value could not be converted to Float")
+    );
+    assert!(!plain.output.stderr.contains("could not be converted"));
+    let rows = |stdout: &str, of: usize| -> Vec<String> {
+        stdout
+            .lines()
+            .filter(|line| line.trim_start().starts_with(|c: char| c.is_ascii_digit()))
+            .map(str::to_string)
+            .collect::<Vec<_>>()
+            .chunks(4)
+            .nth(of)
+            .unwrap()
+            .to_vec()
+    };
+    let (first, second) = (
+        rows(&warned.output.stdout, 0),
+        rows(&plain.output.stdout, 0),
+    );
+    assert_eq!(first[0], second[0]);
+    assert_eq!(first[2], second[2]);
+    assert_eq!(
+        rows(&warned.output.stdout, 1),
+        rows(&plain.output.stdout, 1)
+    );
+}
+
+/// Step 20k (c). In `aggregate`, a summary that takes the name of a variable is that variable
+/// for the definitions after it: `spend = mean(spend)` followed by `sd_spend = sd(spend)` gave
+/// the spread of a single value, 0, and `sum(spend) / sum(spend)` its ratio, with at most
+/// "0 / 0 gave NA" to show for it. A note now names the definition that reads the name and
+/// says how to summarise the variable instead. Definitions that read no such name, a summary
+/// defined after its uses, and `add` (where the new variable has a value in every row and
+/// says that it replaced the old) are as before.
+#[test]
+fn aggregate_notes_a_name_it_has_just_redefined() {
+    let data = "let d = frame(g = [\"a\", \"a\", \"b\", \"b\"], spend = [10.0, 20.0, 30.0, 50.0], n = [1, 2, 3, 4])\n";
+    insta::assert_snapshot!(
+        "aggregate_redefined_name",
+        all(&[
+            &format!(
+                "{data}d.aggregate(by: g, spend = mean(spend), share = sum(spend) / sum(spend), sd_spend = sd(spend))\n"
+            ),
+            &format!(
+                "{data}d.aggregate(spend = mean(spend), n = sum(n), ratio = sum(spend) / sum(n))\n"
+            ),
+            &format!("{data}d.aggregate(by: g, spend = mean(spend), twice = spend * 2)\n"),
+            // No note: the uses come first, or the summary has a name of its own.
+            &format!("{data}d.aggregate(by: g, sd_spend = sd(spend), spend = mean(spend))\n"),
+            &format!(
+                "{data}d.aggregate(by: g, mean_spend = mean(spend), top = max(spend) - mean_spend)\n"
+            ),
+            &format!("{data}d.add(spend = spend * 2, more = spend + 1)\n"),
+        ])
+    );
+}
