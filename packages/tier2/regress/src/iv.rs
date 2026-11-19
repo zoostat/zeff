@@ -2206,7 +2206,7 @@ fn under_identified(
 }
 
 /// The two stages on `designs`.
-pub fn estimate(ctx: &mut CallContext<'_>, designs: Designs) -> Result<TwoStage, Fail> {
+pub fn estimate(ctx: &mut CallContext<'_>, mut designs: Designs) -> Result<TwoStage, Fail> {
     let n = designs.structural.n();
     if n == 0 || designs.endogenous.is_empty() {
         // No row, which least squares refuses in its own words; or nothing instrumented, and
@@ -2227,7 +2227,7 @@ pub fn estimate(ctx: &mut CallContext<'_>, designs: Designs) -> Result<TwoStage,
             notes: Vec::new(),
         });
     }
-    let first = first_stage(ctx, &designs)?;
+    let mut first = first_stage(ctx, &designs)?;
     // What the first stage dropped among the excluded instruments.
     let names_of = |positions: &[usize]| -> Vec<String> {
         positions
@@ -2375,6 +2375,26 @@ pub fn estimate(ctx: &mut CallContext<'_>, designs: Designs) -> Result<TwoStage,
                 &unidentified,
             ));
         }
+    }
+    // An instrumented regressor that the second stage dropped (collinear, as observed, with
+    // the regressors before it; or too large or too small to scale) is no regressor of the
+    // model any more, and the statistics of the first stage are those of the instrumented
+    // regressors that remain: with one left, its F, the effective F and the Anderson–Rubin
+    // set. (Until release 0.8.0, step 24a2c, a dropped one was still counted: the fit of
+    // `y ~ age + a + x` with `a` twice `age` printed a Kleibergen–Paap F of 0.18 and a
+    // warning of weak instruments where the same model without `a` has 402.49.) When every
+    // one is dropped the list is left as it is: the callers say that nothing is instrumented
+    // before they ask for any statistic.
+    let remaining: Vec<usize> = (0..designs.endogenous.len())
+        .filter(|&q| !fitted.omitted.contains(&designs.endogenous[q]))
+        .collect();
+    if !remaining.is_empty() && remaining.len() < designs.endogenous.len() {
+        designs.endogenous = remaining.iter().map(|&q| designs.endogenous[q]).collect();
+        first.coefficients = remaining
+            .iter()
+            .map(|&q| first.coefficients[q].clone())
+            .collect();
+        first.oversized_regressors.clear();
     }
     Ok(TwoStage {
         designs,

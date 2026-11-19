@@ -1,0 +1,10 @@
+# The surviving mutants that have been read and accepted, each with the key of its reason.
+#
+# The weekly mutation job (.github/workflows/scheduled.yml) compares what each shard leaves with
+# this list, through tools/mutants/compare.py, and prints the survivors that are not on it:
+# those are the ones to read, each a test to write or a reason to record (testing handbook,
+# section 1). The reasons themselves are in docs/decisions.md, under the dates the keys name.
+#
+# One survivor a line, four fields separated by tabs: the path; the mutation as cargo-mutants
+# words it, without the line and column, which move with every edit; how many times it is
+# recorded in that routine; and the key of its reason.

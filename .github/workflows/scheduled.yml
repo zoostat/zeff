@@ -551,6 +551,9 @@ jobs:
           echo "Timeouts (those of pass one, which are not retested, and those of pass two), in full:"
           cat timeouts.txt || true
           echo "Mutants of pass two that ended by running out of memory: $MEMORY_CAUGHT"
+          # The survivors and timeouts against the recorded ones: what is new is what the
+          # reader of the note has to act on (docs/decisions.md, 20 November 2026).
+          python3 -I tools/mutants/compare.py --part tools/mutants/recorded.txt mutants/mutants.out/missed.txt timeouts.txt | tee compare.txt
           {
             echo "## Weekly: mutation testing of ${{ matrix.package }}, shard ${{ matrix.shard }} of ${{ matrix.of }}"
             echo
@@ -566,6 +569,12 @@ jobs:
             echo '```'
             cat mutants/mutants.out/missed.txt
             echo '```'
+            echo
+            echo "Against the recorded survivors (tools/mutants/recorded.txt):"
+            echo
+            echo '```'
+            cat compare.txt
+            echo '```'
           } >> "$GITHUB_STEP_SUMMARY"
 
       - name: Keep the reports
@@ -578,4 +587,5 @@ jobs:
             pass1
             left.txt
             timeouts.txt
+            compare.txt
             guard.log

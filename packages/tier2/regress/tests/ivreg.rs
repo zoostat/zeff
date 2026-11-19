@@ -649,6 +649,69 @@ fn a_range_of_variables_in_the_instruments_is_the_variables_written_out() {
     assert_eq!(from_the_table(&ranged), from_the_table(&written));
 }
 
+/// An instrumented regressor that the fit drops as collinear leaves the model with the others,
+/// and every statistic of the first stage is theirs: the line under the fit, `first_stage`
+/// and the Anderson–Rubin test with its confidence set are those of the model written without
+/// the dropped regressor, and there is no warning of weak instruments and no note that
+/// nothing is instrumented.
+///
+/// Found at release 0.8.0, step 24a2c, while writing a test for a surviving mutant: the
+/// dropped regressor was still counted, so that the fit printed a Kleibergen–Paap F of 0.18
+/// with W1007 where the model has 402.49, `first_stage` gave Shea's partial R² as for two
+/// regressors, and `ar_test` said that the set was not available.
+#[test]
+fn a_dropped_instrumented_regressor_leaves_the_statistics_of_those_that_remain() {
+    let with = printed(
+        "let staff = dataset(staff).add(a = age * 2)\nlet iv = staff.ivreg(productivity ~ age + a + training, instruments: a + training ~ offer + distance, se: robust)\niv\niv.first_stage()\niv.ar_test()\n",
+    );
+    let without = printed(
+        "let staff = dataset(staff)\nlet iv = staff.ivreg(productivity ~ age + training, instruments: training ~ offer + distance, se: robust)\niv\niv.first_stage()\niv.ar_test()\n",
+    );
+    assert!(
+        with.contains("note: `a` is collinear with the columns before it and was dropped"),
+        "{with}"
+    );
+    assert!(
+        !with.contains("W1007") && !with.contains("nothing is instrumented"),
+        "{with}"
+    );
+    assert!(!with.contains("Shea"), "{with}");
+    // The same lines, but for the formula in the headings and the row of the omitted term.
+    let lines = |text: &str| -> Vec<String> {
+        text.lines()
+            .filter(|l| {
+                !l.starts_with("ivreg ·")
+                    && !l.starts_with("note:")
+                    && !l.contains("(omitted)")
+                    && !l.trim_start().starts_with("term")
+            })
+            .map(|l| l.split_whitespace().collect::<Vec<_>>().join(" "))
+            .collect()
+    };
+    assert_eq!(lines(&with), lines(&without));
+    for wanted in [
+        "Kleibergen–Paap F 402.49 · effective F 384.91 (critical value 19.66)",
+        "95% confidence set for the coefficient of training: from 3.1017 to 5.4058",
+    ] {
+        assert!(with.contains(wanted), "{with}");
+    }
+}
+
+/// A confidence level of exactly 0 or 1 is no level: the Anderson–Rubin test refuses both
+/// edges. (Two surviving mutants of release 0.8.0, step 24a2c, let an edge through.)
+#[test]
+fn the_anderson_rubin_test_refuses_a_level_of_zero_or_one() {
+    for level in ["0", "1", "0.0", "1.0"] {
+        let out = printed(&format!(
+            "let staff = dataset(staff)\nstaff.ivreg(productivity ~ training, instruments: training ~ offer).ar_test(level: {level})\n"
+        ));
+        assert!(
+            out.contains("error[Z0401]: `level:` is a probability strictly between 0 and 1"),
+            "{level}: {out}"
+        );
+    }
+}
+
 /// The lines of a printed result from the table of coefficients to its end, without the count
 /// of rows, which says how the rows came to be left out.
 fn from_the_table(printed: &str) -> String {

@@ -70,7 +70,10 @@ regressors, and they must move those regressors apart from one another. An instr
 already a regressor of the formula counts for nothing and is named in a note. An instrument
 that does not vary, or that is a combination of the regressors and the instruments before it,
 is dropped with a note; so is one that the fixed effects absorb. If too few remain the model
-is refused (Z0804).
+is refused (Z0804). An instrumented regressor that is itself a combination of the regressors
+before it is dropped with a note, as any regressor is; the model is then the model without it,
+and the statistics of the first stage, the weak-instrument line and the Anderson–Rubin test
+are those of the instrumented regressors that remain.
 
 ### Standard errors
 The variance is that of `reg`, with the fitted regressors in the place of the regressors and
