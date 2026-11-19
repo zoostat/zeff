@@ -10,8 +10,14 @@ use zeff_registry::{Catalogue, FunctionSpec, ParamSpec, Registry, Rest};
 
 /// A complete page with the given arguments, so that the registry accepts the fixture.
 fn page(name: &str, args: &[&str], statistical: bool, rest: bool) -> &'static str {
+    // Every argument written once in the example, `name: 1`, as the contract asks of options.
+    let named = args
+        .iter()
+        .map(|a| format!("{a}: 1"))
+        .collect::<Vec<_>>()
+        .join(", ");
     let mut text = format!(
-        "# {name}\n\n## Summary\nA fixture for {name}\n\n## Description\nTests only.\n\n## Arguments\n"
+        "# {name}\n\n## Summary\nA fixture for {name}\n\n## In brief\n- `{name}(x)`: the one form of the fixture.\n\n## Description\nTests only.\n\n## Arguments\n"
     );
     for a in args {
         text.push_str(&format!("- {a}: The {a}.\n"));
@@ -31,7 +37,7 @@ fn page(name: &str, args: &[&str], statistical: bool, rest: bool) -> &'static st
         text.push_str("\n## References\nNone (1900).\n");
     }
     text.push_str(&format!(
-        "\n## See also\nprint\n\n## Examples\n// The one example of the fixture's page.\n> {name}\n1\n"
+        "\n## See also\nprint\n\n## Examples\n// The one example of the fixture's page, naming every argument.\n> {name}({named})\n1\n"
     ));
     Box::leak(text.into_boxed_str())
 }

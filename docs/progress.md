@@ -182,3 +182,13 @@ Step 20h `[engine]`: a text variable, a date and a time serve as `cluster:`, as 
 
 **For the owner to decide.** Nothing new. The earlier items stand.
 
+## 19 November 2026, release 0.8.0, step 22b2 (the pages of `core`, part 2b: types and missing values)
+
+**Done.** Step 22b2 `[function]`: the 10 pages on conversion, types, categories and missing values brought to the contract. The list of unrevised pages holds 177; nine pages of `core` remain, the program's.
+
+**Green.** Format, clippy with warnings denied, the tier, message and grammar checks, every test of the workspace; CI read after the push. The CI of step 22b (b45282f) is read with this one.
+
+**Next.** Step 22b3 `[function]`: the 9 pages of the program (`print`, `warn`, `error`, `assert`, `seed`, `attempt`, `iterate`, `note`, `name_of`).
+
+**For the owner to decide.** Nothing new. The earlier items stand.
+

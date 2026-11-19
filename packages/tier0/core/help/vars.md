@@ -26,12 +26,30 @@ names checked rather than pasted.
 ## Value
 A `Vars`, the list of names in the order written, which prints as the names separated by commas.
 
+## Missing values
+`vars` names variables and reads none of their values, so missing values play no part in it.
+
+## Coming from R or Stata
+| vars(wage, hours) | c("wage", "hours") | local xs wage hours |
+| vars(x1..x9) | paste0("x", 1:9) | local xs x1-x9 |
+
+In R the names are text, or are picked by the selection helpers of `dplyr`. In Stata a macro is
+pasted into the command as it stands, so a misspelt name is found only where the command fails;
+here each name is checked against the frame the list meets, and the message names the frame.
+
+## Related tasks
+- For the names of a frame's variables, use `variables`.
+- To keep some variables of a frame, use `select`.
+
 ## See also
 variables, select, is
 
 ## Examples
+// A list of two variables, named with no frame in sight.
 > vars(wage, hours)
 wage, hours
+
+// A loop over variables of the shipped wages: the loop variable stands for the variable it holds.
 > let w = dataset(wages)
 > for y in vars(wage, hours) {
 >     print(w.mean(y))
@@ -40,3 +58,7 @@ wage, hours
 37.9446
 warning[W0201]: 211 rows with NA in wage were skipped (line 3)
 warning[W0201]: 35 rows with NA in hours were skipped (line 3)
+
+// The list given to a frame method.
+> w.select(vars(worker, year)).n_cols()
+2

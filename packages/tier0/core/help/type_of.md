@@ -17,19 +17,41 @@ compared: `type_of(x) == "Int"`. R has `class`, whose names differ (`integer`, `
 ## Value
 A Str.
 
+## Missing values
+`NA` has no type of its own, and its type is given as `NA`. A column with missing values in it has the type of its other values.
+
+## Coming from R or Stata
+| type_of(x) | class(x) | describe x |
+
+R's names differ: `integer`, `numeric`, `character`, `logical`, `data.frame`, `factor`. Stata's
+`describe` gives the storage type of a variable of the data (`byte`, `int`, `float`, `double`,
+`str12`), which says how a value is stored and not what it is.
+
+## Related tasks
+- To test for one type, use `is`.
+- For the types of every variable of a frame, use `describe`.
+
 ## See also
 is, to
 
 ## Examples
+// A whole number.
 > type_of(3)
 Int
+
+// Text.
 > type_of("text")
 Str
+
+// A list whose items join as Floats.
 > type_of([1, 2.5])
 List<Float>
-> let wages = import("data/wages.csv")
-note: data/wages.csv read as CSV: 3 rows × 3 variables, types guessed; CSV carries no labels, value labels or categories (line 4)
+
+// A frame of the shipped data.
+> let wages = dataset(wages)
 > type_of(wages)
 Frame
-> type_of(wages["hours"])
-Column<Int>
+
+// One of its columns.
+> type_of(wages["industry"])
+Column<Category>

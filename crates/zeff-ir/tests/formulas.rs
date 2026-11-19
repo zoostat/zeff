@@ -9,14 +9,20 @@ use zeff_ir::{Ty, check_source};
 use zeff_registry::{Catalogue, FunctionSpec, ParamSpec, Registry};
 
 fn page(name: &str, args: &[&str]) -> &'static str {
+    // Every argument written once in the example, `name: 1`, as the contract asks of options.
+    let named = args
+        .iter()
+        .map(|a| format!("{a}: 1"))
+        .collect::<Vec<_>>()
+        .join(", ");
     let mut text = format!(
-        "# {name}\n\n## Summary\nA fixture for {name}\n\n## Description\nTests only.\n\n## Arguments\n"
+        "# {name}\n\n## Summary\nA fixture for {name}\n\n## In brief\n- `{name}(x)`: the one form of the fixture.\n\n## Description\nTests only.\n\n## Arguments\n"
     );
     for a in args {
         text.push_str(&format!("- {a}: The {a}.\n"));
     }
     text.push_str(&format!(
-        "\n## Value\nA value.\n\n## Missing values\nNone in the fixture.\n\n## Details\nFixture.\n\n## Coming from R or Stata\n| {name}(x) | {name}(x) | {name}(x) |\n\n## References\nNone (1900).\n\n## See also\nprint\n\n## Examples\n// The one example of the fixture's page.\n> {name}\n1\n"
+        "\n## Value\nA value.\n\n## Missing values\nNone in the fixture.\n\n## Details\nFixture.\n\n## Coming from R or Stata\n| {name}(x) | {name}(x) | {name}(x) |\n\n## References\nNone (1900).\n\n## See also\nprint\n\n## Examples\n// The one example of the fixture's page, naming every argument.\n> {name}({named})\n1\n"
     ));
     Box::leak(text.into_boxed_str())
 }

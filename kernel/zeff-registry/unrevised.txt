@@ -3,16 +3,6 @@
 # decision #103). A page listed here is held to the contract as it stood; one not listed, to the
 # contract in full. A line is struck when its page is revised, and the list is empty at 0.10.0.
 # One line per page: the package and the function's catalogue name.
-core to
-core is
-core type_of
-core vars
-core category
-core levels
-core base
-core is_missing
-core coalesce
-core n_missing
 core print
 core warn
 core error

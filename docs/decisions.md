@@ -6307,3 +6307,17 @@ The library takes `hypher` with every language, and a crate that uses the librar
 
 **Reason.** Open decision #103; the checklist's step 22b.
 
+## 19 November 2026: the pages of `core` revised, part 2b, types and missing values (release 0.8.0, step 22b2; open decision #103)
+
+**Done as the steps before it**, for `to`, `is`, `type_of`, `vars`, `category`, `levels`, `base`, `is_missing`, `coalesce` and `n_missing`. The list of unrevised pages holds 177; of `core`, the nine pages of the program remain.
+
+**The examples that read a file of the fixture project** (`data/staff.csv`, `data/wages.csv`) now run on the shipped wages or on a frame written in the statement: the four staff of the old file are a `frame(...)` of four rows on the pages of `category`, `levels` and `base`.
+
+**`is_missing` has a common mistake although the build asks none of it**: `where(wage == NA)`, which every reader coming from another language writes once, and which the checker refuses with the sentence that explains it (Z0226).
+
+**`category`: every option in an example.** `contrast:` had none. It is shown where it has an effect, in a model on the shipped wages, with the indicator's name as the engine prints it.
+
+**Said of R and Stata, kept to what is certain.** R's `as.integer("2.5")` is 2 and `factor` turns a value outside its levels into `NA`, both without a word; R's `is.integer(3)` is false; R's `levels` of text is `NULL`. Stata's `missing` is true of the empty text, a missing number there counts as larger than every number, and its base level is named by its code. The catalogue's equivalents were left as they stand: they name R for most of these, and the pages' tables add Stata's form where there is one.
+
+**Reason.** Open decision #103; the checklist's step 22b2.
+
