@@ -621,12 +621,20 @@ const TYP_HEAD: &str = "// a Zeff export: place it in a document with `#include`
 const TYP_OUTER_RULE: &str = "0.8pt";
 const TYP_INNER_RULE: &str = "0.5pt";
 
+/// The size of the type of the lines under a table, against the table's own.
+const TYP_NOTE_SIZE: &str = "0.85em";
+
 /// The Typst form, in the layout of the LaTeX form: a comment with the title, then a `table`
 /// with no cell borders, a rule above the headings, one under them and above each row the
-/// table rules, and one below; each column aligned as the printed table aligns it; the lines
-/// above and below the printed grid as notes under the last rule, across the table. A further
-/// table follows after a blank line. Every cell is a string, so that no character of a name
-/// or a number is read as markup. The file is content: `#include "table.typ"` places it, and
+/// table rules, and one below; each column aligned as the printed table aligns it. The lines
+/// above and below the printed grid are notes under the table, in smaller type: they stand
+/// below it and not in cells across it, so that a long note never widens a column. Table and
+/// notes are one block, as wide as the widest of them and no wider than the page, so that a
+/// figure centres them together; the block breaks across pages as a table does. The two lines
+/// of a test's hypotheses, each in words and in symbols, are set as a grid of two columns, so
+/// that the symbols stand under one another. A further table follows after a blank line.
+/// Every cell is a string, so that no character of a name or a number is read as markup. The
+/// file is content: `#include "table.typ"` places it, and
 /// `#figure(include "table.typ", caption: [...])` numbers it. Typst 0.11 or later.
 pub fn typ(table: &Table) -> String {
     let mut out = String::from(TYP_HEAD);
@@ -634,28 +642,98 @@ pub fn typ(table: &Table) -> String {
     out
 }
 
+/// A line under a table, or a run of hypothesis lines taken together.
+enum TypNote {
+    Line(String),
+    /// The words and the symbols of each hypothesis, `H0` then `H1`.
+    Hypotheses(Vec<(String, String)>),
+}
+
+/// The lines under a table as Typst sets them: each line by itself, but for consecutive lines
+/// of hypotheses, which the printed form writes as words, a run of spaces and symbols, and
+/// which become one grid.
+fn typ_notes(lines: impl Iterator<Item = String>) -> Vec<TypNote> {
+    let mut notes: Vec<TypNote> = Vec::new();
+    for line in lines {
+        let trimmed = line.trim();
+        let pair = (trimmed.starts_with("H0") || trimmed.starts_with("H1"))
+            .then(|| trimmed.split_once("  "))
+            .flatten()
+            .map(|(words, symbols)| (words.trim().to_string(), symbols.trim().to_string()));
+        match (pair, notes.last_mut()) {
+            (Some(pair), Some(TypNote::Hypotheses(pairs))) => pairs.push(pair),
+            (Some(pair), _) => notes.push(TypNote::Hypotheses(vec![pair])),
+            (None, _) => notes.push(TypNote::Line(trimmed.to_string())),
+        }
+    }
+    notes
+}
+
+/// A note as a Typst expression; `rows` is the distance between the lines of a grid.
+fn typ_note(note: &TypNote, rows: &str) -> String {
+    match note {
+        TypNote::Line(line) => typ_string(line),
+        TypNote::Hypotheses(pairs) => format!(
+            "grid(columns: 2, column-gutter: 2em, row-gutter: {rows}, {})",
+            pairs
+                .iter()
+                .map(|(words, symbols)| format!("{}, {}", typ_string(words), typ_string(symbols)))
+                .collect::<Vec<_>>()
+                .join(", ")
+        ),
+    }
+}
+
 fn table_typ(out: &mut String, table: &Table) {
     // A table without a title (a `report`) has no comment for one.
     if !table.title.trim().is_empty() {
         out.push_str(&format!("// {}\n", table.title.replace('\n', " ")));
     }
-    let rule = |weight: &str| format!("  table.hline(stroke: {weight}),\n");
+    let notes = typ_notes(table.before.iter().chain(&table.after).cloned());
     // A result without a grid (a test with an estimate and no table of groups) is its lines
-    // alone: one column between two rules.
+    // alone: one column between two rules, the lines a cell apart as the rows of a table are.
     if table.columns.is_empty() {
         out.push_str("#table(\n  columns: 1,\n  align: left,\n  stroke: none,\n");
-        out.push_str(&rule(TYP_OUTER_RULE));
-        for line in table.before.iter().chain(&table.after) {
-            out.push_str(&format!("  {},\n", typ_string(line)));
+        out.push_str(&format!("  table.hline(stroke: {TYP_OUTER_RULE}),\n"));
+        for note in &notes {
+            out.push_str(&format!("  {},\n", typ_note(note, "10pt")));
         }
-        out.push_str(&rule(TYP_OUTER_RULE));
+        out.push_str(&format!("  table.hline(stroke: {TYP_OUTER_RULE}),\n"));
         out.push_str(")\n");
-        for further in &table.more {
-            out.push('\n');
-            table_typ(out, further);
+    } else if notes.is_empty() {
+        out.push('#');
+        out.push_str(&grid_typ(table, ""));
+        out.push('\n');
+    } else {
+        // The table and its notes in one block: as wide as the widest of them, the page at
+        // most, with the notes in from the edge as far as the text of a cell is.
+        out.push_str("#layout(size => {\n  let body = ");
+        out.push_str(&grid_typ(table, "  "));
+        out.push_str("\n  let notes = (\n");
+        for note in &notes {
+            out.push_str(&format!(
+                "    text(size: {TYP_NOTE_SIZE}, {}),\n",
+                typ_note(note, "0.65em")
+            ));
         }
-        return;
+        out.push_str("  )\n");
+        out.push_str(
+            "  let widest = calc.max(measure(body).width, ..notes.map(note => measure(note).width + 10pt))\n",
+        );
+        out.push_str("  block(width: calc.min(size.width, widest), {\n");
+        out.push_str("    set align(left)\n    set block(spacing: 0.65em)\n    body\n");
+        out.push_str("    for note in notes {\n      block(inset: (x: 5pt), note)\n    }\n");
+        out.push_str("  })\n})\n");
     }
+    for further in &table.more {
+        out.push('\n');
+        table_typ(out, further);
+    }
+}
+
+/// The grid of a table as a Typst `table(...)` expression, its lines `indent` in from the
+/// margin after the first.
+fn grid_typ(table: &Table, indent: &str) -> String {
     let k = table.columns.len();
     let aligns: Vec<&str> = table
         .columns
@@ -665,14 +743,14 @@ fn table_typ(out: &mut String, table: &Table) {
             Align::Right => "right",
         })
         .collect();
-    out.push_str(&format!(
-        "#table(\n  columns: {k},\n  align: ({},),\n  stroke: none,\n",
+    let mut out = format!(
+        "table(\n{indent}  columns: {k},\n{indent}  align: ({},),\n{indent}  stroke: none,\n",
         aligns.join(", ")
-    ));
-    let row = |cells: Vec<String>| -> String { format!("  {},\n", cells.join(", ")) };
+    );
+    let rule = |weight: &str| format!("{indent}  table.hline(stroke: {weight}),\n");
     out.push_str(&rule(TYP_OUTER_RULE));
     out.push_str(&format!(
-        "  table.header({}),\n",
+        "{indent}  table.header({}),\n",
         table
             .columns
             .iter()
@@ -687,20 +765,11 @@ fn table_typ(out: &mut String, table: &Table) {
         }
         let mut written: Vec<String> = cells.iter().map(|c| typ_string(c)).collect();
         written.resize(k, typ_string(""));
-        out.push_str(&row(written));
+        out.push_str(&format!("{indent}  {},\n", written.join(", ")));
     }
     out.push_str(&rule(TYP_OUTER_RULE));
-    for line in table.before.iter().chain(&table.after) {
-        out.push_str(&format!(
-            "  table.cell(colspan: {k}, align: left, text(size: 0.85em, {})),\n",
-            typ_string(line)
-        ));
-    }
-    out.push_str(")\n");
-    for further in &table.more {
-        out.push('\n');
-        table_typ(out, further);
-    }
+    out.push_str(&format!("{indent})"));
+    out
 }
 
 /// Text as a Typst string: in quotes, the backslash and the quote escaped, a line break, a

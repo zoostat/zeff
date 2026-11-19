@@ -1,0 +1,92 @@
+---
+source: crates/zeff-engine/tests/misleading_messages.rs
+expression: "[format!(\"{data}report([d.reg(y ~ x), d.reg(y ~ x + z), d.reg(y ~ z)])\\n\"),\nformat!(\"{data}let m1 = d.reg(y ~ x)\\nlet m2 = d.reg(y ~ x + z)\\nreport([m1, m2])\\n\"),\nformat!(\"{data}report([d.reg(y ~ x), d.reg(w ~ z), d.reg(y ~ z)])\\n\"),\nformat!(\"{data}report([d.reg(y ~ x), d.reg(y ~ x + z), d.reg(y ~ z), d.reg(w ~ z)])\\n\"),].iter().map(|script|\nprinted(script)).collect::<Vec<_>>().join(\"\\n====\\n\")"
+---
+report([d.reg(y ~ x), d.reg(y ~ x + z), d.reg(y ~ z)])
+---- exit code 0
+                    (1)         (2)         (3)
+  (intercept)    5.175**     4.806      14.060**
+                (1.360)     (2.041)     (3.730)
+  x              0.914***    0.925***
+                (0.125)     (0.140)
+  z                          0.567      -4.060
+                            (2.212)     (5.275)
+  ───────────────────────────────────────────────
+  SEs           classical   classical   classical
+  N                    10          10          10
+  R²                0.870       0.871       0.069
+
+* p < 0.05, ** p < 0.01, *** p < 0.001
+(1) to (3) warning[W1006]: 1 observation drives a coefficient: removing it moves an estimate by more than its standard error (row 10)
+warning[W1006]: 1 observation drives a coefficient: removing it moves an estimate by more than its standard error (row 10); the same for 3 fits (line 2)
+  = help: check the row's values; `influence()` lists leverage, Cook's distance and studentized residuals by row
+
+====
+let m1 = d.reg(y ~ x)
+let m2 = d.reg(y ~ x + z)
+report([m1, m2])
+---- exit code 0
+                    (1)         (2)
+  (intercept)    5.175**     4.806
+                (1.360)     (2.041)
+  x              0.914***    0.925***
+                (0.125)     (0.140)
+  z                          0.567
+                            (2.212)
+  ───────────────────────────────────
+  SEs           classical   classical
+  N                    10          10
+  R²                0.870       0.871
+
+* p < 0.05, ** p < 0.01, *** p < 0.001
+(1), (2) warning[W1006]: 1 observation drives a coefficient: removing it moves an estimate by more than its standard error (row 10)
+warning[W1006]: 1 observation drives a coefficient: removing it moves an estimate by more than its standard error (row 10) (line 2)
+  = help: check the row's values; `influence()` lists leverage, Cook's distance and studentized residuals by row
+warning[W1006]: 1 observation drives a coefficient: removing it moves an estimate by more than its standard error (row 10) (line 3)
+  = help: check the row's values; `influence()` lists leverage, Cook's distance and studentized residuals by row
+
+====
+report([d.reg(y ~ x), d.reg(w ~ z), d.reg(y ~ z)])
+---- exit code 0
+                    (1)         (2)         (3)
+  (intercept)    5.175**     1.800      14.060**
+                (1.360)     (1.140)     (3.730)
+  x              0.914***
+                (0.125)
+  z                          0.800      -4.060
+                            (1.612)     (5.275)
+  ───────────────────────────────────────────────
+  SEs           classical   classical   classical
+  N                    10          10          10
+  R²                0.870       0.030       0.069
+
+* p < 0.05, ** p < 0.01, *** p < 0.001
+(1), (3) warning[W1006]: 1 observation drives a coefficient: removing it moves an estimate by more than its standard error (row 10)
+(2) warning[W1006]: 1 observation drives a coefficient: removing it moves an estimate by more than its standard error (row 1)
+warning[W1006]: 1 observation drives a coefficient: removing it moves an estimate by more than its standard error (row 10); the same for 2 fits (line 2)
+  = help: check the row's values; `influence()` lists leverage, Cook's distance and studentized residuals by row
+warning[W1006]: 1 observation drives a coefficient: removing it moves an estimate by more than its standard error (row 1) (line 2)
+  = help: check the row's values; `influence()` lists leverage, Cook's distance and studentized residuals by row
+
+====
+report([d.reg(y ~ x), d.reg(y ~ x + z), d.reg(y ~ z), d.reg(w ~ z)])
+---- exit code 0
+                    (1)         (2)         (3)         (4)
+  (intercept)    5.175**     4.806      14.060**     1.800
+                (1.360)     (2.041)     (3.730)     (1.140)
+  x              0.914***    0.925***
+                (0.125)     (0.140)
+  z                          0.567      -4.060       0.800
+                            (2.212)     (5.275)     (1.612)
+  ───────────────────────────────────────────────────────────
+  SEs           classical   classical   classical   classical
+  N                    10          10          10          10
+  R²                0.870       0.871       0.069       0.030
+
+* p < 0.05, ** p < 0.01, *** p < 0.001
+(1) to (3) warning[W1006]: 1 observation drives a coefficient: removing it moves an estimate by more than its standard error (row 10)
+(4) warning[W1006]: 1 observation drives a coefficient: removing it moves an estimate by more than its standard error (row 1)
+warning[W1006]: 1 observation drives a coefficient: removing it moves an estimate by more than its standard error (row 10); the same for 3 fits (line 2)
+  = help: check the row's values; `influence()` lists leverage, Cook's distance and studentized residuals by row
+warning[W1006]: 1 observation drives a coefficient: removing it moves an estimate by more than its standard error (row 1) (line 2)
+  = help: check the row's values; `influence()` lists leverage, Cook's distance and studentized residuals by row

@@ -6360,3 +6360,23 @@ The library takes `hypher` with every language, and a crate that uses the librar
 
 **Reason.** Open decision #103; the checklist's step 22c.
 
+## 19 November 2026: three findings of the check against R (release 0.8.0, step 20m)
+
+**Where they came from.** The session that checks the finished steps against R ran steps 20a to 22b2 on a clean build of be94642 and passed on three findings, at the owner's word; its scripts and outputs are in `~/dev/handbook/zeff-0.8.0-examples/steps20-22`. Each was reproduced here before anything was changed. Everything else it compared agreed with R. They are step 20m of the checklist.
+
+**(a) A printed `report` repeated W1006 under its table.** Step 20l said the warning once for the statement, "the same for 3 fits". But a report that is printed also writes each column's notes and warnings under the table, numbered as the column is, and there the three lines stood word for word; the same with fits made on lines of their own and reported together. The test of step 20l bound its report to a name and never printed it, so the footnotes were not seen: the checklist's line had named "every column of `report`", and the step was ticked short of it.
+
+*The choice.* A line under a report that several columns share word for word is written once, in the place of the first, headed by the numbers of all of them: `(1), (2)` for two, `(1) to (3)` for a run of three or more neighbours, `(1), (3)` when they are apart. A column whose line differs keeps its own. It holds for the notes and warnings of fits and for the hypotheses and notes of tests. The columns are named and not counted, since a reader wants to know which. The new test prints its reports.
+
+**(b) The Typst form of a result with notes.** At step 21a the notes were cells across the table, as the LaTeX form has them, and this record said that a note wider than the grid widens the last column and was left so, since a table set inside a stack cannot break across pages. The check showed what that looks like for a t test: the column `sd` pushed to the far edge of the page. The reason given at 21a was a false choice.
+
+*The choice.* The notes stand under the table, in smaller type, and table and notes are one block: as wide as the widest of them and no wider than the page (Typst's `layout` gives the room, `measure` the widths), set from the left inside it, so that a figure centres the whole and no column is touched; a block breaks across pages, as the table inside it does. A table with no note is a `table` and nothing more, as before. The two lines of a test's hypotheses, which the printed form writes as words, a run of spaces and symbols, are a grid of two columns, so that the symbols stand under one another, under a table of groups and in a result that is lines alone; any other line is written as it is. Typst does not collapse the spaces of a string, so the other lines keep their gaps. Every kind of result compiles with Typst 0.15.0, in a figure and outside one, with no warning.
+
+*Not changed.* The LaTeX form keeps its notes as rows across the table: nothing was reported of it, and a `tabular` has no block to stand in; it is noted here as the same weakness.
+
+**(c) `dist.tukey` and R at large degrees of freedom.** R's `ptukey` gives the value for a known standard deviation above 25,000 degrees of freedom, so its results jump there (0.03771983 at 24,999 and 0.03769607 at 25,001, for 5 groups at 4); Zeff's fall smoothly (0.03772034 at both), which was computed here and in R before it was written. The page's Details say so, with the figures, so that a comparison just above 25,000 is not taken for a fault of Zeff's. The page is not yet revised to the contract of 0.8.0; when it is, the sentence belongs in Coming from R or Stata.
+
+**The conformance report.** The digest of `export/sample.typ` changed with (b); nothing else did.
+
+**Reason.** The check of steps 20a to 22b2 against R; the checklist's steps 20l, 21a and 20m.
+

@@ -43,7 +43,13 @@ to 5e-3 on 2 degrees of freedom, 3e-5 on 5 and 1e-7 on 20 and on 120 (the worst 
 groups), and by 2e-6 on a million, where it uses the range of normal values instead; far out it
 keeps few digits (the tail above 50 for 10 groups on 5 degrees of freedom comes out at twice its
 size). `qtukey` stops its search at about four digits. Zeff's values therefore differ from R's
-beyond those digits. R and Stata refuse fewer than 2 degrees of freedom; Zeff accepts 1 or more.
+beyond those digits. Above 25,000 degrees of freedom R's `ptukey` sets the degrees of freedom
+aside and gives the value for a known standard deviation, so its results jump there: for 5 groups
+at 4 the upper tail is 0.03771983 on 24,999 degrees of freedom and 0.03769607 on 25,001, which
+is its value for infinitely many. Zeff's falls smoothly, 0.03772034 on both, 0.03770011 on
+150,000 and 0.03769613 on ten million, and reaches 0.03769607 only in the limit; a comparison
+with R just above 25,000 therefore differs in the fourth digit, and it is R's that moved. R and
+Stata refuse fewer than 2 degrees of freedom; Zeff accepts 1 or more.
 A `df:` of 1e30 or more gives the range of the normal values itself, the case of a known standard
 deviation. R's `nranges` (the largest of several independent ranges) is not offered (open
 decision #102).

@@ -280,3 +280,40 @@ fn the_notes_of_a_chain_of_appends_are_one_note() {
         .join("\n====\n")
     );
 }
+
+/// Step 20m (a), which step 20l missed: a report that is printed writes each column's warning
+/// under the table, and three fits driven by the same observation gave three lines there
+/// word for word, under the one line of the statement. The test of step 20l bound its report
+/// and never printed it. A line that several columns share is written once, headed by their
+/// numbers; a column whose line differs keeps its own.
+#[test]
+fn a_printed_report_writes_a_shared_footnote_once() {
+    let data = "let d = frame(x = [1, 2, 3, 4, 5, 6, 7, 8, 9, 30], y = [2.1, 3.9, 6.2, 8.1, 9.8, 12.2, 13.9, 16.1, 18.0, 30.0], z = [1, 0, 1, 0, 1, 0, 1, 0, 1, 0], w = [9, 1, 1, 2, 1, 2, 1, 2, 1, 2])\n";
+    let printed = |script: &str| -> String {
+        let outcome = run(script);
+        format!(
+            "{}---- exit code {}\n{}{}",
+            script.strip_prefix(data).unwrap(),
+            outcome.exit_code,
+            outcome.output.stdout,
+            outcome.output.stderr
+        )
+    };
+    insta::assert_snapshot!(
+        "printed_report_footnotes",
+        [
+            // Three fits of the same rows, written in the report: one line for the three.
+            format!("{data}report([d.reg(y ~ x), d.reg(y ~ x + z), d.reg(y ~ z)])\n"),
+            // Fits on lines of their own, then reported: one line for the two.
+            format!("{data}let m1 = d.reg(y ~ x)\nlet m2 = d.reg(y ~ x + z)\nreport([m1, m2])\n"),
+            // A fit in the middle that names another row: (1) and (3) share a line, (2) has its own.
+            format!("{data}report([d.reg(y ~ x), d.reg(w ~ z), d.reg(y ~ z)])\n"),
+            // Four columns, the last apart: a run of three and one.
+            format!("{data}report([d.reg(y ~ x), d.reg(y ~ x + z), d.reg(y ~ z), d.reg(w ~ z)])\n"),
+        ]
+        .iter()
+        .map(|script| printed(script))
+        .collect::<Vec<_>>()
+        .join("\n====\n")
+    );
+}

@@ -236,14 +236,16 @@ pub fn report(ctx: &mut CallContext<'_>, args: Args) -> Result<Value, Fail> {
     if with_stars {
         after.push(LEGEND.to_string());
     }
+    let mut of_columns: Vec<(usize, String)> = Vec::new();
     for (k, fit) in fits.iter().enumerate() {
         for note in &fit.notes {
-            after.push(format!("({}) note: {note}", k + 1));
+            of_columns.push((k + 1, format!("note: {note}")));
         }
         for warning in &fit.warnings {
-            after.push(format!("({}) {warning}", k + 1));
+            of_columns.push((k + 1, warning.to_string()));
         }
     }
+    after.extend(once_for_its_columns(of_columns));
     Ok(Value::Table(Table {
         title,
         before: Vec::new(),
@@ -253,6 +255,51 @@ pub fn report(ctx: &mut CallContext<'_>, args: Args) -> Result<Value, Fail> {
         more: Vec::new(),
         rules,
     }))
+}
+
+/// The lines under a report that belong to its columns, each headed by the number of its
+/// column. A line that several columns share word for word (the same observation driving
+/// three fits of the same rows, W1006) is written once, in the place of the first, headed by
+/// the numbers of all of them: `(1), (2)` for two, `(1) to (3)` for a run of three or more
+/// (release 0.8.0, step 20m). Lines that differ are each written, as before.
+fn once_for_its_columns(lines: Vec<(usize, String)>) -> Vec<String> {
+    let mut grouped: Vec<(Vec<usize>, String)> = Vec::new();
+    for (column, text) in lines {
+        match grouped.iter_mut().find(|(_, said)| *said == text) {
+            Some((columns, _)) => {
+                if !columns.contains(&column) {
+                    columns.push(column);
+                }
+            }
+            None => grouped.push((vec![column], text)),
+        }
+    }
+    grouped
+        .into_iter()
+        .map(|(columns, text)| format!("{} {text}", numbered(&columns)))
+        .collect()
+}
+
+/// The numbers of some columns as a report heads a line with them: each in parentheses, a
+/// run of three or more neighbours as its first and last.
+fn numbered(columns: &[usize]) -> String {
+    let mut parts: Vec<String> = Vec::new();
+    let mut at = 0;
+    while at < columns.len() {
+        let mut end = at;
+        while end + 1 < columns.len() && columns[end + 1] == columns[end] + 1 {
+            end += 1;
+        }
+        if end - at >= 2 {
+            parts.push(format!("({}) to ({})", columns[at], columns[end]));
+        } else {
+            for column in &columns[at..=end] {
+                parts.push(format!("({column})"));
+            }
+        }
+        at = end + 1;
+    }
+    parts.join(", ")
 }
 
 /// `report([t1, t2])` over tests' results: one column per test headed `(1)`, `(2)`, …; the
@@ -321,15 +368,16 @@ fn tests_report(ctx: &mut CallContext<'_>, args: &Args) -> Result<Value, Fail> {
         }),
         row("N", &|t| count(t.n as u64)),
     ];
-    let mut after = Vec::new();
+    let mut of_columns: Vec<(usize, String)> = Vec::new();
     for (k, test) in tests.iter().enumerate() {
         if let Some(h) = &test.hypotheses {
-            after.push(format!("({}) H0: {}; H1: {}", k + 1, h.h0, h.h1));
+            of_columns.push((k + 1, format!("H0: {}; H1: {}", h.h0, h.h1)));
         }
         for note in &test.notes {
-            after.push(format!("({}) note: {note}", k + 1));
+            of_columns.push((k + 1, format!("note: {note}")));
         }
     }
+    let after = once_for_its_columns(of_columns);
     Ok(Value::Table(Table {
         title,
         before: Vec::new(),

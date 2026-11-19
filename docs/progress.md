@@ -134,9 +134,19 @@ Steps 22a, 22a2, 22b and 22b2 `[function]`, two steps of the checklist counted a
 
 **Done.** Step 22c `[function]`, split from `time`: the 13 pages of `text` brought to the contract. The list of unrevised pages holds 155.
 
-**Green.** Format, clippy with warnings denied, the tier, message and grammar checks, every test of the workspace; CI read after the push. The CI of step 22b3 (097f5fa) is read with this one.
+**Green.** Format, clippy with warnings denied, the tier, message and grammar checks, every test of the workspace; CI read after the push. The CI of step 22b3 (097f5fa) is green.
 
 **Next.** Step 22c2 `[function]`: the 10 pages of `time`, the last step of block F.
 
 **For the owner to decide.** Nothing new. The earlier items stand.
+
+## 19 November 2026, release 0.8.0, step 20m (three findings of the check against R)
+
+**Done.** Step 20m `[engine]`, added from the findings the checking session passed on: a printed `report` writes a warning that several columns share once, headed by their numbers, where it repeated it under the table for each (step 20l had missed the printed footnotes); the Typst form sets a result's notes under its table and the two hypotheses of a test in two columns, so that no note widens a column; the page of `dist.tukey` says where R's `ptukey` jumps. Everything else the check compared agreed with R.
+
+**Green.** Format, clippy with warnings denied, the tier, message and grammar checks, every test of the workspace; CI read after the push. The CI of steps 22b3 (097f5fa) and 22c (e346344) is green, the second after one job was run again when GitHub's machine could not reach Ubuntu's servers.
+
+**Next.** Step 22c2 `[function]`: the 10 pages of `time`.
+
+**For the owner to decide.** The heading of a shared footnote, `(1) to (3)`, and the new look of the Typst notes are layouts and so the owner's; say if another is wanted. The earlier items stand.
 

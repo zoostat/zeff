@@ -532,15 +532,37 @@ fn every_kind_of_result_is_written_as_typst_that_compiles() {
         2,
         "{report}"
     );
+    // The stars' line is a note under the table, in smaller type, and never a cell across it:
+    // a long note must not widen a column (step 20m; until then it was a cell with `colspan`).
     assert!(
-        report.contains("table.cell(colspan: 3, align: left, text(size: 0.85em, \"* p < 0.05, ** p < 0.01, *** p < 0.001\")),"),
+        report.contains("    text(size: 0.85em, \"* p < 0.05, ** p < 0.01, *** p < 0.001\"),\n"),
         "{report}"
     );
+    assert!(report.starts_with("// a Zeff export: place it in a document with `#include`\n#layout(size => {\n  let body = table(\n"), "{report}");
+    assert!(
+        report.contains("  block(width: calc.min(size.width, widest), {\n"),
+        "{report}"
+    );
+    for name in tables {
+        assert!(!read(name).contains("colspan"), "{name}");
+    }
+    // The two hypotheses of a test, in words and in symbols, are one grid of two columns, so
+    // that the symbols stand under one another: under a table of groups, and alone.
+    let two = read("two.typ");
+    assert!(
+        two.contains("text(size: 0.85em, grid(columns: 2, column-gutter: 2em, row-gutter: 0.65em, \"H0: the population means of x are equal in a and b\", \"μ(a) − μ(b) = 0\", \"H1: the population means of x differ between a and b\", \"μ(a) − μ(b) ≠ 0\")),"),
+        "{two}"
+    );
+    // A table with no line under it is a table and nothing more.
+    assert!(read("describe.TYP").contains("\n#table(\n  columns: 5,\n"));
     // A result without a grid is its lines in one column; the Greek letters and the signs are
     // written as they are, since a Typst file is UTF-8 and a string is not markup.
     let one = read("one.typ");
     assert!(one.contains("  columns: 1,\n  align: left,\n"), "{one}");
-    assert!(one.contains("μ ≠ 0\","), "{one}");
+    assert!(
+        one.contains("  grid(columns: 2, column-gutter: 2em, row-gutter: 10pt, \"H0: the population mean of x equals 0\", \"μ = 0\", \"H1: the population mean of x differs from 0\", \"μ ≠ 0\"),\n"),
+        "{one}"
+    );
     // A name with a backslash, a quote, a hash and dollars is one string, escaped where a
     // string needs it and nowhere else.
     let describe = read("describe.TYP");

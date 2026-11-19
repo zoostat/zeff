@@ -4,46 +4,72 @@ expression: all
 ---
 ==== report.typ
 // a Zeff export: place it in a document with `#include`
-#table(
-  columns: 3,
-  align: (left, right, right,),
-  stroke: none,
-  table.hline(stroke: 0.8pt),
-  table.header("", "(1)  ", "(2)  "),
-  table.hline(stroke: 0.5pt),
-  "(intercept)", "1.832***", "1.900***",
-  "", "(0.022)  ", "(0.022)  ",
-  "educ", "0.076***", "0.076***",
-  "", "(0.001)  ", "(0.001)  ",
-  "exper", "0.022***", "0.022***",
-  "", "(0.000)  ", "(0.000)  ",
-  "female", "", "-0.133***",
-  "", "", "(0.006)  ",
-  table.hline(stroke: 0.5pt),
-  "SEs", "classical", "hc3",
-  "N", "18,179", "18,179",
-  "R²", "0.184", "0.203",
-  table.hline(stroke: 0.8pt),
-  table.cell(colspan: 3, align: left, text(size: 0.85em, "* p < 0.05, ** p < 0.01, *** p < 0.001")),
-)
+#layout(size => {
+  let body = table(
+    columns: 3,
+    align: (left, right, right,),
+    stroke: none,
+    table.hline(stroke: 0.8pt),
+    table.header("", "(1)  ", "(2)  "),
+    table.hline(stroke: 0.5pt),
+    "(intercept)", "1.832***", "1.900***",
+    "", "(0.022)  ", "(0.022)  ",
+    "educ", "0.076***", "0.076***",
+    "", "(0.001)  ", "(0.001)  ",
+    "exper", "0.022***", "0.022***",
+    "", "(0.000)  ", "(0.000)  ",
+    "female", "", "-0.133***",
+    "", "", "(0.006)  ",
+    table.hline(stroke: 0.5pt),
+    "SEs", "classical", "hc3",
+    "N", "18,179", "18,179",
+    "R²", "0.184", "0.203",
+    table.hline(stroke: 0.8pt),
+  )
+  let notes = (
+    text(size: 0.85em, "* p < 0.05, ** p < 0.01, *** p < 0.001"),
+  )
+  let widest = calc.max(measure(body).width, ..notes.map(note => measure(note).width + 10pt))
+  block(width: calc.min(size.width, widest), {
+    set align(left)
+    set block(spacing: 0.65em)
+    body
+    for note in notes {
+      block(inset: (x: 5pt), note)
+    }
+  })
+})
 ==== fit.typ
 // a Zeff export: place it in a document with `#include`
 // reg · log(wage) ~ educ + exper
-#table(
-  columns: 6,
-  align: (left, right, right, right, right, left,),
-  stroke: none,
-  table.hline(stroke: 0.8pt),
-  table.header("term", "estimate", "std.error", "t value", "p value", "95% CI"),
-  table.hline(stroke: 0.5pt),
-  "(intercept)", "1.8316", "0.0221", "82.93", "<0.001", "[1.7883, 1.8749]",
-  "educ", "0.0760", "0.0014", "55.05", "<0.001", "[0.0733, 0.0787]",
-  "exper", "0.0223", "0.0005", "48.77", "<0.001", "[0.0214, 0.0232]",
-  table.hline(stroke: 0.8pt),
-  table.cell(colspan: 6, align: left, text(size: 0.85em, "N = 18,179 (233 rows dropped for NA in model variables)")),
-  table.cell(colspan: 6, align: left, text(size: 0.85em, "standard errors: classical")),
-  table.cell(colspan: 6, align: left, text(size: 0.85em, "R² 0.184 · adjusted R² 0.184")),
-)
+#layout(size => {
+  let body = table(
+    columns: 6,
+    align: (left, right, right, right, right, left,),
+    stroke: none,
+    table.hline(stroke: 0.8pt),
+    table.header("term", "estimate", "std.error", "t value", "p value", "95% CI"),
+    table.hline(stroke: 0.5pt),
+    "(intercept)", "1.8316", "0.0221", "82.93", "<0.001", "[1.7883, 1.8749]",
+    "educ", "0.0760", "0.0014", "55.05", "<0.001", "[0.0733, 0.0787]",
+    "exper", "0.0223", "0.0005", "48.77", "<0.001", "[0.0214, 0.0232]",
+    table.hline(stroke: 0.8pt),
+  )
+  let notes = (
+    text(size: 0.85em, "N = 18,179 (233 rows dropped for NA in model variables)"),
+    text(size: 0.85em, "standard errors: classical"),
+    text(size: 0.85em, "R² 0.184 · adjusted R² 0.184"),
+  )
+  let widest = calc.max(measure(body).width, ..notes.map(note => measure(note).width + 10pt))
+  block(width: calc.min(size.width, widest), {
+    set align(left)
+    set block(spacing: 0.65em)
+    body
+    for note in notes {
+      block(inset: (x: 5pt), note)
+    }
+  })
+})
 ==== wald.typ
 // a Zeff export: place it in a document with `#include`
 // test · m1 · educ == exper
@@ -65,8 +91,7 @@ expression: all
   align: left,
   stroke: none,
   table.hline(stroke: 0.8pt),
-  "  H0: the population mean of x equals 0            μ = 0",
-  "  H1: the population mean of x differs from 0      μ ≠ 0",
+  grid(columns: 2, column-gutter: 2em, row-gutter: 10pt, "H0: the population mean of x equals 0", "μ = 0", "H1: the population mean of x differs from 0", "μ ≠ 0"),
   "",
   "N = 6   mean = 3.667   sd = 2.160",
   "difference (mean − 0) = 3.667   95% CI [1.400, 5.934]",
@@ -77,23 +102,35 @@ expression: all
 ==== two.typ
 // a Zeff export: place it in a document with `#include`
 // t_test · Welch two-sample · x by g
-#table(
-  columns: 4,
-  align: (left, right, right, right,),
-  stroke: none,
-  table.hline(stroke: 0.8pt),
-  table.header("group", "N", "mean", "sd"),
-  table.hline(stroke: 0.5pt),
-  "a", "3", "2.000", "1.000",
-  "b", "3", "5.333", "1.528",
-  table.hline(stroke: 0.8pt),
-  table.cell(colspan: 4, align: left, text(size: 0.85em, "  H0: the population means of x are equal in a and b        μ(a) − μ(b) = 0")),
-  table.cell(colspan: 4, align: left, text(size: 0.85em, "  H1: the population means of x differ between a and b      μ(a) − μ(b) ≠ 0")),
-  table.cell(colspan: 4, align: left, text(size: 0.85em, "difference (a − b) = -3.333   95% CI [-6.454, -0.212]")),
-  table.cell(colspan: 4, align: left, text(size: 0.85em, "t = -3.16   df = 3.4   p = 0.042")),
-  table.cell(colspan: 4, align: left, text(size: 0.85em, "Hedges' g = -2.07   95% CI [-3.80, -0.33]")),
-  table.cell(colspan: 4, align: left, text(size: 0.85em, "decision at α = 0.05: reject H0 (p = 0.042)")),
-)
+#layout(size => {
+  let body = table(
+    columns: 4,
+    align: (left, right, right, right,),
+    stroke: none,
+    table.hline(stroke: 0.8pt),
+    table.header("group", "N", "mean", "sd"),
+    table.hline(stroke: 0.5pt),
+    "a", "3", "2.000", "1.000",
+    "b", "3", "5.333", "1.528",
+    table.hline(stroke: 0.8pt),
+  )
+  let notes = (
+    text(size: 0.85em, grid(columns: 2, column-gutter: 2em, row-gutter: 0.65em, "H0: the population means of x are equal in a and b", "μ(a) − μ(b) = 0", "H1: the population means of x differ between a and b", "μ(a) − μ(b) ≠ 0")),
+    text(size: 0.85em, "difference (a − b) = -3.333   95% CI [-6.454, -0.212]"),
+    text(size: 0.85em, "t = -3.16   df = 3.4   p = 0.042"),
+    text(size: 0.85em, "Hedges' g = -2.07   95% CI [-3.80, -0.33]"),
+    text(size: 0.85em, "decision at α = 0.05: reject H0 (p = 0.042)"),
+  )
+  let widest = calc.max(measure(body).width, ..notes.map(note => measure(note).width + 10pt))
+  block(width: calc.min(size.width, widest), {
+    set align(left)
+    set block(spacing: 0.65em)
+    body
+    for note in notes {
+      block(inset: (x: 5pt), note)
+    }
+  })
+})
 ==== correlation.typ
 // a Zeff export: place it in a document with `#include`
 // correlation · w · pearson

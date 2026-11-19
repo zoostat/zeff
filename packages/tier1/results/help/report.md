@@ -30,7 +30,9 @@ given, as section 3.8 of the Language Reference says; R² keeps three decimals, 
 and N is a count. The stars are `*` below 0.05, `**` below 0.01 and `***` below 0.001, and
 hang to the right of the estimates so that the numbers align on their decimal points. The
 footer carries the legend, then every note and statistical warning a fit raised (a dropped
-term, few clusters, an observation that drives a coefficient), numbered as the fit's column is.
+term, few clusters, an observation that drives a coefficient), numbered as the fit's column is;
+a line that several columns share word for word is written once, headed by the numbers of all of
+them, `(1), (2)` or `(1) to (3)`.
 When any fit absorbs fixed effects, a `Fixed effects` row names each fit's effects, `none` for
 a fit without; the `R²` row then prints such a fit's R² within marked `(within)`, as section
 10.2 of the Language Reference shows, unless `r_squared_within` is asked for, when `R²` is the

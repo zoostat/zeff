@@ -46,12 +46,15 @@ under the bottom rule, with `&`, `%`, `_`, `^` and the other special characters 
 inside a `table` environment with `\input` in a document that loads `booktabs`. A rule inside
 the table, as `report` draws one above its statistics, is a `\midrule` in LaTeX and a border in
 Word. The Typst file is a `table` without cell borders, with the same rules (one above the
-headings, one under them, one below, and one above the statistics of a `report`), the title in a
-comment above it and the notes as rows across the table under the last rule, in smaller type.
-Every cell is written as a string, so no character of a name or a number is read as markup and
-nothing needs escaping. The file is content: `#include "table.typ"` places it in a document, and
-`#figure(include "table.typ", caption: [Wages])` gives it a number and a caption; it needs Typst
-0.11 or later and no package. The three files depend on the table alone, so they are the same
+headings, one under them, one below, and one above the statistics of a `report`) and the title in
+a comment above it. The notes stand under the table in smaller type and not in cells across it,
+so that a long note never widens a column; table and notes are one block, as wide as the widest
+of them, which a figure centres as one and which breaks across pages as a table does. The two
+hypotheses of a test, in words and in symbols, are set in two columns, so that the symbols stand
+under one another. Every cell is written as a string, so no character of a name or a number is
+read as markup and nothing needs escaping. The file is content: `#include "table.typ"` places it
+in a document, and `#figure(include "table.typ", caption: [Wages])` gives it a number and a
+caption; it needs Typst 0.11 or later and no package. The three files depend on the table alone, so they are the same
 bytes on every machine, and the conformance suite checks them.
 
 A figure. The plot is laid out for the page it is written on, so a wider page has a wider

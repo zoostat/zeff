@@ -188,9 +188,7 @@ report
   ───────────────────────────────────────────────
   N                1,492       1,492        1,492
 
-(1) H0: the variance of wage is the same in both groups of union; H1: the variance of wage differs between the two groups of union
-(2) H0: the variance of wage is the same in both groups of union; H1: the variance of wage differs between the two groups of union
-(3) H0: the variance of wage is the same in both groups of union; H1: the variance of wage differs between the two groups of union
+(1) to (3) H0: the variance of wage is the same in both groups of union; H1: the variance of wage differs between the two groups of union
 ---
 note: 2 rows with NA in x or g dropped (line 22)
 note: 26 rows with NA in wage or industry dropped (line 26)
