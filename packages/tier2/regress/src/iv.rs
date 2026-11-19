@@ -505,6 +505,9 @@ pub struct FirstStage {
     pub vanishing: Vec<usize>,
     /// The omitted instruments whose values are too large to be scaled.
     pub oversized: Vec<usize>,
+    /// The instrumented regressors whose own values are too large to be scaled, as positions
+    /// among the designs' `endogenous`: they have no first stage.
+    pub oversized_regressors: Vec<usize>,
     /// For each instrumented regressor, in the order of the designs' `endogenous`, one
     /// coefficient per kept instrument, in the units of the data.
     pub coefficients: Vec<Vec<f64>>,
@@ -599,6 +602,9 @@ fn first_stage(ctx: &CallContext<'_>, designs: &Designs) -> Result<FirstStage, F
     let r11 = Matrix::from_fn(rank, rank, |i, j| pivoted.r.get(i, j));
     let kept_scales: Vec<f64> = kept.iter().map(|&c| factor.scales[c]).collect();
     let mut coefficients = Vec::with_capacity(designs.endogenous.len());
+    let oversized_regressors: Vec<usize> = (0..designs.endogenous.len())
+        .filter(|&q| !factor.sums[l + q].is_finite())
+        .collect();
     for q in 0..designs.endogenous.len() {
         let own = factor.scales[l + q];
         let qty: Vec<f64> = (0..rank).map(|i| pivoted.r.get(i, l + q)).collect();
@@ -620,6 +626,7 @@ fn first_stage(ctx: &CallContext<'_>, designs: &Designs) -> Result<FirstStage, F
         zero,
         vanishing,
         oversized,
+        oversized_regressors,
         coefficients,
         condition_number: condition_number(&r11),
         r: r11,
@@ -868,9 +875,11 @@ pub fn noncentral_chi_square_point(degrees: f64, noncentrality: f64, upper: f64)
     0.5 * (low + high)
 }
 
-/// The symmetric power `m^exponent` of a symmetric positive-definite matrix, by its
-/// eigenvalues; `None` when an eigenvalue is not positive beyond rounding.
+/// The inverse (`exponent` −1) or the inverse root (−½) of a symmetric positive-definite
+/// matrix, by its eigenvalues; `None` when an eigenvalue is not positive beyond rounding. No
+/// statistic here needs another power.
 fn symmetric_power(m: &Matrix, exponent: f64) -> Option<Matrix> {
+    debug_assert!(exponent == -1.0 || exponent == -0.5);
     let k = m.rows();
     let spectrum = symmetric_eigen(m);
     let largest = spectrum.values.last().copied().unwrap_or(0.0);
@@ -885,9 +894,7 @@ fn symmetric_power(m: &Matrix, exponent: f64) -> Option<Matrix> {
         .values
         .iter()
         .map(|v| {
-            if exponent == 0.5 {
-                v.sqrt()
-            } else if exponent == -0.5 {
+            if exponent == -0.5 {
                 1.0 / v.sqrt()
             } else {
                 1.0 / v
@@ -936,7 +943,14 @@ impl Weak {
 
 /// vᵀ M⁻¹ v for a symmetric positive-definite M, each row and column first scaled by its
 /// diagonal entry so that variables in very different units do not meet in one factorisation;
-/// `None` when M is not positive definite to the factorisation.
+/// `None` when M is not positive definite, or is singular but for rounding.
+///
+/// A variance can be singular by its making: clustered errors give the coefficients a variance
+/// of rank at most the number of clusters less one, so a statistic that joins more
+/// coefficients than that has nothing to invert (Stata prints such an F as missing). Rounding
+/// leaves such a matrix a last pivot of the order of 1e-16, on which the factorisation still
+/// succeeds, and the form would come out near 1e16. So an eigenvalue at or below
+/// `COLLINEAR_RESIDUALS` of the largest, in the scaled units, is taken as zero.
 fn quadratic_form(m: &Matrix, v: &[f64]) -> Option<f64> {
     let k = v.len();
     let scale: Vec<f64> = (0..k).map(|i| m.get(i, i)).collect();
@@ -945,6 +959,17 @@ fn quadratic_form(m: &Matrix, v: &[f64]) -> Option<f64> {
     }
     let scale: Vec<f64> = scale.iter().map(|d| 1.0 / d.sqrt()).collect();
     let scaled = Matrix::from_fn(k, k, |i, j| m.get(i, j) * scale[i] * scale[j]);
+    if k > 1 {
+        let spectrum = symmetric_eigen(&scaled);
+        let largest = spectrum.values.last().copied().unwrap_or(0.0);
+        if spectrum
+            .values
+            .iter()
+            .any(|e| e.is_nan() || *e <= COLLINEAR_RESIDUALS * largest)
+        {
+            return None;
+        }
+    }
     let u: Vec<f64> = v.iter().zip(&scale).map(|(x, s)| x * s).collect();
     let factor = cholesky(&scaled).ok()?;
     let solved = solve_with_factor(&factor, &u).ok()?;
@@ -2316,7 +2341,18 @@ pub fn estimate(ctx: &mut CallContext<'_>, designs: Designs) -> Result<TwoStage,
         structural: &designs.structural,
         first_condition: first.condition_number,
     };
-    let fitted = estimator.fit(ctx, &second)?;
+    let mut fitted = estimator.fit(ctx, &second)?;
+    // An instrumented regressor too large to be scaled has fitted values of zero, which least
+    // squares on the fitted regressors reports as a column of zeros. It is not one: it is
+    // named for what it is, as `reg` names such a regressor.
+    for &q in &first.oversized_regressors {
+        let c = designs.endogenous[q];
+        if let Some(at) = fitted.zero.iter().position(|&z| z == c) {
+            fitted.zero.remove(at);
+            fitted.oversized.push(c);
+            fitted.oversized.sort_unstable();
+        }
+    }
     // A fitted regressor collinear with the ones before it where the regressor as observed is
     // not: the instruments do not identify the model (section 7.1; Z0804), by their count once
     // the collinear ones are gone, or because they move the instrumented regressors only
@@ -2347,4 +2383,152 @@ pub fn estimate(ctx: &mut CallContext<'_>, designs: Designs) -> Result<TwoStage,
         fitted,
         notes,
     })
+}
+
+#[cfg(test)]
+mod tests {
+    //! The small routines under the weak-instrument statistics and the Anderson–Rubin set, each
+    //! at the corners that no data reaches by itself (release 0.8.0, step 24a2: the coverage
+    //! report showed them untested).
+    use super::*;
+
+    const INF: f64 = f64::INFINITY;
+
+    fn matrix(rows: &[&[f64]]) -> Matrix {
+        Matrix::from_fn(rows.len(), rows.len(), |i, j| rows[i][j])
+    }
+
+    /// a b² + b1 b + c ≤ 0 in each of its forms: a parabola that opens upwards (an interval,
+    /// one point, or nothing), one that opens downwards (two rays, the whole line), and with no
+    /// square term a ray, the whole line or nothing.
+    #[test]
+    fn the_quadratic_inequality_in_each_form() {
+        let pieces = |a: f64, b1: f64, c: f64| quadratic_set(a, b1, c).pieces;
+        // (b − 1)(b − 3) ≤ 0, and its mirror.
+        assert_eq!(pieces(1.0, -4.0, 3.0), vec![(1.0, 3.0)]);
+        assert_eq!(pieces(-1.0, 4.0, -3.0), vec![(-INF, 1.0), (3.0, INF)]);
+        // No root: nothing when it opens upwards, everything when downwards.
+        assert_eq!(pieces(1.0, 0.0, 1.0), vec![]);
+        assert_eq!(pieces(-1.0, 0.0, -1.0), vec![(-INF, INF)]);
+        // A double root: the point itself when it opens upwards, the whole line when downwards
+        // (the parabola touches zero from below and is nowhere above it).
+        assert_eq!(pieces(1.0, -4.0, 4.0), vec![(2.0, 2.0)]);
+        assert_eq!(pieces(-1.0, 4.0, -4.0), vec![(-INF, INF)]);
+        // b² ≤ 0: the double root at zero, where the larger root is zero itself.
+        assert_eq!(pieces(1.0, 0.0, 0.0), vec![(0.0, 0.0)]);
+        // No square term: 2b − 6 ≤ 0, −2b − 6 ≤ 0, and a constant on either side of zero.
+        assert_eq!(pieces(0.0, 2.0, -6.0), vec![(-INF, 3.0)]);
+        assert_eq!(pieces(0.0, -2.0, -6.0), vec![(-3.0, INF)]);
+        assert_eq!(pieces(0.0, 0.0, -1.0), vec![(-INF, INF)]);
+        assert_eq!(pieces(0.0, 0.0, 1.0), vec![]);
+        // Roots of very different sizes keep their digits: (b − 1e-8)(b − 1e8).
+        let wide = pieces(1.0, -(1e8 + 1e-8), 1.0);
+        assert!((wide[0].0 / 1e-8 - 1.0).abs() < 1e-12 && (wide[0].1 / 1e8 - 1.0).abs() < 1e-12);
+    }
+
+    /// The names of the shapes, the unusual ones among them.
+    #[test]
+    fn the_shape_of_a_set() {
+        let shape = |pieces: &[(f64, f64)]| {
+            ConfidenceSet {
+                pieces: pieces.to_vec(),
+            }
+            .shape()
+        };
+        assert_eq!(shape(&[]), Shape::Empty);
+        assert_eq!(shape(&[(-INF, INF)]), Shape::WholeLine);
+        assert_eq!(shape(&[(1.0, 3.0)]), Shape::Interval);
+        assert_eq!(shape(&[(-INF, 1.0), (3.0, INF)]), Shape::TwoRays);
+        assert_eq!(shape(&[(-INF, 3.0)]), Shape::Other);
+        assert_eq!(shape(&[(3.0, INF)]), Shape::Other);
+        assert_eq!(shape(&[(0.0, 1.0), (2.0, 3.0)]), Shape::Other);
+        assert_eq!(shape(&[(-INF, 0.0), (1.0, 2.0), (3.0, INF)]), Shape::Other);
+    }
+
+    /// The search finds every piece of a set and both of its far ends, and gives nothing when
+    /// the function cannot be evaluated: (b + 2)(b − 1)(b − 3) ≤ 0 is a ray and an interval;
+    /// its negative an interval and a ray; a function with four roots three pieces.
+    #[test]
+    fn the_searched_set_in_each_form() {
+        let near = |a: f64, b: f64| (a - b).abs() <= 1e-9 * b.abs().max(1.0);
+        let cubic = |b: f64| Some((b + 2.0) * (b - 1.0) * (b - 3.0));
+        let found = searched_set(&cubic, Some(-1.0)).unwrap();
+        assert_eq!(found.pieces.len(), 2, "{:?}", found.pieces);
+        assert!(found.pieces[0].0 == -INF && near(found.pieces[0].1, -2.0));
+        assert!(near(found.pieces[1].0, 1.0) && near(found.pieces[1].1, 3.0));
+        assert_eq!(found.shape(), Shape::Other);
+        // The far ends outside the set, and the last piece running on to +∞: the limit says
+        // which side the far ends are on, and the cubic changes sides, so the limit is that of
+        // −∞ and the piece that is still open at the last crossing is closed by +∞.
+        let mirrored = |b: f64| Some(-(b + 2.0) * (b - 1.0) * (b - 3.0));
+        let found = searched_set(&mirrored, Some(1.0)).unwrap();
+        assert_eq!(found.pieces.len(), 2, "{:?}", found.pieces);
+        assert!(near(found.pieces[0].0, -2.0) && near(found.pieces[0].1, 1.0));
+        assert!(near(found.pieces[1].0, 3.0) && found.pieces[1].1 == INF);
+        let quartic = |b: f64| Some(-(b + 3.0) * (b + 1.0) * (b - 2.0) * (b - 5.0));
+        let found = searched_set(&quartic, Some(-1.0)).unwrap();
+        assert_eq!(found.pieces.len(), 3, "{:?}", found.pieces);
+        assert!(near(found.pieces[1].0, -1.0) && near(found.pieces[1].1, 2.0));
+        assert_eq!(found.shape(), Shape::Other);
+        // Nothing where the limit, or a value on the way, cannot be had.
+        assert_eq!(searched_set(&cubic, None), None);
+        assert_eq!(
+            searched_set(&|b: f64| (b < 10.0).then_some(b), Some(1.0)),
+            None
+        );
+        assert_eq!(searched_set(&|_| Some(f64::NAN), Some(1.0)), None);
+    }
+
+    /// vᵀM⁻¹v: its value, and nothing for a matrix that is not a variance: a diagonal entry
+    /// that is zero, negative or not finite, a matrix that is not positive definite, and one
+    /// that is singular but for rounding, which is what clustered errors give when more
+    /// coefficients are joined than there are clusters less one.
+    #[test]
+    fn the_quadratic_form_of_what_is_not_a_variance_is_nothing() {
+        let v = [1.0, 2.0];
+        let got = quadratic_form(&matrix(&[&[2.0, 0.0], &[0.0, 8.0]]), &v).unwrap();
+        assert!((got - 1.0).abs() < 1e-15, "{got}");
+        // Units cancel: the same form with the second variable a million times larger.
+        let scaled = quadratic_form(&matrix(&[&[2.0, 0.0], &[0.0, 8e12]]), &[1.0, 2e6]).unwrap();
+        assert!((scaled - 1.0).abs() < 1e-12, "{scaled}");
+        assert_eq!(
+            quadratic_form(&matrix(&[&[0.0, 0.0], &[0.0, 1.0]]), &v),
+            None
+        );
+        assert_eq!(
+            quadratic_form(&matrix(&[&[-1.0, 0.0], &[0.0, 1.0]]), &v),
+            None
+        );
+        assert_eq!(
+            quadratic_form(&matrix(&[&[INF, 0.0], &[0.0, 1.0]]), &v),
+            None
+        );
+        assert_eq!(
+            quadratic_form(&matrix(&[&[1.0, 2.0], &[2.0, 1.0]]), &v),
+            None
+        );
+        // Rank one, exactly and with the last digit of one entry moved.
+        assert_eq!(
+            quadratic_form(&matrix(&[&[1.0, 2.0], &[2.0, 4.0]]), &v),
+            None
+        );
+        let nearly = matrix(&[&[1.0, 2.0], &[2.0, 4.0 * (1.0 + 4.0 * f64::EPSILON)]]);
+        assert_eq!(quadratic_form(&nearly, &v), None);
+        // One variable has nothing to be singular with.
+        assert_eq!(quadratic_form(&matrix(&[&[4.0]]), &[2.0]), Some(1.0));
+    }
+
+    /// The inverse and the inverse root by eigenvalues, and nothing for a singular matrix.
+    #[test]
+    fn the_inverse_and_its_root() {
+        let m = matrix(&[&[2.0, 1.0], &[1.0, 2.0]]);
+        let inverse = symmetric_power(&m, -1.0).unwrap();
+        let root = symmetric_power(&m, -0.5).unwrap();
+        for (i, j, want) in [(0, 0, 2.0 / 3.0), (0, 1, -1.0 / 3.0), (1, 1, 2.0 / 3.0)] {
+            assert!((inverse.get(i, j) - want).abs() < 1e-15);
+            let squared: f64 = (0..2).map(|l| root.get(i, l) * root.get(l, j)).sum();
+            assert!((squared - want).abs() < 1e-15);
+        }
+        assert!(symmetric_power(&matrix(&[&[1.0, 2.0], &[2.0, 4.0]]), -1.0).is_none());
+    }
 }

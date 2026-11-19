@@ -1,0 +1,310 @@
+---
+source: packages/tier2/regress/tests/ivreg.rs
+expression: "all_of(&scripts, false)"
+---
+## hc2: the first stage and the Anderson–Rubin test say which errors they stand on
+let staff = dataset(staff)
+let iv = staff.ivreg(productivity ~ age + training, instruments: training ~ offer + distance, se: hc2)
+iv.first_stage()
+iv.ar_test()
+
+---
+first stage · training ~ age + offer + distance
+
+  term          estimate   std.error   t value   p value   95% CI
+  (intercept)     0.4835      0.0395     12.24    <0.001   [0.4060, 0.5610]
+  age            -0.0038      0.0008     -4.77    <0.001   [-0.0054, -0.0022]
+  offer           0.4888      0.0176     27.70    <0.001   [0.4542, 0.5234]
+  distance       -0.0061      0.0015     -4.03    <0.001   [-0.0090, -0.0031]
+
+partial R² 0.2446
+F of the excluded instruments 402.47 on 2 and 2,396 degrees of freedom (robust, hc2)
+
+standard errors: hc2
+weak instruments: Kleibergen–Paap F 402.47 · effective F 384.75 (critical value 19.66)
+over-identification: Hansen's J, chi2(1) = 0.54   p = 0.462 (robust, hc2)
+endogeneity: Durbin–Wu–Hausman F(1, 2,396) = 7.66   p = 0.006 (robust, hc2)
+ar_test · iv · training
+  H0: the coefficient of training is zero          β = 0
+  H1: the coefficient of training is not zero      β ≠ 0
+F(2, 2,396) = 32.62   p < 0.001
+decision at α = 0.05: reject H0 (p < 0.001)
+95% confidence set for the coefficient of training: from 3.1017 to 5.4059
+Anderson–Rubin test on the instruments offer, distance, with robust errors (hc2); valid however weak the instruments
+
+## hc3, and a level of 99.5 per cent
+let staff = dataset(staff)
+let iv = staff.ivreg(productivity ~ age + training, instruments: training ~ offer + distance, se: hc3)
+iv.first_stage()
+iv.ar_test(level: 0.995)
+
+---
+first stage · training ~ age + offer + distance
+
+  term          estimate   std.error   t value   p value   95% CI
+  (intercept)     0.4835      0.0395     12.23    <0.001   [0.4060, 0.5611]
+  age            -0.0038      0.0008     -4.76    <0.001   [-0.0054, -0.0022]
+  offer           0.4888      0.0177     27.67    <0.001   [0.4542, 0.5234]
+  distance       -0.0061      0.0015     -4.02    <0.001   [-0.0090, -0.0031]
+
+partial R² 0.2446
+F of the excluded instruments 401.78 on 2 and 2,396 degrees of freedom (robust, hc3)
+
+standard errors: hc3
+weak instruments: Kleibergen–Paap F 401.78 · effective F 383.95 (critical value 19.66)
+over-identification: Hansen's J, chi2(1) = 0.54   p = 0.462 (robust, hc3)
+endogeneity: Durbin–Wu–Hausman F(1, 2,396) = 7.64   p = 0.006 (robust, hc3)
+ar_test · iv · training
+  H0: the coefficient of training is zero          β = 0
+  H1: the coefficient of training is not zero      β ≠ 0
+F(2, 2,396) = 32.57   p < 0.001
+decision at α = 0.005: reject H0 (p < 0.001)
+99.5% confidence set for the coefficient of training: from 2.6728 to 5.8160
+Anderson–Rubin test on the instruments offer, distance, with robust errors (hc3); valid however weak the instruments
+
+## three instrumented regressors in the test's sentence
+let staff = dataset(staff)
+staff.ivreg(productivity ~ training + tenure + age, instruments: training + tenure + age ~ offer + distance + site + employee).ar_test()
+
+---
+ar_test · productivity ~ training + tenure + age · training, tenure and age
+  H0: the coefficients of training, tenure and age are all zero
+  H1: at least one of the coefficients of training, tenure and age is not zero
+F(4, 2,395) = 26.76   p < 0.001
+decision at α = 0.05: reject H0 (p < 0.001)
+no confidence set: with several instrumented regressors the test is of all their coefficients at once
+Anderson–Rubin test on the instruments offer, distance, site, employee; valid however weak the instruments
+warning[W1007]: weak instruments: the Cragg–Donald F is 0.10, under 10 (line 2)
+  = help: with weak instruments the estimate leans towards the least-squares one and its confidence interval is too narrow; `ar_test()` gives a test and a confidence set that hold however weak the instruments are
+
+## rows with a zero weight
+let staff = dataset(staff).add(w = to(age > 30, Int) * tenure)
+staff.ivreg(productivity ~ training, instruments: training ~ offer, weights: w, weight_type: analytic)
+
+---
+ivreg · productivity ~ training
+N = 1,864 (536 rows with zero weight left out)
+weights: w (analytic)
+standard errors: classical
+
+  term          estimate   std.error   t value   p value   95% CI
+  (intercept)    51.5138      0.3480    148.03    <0.001   [50.8313, 52.1963]
+  training        4.0188      0.5835      6.89    <0.001   [2.8744, 5.1633]
+
+instrumented: training · instruments: offer
+Cragg–Donald F 552.47
+note: 536 rows with a zero weight left out of the estimate and the observation count (line 2)
+
+## two instruments already in the formula
+let staff = dataset(staff)
+staff.ivreg(productivity ~ age + tenure + training, instruments: training ~ offer + age + tenure)
+
+---
+ivreg · productivity ~ age + tenure + training
+N = 2,400
+standard errors: classical
+
+  term          estimate   std.error   t value   p value   95% CI
+  (intercept)    48.6471      0.5843     83.26    <0.001   [47.5013, 49.7929]
+  age             0.0008      0.0109      0.07     0.945   [-0.0206, 0.0221]
+  tenure          0.7689      0.1298      5.93    <0.001   [0.5145, 1.0234]
+  training        3.6173      0.5638      6.42    <0.001   [2.5118, 4.7228]
+
+instrumented: training · instruments: offer
+Cragg–Donald F 653.51
+note: `age`, `tenure` are already in the formula, so each is an included instrument and not an excluded one (line 2)
+
+## every instrumented regressor dropped: the fit, its first stage and its test
+let staff = dataset(staff).add(a = age * 2, b = age * 3)
+let iv = staff.ivreg(productivity ~ age + a + b, instruments: a + b ~ offer + distance)
+iv
+iv.first_stage()
+iv.ar_test()
+
+---
+ivreg · productivity ~ age + a + b
+N = 2,400
+standard errors: classical
+
+  term           estimate   std.error   t value   p value   95% CI
+  (intercept)     53.8191      0.5042    106.73    <0.001   [52.8303, 54.8079]
+  age             -0.0154      0.0119     -1.30     0.195   [-0.0386, 0.0079]
+  a             (omitted)
+  b             (omitted)
+
+instrumented: nothing · instruments: offer, distance
+first stage · productivity ~ age + a + b
+nothing is instrumented: the fit dropped every instrumented regressor
+note: `a`, `b` are collinear with the columns before them and were dropped (line 2)
+note: `a`, `b` were dropped, so nothing is instrumented and the estimates are those of least squares (line 2)
+error[Z0802]: nothing is instrumented in this fit, so there is no coefficient for the Anderson–Rubin test
+ --> scripts/main.zeff:5:1
+  |
+5 | iv.ar_test()
+  | ^^ a fit whose instrumented regressors were all dropped
+  |
+  = help: the fit dropped every instrumented regressor as collinear; its notes say which
+
+## clustered by the effect that is absorbed
+let staff = dataset(staff)
+let iv = staff.ivreg(productivity ~ age + training, fe: site, instruments: training ~ offer + distance, cluster: site)
+iv.first_stage()
+iv.ar_test()
+
+---
+first stage · training ~ age + offer + distance · fe: site
+
+  term       estimate   std.error   t value   p value   95% CI
+  age         -0.0039      0.0008     -5.00    <0.001   [-0.0055, -0.0022]
+  offer        0.4841      0.0208     23.24    <0.001   [0.4383, 0.5300]
+  distance    -0.0059      0.0014     -4.16     0.002   [-0.0090, -0.0028]
+
+partial R² 0.2446
+F of the excluded instruments 286.15 on 2 and 11 degrees of freedom (clustered by site)
+
+standard errors: clustered by site (12 clusters, CR1)
+weak instruments: Kleibergen–Paap F 286.15 · effective F 333.47 (critical value 20.23)
+over-identification: Hansen's J, chi2(1) = 0.12   p = 0.729 (clustered by site)
+endogeneity: Durbin–Wu–Hausman F(1, 11) = 15.72   p = 0.002 (clustered by site)
+ar_test · iv · training
+  H0: the coefficient of training is zero          β = 0
+  H1: the coefficient of training is not zero      β ≠ 0
+F(2, 11) = 46.10   p < 0.001
+decision at α = 0.05: reject H0 (p < 0.001)
+95% confidence set for the coefficient of training: from 3.5693 to 5.5026
+Anderson–Rubin test on the instruments offer, distance, with errors clustered by site; valid however weak the instruments
+warning[W1002]: few clusters: 12 clusters give clustered errors little to rest on (line 2)
+  = help: the wild cluster bootstrap (`se: bootstrap`, release 1.1) is the usual remedy below 30 clusters
+
+## as many instruments as rows: no residual degrees of freedom for the test
+let d = frame(a = [1.1, -0.7, 2.3, 0.4, -1.9, 0.8, 1.5, -2.2, 0.3, 1.7, -0.5, 2.9], u = [0.3, 1.4, -0.8, 2.1, 0.6, -1.3, 0.9, 0.2, -1.7, 1.1, 2.4, -0.4], v = [-1.2, 0.5, 0.7, -0.3, 1.8, 0.1, -0.9, 1.3, 0.6, -2.1, 0.8, 1.0], w = [2.0, 1.0, 3.0, 0.5, 1.5, 2.5, 3.5, 0.0, 1.2, 2.2, 0.7, 1.9], s = [0.5, -1.1, 1.9, 0.2, -0.6, 1.4, -1.8, 0.9, 2.2, -0.3, 1.0, -1.5], x = [0.9, -0.8, 1.5, 0.6, -0.2, 1.1, -1.6, 0.4, 2.0, 0.1, 0.7, -1.2])
+let iv = d.head(5).ivreg(w ~ x, instruments: x ~ s + u + v + a)
+iv
+iv.ar_test()
+
+---
+ivreg · w ~ x
+N = 5
+standard errors: classical
+
+  term          estimate   std.error   t value   p value   95% CI
+  (intercept)     1.3212      0.4168      3.17     0.050   [-0.0051, 2.6475]
+  x               0.6970      0.4602      1.51     0.227   [-0.7677, 2.1616]
+
+instrumented: x · instruments: s, u, v, a
+Cragg–Donald F not available
+error[Z0802]: the Anderson–Rubin test cannot be computed for this fit: the regression of the outcome on the instruments has no residual degrees of freedom, or its variance cannot be inverted
+ --> scripts/main.zeff:4:1
+  |
+4 | iv.ar_test()
+  | ^^ no test for this fit
+  |
+  = help: with clustered errors the test needs more clusters than instruments outside the equation; otherwise more rows than instruments
+
+## a design near singular
+let d = frame(a = [1.1, -0.7, 2.3, 0.4, -1.9, 0.8, 1.5, -2.2, 0.3, 1.7, -0.5, 2.9], u = [0.3, 1.4, -0.8, 2.1, 0.6, -1.3, 0.9, 0.2, -1.7, 1.1, 2.4, -0.4], v = [-1.2, 0.5, 0.7, -0.3, 1.8, 0.1, -0.9, 1.3, 0.6, -2.1, 0.8, 1.0], w = [2.0, 1.0, 3.0, 0.5, 1.5, 2.5, 3.5, 0.0, 1.2, 2.2, 0.7, 1.9], s = [0.5, -1.1, 1.9, 0.2, -0.6, 1.4, -1.8, 0.9, 2.2, -0.3, 1.0, -1.5], x = [0.9, -0.8, 1.5, 0.6, -0.2, 1.1, -1.6, 0.4, 2.0, 0.1, 0.7, -1.2])
+let e = d.add(y = a + 1e-5 * u, z = u + 1e-5 * v)
+e.ivreg(w ~ a + y + z + x, instruments: x ~ s)
+
+---
+ivreg · w ~ a + y + z + x
+N = 12
+standard errors: classical
+
+  term                  estimate         std.error   t value   p value   95% CI
+  (intercept)             1.7858            0.3441      5.19     0.001   [0.9722, 2.5993]
+  a             -2459962602.5342   2785441591.2927     -0.88     0.406   [-9046485340.7000, 4126560135.6316]
+  y              2459962602.8237   2785441591.1660      0.88     0.406   [-4126560135.0427, 9046485340.6901]
+  z                  -24599.9530        27854.5267     -0.88     0.406   [-90465.4422, 41265.5362]
+  x                      -0.2697            0.2653     -1.02     0.343   [-0.8972, 0.3577]
+
+instrumented: x · instruments: s
+Cragg–Donald F 115.70
+warning[W1001]: near-singular regressors: the condition number of the scaled design is 3.941e10 (line 3)
+  = help: two regressors are almost the same column once the instrumented ones are replaced by their fitted values; drop one, or find an instrument that tells them apart
+
+## four clusters and four instruments: no F, no Kleibergen–Paap F, no test
+let staff = dataset(staff)
+let iv = staff.ivreg(productivity ~ training, instruments: training ~ offer + distance + age + tenure, cluster: region)
+iv
+iv.first_stage()
+iv.ar_test()
+
+---
+ivreg · productivity ~ training
+N = 2,400
+standard errors: clustered by region (4 clusters, CR1)
+
+  term          estimate   std.error   t value   p value   95% CI
+  (intercept)    50.3350      0.9037     55.70    <0.001   [47.4590, 53.2111]
+  training        5.7634      0.5984      9.63     0.002   [3.8589, 7.6679]
+
+instrumented: training · instruments: offer, distance, age, tenure
+Kleibergen–Paap F not available · effective F 839.96 (critical value 21.88)
+first stage · training ~ offer + distance + age + tenure
+
+  term          estimate   std.error   t value   p value   95% CI
+  (intercept)     0.0416      0.0367      1.13     0.339   [-0.0751, 0.1582]
+  offer           0.4347      0.0151     28.73    <0.001   [0.3865, 0.4828]
+  distance       -0.0050      0.0003    -16.88    <0.001   [-0.0059, -0.0040]
+  age            -0.0032      0.0006     -5.56     0.011   [-0.0050, -0.0014]
+  tenure          0.1213      0.0027     45.13    <0.001   [0.1128, 0.1299]
+
+partial R² 0.3369
+F of the excluded instruments not available (clustered by region): 4 instruments are tested together, and errors clustered in 4 groups can test at most 3
+
+standard errors: clustered by region (4 clusters, CR1)
+weak instruments: Kleibergen–Paap F not available · effective F 839.96 (critical value 21.88)
+over-identification: Hansen's J, chi2(3) = 3.97   p = 0.265 (clustered by region)
+endogeneity: Durbin–Wu–Hausman F(1, 3) = 1.58   p = 0.297 (clustered by region)
+warning[W1002]: few clusters: 4 clusters give clustered errors little to rest on (line 2)
+  = help: the wild cluster bootstrap (`se: bootstrap`, release 1.1) is the usual remedy below 30 clusters
+error[Z0802]: the Anderson–Rubin test cannot be computed for this fit: the regression of the outcome on the instruments has no residual degrees of freedom, or its variance cannot be inverted
+ --> scripts/main.zeff:5:1
+  |
+5 | iv.ar_test()
+  | ^^ no test for this fit
+  |
+  = help: with clustered errors the test needs more clusters than instruments outside the equation; otherwise more rows than instruments
+
+## a regressor and an instrument each written twice
+let staff = dataset(staff)
+staff.ivreg(productivity ~ age + age + training, instruments: training ~ offer + distance + offer)
+
+---
+ivreg · productivity ~ age + age + training
+N = 2,400
+standard errors: classical
+
+  term          estimate   std.error   t value   p value   95% CI
+  (intercept)    51.1125      0.5557     91.98    <0.001   [50.0229, 52.2022]
+  age            -0.0009      0.0110     -0.08     0.936   [-0.0224, 0.0206]
+  training        4.2658      0.4904      8.70    <0.001   [3.3041, 5.2274]
+
+instrumented: training · instruments: offer, distance
+Cragg–Donald F 387.89
+note: `age` is written twice and is kept once (line 2)
+note: `offer` is written twice and is kept once (line 2)
+
+## two clusters and three instruments: no Hansen's J either
+let staff = dataset(staff)
+staff.ivreg(productivity ~ training, instruments: training ~ distance + age + tenure, cluster: offer).first_stage()
+
+---
+first stage · training ~ distance + age + tenure
+
+  term          estimate   std.error   t value   p value   95% CI
+  (intercept)     0.1103      0.2355      0.47     0.721   [-2.8819, 3.1025]
+  distance       -0.0043      0.0014     -3.04     0.202   [-0.0223, 0.0137]
+  age            -0.0025      0.0003     -9.16     0.069   [-0.0061, 0.0010]
+  tenure          0.1527      0.0008    182.27     0.003   [0.1421, 0.1634]
+
+partial R² 0.1542
+F of the excluded instruments not available (clustered by offer): 3 instruments are tested together, and errors clustered in 2 groups can test at most 1
+
+standard errors: clustered by offer (2 clusters, CR1)
+weak instruments: Kleibergen–Paap F not available · effective F 454.06 (critical value 23.11)
+over-identification: Hansen's J not available
+endogeneity: Durbin–Wu–Hausman F(1, 1) = 279.05   p = 0.038 (clustered by offer)
+warning[W1002]: few clusters: 2 clusters give clustered errors little to rest on (line 2)
+  = help: the wild cluster bootstrap (`se: bootstrap`, release 1.1) is the usual remedy below 30 clusters

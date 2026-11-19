@@ -178,6 +178,17 @@ pub fn ivreg(ctx: &mut CallContext<'_>, args: Args) -> Result<Value, Fail> {
     }
     let fit: TwoStage = estimate(ctx, designs)?;
     let designs = &fit.designs;
+    if let Some(p) = &projection {
+        // The second stage sees the regressors alone; the parameters of the absorbed effects
+        // are counted here, as `reg` counts them.
+        crate::reg::refuse_no_residual_freedom(
+            ctx,
+            designs.structural.n(),
+            fit.fitted.kept.len(),
+            p.parameters(None),
+            &effects_text,
+        )?;
+    }
     let absorbed_columns: Vec<usize> = projection
         .as_ref()
         .map(|p| p.absorbed.absorbed_columns.clone())
@@ -524,6 +535,49 @@ fn clusters_for(
     }))
 }
 
+/// A confidence set of the Anderson–Rubin test in words, after `start`: an interval, two rays,
+/// the whole line or nothing, each with what it says of the instruments; and any other set
+/// piece by piece.
+fn set_in_words(start: &str, set: &crate::iv::ConfidenceSet) -> String {
+    use crate::iv::Shape;
+    match set.shape() {
+        Shape::Interval => {
+            let (lo, hi) = set.pieces[0];
+            format!(
+                "{start} from {} to {}",
+                four_decimals(lo),
+                four_decimals(hi)
+            )
+        }
+        Shape::TwoRays => format!(
+            "{start} every value up to {} and every value from {} on; the instruments are too weak to bound it on both sides",
+            four_decimals(set.pieces[0].1),
+            four_decimals(set.pieces[1].0)
+        ),
+        Shape::WholeLine => {
+            format!("{start} every value; the instruments are too weak to say anything about it")
+        }
+        Shape::Empty => format!(
+            "{start} empty; no value agrees with all the instruments at this level, which says the instruments disagree"
+        ),
+        Shape::Other => {
+            let pieces: Vec<String> = set
+                .pieces
+                .iter()
+                .map(|&(lo, hi)| match (lo.is_finite(), hi.is_finite()) {
+                    (true, true) => {
+                        format!("from {} to {}", four_decimals(lo), four_decimals(hi))
+                    }
+                    (false, true) => format!("every value up to {}", four_decimals(hi)),
+                    (true, false) => format!("every value from {} on", four_decimals(lo)),
+                    (false, false) => "every value".to_string(),
+                })
+                .collect();
+            format!("{start} {}", pieces.join("; and "))
+        }
+    }
+}
+
 /// How a line says which standard errors a statistic stands on, when they are not classical.
 fn on_errors(kind: Kind, cluster: Option<&str>) -> String {
     match kind {
@@ -613,17 +667,33 @@ fn stage_tables(
             }
             after.push(line);
         }
-        after.push(format!(
-            "F of the excluded instruments {} on {} and {} degrees of freedom{}",
-            f.map_or("not available".to_string(), two_decimals),
-            count(weak.df1 as u64),
-            count(if shared.kind == Kind::Cluster {
-                stage_df as u64
-            } else {
-                weak.df2.round() as u64
-            }),
-            on_errors(shared.kind, shared.cluster)
-        ));
+        let second = if shared.kind == Kind::Cluster {
+            stage_df as u64
+        } else {
+            weak.df2.round() as u64
+        };
+        after.push(match f {
+            Some(f) => format!(
+                "F of the excluded instruments {} on {} and {} degrees of freedom{}",
+                two_decimals(f),
+                count(weak.df1 as u64),
+                count(second),
+                on_errors(shared.kind, shared.cluster)
+            ),
+            // Clustered errors give the coefficients a variance of rank at most the clusters
+            // less one, so more instruments than that cannot be tested together.
+            None if shared.kind == Kind::Cluster && weak.df1 as u64 > second => format!(
+                "F of the excluded instruments not available{}: {} instruments are tested together, and errors clustered in {} groups can test at most {}",
+                on_errors(shared.kind, shared.cluster),
+                count(weak.df1 as u64),
+                count(second + 1),
+                count(second)
+            ),
+            None => format!(
+                "F of the excluded instruments not available{}: its variance cannot be inverted",
+                on_errors(shared.kind, shared.cluster)
+            ),
+        });
         table.after = after;
         tables.push(table);
     }
@@ -928,40 +998,8 @@ pub fn ar_test(ctx: &mut CallContext<'_>, args: Args) -> Result<Value, Fail> {
     let mut after: Vec<String> = Vec::new();
     match (&found.set, one) {
         (Some(set), true) => {
-            use crate::iv::Shape;
             let start = format!("{percent}% confidence set for the coefficient of {listed}:");
-            after.push(match set.shape() {
-                Shape::Interval => {
-                    let (lo, hi) = set.pieces[0];
-                    format!("{start} from {} to {}", four_decimals(lo), four_decimals(hi))
-                }
-                Shape::TwoRays => format!(
-                    "{start} every value up to {} and every value from {} on; the instruments are too weak to bound it on both sides",
-                    four_decimals(set.pieces[0].1),
-                    four_decimals(set.pieces[1].0)
-                ),
-                Shape::WholeLine => format!(
-                    "{start} every value; the instruments are too weak to say anything about it"
-                ),
-                Shape::Empty => format!(
-                    "{start} empty; no value agrees with all the instruments at this level, which says the instruments disagree"
-                ),
-                Shape::Other => {
-                    let pieces: Vec<String> = set
-                        .pieces
-                        .iter()
-                        .map(|&(lo, hi)| match (lo.is_finite(), hi.is_finite()) {
-                            (true, true) => {
-                                format!("from {} to {}", four_decimals(lo), four_decimals(hi))
-                            }
-                            (false, true) => format!("every value up to {}", four_decimals(hi)),
-                            (true, false) => format!("every value from {} on", four_decimals(lo)),
-                            (false, false) => "every value".to_string(),
-                        })
-                        .collect();
-                    format!("{start} {}", pieces.join("; and "))
-                }
-            });
+            after.push(set_in_words(&start, set));
         }
         (None, true) => after.push(format!(
             "{percent}% confidence set for the coefficient of {listed}: not available"
@@ -1012,4 +1050,54 @@ pub fn ar_test(ctx: &mut CallContext<'_>, args: Args) -> Result<Value, Fail> {
         dropped: fit.dropped,
         follow_up: None,
     })))
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::iv::ConfidenceSet;
+
+    /// The sentence for each shape of a set, the unusual ones among them: one ray, and several
+    /// pieces, which only a set under robust errors with several instruments can be (release
+    /// 0.8.0, step 24a2: no data in the tests gives one, so the sentence is held here).
+    #[test]
+    fn a_confidence_set_in_words() {
+        let inf = f64::INFINITY;
+        let said = |pieces: &[(f64, f64)]| {
+            set_in_words(
+                "95% confidence set for the coefficient of x:",
+                &ConfidenceSet {
+                    pieces: pieces.to_vec(),
+                },
+            )
+        };
+        assert_eq!(
+            said(&[(0.5, 1.25)]),
+            "95% confidence set for the coefficient of x: from 0.5000 to 1.2500"
+        );
+        assert_eq!(
+            said(&[(-inf, -1.0), (2.0, inf)]),
+            "95% confidence set for the coefficient of x: every value up to -1.0000 and every value from 2.0000 on; the instruments are too weak to bound it on both sides"
+        );
+        assert_eq!(
+            said(&[(-inf, inf)]),
+            "95% confidence set for the coefficient of x: every value; the instruments are too weak to say anything about it"
+        );
+        assert_eq!(
+            said(&[]),
+            "95% confidence set for the coefficient of x: empty; no value agrees with all the instruments at this level, which says the instruments disagree"
+        );
+        assert_eq!(
+            said(&[(-inf, 3.0)]),
+            "95% confidence set for the coefficient of x: every value up to 3.0000"
+        );
+        assert_eq!(
+            said(&[(3.0, inf)]),
+            "95% confidence set for the coefficient of x: every value from 3.0000 on"
+        );
+        assert_eq!(
+            said(&[(-inf, 0.0), (1.0, 2.0), (3.0, inf)]),
+            "95% confidence set for the coefficient of x: every value up to 0.0000; and from 1.0000 to 2.0000; and every value from 3.0000 on"
+        );
+    }
 }

@@ -85,22 +85,24 @@ DETAILS
     its norm is warned about (W1004). The degrees of freedom count the absorbed effects' levels, less one
     for each effect after the first; under `cluster:` an effect nested within the clusters is not counted,
     which reproduces fixest's `fixef.K = "nested"` and reghdfe, and the t table uses G − 1 as without
-    effects. The summary prints R² within, the R² of the regression on the demeaned columns, and R² overall,
-    1 − RSS/TSS of the outcome with the effects' fit included, as fixest's `wr2` and `r2`; `r_squared()`
-    gives both with their adjusted forms. `fitted()` includes the effects' part and `predict()` adds each
-    row's effects by level, a level the fit never saw predicting `NA` with a warning (W0207); with one
-    effect in `fe:` a row's leverage is that in the demeaned columns plus its share of its level's weight
-    (1/n of the level without weights), which is the leverage with the indicators written out, so `se: hc2`,
-    `se: hc3`, `influence()` and the warning W1006 are as without `fe:`; with several effects they wait for
-    release 1.1 (Z0410, Z0304). A fit whose residual variance is below 1e-30 of the fitted values' scale is
-    noted as essentially perfect, which is R's rule, since its standard errors are then rounding alone.
-    After every fit the residuals are checked to be orthogonal to the regressors and the variance matrix to
-    be symmetric with no negative variance, and the demeaning to have converged, a failure being an internal
-    error rather than a result. The shipped `wages` recovers its generating model: the return to schooling
-    of 0.074 lies inside the interval of the pooled regression with errors clustered by worker, which the
-    test suite checks, and the textbook regressions on Wooldridge's `wage1` and `wage2` agree with R to ten
-    decimal places, and the fixed-effects fits on `wages` and on Wooldridge's `wagepan` agree with fixest
-    within 1e-7 on the estimates, standard errors and both R² forms.
+    effects. A model whose regressors and effects together take as many parameters as it has rows fits them
+    exactly and is refused (Z0802), as a model with as many regressors as rows is. The summary prints R²
+    within, the R² of the regression on the demeaned columns, and R² overall, 1 − RSS/TSS of the outcome
+    with the effects' fit included, as fixest's `wr2` and `r2`; `r_squared()` gives both with their adjusted
+    forms. `fitted()` includes the effects' part and `predict()` adds each row's effects by level, a level
+    the fit never saw predicting `NA` with a warning (W0207); with one effect in `fe:` a row's leverage is
+    that in the demeaned columns plus its share of its level's weight (1/n of the level without weights),
+    which is the leverage with the indicators written out, so `se: hc2`, `se: hc3`, `influence()` and the
+    warning W1006 are as without `fe:`; with several effects they wait for release 1.1 (Z0410, Z0304). A fit
+    whose residual variance is below 1e-30 of the fitted values' scale is noted as essentially perfect,
+    which is R's rule, since its standard errors are then rounding alone. After every fit the residuals are
+    checked to be orthogonal to the regressors and the variance matrix to be symmetric with no negative
+    variance, and the demeaning to have converged, a failure being an internal error rather than a result.
+    The shipped `wages` recovers its generating model: the return to schooling of 0.074 lies inside the
+    interval of the pooled regression with errors clustered by worker, which the test suite checks, and the
+    textbook regressions on Wooldridge's `wage1` and `wage2` agree with R to ten decimal places, and the
+    fixed-effects fits on `wages` and on Wooldridge's `wagepan` agree with fixest within 1e-7 on the
+    estimates, standard errors and both R² forms.
 
 WARNINGS AND NOTES
     Note    a term written twice kept once; a collinear column, a level with no observations, a zero column

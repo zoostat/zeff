@@ -70,7 +70,9 @@ is below 1e-8 of its original is absorbed by the effects and dropped with a note
 less than one per cent of its norm is warned about (W1004). The degrees of freedom count the
 absorbed effects' levels, less one for each effect after the first; under `cluster:` an effect
 nested within the clusters is not counted, which reproduces fixest's `fixef.K = "nested"` and
-reghdfe, and the t table uses G − 1 as without effects. The summary prints R² within, the R²
+reghdfe, and the t table uses G − 1 as without effects. A model whose regressors and effects
+together take as many parameters as it has rows fits them exactly and is refused (Z0802), as a
+model with as many regressors as rows is. The summary prints R² within, the R²
 of the regression on the demeaned columns, and R² overall, 1 − RSS/TSS of the outcome with the
 effects' fit included, as fixest's `wr2` and `r2`; `r_squared()` gives both with their adjusted
 forms. `fitted()` includes the effects' part and `predict()` adds each row's effects by level,

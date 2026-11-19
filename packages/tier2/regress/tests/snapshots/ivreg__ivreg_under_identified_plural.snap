@@ -1,0 +1,32 @@
+---
+source: packages/tier2/regress/tests/ivreg.rs
+expression: out
+---
+## two regressors that the instruments do not tell from the first
+let h = frame(c1 = [1, 1, 1, 1, -1, -1, -1, -1], c2 = [1, 1, -1, -1, 1, 1, -1, -1], c3 = [1, -1, 1, -1, 1, -1, 1, -1], c4 = [1, 1, -1, -1, -1, -1, 1, 1], c5 = [1, -1, 1, -1, -1, 1, -1, 1], c6 = [1, -1, -1, 1, 1, -1, -1, 1], y = [2.0, 1.0, 3.5, 0.5, 1.5, 2.5, 3.0, 0.0], b = [1.0, 2.0, 3.0, 4.0, 5.0, 6.0, 7.0, 9.0])
+let d = h.add(x1 = c1 + c2 + c4, x2 = 2 * c1 + 2 * c2 + c5, x3 = 3 * c1 + 3 * c2 + c6)
+d.ivreg(y ~ x1 + x2 + x3, instruments: x1 + x2 + x3 ~ c1 + c2 + c3)
+
+---
+error[Z0804]: the model is under-identified: the instruments do not tell `x2`, `x3` from the regressors before them
+ --> scripts/main.zeff:3:3
+  |
+3 | d.ivreg(y ~ x1 + x2 + x3, instruments: x1 + x2 + x3 ~ c1 + c2 + c3)
+  |   ^^^^^ instruments that move the regressors only together
+  |
+  = help: the first stage's fitted values are collinear: each instrumented regressor needs an instrument that moves it apart from the others
+
+## two instruments already in the formula, one left for two regressors
+let h = frame(c1 = [1, 1, 1, 1, -1, -1, -1, -1], c2 = [1, 1, -1, -1, 1, 1, -1, -1], c3 = [1, -1, 1, -1, 1, -1, 1, -1], c4 = [1, 1, -1, -1, -1, -1, 1, 1], c5 = [1, -1, 1, -1, -1, 1, -1, 1], c6 = [1, -1, -1, 1, 1, -1, -1, 1], y = [2.0, 1.0, 3.5, 0.5, 1.5, 2.5, 3.0, 0.0], b = [1.0, 2.0, 3.0, 4.0, 5.0, 6.0, 7.0, 9.0])
+let d = h.add(x1 = c1 + c2 + c4, x2 = 2 * c1 + 2 * c2 + c5, x3 = 3 * c1 + 3 * c2 + c6)
+d.ivreg(y ~ b + c6 + x1 + x2, instruments: x1 + x2 ~ c3 + b + c6)
+
+---
+error[Z0804]: the model is under-identified: 1 excluded instrument for 2 instrumented regressors
+ --> scripts/main.zeff:3:44
+  |
+3 | d.ivreg(y ~ b + c6 + x1 + x2, instruments: x1 + x2 ~ c3 + b + c6)
+  |                                            ^^^^^^^^^^^^^^^^^^^^^ fewer instruments than instrumented regressors
+  |
+  = help: each instrumented regressor needs at least one instrument that is not a regressor of the formula
+  = help: `b`, `c6` are already in the formula, so each is an included instrument and identifies nothing

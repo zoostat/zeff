@@ -60,7 +60,9 @@ instruments the set can have more than two ends, and each piece is printed.
 
 ### Fixed effects, weights and clusters
 They are the fit's: the effects are taken out of the outcome, the regressor and the
-instruments, and the variance is of the kind the fit was given.
+instruments, and the variance is of the kind the fit was given. With clustered errors the test
+needs more clusters than instruments outside the equation; with as many or fewer its variance
+cannot be inverted and the test is refused (Z0802).
 
 ### Exactness
 Closed form in double precision where the set is a quadratic; otherwise the ends are found to

@@ -1196,6 +1196,59 @@ fn a_statistic_that_cannot_be_computed_is_not() {
     assert_eq!(found.wald, vec![None]);
 }
 
+/// Clustered errors give the coefficients a variance of rank at most the clusters less one, so
+/// a statistic that joins more of them has nothing to invert. On the shipped `staff`, with its
+/// four regions as clusters: four instruments cannot be tested together, and the Wald F, the
+/// Kleibergen–Paap F and the Anderson–Rubin statistic are not available; three can, and the
+/// F is R's (`sandwich::vcovCL` with `type = "HC1"` on the first stage, the Wald statistic of
+/// the three coefficients over three: 138950.69999257984).
+///
+/// Found at release 0.8.0, step 24a2. The singular variance was factorised on a last pivot
+/// that was rounding alone, and the first-stage F printed as 26,077,266,171,929,368 (R's
+/// `solve` gives 4.96e15 for the same matrix, whose scaled eigenvalues are 2.7, 1.1, 0.18
+/// and 1.3e-13: both are noise).
+#[test]
+fn clustered_errors_cannot_test_more_instruments_than_the_clusters_less_one() {
+    let staff = zeff_datasets::table("staff").expect("the shipped staff");
+    let four = Model {
+        cluster: Some("region"),
+        ..model(
+            "productivity ~ training",
+            "training",
+            "offer + distance + age + tenure",
+        )
+    };
+    let found = weak_of(&staff, &four, Kind::Cluster, Some("region"));
+    assert_eq!(found.df1, 4);
+    assert!(found.f[0].is_some_and(|f| f > 100.0), "{:?}", found.f);
+    assert!(found.cragg_donald.is_some());
+    assert_eq!(found.wald, vec![None]);
+    assert_eq!(found.kleibergen_paap, None);
+    // The effective F inverts nothing and stays.
+    assert!(found.effective.is_some());
+    let test = anderson_rubin_of(&staff, &four, Kind::Cluster, Some("region"), 0.95);
+    assert_eq!((test.df1, test.df2), (4, 3));
+    assert_eq!(test.statistic, None);
+    assert_eq!(test.set, None);
+
+    let three = Model {
+        cluster: Some("region"),
+        ..model(
+            "productivity ~ training",
+            "training",
+            "offer + distance + age",
+        )
+    };
+    let found = weak_of(&staff, &three, Kind::Cluster, Some("region"));
+    let wald = found.wald[0].expect("three instruments and four clusters");
+    assert!(close(wald, 138_950.699_992_579_84, 1e-9, 0.0), "{wald}");
+    // With one instrumented regressor the Kleibergen–Paap F is that Wald F.
+    let rk = found.kleibergen_paap.expect("the rank statistic");
+    assert!(close(rk, wald, 1e-9, 0.0), "{rk} against {wald}");
+    let test = anderson_rubin_of(&staff, &three, Kind::Cluster, Some("region"), 0.95);
+    assert!(test.statistic.is_some_and(f64::is_finite));
+}
+
 // ----- the diagnostics of the first stage -----
 
 /// The partial R² of each first stage and Shea's, the test of the over-identifying
@@ -1338,18 +1391,22 @@ fn a_diagnostic_that_cannot_be_computed_is_not() {
 /// interval, two rays (the weaker instrument alone), the whole line (a small sample with the
 /// weaker instrument), an empty set (two instruments that disagree, at a low level), a wide
 /// interval at a level of 0.999, with the region absorbed, with weights, with clusters, and
-/// the joint test alone for two instrumented regressors. An end of a set is held to 1e-6 of
-/// its size; the text of every set is stored.
+/// the joint test alone for two instrumented regressors. Under HC2 and HC3 as well, where the
+/// model has neither weights nor fixed effects (R's statistic there is checked against the
+/// sandwich package), and on 400 rows with two weak instruments, where the robust sets are
+/// found by the search and one of them has no end on either side (both added at release
+/// 0.8.0, step 24a2, from the coverage report). An end of a set is held to 1e-6 of its size;
+/// the text of every set is stored.
 #[test]
 fn the_anderson_rubin_sets_agree_with_r() {
     let text = std::fs::read_to_string(root().join("tests/reference/r/ar.json")).unwrap();
     let reference: Json = serde_json::from_str(&text).unwrap();
     let cases = reference["cases"].as_object().unwrap();
-    assert_eq!(cases.len(), 10);
+    assert_eq!(cases.len(), 11);
     let mut all = String::new();
     for (name, case) in cases {
         let mut data = reference_data(case["data"].as_str().unwrap());
-        if name == "card_first_400" {
+        if name.starts_with("card_first_400") {
             data = data.take_rows(&(0..400).collect::<Vec<_>>());
         }
         let weights = case["weights"].as_str().map(|w| (w, WeightKind::Analytic));
@@ -1358,6 +1415,8 @@ fn the_anderson_rubin_sets_agree_with_r() {
             let (kind, cluster) = match kind_name.as_str() {
                 "classical" => (Kind::Classical, None),
                 "hc1" => (Kind::Hc1, None),
+                "hc2" => (Kind::Hc2, None),
+                "hc3" => (Kind::Hc3, None),
                 other => (Kind::Cluster, Some(other)),
             };
             let asked = Model {

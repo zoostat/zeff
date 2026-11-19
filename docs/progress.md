@@ -120,55 +120,9 @@ Step 21a `[engine]`: `x.export("name.typ")` writes a table, a result or a plot a
 
 Steps 22a, 22a2, 22b and 22b2 `[function]`, two steps of the checklist counted again and split by kind: 62 pages of `core` brought to the help contract of 0.8.0 (the maths and constants, 35; the collections, 17; types, categories and missing values, 10), each with a caption on every example, examples on the shipped wages or on values written in the statement, the part on missing values, the table for a reader coming from R or Stata, and the common mistake as the engine prints it; no output on a page was typed by hand. Met and corrected on the way: in a function written in Zeff only the first example's caption was read as one; the checker refused the help line `related:`; the catalogue's row of `clamp` now names Stata's `clip`; the made-up pages of five test files were given the new parts. After 22a2, CI failed in a property of the variance tests that the step had not touched (Bartlett's statistic near zero, whose eighth digit changes with the unit in R exactly as here): its tolerance was corrected and the case kept as a seed. Each green locally and on CI (500aadb, 6ee904c, 32d4852, b45282f, be94642). For the owner: the one example frame of the pages (worker 19 of the wages) and what the pages say of Stata, written from memory, want a glance.
 
-## 19 November 2026, release 0.8.0, step 22b3 (the pages of `core`, part 2c: the program)
+## 19 November 2026, release 0.8.0, steps 22b3 to 22c2 with 20m and 20n (folded)
 
-**Done.** Step 22b3 `[function]`: the last nine pages of `core` (`print`, `warn`, `error`, `assert`, `seed`, `attempt`, `iterate`, `note`, `name_of`) brought to the contract. All 71 pages of `core` are off the list of unrevised pages, which holds 168.
-
-**Green.** Format, clippy with warnings denied, the tier, message and grammar checks, every test of the workspace; CI read after the push. The CI of step 22b2 (be94642) is green.
-
-**Next.** Step 22c `[function]`: the pages of `text` (13) and `time` (10), the last step of block F.
-
-**For the owner to decide.** Nothing new. The earlier items stand.
-
-## 19 November 2026, release 0.8.0, step 22c (the pages of `text`)
-
-**Done.** Step 22c `[function]`, split from `time`: the 13 pages of `text` brought to the contract. The list of unrevised pages holds 155.
-
-**Green.** Format, clippy with warnings denied, the tier, message and grammar checks, every test of the workspace; CI read after the push. The CI of step 22b3 (097f5fa) is green.
-
-**Next.** Step 22c2 `[function]`: the 10 pages of `time`, the last step of block F.
-
-**For the owner to decide.** Nothing new. The earlier items stand.
-
-## 19 November 2026, release 0.8.0, step 20m (three findings of the check against R)
-
-**Done.** Step 20m `[engine]`, added from the findings the checking session passed on: a printed `report` writes a warning that several columns share once, headed by their numbers, where it repeated it under the table for each (step 20l had missed the printed footnotes); the Typst form sets a result's notes under its table and the two hypotheses of a test in two columns, so that no note widens a column; the page of `dist.tukey` says where R's `ptukey` jumps. Everything else the check compared agreed with R.
-
-**Green.** Format, clippy with warnings denied, the tier, message and grammar checks, every test of the workspace; CI read after the push. The CI of steps 22b3 (097f5fa) and 22c (e346344) is green, the second after one job was run again when GitHub's machine could not reach Ubuntu's servers.
-
-**Next.** Step 22c2 `[function]`: the 10 pages of `time`.
-
-**For the owner to decide.** The heading of a shared footnote, `(1) to (3)`, and the new look of the Typst notes are layouts and so the owner's; say if another is wanted. The earlier items stand.
-
-## 19 November 2026, release 0.8.0, step 20n (a crash the nightly fuzz job found)
-
-**Done.** Step 20n `[engine]`, added from the nightly fuzz job: a count distribution truncated to an interval whose bound stood a hair from a whole number (`lower: 1e-10, upper: 0.5`) ended in an internal error at every quantile and draw, a fault of step 20i. The bounds are now read by one rule everywhere (within 1e-7 of a whole number counts as that number), a quantile is always a whole number the interval keeps, and two quieter disagreements of the same kind are gone with it. No released version had the fault.
-
-**Green.** Format, clippy with warnings denied, the tier, message and grammar checks, every test of the workspace; CI read after the push, and the next nightly run is to be read too.
-
-**Next.** Step 22c2 `[function]`: the 10 pages of `time`.
-
-**For the owner to decide.** Nothing new. The earlier items stand.
-
-## 19 November 2026, release 0.8.0, step 22c2 (the pages of `time`)
-
-**Done.** Step 22c2 `[function]`: the 10 pages of `time` brought to the contract, each with an example on the shipped firms or wages. Block F is complete: 94 pages (`core`, `text`, `time`) are held to the contract of 0.8.0 in full, and 145 remain on the list, 84 for release 0.9.0 (`data`, `datasets`, `dist`, `stats`) and 61 for 0.10.0 (`results`, `regress`, `plot`).
-
-**Green.** Format, clippy with warnings denied, the tier, message and grammar checks, every test of the workspace; CI read after the push. The fuzz job started by hand on the fix of step 20n was read as well.
-
-**Next.** Block G (model sets) is built only if the owner asks for it in 1.0; question 7 was answered B, so it is passed over. Step 24a `[engine]`: part 1 of the pre-release routine, the weekly mutation and coverage runs.
-
-**For the owner to decide.** Nothing new. The Stata column of the 94 revised pages was written from memory and wants one reading by someone with Stata open. The earlier items stand.
+Step 22b3: the last nine pages of `core` brought to the help contract (the functions of a program: `attempt`, `iterate`, `assert` and their kin), with the specification's example page of `attempt`. Step 22c: the 13 pages of `text`. Step 20m, from the check against R: a printed `report` writes a footnote that several columns share once, headed by their numbers; the Typst form sets notes under the table; the page of `dist.tukey` says where R's `ptukey` jumps. Step 20n, from the nightly fuzz job: a count distribution truncated beside a whole number no longer ends in an internal error; the bounds are read by one rule everywhere. Step 22c2: the 10 pages of `time`, which completes block F: 94 pages at the contract, 145 left (84 for 0.9.0, 61 for 0.10.0). All green locally and on CI, the fuzz job run by hand on the fix included. For the owner, still open: the Stata column of the 94 pages was written from memory and wants one reading with Stata open; the heading of a shared footnote and the look of the Typst notes are layouts and his.
 
 ## 19 November 2026, release 0.8.0, step 24a1 (the weekly mutation job's second pass)
 
@@ -181,3 +135,16 @@ Steps 22a, 22a2, 22b and 22b2 `[function]`, two steps of the checklist counted a
 **Next.** Step 24a2 `[engine]`: read that run and the coverage report; a test or a recorded reason for each new survivor and for the uncovered lines of this release (the instrumental-variables code has most). Already found there, to be recorded with it: a truncated distribution whose whole probability lies below about 1e-300 of its inner distribution (a normal cut at 37 standard deviations) loses digits without a word, since probabilities under 2.2e-308 cannot be held; `cdf(-38.4)` of the normal cut at -37 is wrong in its second digit.
 
 **For the owner to decide.** Nothing new yet; the limit of the far tail will come as an open decision with step 24a2.
+
+## 20 November 2026, release 0.8.0, step 24a2a (the untested lines of the regressions)
+
+**Done.** Step 24a2 split in three. 24a2a `[engine]`: the coverage report read for the regressions, each untested place of this release's code reached by a script or a direct call, or recorded with its reason. Trying them found three faults, all corrected: with no more clusters than instruments the first-stage F and the Kleibergen–Paap F printed a number of seventeen digits (now "not available", as Stata prints it missing); fixed effects that leave no degree of freedom ended in an internal error (now refused, Z0802); an instrumented regressor too large to scale was reported as "zero in every row". Tests against R (HC2 and HC3 for the Anderson–Rubin test, an unbounded set found by search), identities, direct tests of the small routines, and twelve printed forms.
+
+**Green.** Format, clippy with warnings denied, the tier, message and grammar checks, every test of the workspace; CI read after the push.
+
+**In flight.** The weekly mutation run 44578380798 on c2635ea.
+
+**Next.** Step 24a2b `[engine]`: the untested lines of the kernel, the distributions, the tests and the results, with the far-tail limit of a truncation; then 24a2c, the mutation run. By the owner's word of 20 November each step follows the last without waiting.
+
+**For the owner to decide.** Nothing that stops the work. For the list: a perfect first stage prints a Cragg–Donald F of twenty-one digits.
+

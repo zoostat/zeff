@@ -1138,6 +1138,39 @@ pub(crate) fn refuse_all_absorbed(
     Ok(())
 }
 
+/// A model whose regressors and absorbed effects take as many parameters as it has rows is
+/// refused (Z0802): it fits the rows exactly and leaves nothing to estimate the error from.
+/// Without effects the fit itself refuses; with them it sees only the regressors, so the
+/// parameters of the effects are counted here. (Before release 0.8.0, step 24a2, such a model
+/// went on to a variance of 0/0 and ended in an internal error.)
+pub(crate) fn refuse_no_residual_freedom(
+    ctx: &CallContext<'_>,
+    n: usize,
+    regressors: usize,
+    absorbed: usize,
+    effects_text: &str,
+) -> Result<(), Fail> {
+    if n > regressors + absorbed {
+        return Ok(());
+    }
+    Err(fail(
+        Diagnostic::error(
+            "Z0802",
+            format!(
+                "no residual degrees of freedom: {}, {} {} and {} {} of fe: {effects_text}",
+                rows(n),
+                count(regressors as u64),
+                if regressors == 1 { "regressor" } else { "regressors" },
+                count(absorbed as u64),
+                if absorbed == 1 { "parameter" } else { "parameters" },
+            ),
+        )
+        .in_file(ctx.script)
+        .primary(ctx.callee_span, "as many parameters as rows, or more")
+        .help("a model needs more rows than parameters, and the effects of `fe:` take one for each of their levels; drop terms, use coarser effects or more data"),
+    ))
+}
+
 /// The design with the fixed effects projected out, and its fit (section 7.2, "Fixed effects"
 /// and "Rows"): the rows with `NA` in an effect dropped with the model variables', the effects'
 /// groups over the rows used (reused from the last set of effects over the same frame, rows and
@@ -1171,6 +1204,13 @@ fn fit_with_effects(
     let (absorbed_design, absorbed, _) = project(ctx, frame, &design, specs, effects_text)?;
     refuse_all_absorbed(ctx, &absorbed_design, &absorbed, effects_text)?;
     let fitted = Ols.fit(ctx, &absorbed_design)?;
+    refuse_no_residual_freedom(
+        ctx,
+        absorbed_design.n(),
+        fitted.kept.len(),
+        absorbed_parameters(&absorbed.effects, None),
+        effects_text,
+    )?;
     let values = effect_values(&design, &absorbed_design, &fitted, &absorbed);
     let effects: Vec<FixedEffect> = absorbed
         .effects

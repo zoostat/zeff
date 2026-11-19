@@ -438,6 +438,51 @@ fn the_edge_cases() {
     insta::assert_snapshot!("edge_cases", all);
 }
 
+/// Fixed effects that leave no residual degree of freedom are refused (Z0802), as a model
+/// without effects is when it has as many regressors as rows: six rows, three regressors and
+/// three groups, under each kind of standard error and for `ivreg`; and two regressors with
+/// two sets of effects, whose parameters are three and one. With one degree left the fit is
+/// R's (`lm(y ~ x1 + g + h)`: 0.5 with standard error 0.2886751346, t 1.7320508 and p 0.3333333
+/// on one degree of freedom).
+///
+/// Found at release 0.8.0, step 24a2, from the coverage report: the fit saw only the
+/// regressors, went on to a variance of 0/0, and ended in an internal error.
+#[test]
+fn effects_that_leave_no_residual_freedom_are_refused() {
+    let frame = "let d = frame(y = [1.0, 2.0, 3.5, 2.5, 4.0, 3.0], x1 = [1.0, 2.0, 4.0, 3.0, 5.5, 2.5], x2 = [0.5, -1.0, 2.0, 1.5, 0.0, 3.0], x3 = [2.0, 0.5, 1.0, -1.0, 3.0, 1.5], z = [1.5, 0.2, 2.2, 1.1, 3.5, 0.9], g = [\"a\", \"a\", \"b\", \"b\", \"c\", \"c\"], h = [\"p\", \"q\", \"p\", \"q\", \"p\", \"q\"])\n";
+    for call in [
+        "d.reg(y ~ x1 + x2 + x3, fe: g)",
+        "d.reg(y ~ x1 + x2 + x3, fe: g, se: robust)",
+        "d.reg(y ~ x1 + x2 + x3, fe: g, se: hc3)",
+        "d.reg(y ~ x1 + x2 + x3, fe: g, cluster: g)",
+        "d.ivreg(y ~ x1 + x2 + x3, fe: g, instruments: x3 ~ z)",
+    ] {
+        let out = printed(&format!("{frame}{call}\n"));
+        assert!(
+            out.contains("error[Z0802]: no residual degrees of freedom: 6 rows, 3 regressors and 3 parameters of fe: g"),
+            "{call}:\n{out}"
+        );
+        assert!(!out.contains("Z9001"), "{call}:\n{out}");
+    }
+    let two = printed(&format!("{frame}d.reg(y ~ x1 + x2, fe: g + h)\n"));
+    assert!(
+        two.contains(
+            "no residual degrees of freedom: 6 rows, 2 regressors and 4 parameters of fe: g + h"
+        ),
+        "{two}"
+    );
+    insta::assert_snapshot!("no_residual_freedom_with_effects", two);
+    // One degree of freedom left: the fit, as R gives it.
+    let one = printed(&format!(
+        "{frame}let e = d.reg(y ~ x1, fe: g + h).estimates()\nprint(e)\nprint(e.where(abs(std_error - 0.2886751346) < 1e-9).n_rows())\n"
+    ));
+    assert!(
+        one.contains("x1          0.5    0.288675     1.73205    1    NA   0.333333"),
+        "{one}"
+    );
+    assert!(one.ends_with("\n1\n"), "{one}");
+}
+
 /// The frame of the property tests: `n` rows in `groups` groups with a group effect, a regressor
 /// and a second regressor constant within the groups.
 fn panel(n: usize, groups: usize, seed: u64) -> Table {

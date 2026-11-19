@@ -45,6 +45,17 @@ prepare <- function(y, X, Z2, W, w = NULL, analytic = FALSE, fe = NULL, absorbed
   list(y = drop(y) * sw, X = X * sw, Z = Z2 * sw, n = rows_n, df = rows_n - L - absorbed)
 }
 
+# The leverages of the regression on all the instruments, those of the equation and those
+# outside it, for a model with no weights and no fixed effects: HC2 and HC3 divide each squared
+# residual by 1 - h and by its square. The residuals of the partialled regression are those of
+# the full one, and the block of the sandwich on the instruments outside the equation is the
+# sandwich of the partialled columns, so only the leverages need the full matrix.
+with_leverage <- function(s, W, Z2) {
+  full <- cbind(W, Z2)
+  s$h <- rowSums((full %*% solve(crossprod(full))) * full)
+  s
+}
+
 # The statistic of the excluded instruments in the regression of u on them.
 statistic <- function(u, s, kind, cluster = NULL, cluster_df = NULL) {
   Z <- s$Z; m <- ncol(Z)
@@ -53,6 +64,10 @@ statistic <- function(u, s, kind, cluster = NULL, cluster_df = NULL) {
     A * sum(e^2) / s$df
   } else if (kind == "hc1") {
     A %*% crossprod(Z * e) %*% A * s$n / s$df
+  } else if (kind == "hc2") {
+    A %*% crossprod(Z * (e / sqrt(1 - s$h))) %*% A
+  } else if (kind == "hc3") {
+    A %*% crossprod(Z * (e / (1 - s$h))) %*% A
   } else {
     Sc <- rowsum(Z * e, cluster); G <- nrow(Sc)
     A %*% crossprod(Sc) %*% A * G / (G - 1) * (s$n - 1) / (if (is.null(cluster_df)) s$df else cluster_df)
@@ -87,10 +102,10 @@ ar_case <- function(name, data_name, formula, endogenous, instruments, s, level 
               level = num17(level), df1 = as.integer(m), kinds = list())
   if (!is.null(fe)) out$fe <- fe
   if (!is.null(weights)) { out$weights <- weights; out$weight_type <- weight_type }
-  kinds <- c(list(classical = NULL, hc1 = NULL), clusters)
+  kinds <- c(list(classical = NULL, hc1 = NULL), if (!is.null(s$h)) list(hc2 = NULL, hc3 = NULL), clusters)
   for (kind_name in names(kinds)) {
     cluster <- kinds[[kind_name]]
-    kind <- if (kind_name %in% c("classical", "hc1")) kind_name else "cluster"
+    kind <- if (kind_name %in% c("classical", "hc1", "hc2", "hc3")) kind_name else "cluster"
     cluster_df <- if (kind == "cluster" && !is.null(attr(cluster, "absorbed"))) s$df + attr(cluster, "plain") - attr(cluster, "absorbed") else NULL
     df2 <- if (kind == "cluster") length(unique(cluster)) - 1 else s$df
     at_zero <- statistic(s$y, s, kind, cluster, cluster_df)
@@ -131,6 +146,18 @@ W <- cbind(ones(d), columns(d, exog))
 # Over-identified: an interval; at a low level the two instruments disagree and the set is
 # empty; at a very high level it is wide.
 s <- prepare(d$lwage, columns(d, "educ"), columns(d, c("nearc4", "nearc2")), W)
+s <- with_leverage(s, W, columns(d, c("nearc4", "nearc2")))
+# HC2 and HC3 against the sandwich package, on the regression written out with every column:
+# the Wald statistic of the two instruments over their number is the statistic at zero.
+local({
+  full <- lm(lwage ~ exper + expersq + black + south + smsa + nearc4 + nearc2, data = d)
+  at <- c("nearc4", "nearc2")
+  for (type in c("HC2", "HC3")) {
+    V <- sandwich::vcovHC(full, type = type)[at, at]
+    theirs <- drop(t(coef(full)[at]) %*% solve(V) %*% coef(full)[at]) / 2
+    agree(statistic(s$y, s, tolower(type)), theirs, 1e-9)
+  }
+})
 ar_case("card_over", "card", card_text, "educ", "nearc4 + nearc2", s, clusters = list(age = d$age))
 ar_case("card_over_low_level", "card", card_text, "educ", "nearc4 + nearc2", s, level = 0.6)
 ar_case("card_over_high_level", "card", card_text, "educ", "nearc4 + nearc2", s, level = 0.999)
@@ -139,11 +166,19 @@ s <- prepare(d$lwage, columns(d, "educ"), columns(d, "nearc4"), W)
 ar_case("card_just", "card", card_text, "educ", "nearc4", s, clusters = list(age = d$age))
 # By the weaker instrument alone: two rays.
 s <- prepare(d$lwage, columns(d, "educ"), columns(d, "nearc2"), W)
+s <- with_leverage(s, W, columns(d, "nearc2"))
 ar_case("card_weak", "card", card_text, "educ", "nearc2", s, clusters = list(age = d$age))
 # A weak-instrument case built for the whole line: the first 400 rows and the weaker instrument.
 dw <- d[1:400, ]
 s <- prepare(dw$lwage, columns(dw, "educ"), columns(dw, "nearc2"), cbind(ones(dw), columns(dw, exog)))
+s <- with_leverage(s, cbind(ones(dw), columns(dw, exog)), columns(dw, "nearc2"))
 ar_case("card_first_400", "card", card_text, "educ", "nearc2", s)
+# The same rows with both instruments, both weak there: with two instruments the robust sets
+# are found by the search and not by a quadratic, and here they have no end on one side or on
+# either (added at release 0.8.0, step 24a2: no case had an unbounded set found by the search).
+s <- prepare(dw$lwage, columns(dw, "educ"), columns(dw, c("nearc4", "nearc2")), cbind(ones(dw), columns(dw, exog)))
+s <- with_leverage(s, cbind(ones(dw), columns(dw, exog)), columns(dw, c("nearc4", "nearc2")))
+ar_case("card_first_400_over", "card", card_text, "educ", "nearc4 + nearc2", s)
 # The region absorbed, the clusters outside it.
 s <- prepare(d$lwage, columns(d, "educ"), columns(d, c("nearc4", "nearc2")),
              columns(d, c("exper", "expersq", "black", "smsa")), fe = d$region, absorbed = 9)

@@ -1,0 +1,11 @@
+---
+source: packages/tier2/regress/tests/fixed_effects.rs
+expression: two
+---
+error[Z0802]: no residual degrees of freedom: 6 rows, 2 regressors and 4 parameters of fe: g + h
+ --> scripts/main.zeff:2:3
+  |
+2 | d.reg(y ~ x1 + x2, fe: g + h)
+  |   ^^^ as many parameters as rows, or more
+  |
+  = help: a model needs more rows than parameters, and the effects of `fe:` take one for each of their levels; drop terms, use coarser effects or more data

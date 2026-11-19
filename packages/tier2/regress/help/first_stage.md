@@ -50,6 +50,9 @@ instruments move the regressors only together, even if each partial R² is high.
 Under classical errors it is the F test that the coefficients of the instruments outside the
 equation are all zero. Under robust or clustered errors it is the Wald statistic of the same
 hypothesis on that variance, divided by the number of instruments, and the line says so.
+Clustered errors give the coefficients a variance of rank at most the clusters less one, so
+more instruments than that cannot be tested together: the line then says that the F is not
+available, with the two counts, and so does the Kleibergen–Paap F under it.
 
 ### Weak instruments
 The line repeats the statistic under the fit: the Cragg–Donald F under classical errors; the

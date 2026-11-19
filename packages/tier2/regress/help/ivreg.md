@@ -85,7 +85,11 @@ clustered errors the Kleibergen–Paap F, and beside it, when one regressor is i
 effective F of Montiel Olea and Pflueger with its critical value. With one instrumented
 regressor the first two are the F of the instruments in its first stage. A value under 10, or
 an effective F under its critical value, raises the warning: the estimate then leans towards
-the least-squares one, and its interval is too narrow.
+the least-squares one, and its interval is too narrow. Under clustered errors a statistic can
+join no more coefficients than there are clusters less one, since the clustered variance has
+no higher rank: with four clusters and four instruments outside the equation the
+Kleibergen–Paap F prints as "not available" (Stata prints such an F as missing), and the
+effective F, which inverts nothing, is still given.
 
 ### No R²
 The table prints no R². With a regressor replaced by its fitted values the residuals are not

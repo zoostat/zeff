@@ -869,6 +869,25 @@ fn an_observation_with_leverage_one_refuses_hc2_and_hc3() {
     insta::assert_snapshot!("leverage_one", all);
 }
 
+/// Two observations each alone in a cell: the refusal counts them (release 0.8.0, step 24a2;
+/// the coverage report showed that only one such row had ever been met).
+#[test]
+fn two_observations_with_leverage_one_are_counted() {
+    for se in ["hc2", "hc3"] {
+        let outcome = run(&format!(
+            "let d = frame(y = [1.0, 2.0, 3.5, 2.5, 4.0, 3.0], g = [\"a\", \"b\", \"c\", \"c\", \"c\", \"c\"])\nd.reg(y ~ category(g), se: {se})\n"
+        ));
+        assert_eq!(outcome.exit_code, 1);
+        assert!(
+            outcome.output.stderr.contains(&format!(
+                "error[Z0802]: `se: {se}` needs every observation's leverage below one, but 2 rows have leverage one"
+            )),
+            "{}",
+            outcome.output.stderr
+        );
+    }
+}
+
 /// A robust variance whose meat has rank one (a finding of the formula fuzz target): two rows
 /// share the one design pattern with a nonzero residual and the third fits itself exactly, so
 /// one variance and its covariances are exact zeros that rounding leaves as residue; the
