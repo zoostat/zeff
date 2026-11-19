@@ -101,7 +101,7 @@ special/incomplete_beta 948805e8d32d7820
 special/incomplete_beta_inverse 9fe4374eecbb402e
 random/philox bfcc0e89d2e2c989
 random/uniform 2be774397b461029
-dist/values 611216e2d82cdc3d
+dist/values 2ab6154ee800aa0d
 dist/draws ca2799137318d776
 dist/tukey 9fbedd1d79e23c46
 regress/arithmetic/stdout 689fd989a9774016
@@ -281,6 +281,8 @@ regressions/field_of_a_results_record/stdout cbf29ce484222325
 regressions/field_of_a_results_record/stderr 581d40d27092567e
 regressions/index_of_a_tests_intervals/stdout cbf29ce484222325
 regressions/index_of_a_tests_intervals/stderr 2b8e797a9a8df4fb
+regressions/truncation_near_its_bound/stdout fd0f83f98d7ef264
+regressions/truncation_near_its_bound/stderr cbf29ce484222325
 plot/lines/stdout c69bf28498722bf2
 plot/lines/stderr 292ed9115946fd12
 plot/lines/scene 6a1463f916305adf

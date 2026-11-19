@@ -24,13 +24,23 @@ A `Distribution`. Its methods: `pdf(x)`, `cdf(x, upper:)`, `quantile(p)` and `dr
 
 ## Details
 With Z = P(lower ≤ X ≤ upper), the density on the interval is f(x) / Z and zero outside; the
-distribution function is (F(x) − F(lower⁻)) / Z and its upper tail (S(x) − S(upper)) / Z, each
-from the inner distribution's tail on the same side, so that a far tail keeps its digits; the
-quantile is the inner quantile at F(lower⁻) + p Z, held inside the interval. For a discrete
-distribution the interval is closed at both ends, so the mass at `lower:` is kept (the `truncdist`
-package drops it: its interval is open below). Values near the centre of the inner distribution
-subtract two probabilities of similar size and keep about eleven digits. A draw is the inverse CDF
-of one uniform number of the stream, so it is exact and never rejects.
+distribution function is the probability between `lower:` and x over Z, and its upper tail the
+probability between x and `upper:` over Z. The probability between two points is the difference
+of the inner distribution's tails on the side where both are small: the lower tails for two
+points below the median, the upper tails for two points above it. An interval far out in either
+tail therefore keeps its probability and its digits. Where the two tails are still nearly equal (a
+point close to a bound, or a narrow interval), their difference would keep few digits, and the
+density of a continuous distribution is integrated between the two points instead; the result
+then keeps thirteen digits (held against the series of that integral for the normal and
+Student's t, and against the closed form for the exponential). The studentized range is the
+exception: its density is itself a sum, and its truncation keeps the difference of the tails.
+The quantile is the root of that distribution function, searched from the inner quantile at
+F(lower⁻) + p Z, on the lower tail up to one half and on the upper tail beyond; beside a bound
+that is not zero it is the double nearest the root. For a discrete distribution the interval is
+closed at both ends, so the mass at `lower:` is kept (the `truncdist` package drops it: its
+interval is open below), and the quantile is the smallest whole number whose probability at or
+below reaches p. A draw is the inverse CDF of one uniform number of the stream, so it is exact
+and never rejects.
 
 ## See also
 dist.mixture, dist.normal, dist.poisson
@@ -60,3 +70,8 @@ Column<Int> · 4 values
 4
 2
 2
+> let far = dist.truncated(dist.normal(), lower: 9)
+> far.quantile(0.5)
+9.07579
+> dist.truncated(dist.normal(), lower: 0, upper: 2).cdf(1.196288e-12)
+1e-12

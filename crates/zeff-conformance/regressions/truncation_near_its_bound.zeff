@@ -1,0 +1,14 @@
+// Corrected at release 0.8.0 (step 20i). A truncated distribution took the probability between
+// a bound and a point as the difference of two lower tails. Close to a bound the two are nearly
+// equal and the difference kept few digits: for a normal truncated to [0, 2], `cdf(1.196288e-12)`
+// gave 1.00007e-12 where 1e-12 is right, and `quantile(1e-12)` was wrong by as much. An interval
+// far in the upper tail, where both lower tails print as 1, was refused as holding no
+// probability. The probability is now taken on the side where the tails are small, and from the
+// integral of the density where they are still nearly equal. No rows.
+let d = dist.truncated(dist.normal(), lower: 0, upper: 2)
+d.cdf(1.196288e-12)
+d.quantile(1e-12)
+d.cdf(2 - 1e-9, upper: true)
+dist.truncated(dist.normal(), lower: 9).quantile(0.5)
+dist.truncated(dist.exponential(rate: 2), lower: 30, upper: 31).cdf(30.5)
+dist.truncated(dist.poisson(lambda: 3), lower: 40).pdf(40)

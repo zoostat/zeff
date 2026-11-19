@@ -169,3 +169,14 @@ Step 19: `zeff explain <code>` prints a code's page and lists the 144 codes by f
 **Next.** Step 20i `[engine]`: the truncated distribution near its lower bound.
 
 **For the owner to decide.** A date in a formula is refused as text is (Z0401), with help that says how to make a number or a category of it; the old message promised dates in models "from release 0.6.0", which nothing in the specification supports. Say if dates should be taken in a formula (as days since a date, as R does). The earlier items stand.
+
+## 19 November 2026, release 0.8.0, step 20i (the truncated distribution near its bounds)
+
+**Done.** Step 20i `[engine]`: a truncated distribution's probabilities beside its bounds keep thirteen digits where they kept five (the normal on [0, 2] at 1.196288e-12), and the quantile is the root of the same function. An interval far in the upper tail, which was refused as empty, is now a distribution like any other (`dist.truncated(dist.normal(), lower: 9)`, a Poisson at 40 and above). The F distribution's own far upper tail keeps its digits. A small integration routine joins the numeric kernel. One regression joins the conformance suite.
+
+**Green.** Format, clippy with warnings denied, the tier, message and grammar checks, every test of the workspace; CI read after the push. The CI of step 20h (77f8d1a) is green.
+
+**Next.** Step 20j `[function]`: the three messages the review found misleading.
+
+**For the owner to decide.** Nothing new. The earlier items stand.
+

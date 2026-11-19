@@ -6,6 +6,7 @@
 
 use zeff_core::value::Distribution;
 use zeff_numeric::maths;
+use zeff_numeric::quadrature;
 use zeff_numeric::random::Stream;
 use zeff_numeric::special::{self, Tails};
 use zeff_numeric::tukey;
@@ -109,9 +110,15 @@ pub fn pdf(d: &Distribution, x: f64) -> f64 {
                     0.0
                 };
             }
-            // The beta density of w = d1 x / (d1 x + d2) times dw/dx.
-            let w = d1 * x / (d1 * x + d2);
-            special::beta_density(d1 / 2.0, d2 / 2.0, w) * d1 * d2 / ((d1 * x + d2) * (d1 * x + d2))
+            // The beta density of w = d1 x / (d1 x + d2) times dw/dx; past w = 1/2 the density
+            // is taken at 1 - w = d2 / (d1 x + d2), which keeps its digits where w nears 1.
+            let scaled = d1 * x;
+            let beta = if scaled <= d2 {
+                special::beta_density(d1 / 2.0, d2 / 2.0, scaled / (scaled + d2))
+            } else {
+                special::beta_density(d2 / 2.0, d1 / 2.0, d2 / (scaled + d2))
+            };
+            beta * d1 * d2 / ((scaled + d2) * (scaled + d2))
         }
         "gamma" => {
             let (shape, rate) = (param(params, "shape"), param(params, "rate"));
@@ -442,18 +449,292 @@ fn below(d: &Distribution, x: f64) -> f64 {
 
 /// The probability a distribution gives to [lower, upper].
 pub fn truncated_mass(inner: &Distribution, lower: f64, upper: f64) -> f64 {
-    let top = if upper.is_infinite() {
-        1.0
-    } else {
-        cdf(inner, upper).lower
-    };
-    let bottom = if lower.is_infinite() {
-        0.0
-    } else {
-        below(inner, lower)
-    };
-    top - bottom
+    Cut::new(inner, lower, upper).mass
 }
+
+/// The share of a tail below which the difference of two tail probabilities is taken from the
+/// integral of the density instead: there the subtraction has lost two or more of its bits.
+const CLOSE: f64 = 0.25;
+
+/// How far the integral of the density may stand from the difference of the tails and still be
+/// believed, in units of the tail, when a mixture is involved: the rounding of the two tails. A
+/// narrow component that the rule stepped over shows as a disagreement larger than this, and the
+/// difference of the tails is then kept.
+const AGREES_CLOSELY: f64 = 64.0 * f64::EPSILON;
+
+/// The same for a single family, whose density has no narrow part to step over: a guard against
+/// a gross failure alone, since the family's own tails may be less exact than the integral.
+const AGREES: f64 = 1e-9;
+
+/// Whether the density can stand for the distribution function over a short interval: a
+/// continuous family other than the studentized range, whose density is itself summed.
+fn integrable(d: &Distribution) -> bool {
+    match d {
+        Distribution::Family { name, .. } => {
+            !matches!(*name, "binomial" | "poisson" | "negbinomial" | "tukey")
+        }
+        Distribution::Truncated { inner, .. } => integrable(inner),
+        Distribution::Mixture { parts } => parts.iter().all(|(d, _)| integrable(d)),
+    }
+}
+
+/// Whether a mixture stands anywhere inside the distribution.
+fn mixed(d: &Distribution) -> bool {
+    match d {
+        Distribution::Family { .. } => false,
+        Distribution::Truncated { inner, .. } => mixed(inner),
+        Distribution::Mixture { .. } => true,
+    }
+}
+
+/// A truncation's pieces, worked out once for a call: the inner tails at each bound and the
+/// interval's probability.
+///
+/// The probability between two points is the difference of two tails, taken on the side where
+/// both are small: the lower tails when both points lie below the median, the upper tails when
+/// both lie above. Where the two tails are still nearly equal (a point close to a bound, or a
+/// narrow interval), the difference keeps few digits, and the density is integrated between the
+/// points instead.
+struct Cut<'a> {
+    inner: &'a Distribution,
+    lower: f64,
+    upper: f64,
+    /// P(X < lower) and P(X ≥ lower).
+    below: Tails,
+    /// P(X ≤ upper) and P(X > upper).
+    above: Tails,
+    /// P(lower ≤ X ≤ upper).
+    mass: f64,
+    discrete: bool,
+    smooth: bool,
+    agrees: f64,
+}
+
+impl<'a> Cut<'a> {
+    fn new(inner: &'a Distribution, lower: f64, upper: f64) -> Cut<'a> {
+        let discrete = is_discrete(inner);
+        let below = if lower == f64::NEG_INFINITY {
+            Tails {
+                lower: 0.0,
+                upper: 1.0,
+            }
+        } else {
+            let at = cdf(inner, lower);
+            if discrete {
+                let here = pdf(inner, lower);
+                Tails {
+                    lower: (at.lower - here).max(0.0),
+                    upper: (at.upper + here).min(1.0),
+                }
+            } else {
+                at
+            }
+        };
+        let above = if upper == f64::INFINITY {
+            Tails {
+                lower: 1.0,
+                upper: 0.0,
+            }
+        } else {
+            cdf(inner, upper)
+        };
+        let mut cut = Cut {
+            inner,
+            lower,
+            upper,
+            below,
+            above,
+            mass: f64::NAN,
+            discrete,
+            smooth: integrable(inner),
+            agrees: if mixed(inner) { AGREES_CLOSELY } else { AGREES },
+        };
+        cut.mass = cut.between(lower, below, upper, above);
+        cut
+    }
+
+    /// The inner probability between `a` and `b`, given the inner tails at each.
+    fn between(&self, a: f64, at_a: Tails, b: f64, at_b: Tails) -> f64 {
+        let (difference, tail) = if at_b.lower <= at_b.upper {
+            // Both at or below the median.
+            (at_b.lower - at_a.lower, at_b.lower)
+        } else if at_a.upper <= at_a.lower {
+            // Both at or above it.
+            (at_a.upper - at_b.upper, at_a.upper)
+        } else {
+            // One on each side: what the two outer tails leave.
+            (1.0 - (at_a.lower + at_b.upper), 1.0)
+        };
+        if self.smooth && a.is_finite() && b.is_finite() && a < b && difference < CLOSE * tail {
+            let density = |x: f64| pdf(self.inner, x);
+            if let Some(integral) = quadrature::integral(&density, a, b)
+                && (integral - difference).abs() <= self.agrees * tail
+            {
+                return integral;
+            }
+        }
+        difference.max(0.0)
+    }
+
+    /// P(X ≤ x) of the truncation, for `x` inside the interval and the inner tails `at` it.
+    fn lower_at(&self, x: f64, at: Tails) -> f64 {
+        (self.between(self.lower, self.below, x, at) / self.mass).clamp(0.0, 1.0)
+    }
+
+    /// P(X > x) of the truncation.
+    fn upper_at(&self, x: f64, at: Tails) -> f64 {
+        (self.between(x, at, self.upper, self.above) / self.mass).clamp(0.0, 1.0)
+    }
+
+    /// The quantile at `p` strictly between 0 and 1.
+    fn quantile(&self, p: f64) -> f64 {
+        // Where the inner quantile at F(lower⁻) + p · mass falls: exact enough far from the
+        // bounds, and a first value near them.
+        let first = quantile(self.inner, (self.below.lower + p * self.mass).min(1.0));
+        if self.discrete {
+            self.smallest_with(first, p)
+        } else {
+            self.root_from(first, p)
+        }
+    }
+
+    /// The root of the truncation's distribution function at `p`, by Newton's steps from
+    /// `first` held inside a bracket; the lower tail is matched for `p` up to one half and the
+    /// upper tail beyond, so that neither end loses its digits.
+    fn root_from(&self, first: f64, p: f64) -> f64 {
+        let by_upper = p > 0.5;
+        let target = if by_upper { 1.0 - p } else { p };
+        let tolerance = 4.0 * f64::EPSILON * target;
+        // Rising in x on either side: below zero left of the root, above it to the right.
+        let residual = |x: f64| {
+            let at = cdf(self.inner, x);
+            if by_upper {
+                target - self.upper_at(x, at)
+            } else {
+                self.lower_at(x, at) - target
+            }
+        };
+        let (mut low, mut high) = (self.lower, self.upper);
+        let mut x = if first.is_finite() {
+            first.clamp(low, high)
+        } else if low.is_finite() {
+            low
+        } else {
+            high
+        };
+        // The point whose probability stands nearest the target so far, and how many steps
+        // have passed without a nearer one: the function is computed, so its last digits
+        // waver, and a search that no longer gains has reached them.
+        let (mut best, mut nearest, mut idle) = (x, f64::INFINITY, 0);
+        let mut stride = 0.0;
+        for _ in 0..ROOT_STEPS {
+            let r = residual(x);
+            if r.is_nan() {
+                return best;
+            }
+            if r.abs() < nearest {
+                (best, nearest, idle) = (x, r.abs(), 0);
+            } else {
+                idle += 1;
+            }
+            if nearest <= tolerance || idle >= IDLE_STEPS {
+                return best;
+            }
+            if r < 0.0 {
+                low = x;
+            } else {
+                high = x;
+            }
+            let mut next = x - r * self.mass / pdf(self.inner, x);
+            if !(next > low && next < high) {
+                next = if low.is_finite() && high.is_finite() {
+                    low + 0.5 * (high - low)
+                } else {
+                    // No point yet on the far side of the root: step out, twice as far each time.
+                    stride = if stride == 0.0 {
+                        x.abs().max(1.0)
+                    } else {
+                        2.0 * stride
+                    };
+                    if high.is_finite() {
+                        x - stride
+                    } else {
+                        x + stride
+                    }
+                };
+                if !(next > low && next < high) {
+                    return best;
+                }
+            }
+            x = next;
+        }
+        best
+    }
+
+    /// The smallest whole number of the interval whose probability at or below reaches `p`,
+    /// searched from `first`.
+    fn smallest_with(&self, first: f64, p: f64) -> f64 {
+        let reaches = |k: f64| self.lower_at(k, cdf(self.inner, k)) >= p;
+        let bottom = self.lower.max(0.0).ceil();
+        let top = self.upper.floor();
+        let start = if first.is_finite() {
+            first.clamp(bottom, top)
+        } else {
+            bottom
+        };
+        // A whole number that does not reach p, or one below the interval, and one that does.
+        let (mut short, mut enough);
+        let mut step = 1.0;
+        if reaches(start) {
+            enough = start;
+            loop {
+                if enough <= bottom {
+                    return bottom;
+                }
+                let trial = (enough - step).max(bottom);
+                if !reaches(trial) {
+                    short = trial;
+                    break;
+                }
+                enough = trial;
+                step *= 2.0;
+            }
+        } else {
+            short = start;
+            loop {
+                if short >= top || step > WHOLE_NUMBERS {
+                    return short.min(top);
+                }
+                let trial = (short + step).min(top);
+                if reaches(trial) {
+                    enough = trial;
+                    break;
+                }
+                short = trial;
+                step *= 2.0;
+            }
+        }
+        while enough - short > 1.0 {
+            let middle = short + ((enough - short) / 2.0).floor();
+            if reaches(middle) {
+                enough = middle;
+            } else {
+                short = middle;
+            }
+        }
+        enough
+    }
+}
+
+/// How many steps the search for a truncation's quantile may take.
+const ROOT_STEPS: usize = 100;
+
+/// How many steps in a row may bring the search no nearer before it stops.
+const IDLE_STEPS: usize = 4;
+
+/// The largest step of the search among whole numbers: every whole number up to here is a
+/// double.
+const WHOLE_NUMBERS: f64 = 9_007_199_254_740_992.0;
 
 /// P(X ≤ x) and P(X > x), each computed on its own side.
 pub fn cdf(d: &Distribution, x: f64) -> Tails {
@@ -476,23 +757,11 @@ pub fn cdf(d: &Distribution, x: f64) -> Tails {
                     upper: 0.0,
                 };
             }
-            let mass = truncated_mass(inner, *lower, *upper);
+            let cut = Cut::new(inner, *lower, *upper);
             let at = cdf(inner, x);
-            // Each tail from the inner tails on its own side: (F(x) − F(lower⁻)) and
-            // (S(x) − S(upper)), divided by the interval's mass.
-            let bottom = if lower.is_infinite() {
-                0.0
-            } else {
-                below(inner, *lower)
-            };
-            let top_upper = if upper.is_infinite() {
-                0.0
-            } else {
-                cdf(inner, *upper).upper
-            };
             return Tails {
-                lower: ((at.lower - bottom) / mass).clamp(0.0, 1.0),
-                upper: ((at.upper - top_upper) / mass).clamp(0.0, 1.0),
+                lower: cut.lower_at(x, at),
+                upper: cut.upper_at(x, at),
             };
         }
         Distribution::Mixture { parts } => {
@@ -563,7 +832,18 @@ pub fn cdf(d: &Distribution, x: f64) -> Tails {
             } else if x.is_infinite() {
                 exact(1.0)
             } else {
-                special::incomplete_beta(d1 / 2.0, d2 / 2.0, d1 * x / (d1 * x + d2))
+                // I_w(d1/2, d2/2) at w = d1 x / (d1 x + d2); past w = 1/2 from the mirrored
+                // function at 1 - w = d2 / (d1 x + d2), which keeps its digits where w nears 1.
+                let scaled = d1 * x;
+                if scaled <= d2 {
+                    special::incomplete_beta(d1 / 2.0, d2 / 2.0, scaled / (scaled + d2))
+                } else {
+                    let mirrored = special::incomplete_beta(d2 / 2.0, d1 / 2.0, d2 / (scaled + d2));
+                    Tails {
+                        lower: mirrored.upper,
+                        upper: mirrored.lower,
+                    }
+                }
             }
         }
         "gamma" => {
@@ -648,14 +928,9 @@ pub fn quantile(d: &Distribution, p: f64) -> f64 {
             if p >= 1.0 {
                 return *upper;
             }
-            // The inner quantile at F(lower⁻) + p · mass, held inside the interval.
-            let bottom = if lower.is_infinite() {
-                0.0
-            } else {
-                below(inner, *lower)
-            };
-            let target = bottom + p * truncated_mass(inner, *lower, *upper);
-            return quantile(inner, target.min(1.0)).clamp(*lower, *upper);
+            return Cut::new(inner, *lower, *upper)
+                .quantile(p)
+                .clamp(*lower, *upper);
         }
         Distribution::Mixture { parts } => return mixture_quantile(parts, p),
     };

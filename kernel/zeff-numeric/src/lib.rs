@@ -18,6 +18,7 @@
 pub mod association;
 pub mod maths;
 pub mod order;
+pub mod quadrature;
 pub mod random;
 pub mod special;
 pub mod tukey;

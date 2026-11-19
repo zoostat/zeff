@@ -120,4 +120,103 @@ mix_norm <- local({
 })
 families <- c(families, list(trunc_norm, trunc_t, trunc_pois, mix_norm))
 
-write_json(list(reference = reference_block(), families = families), file.path(here(), "distributions.json"))
+# A truncation near its bounds (release 0.8.0, step 20i). Close to a bound the formula above,
+# (F(x) - F(a)) / Z, subtracts two nearly equal numbers and keeps few digits, so the reference
+# takes the probability between two near points from the series of the integral of the density
+# instead: for the normal, with He_n the Hermite polynomials,
+#   integral from a to a + h of phi = phi(a) * sum over n of (-1)^n He_n(a) h^(n+1) / (n+1)!,
+# and for Student's t from 0, the binomial series of (1 + x^2/df)^(-(df+1)/2) integrated term by
+# term. Farther than 0.1 from a bound the tails are subtracted on the side where they are small.
+# The exponential has closed forms through expm1 and log1p. Every quantile is the root of the
+# same distribution function by Newton's steps, and the script stops if a root neither gives its
+# probability back to fourteen digits nor is the double nearest the root.
+near_normal <- function(a, h) {
+  previous <- 0; he <- 1; power <- h; sign <- 1; total <- 0
+  for (n in 0:150) {
+    total <- total + sign * he * power
+    following <- a * he - n * previous; previous <- he; he <- following
+    power <- power * h / (n + 2); sign <- -sign
+  }
+  dnorm(a) * total
+}
+normal_between <- function(a, b) {
+  if (is.infinite(b)) return(pnorm(a, lower.tail = FALSE))
+  if (b - a <= 0.1) return(near_normal(a, b - a))
+  if (a >= 0) return(pnorm(a, lower.tail = FALSE) - pnorm(b, lower.tail = FALSE))
+  if (b <= 0) return(pnorm(b) - pnorm(a))
+  1 - (pnorm(a) + pnorm(b, lower.tail = FALSE))
+}
+near_xs <- function(a, b, steps) c(a + steps, if (is.finite(b)) rev(b - steps))
+near_ps <- c(1e-300, 1e-200, 1e-100, 1e-20, 1e-12, 1e-6, 0.01, 0.3, 0.5, 0.7, 0.99, 1 - 1e-6, 1 - 1e-12)
+near_case <- function(inner, params, a, b, xs, density, lower_mass, upper_mass) {
+  Z <- lower_mass(b)
+  root <- function(p) {
+    q <- 1 - p
+    x <- if (p <= 0.5) a + p * Z / density(a) else if (is.finite(b)) b - q * Z / density(b) else a + 1
+    x <- min(b, max(a, x))
+    for (i in 1:300) {
+      step <- if (p <= 0.5) (lower_mass(x) / Z - p) else -(upper_mass(x) / Z - q)
+      x <- min(b, max(a, x - step * Z / density(x)))
+    }
+    # The root gives its probability back, or it is the double nearest the root: its two
+    # neighbours stand on either side of the probability.
+    miss <- function(x) if (p <= 0.5) lower_mass(x) / Z - p else q - upper_mass(x) / Z
+    target <- if (p <= 0.5) p else q
+    beside <- x + c(-2, 2) * .Machine$double.eps * max(abs(x), .Machine$double.xmin)
+    stopifnot(abs(miss(x)) <= 1e-14 * target || miss(max(a, beside[1])) * miss(min(b, beside[2])) <= 0)
+    x
+  }
+  list(
+    inner = inner,
+    params = lapply(params, dec),
+    bounds = list(lower = num(a), upper = num(b)),
+    x = as.list(dec(xs)),
+    lower = as.list(num(vapply(xs, function(x) lower_mass(x) / Z, 0))),
+    upper = as.list(num(vapply(xs, function(x) upper_mass(x) / Z, 0))),
+    p = as.list(dec(near_ps)),
+    quantile = as.list(num(vapply(near_ps, root, 0)))
+  )
+}
+near_normal_case <- function(a, b, xs) {
+  near_case("normal", list(mean = 0, sd = 1), a, b, xs, dnorm,
+            function(x) normal_between(a, x), function(x) normal_between(x, b))
+}
+near_exponential_case <- function(rate, a, b, xs) {
+  width <- expm1(-rate * (b - a))
+  case <- near_case("exponential", list(rate = rate), a, b, xs,
+                    function(x) rate * exp(-rate * (x - a)),
+                    function(x) -expm1(-rate * (x - a)),
+                    function(x) -exp(-rate * (x - a)) * expm1(-rate * (b - x)))
+  # The closed form of the quantile, in place of the root.
+  case$quantile <- as.list(num(vapply(near_ps, function(p) {
+    if (p <= 0.5) a - log1p(p * width) / rate else b - log1p((1 - p) * expm1(rate * (b - a))) / rate
+  }, 0)))
+  case
+}
+near_t_case <- function(df, xs) {
+  from_zero <- function(x) {
+    if (x > 0.1) return(pt(x, df) - 0.5)
+    term <- x; total <- 0
+    for (n in 0:60) {
+      total <- total + term / (2 * n + 1)
+      term <- term * (-(df + 1) / 2 - n) / (n + 1) * x^2 / df
+    }
+    dt(0, df) * total
+  }
+  near_case("t", list(df = df), 0, Inf, xs, function(x) dt(x, df),
+            function(x) if (is.infinite(x)) 0.5 else from_zero(x),
+            function(x) pt(x, df, lower.tail = FALSE))
+}
+tiny <- c(1e-300, 1e-200, 1e-100, 1e-50, 1e-20, 1.196288e-12, 1e-8, 1e-4, 0.01)
+near_bound <- list(
+  near_normal_case(0, 2, c(tiny, 0.3, 1, 1.7, 2 - c(1e-4, 1e-8, 1e-12))),
+  near_normal_case(5, 6, near_xs(5, 6, c(1e-12, 1e-8, 1e-4, 0.01, 0.3))),
+  near_normal_case(-6, -5, near_xs(-6, -5, c(1e-12, 1e-8, 1e-4, 0.01, 0.3))),
+  near_normal_case(-0.001, 0.001, c(-0.001 + 1e-15, -0.0005, 0, 0.0003, 0.000999)),
+  near_normal_case(8, Inf, 8 + c(1e-10, 0.001, 0.1, 1, 4)),
+  near_exponential_case(2, 3, 4, near_xs(3, 4, c(1e-12, 1e-6, 0.01, 0.5))),
+  near_exponential_case(2, 30, 31, near_xs(30, 31, c(1e-12, 1e-6, 0.01, 0.5))),
+  near_t_case(5, c(tiny, 0.05, 0.5, 2, 10))
+)
+
+write_json(list(reference = reference_block(), families = families, near_bound = near_bound), file.path(here(), "distributions.json"))

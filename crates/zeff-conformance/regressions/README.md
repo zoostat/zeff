@@ -29,3 +29,6 @@ a chain that starts from the lone `.` of a formula.
 A script that the check refuses is held like one that runs: nothing is printed, and what the
 check says is the case. Two of 0.8.0 are such: a field that a result's record does not have,
 and an index into the table of a test's intervals, each once an internal error.
+
+One of 0.8.0 is a wrong number and no error at all: a truncated distribution beside its bound,
+where the difference of two nearly equal tails kept five digits.
