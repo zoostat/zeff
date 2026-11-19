@@ -15,6 +15,8 @@
 # search as well as to its quadratic. The data: Card's extract and wage2, as iv.R writes them.
 # Values to 17 significant digits. Run with `Rscript tests/reference/r/ar.R` after iv.R.
 source(file.path(dirname(sub("^--file=", "", commandArgs(FALSE)[grepl("^--file=", commandArgs(FALSE))])), "common.R"))
+# The pinned packages of install.R: `sandwich` 3.1.1 checks the HC2 and HC3 statistics below.
+.libPaths(c(file.path(here(), "library"), .libPaths()))
 Sys.setlocale("LC_COLLATE", "C")
 root <- normalizePath(file.path(here(), "..", "..", ".."))
 
