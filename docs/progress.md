@@ -112,83 +112,21 @@ Step 20d `[engine]`: `wilcoxon_test` no longer stores the pairwise differences o
 
 Step 20h `[engine]`: a text variable, a date and a time serve as `cluster:`, as fixest takes them; `add(v = to(NA, Float))` works, which a help line had promised; no message names a shipped release as one to come, and a test holds that. Step 20i `[engine]`: a truncated distribution keeps thirteen digits beside its bounds where it kept five, an interval far in a tail is no longer refused as empty, and the F distribution's far upper tail keeps its digits; a small integration routine joined the numeric kernel. Steps 20j, 20k, 20l `[function]`, one step of six messages split in three: `n_missing` of a list of variables is refused; a term written as text inside `test` is answered with the term as it should be written; a reserved word used as a name is said to be one; a warning inside a branch of `case` counts the rows the branch decides; `aggregate` notes a name it has just redefined; several fits of one statement say W1006 once and a chain of appends gives one note. Each green locally and on CI (77f8d1a, 86ec67a, f01825b, fb80b05, 06754a5). For the owner, still open: whether a date should be taken in a formula as days, as R does; whether fits on lines of their own should say W1006 once for the run.
 
-## 19 November 2026, release 0.8.0, step 21a (`export` writes Typst)
+## 19 November 2026, release 0.8.0, steps 21a to 21c (folded)
 
-**Done.** Step 21a `[engine]`: `x.export("name.typ")` writes a table, a result or a plot as a Typst file, in the layout of the LaTeX form; a plot is placed as its SVG, inside the file. Every kind of result compiles to PDF with Typst 0.15.0 on this machine, with no warning. The writer is text alone: nothing is linked and no dependency is added.
+Step 21a `[engine]`: `x.export("name.typ")` writes a table, a result or a plot as a Typst file in the layout of the LaTeX form, a plot placed as its SVG inside the file; every kind of result compiles with Typst 0.15.0 on this machine; the writer is text alone. Steps 21b and 21c `[engine]`, one step split in two: a measuring tool outside the workspace (`tools/typst-trial`, with a workflow started by hand) links the Typst library and nothing else does. The PDF is the same bytes on the five targets of the identity jobs; but 14 of the library's 48 sets of hyphenation patterns are not under a permissive licence and cannot be left out, and it adds 26 MB to the engine and 7.2 MB compressed to the browser against a limit of 5 MB. #73 is decided on the figures: the engine does not link Typst; #172 asks whether Zemp carries it as a module of its own. Each green locally and on CI (4ca182c, b063024, 6d0a309). For the owner, still open: #73 as decided may be overturned; #172, recommended A; whether the LPPL and the MPL may ever be accepted for data compiled into Zemp; the look of the Typst table.
 
-**Green.** Format, clippy with warnings denied, the tier, message and grammar checks, every test of the workspace; CI read after the push. The CI of step 20l (06754a5) is green.
+## 19 November 2026, release 0.8.0, steps 22a to 22b2 and a correction between them (folded)
 
-**Next.** Step 21b `[engine]`: the dependency checks of the typst library, as a tool-only measurement; it ends in a decision on #73 that needs the owner's agreement before anything is linked.
+Steps 22a, 22a2, 22b and 22b2 `[function]`, two steps of the checklist counted again and split by kind: 62 pages of `core` brought to the help contract of 0.8.0 (the maths and constants, 35; the collections, 17; types, categories and missing values, 10), each with a caption on every example, examples on the shipped wages or on values written in the statement, the part on missing values, the table for a reader coming from R or Stata, and the common mistake as the engine prints it; no output on a page was typed by hand. Met and corrected on the way: in a function written in Zeff only the first example's caption was read as one; the checker refused the help line `related:`; the catalogue's row of `clamp` now names Stata's `clip`; the made-up pages of five test files were given the new parts. After 22a2, CI failed in a property of the variance tests that the step had not touched (Bartlett's statistic near zero, whose eighth digit changes with the unit in R exactly as here): its tolerance was corrected and the case kept as a seed. Each green locally and on CI (500aadb, 6ee904c, 32d4852, b45282f, be94642). For the owner: the one example frame of the pages (worker 19 of the wages) and what the pages say of Stata, written from memory, want a glance.
 
-**For the owner to decide.** The look of the Typst table (rules of 0.8 and 0.5 points, notes at 0.85 of the type size) follows the LaTeX form; say if another look is wanted. The earlier items stand.
+## 19 November 2026, release 0.8.0, step 22b3 (the pages of `core`, part 2c: the program)
 
-## 19 November 2026, release 0.8.0, step 21b (the Typst library measured, first part)
+**Done.** Step 22b3 `[function]`: the last nine pages of `core` (`print`, `warn`, `error`, `assert`, `seed`, `attempt`, `iterate`, `note`, `name_of`) brought to the contract. All 71 pages of `core` are off the list of unrevised pages, which holds 168.
 
-**Done.** Step 21b `[engine]`, split in two in the checklist (21b, 21c). A measuring tool outside the workspace links the Typst library and nothing else does. Found: no font of Typst's need be linked (one of them is under the GPL, and they are off unless asked for); 14 of its 48 sets of hyphenation patterns are not under a permissive licence and cannot be left out of the library as published; it adds about 26 MB to the engine and 7.2 MB compressed to the browser, where the limit for the whole bundle is 5 MB; this machine and the browser's target give the same PDF, byte for byte.
+**Green.** Format, clippy with warnings denied, the tier, message and grammar checks, every test of the workspace; CI read after the push. The CI of step 22b2 (be94642) is green.
 
-**Green.** Format, clippy with warnings denied, the tier, message and grammar checks, every test of the workspace; the tool's own format and clippy; CI read after the push. The CI of step 21a (4ca182c) is green.
-
-**Next.** Step 21c `[engine]`: the workflow run on the four targets, and the decision on #73.
-
-**For the owner to decide.** Nothing yet; the decision on #73 comes with step 21c, and it will not link anything without the owner's word.
-
-## 19 November 2026, release 0.8.0, step 21c (the four targets, and #73 decided)
-
-**Done.** Step 21c `[engine]`: the measuring tool ran on GitHub's machines for the five targets of the identity jobs, and each set the same PDF, byte for byte. #73 is decided on the figures: the engine does not link Typst (the licences of 14 sets of hyphenation patterns, and the size: 26 MB, and 7.2 MB compressed in the browser against a limit of 5 MB). `export` writes `.typ`, which is what 0.8.0 ships. Block E of the checklist is complete. A new open decision, #172, asks whether Zemp carries Typst as a module of its own.
-
-**Green.** Format, clippy with warnings denied, the tier, message and grammar checks, every test of the workspace; CI read after the push. The CI of step 21b (b063024) is green.
-
-**Next.** Step 22a `[function]`: the pages of `core`, part 1, the first step of block F (the pages revised).
-
-**For the owner to decide.** #73 as decided here may be overturned. #172, recommended A; whether the LPPL and the MPL may ever be accepted for data compiled into Zemp is the owner's alone. The earlier items stand.
-
-## 19 November 2026, release 0.8.0, step 22a (the pages of `core`, part 1a)
-
-**Done.** Step 22a `[function]`, counted again and split in two (22a, 22a2): the 35 pages of maths and constants were 27 in the checklist. Done here, 18 pages, `abs` to `mod`: each has a caption on every example, one example on the shipped wages (one worker's five years, with a missing wage and two years of no experience), the part on missing values, the table for a reader coming from R or Stata, and, where the function has a diagnostic of its own, the common mistake as the engine prints it. Two faults of the engine were met and corrected: in a function written in Zeff only the first example's caption was read as one, and the checker refused the help line `related:`. The catalogue's row of `clamp` now names Stata's `clip`.
-
-**Green.** Format, clippy with warnings denied, the tier, message and grammar checks, every test of the workspace; CI read after the push. The CI of step 21c (6d0a309) is green.
-
-**Next.** Step 22a2 `[function]`: the 17 pages of trigonometry, the logistic pair, the special functions, `is_finite` and the two constants.
-
-**For the owner to decide.** Nothing new. The one example frame used on every page (worker 19 of the wages) is a choice of presentation; say if another is wanted. The earlier items stand.
-
-## 19 November 2026, release 0.8.0, step 22a2 (the pages of `core`, part 1b)
-
-**Done.** Step 22a2 `[function]`: the 17 pages from `sin` to `E` brought to the contract as the 18 of step 22a were. The 35 pages of maths and constants are off the list of unrevised pages, which now holds 204.
-
-**Green.** Format, clippy with warnings denied, the tier, message and grammar checks, every test of the workspace; CI read after the push. The CI of step 22a (500aadb) is green.
-
-**Next.** Step 22b `[function]`: the other 36 pages of `core` (missing values, types, collections and control).
-
-**For the owner to decide.** Nothing new. The earlier items stand.
-
-## 19 November 2026, after step 22a2: a random case that CI met in the variance tests
-
-**Done.** The CI of step 22a2 (6ee904c) failed in a property of the variance tests that the step had not touched: two groups with almost equal variances give a Bartlett statistic of 6.5e-8, whose eighth digit changes with the unit, in R exactly as in Zeff. The property's tolerance for a statistic near zero is corrected, the case is kept as a seed that runs first everywhere, and the decisions say why this is not a test weakened to pass. Nothing of the engine changed.
-
-**Green.** Format, clippy with warnings denied, the tests of `stats`; the rest of the workspace as at step 22a2, which was green here and on CI but for this test. CI read after the push.
-
-**Next.** Step 22b `[function]`: the other 36 pages of `core`.
-
-**For the owner to decide.** Nothing.
-
-## 19 November 2026, release 0.8.0, step 22b (the pages of `core`, part 2a: collections)
-
-**Done.** Step 22b `[function]`, split in three by kind (22b, 22b2, 22b3). Done here: the 17 pages on lists, records and mappings, `len` to `reduce`, brought to the contract as the maths pages were. The list of unrevised pages holds 187.
-
-**Green.** Format, clippy with warnings denied, the tier, message and grammar checks, every test of the workspace; CI read after the push. The CI of the correction after step 22a2 (32d4852) is green.
-
-**Next.** Step 22b2 `[function]`: the 10 pages on types, categories and missing values.
-
-**For the owner to decide.** Nothing new. The earlier items stand.
-
-## 19 November 2026, release 0.8.0, step 22b2 (the pages of `core`, part 2b: types and missing values)
-
-**Done.** Step 22b2 `[function]`: the 10 pages on conversion, types, categories and missing values brought to the contract. The list of unrevised pages holds 177; nine pages of `core` remain, the program's.
-
-**Green.** Format, clippy with warnings denied, the tier, message and grammar checks, every test of the workspace; CI read after the push. The CI of step 22b (b45282f) is read with this one.
-
-**Next.** Step 22b3 `[function]`: the 9 pages of the program (`print`, `warn`, `error`, `assert`, `seed`, `attempt`, `iterate`, `note`, `name_of`).
+**Next.** Step 22c `[function]`: the pages of `text` (13) and `time` (10), the last step of block F.
 
 **For the owner to decide.** Nothing new. The earlier items stand.
 

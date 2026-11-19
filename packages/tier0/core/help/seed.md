@@ -31,6 +31,26 @@ script, repeats it. A loop is one statement whose passes draw apart. A `seed:` g
 is a stream of its own, the same wherever the call stands; it leaves the run's seed untouched and is
 not counted either.
 
+## A common mistake
+Setting the seed after something has drawn, or a second time. The draws already made would not be repeated by the seed written, so it is refused:
+
+> seed(5)
+error[Z0111]: `seed` comes after a statement that has already drawn random numbers
+  = help: put `seed(5)` at the top of the script, before the first draw; the draws so far used the seed 20261019
+
+Put `seed(n)` once, at the top of the script, before the first statement that draws.
+
+## Coming from R or Stata
+| seed(123) | set.seed(123) | set seed 123 |
+| draw(n, seed: 7) | withr::with_seed(7, ...) | no single function |
+
+The same seed does not give the numbers R or Stata gives: each has a generator of its own. R and
+Stata let the seed be set again in the middle of a script; here it is set once, so that the seed
+written at the top repeats the whole run. Without one, the engine picks a seed and prints it.
+
+## Related tasks
+- To draw from a distribution, use `draw`.
+
 ## References
 - Salmon, J. K., Moraes, M. A., Dror, R. O. and Shaw, D. E. (2011). Parallel random numbers: as
   easy as 1, 2, 3. *Proceedings of SC '11*, article 16.
@@ -39,6 +59,7 @@ not counted either.
 draw, dist.normal
 
 ## Examples
+// A seed at the top: these five draws are the same on every run and on every machine.
 > seed(20261019)
 > dist.normal().draw(5)
 Column<Float> · 5 values
@@ -47,3 +68,9 @@ Column<Float> · 5 values
 1.50841
 -0.713328
 -0.277729
+
+// The next statement that draws has its own part of the stream, and other numbers.
+> dist.normal().draw(2)
+Column<Float> · 2 values
+-0.317525
+0.708477

@@ -378,6 +378,26 @@ WARNINGS AND NOTES
     W0801   failed draws or fits skipped by a collecting function, with the count and the first codes
     Z0220   a Failed value used outside a list
 
+A COMMON MISTAKE
+    Using the result as if the expression had succeeded. A `Failed` value is refused wherever a value is
+    needed, and the error names the failure it holds:
+
+    > attempt(sims.where(rep == 0).logistic(y ~ treat + x)).coef()
+    error[Z0220]: a failed value cannot be used as an argument: it failed with Z0801 at line 1: no row remains to fit the model: the frame has no rows
+      = help: test it first with `x.is(Failed)`, or keep it in a list for `report` and `len` to skip with a count (section 5.4)
+
+    Test it first, `if f.is(Failed) { ... }`, or keep the results in a list.
+
+COMING FROM R OR STATA
+    Equivalents: R tryCatch(); Stata capture.
+
+    Zeff            R                                       Stata
+    attempt(expr)   tryCatch(expr, error = function(e) e)   capture noisily command
+    x.is(Failed)    inherits(x, "error")                    _rc != 0
+
+    R's `try` and Stata's `capture` leave a flag to be remembered and tested; here the failure is a value
+    that stands where the result would, and using it untested is itself an error.
+
 ACCURACY
     Exact.
 
@@ -385,6 +405,7 @@ SEE ALSO
     is, iterate, error, warn, on_fail: (shared argument)
 
 EXAMPLES
+    // Two hundred fits in a loop, three of which fail: the loop carries on, and `report` counts them.
     > let sims = import("zeff:sims.csv")
     > let fits = [for s in 1..200 {
     >     attempt(sims.where(rep == s).logistic(y ~ treat + x))

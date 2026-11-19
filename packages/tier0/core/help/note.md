@@ -26,6 +26,25 @@ the line number follows in parentheses. A note is never refused by `--deny-warni
 carries a code, and a pragma `// zeff: allow(CODE) reason` silences a coded note as it silences a
 warning (section 11.1).
 
+## A common mistake
+Giving a code that no warning has. A note's code is one of the engine's own:
+
+> note("three rows were re-tests", code: W9999)
+error[Z0401]: no warning has the code `W9999`
+  = help: copy the code from the warning itself; `zeff help W0203` explains a code
+
+Leave `code:` out for a note of your own, `note("three rows were re-tests")`.
+
+## Coming from R or Stata
+| note("text") | message("text") | display as text "text" |
+
+R's `message` writes to the error stream, apart from the output; here a note is printed under the
+output of its statement, with the line, and `zeff run --quiet` hides it.
+
+## Related tasks
+- To flag something that wants attention, use `warn`.
+- To print a value as output, use `print`.
+
 ## References
 Language Reference, section 5.4 ("Errors, warnings and failed draws") and section 10.2 ("What
 Zeff prints").
@@ -34,7 +53,14 @@ Zeff prints").
 warn, error, print
 
 ## Examples
+// A note of the script's own: the text, and the line it came from.
 > note("one row in ten is a re-test and was kept")
 note: one row in ten is a re-test and was kept (line 1)
+
+// Under one of the engine's codes.
+> note("three rows were re-tests", code: W0703)
+note[W0703]: three rows were re-tests (line 2)
+
+// The script carries on.
 > print("the run carries on")
 the run carries on

@@ -26,9 +26,35 @@ ARGUMENTS
 VALUE
     Nothing.
 
+MISSING VALUES
+    A condition that is `NA` is neither true nor false and stops the script (Z0203): a check on a value that
+    may be missing tests `is_missing` first.
+
 WARNINGS AND NOTES
     Z0203   the condition is `NA`
     Z0001   the script stopped itself with the message given
+
+A COMMON MISTAKE
+    Giving a comparison of a whole column. That is one answer for each row, not one Bool; check every row
+    with `all`, as in `assert(all(d["x"] > 0), "x is positive")`. The message says the same:
+
+    > assert(d["x"] > 0, "x is positive")
+    error[Z0203]: `assert` needs one Bool, but this is a Column<Bool>
+      = help: reduce the column to one Bool: `assert(all(d["x"] > 0), ...)` checks every row, `any` checks for one
+
+COMING FROM R OR STATA
+    Equivalents: R stopifnot(); Stata assert.
+
+    Zeff                                    R                                           Stata
+    assert(n == 3, "three rows expected")   stopifnot("three rows expected" = n == 3)   assert _N == 3
+
+    Stata's `assert` checks its condition in every row of the data and has no message of its own; here the
+    condition is one Bool, and `all` makes one of a column. R's `stopifnot` takes several conditions at
+    once; here each has its own `assert` and its own message.
+
+RELATED TASKS
+    - To stop without a condition, use `error`.
+    - To compare two values that may be lists or records, use `equal`.
 
 ACCURACY
     Exact.
@@ -37,6 +63,17 @@ SEE ALSO
     error, warn, equal, all
 
 EXAMPLES
+    // A check that holds prints nothing, and the script carries on.
     > assert(1 + 1 == 2, "arithmetic still holds")
     > let d = frame(x = [1, 2, 3])
     > assert(d.n_rows() == 3, "three rows expected")
+    > print("both checks held")
+    both checks held
+
+    // A check that fails stops the script with its message.
+    > assert(d.n_rows() == 4, "four rows expected")
+    error[Z0001]: four rows expected
+     --> examples.zeff:5:1
+      |
+    5 | assert(d.n_rows() == 4, "four rows expected")
+      | ^^^^^^ in this call

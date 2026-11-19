@@ -111,7 +111,13 @@ pub fn page_markdown(name: &str, params: &[&str], doc: &[String]) -> String {
             Some(("missing values", text)) => missing.push(text.to_string()),
             Some(("common mistake", text)) => mistake.push(text.to_string()),
             Some(("mistake call", text)) => mistake.push(format!("> {text}")),
-            Some(("mistake prints", text)) => mistake.push(text.to_string()),
+            // A line of help stands two columns in under its message, as the engine prints it;
+            // the key's own rule takes the spaces after the colon away.
+            Some(("mistake prints", text)) => mistake.push(if text.starts_with("= ") {
+                format!("  {text}")
+            } else {
+                text.to_string()
+            }),
             Some(("coming from", text)) => coming_from.push(if text.contains('|') {
                 format!("| {text} |")
             } else {
@@ -268,6 +274,36 @@ mod tests {
         assert_eq!(run.len(), 3);
         assert_eq!(run[0].caption.as_deref(), Some("A whole number."));
         assert_eq!(run[2].output, ["0"]);
+    }
+
+    /// The wrong call of a function written in Zeff and what the engine prints for it: the line
+    /// of help keeps the two columns it stands in under its message (release 0.8.0, step 22b3).
+    #[test]
+    fn the_help_line_of_a_mistake_keeps_its_indent() {
+        let doc = lines(
+            "Doubles.\n\
+             x: The number.\n\
+             returns: Twice the number.\n\
+             common mistake: Giving text.\n\
+             mistake call: f(\"a\")\n\
+             mistake prints: error[Z0401]: `x` of `f` must be a Float, but this is a Str\n\
+             mistake prints:   = help: usage: `f(x)`\n\
+             example: A whole number.\n\
+             > f(1)\n\
+             2",
+        );
+        let page = page_markdown("f", &["x"], &doc);
+        assert!(
+            page.contains(
+                "> f(\"a\")\nerror[Z0401]: `x` of `f` must be a Float, but this is a Str\n  = help: usage: `f(x)`\n"
+            ),
+            "{page}"
+        );
+        let parsed = crate::help::parse_help(&page).expect("the page parses");
+        let mistake = parsed.mistake_example.expect("the wrong call");
+        assert_eq!(mistake.code, ["f(\"a\")"]);
+        assert_eq!(mistake.output.len(), 2);
+        assert!(mistake.output[1].starts_with("  = help: "));
     }
 
     #[test]

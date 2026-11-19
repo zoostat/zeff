@@ -6321,3 +6321,24 @@ The library takes `hypher` with every language, and a crate that uses the librar
 
 **Reason.** Open decision #103; the checklist's step 22b2.
 
+## 19 November 2026: the pages of `core` revised, part 2c, the program (release 0.8.0, step 22b3; open decision #103)
+
+**Done as the steps before it**, for `warn`, `note`, `error`, `assert`, `seed`, `attempt`, `iterate` and `name_of`; the page of `print`, rewritten earlier in this release, already met the contract and is struck with them. All 71 pages of `core` are off the list of unrevised pages, which holds 168.
+
+**`error`: two options a script may not write.** `code:` and `argument:` are for the engine's own functions, and the contract asks that every option of a function appear in an example. They appear where a reader will meet them: in the common mistake, a script that gives them, with the refusal the engine prints (Z0404), and in In brief, which says where they belong.
+
+**`seed`: the mistake is a second seed.** A seed chosen by the engine would print a different number on every run, and a page's output must be the same every time. The page's examples set a seed and draw; the mistake is `seed(5)` after them, refused with the seed the draws used (Z0111).
+
+**`iterate`: the functions of the example have their summary line.** A function of a script without one is warned of (W0303), and the warning would have stood in the common mistake above the error the part is about. The example's two functions are written as a script should write them, each under its `///` line.
+
+**`attempt`: the mistake is the result used untested**, with the error that names the failure it holds (Z0220). **`assert`: a comparison of a whole column**, which is one answer for each row and not one Bool (Z0203); its page is written in Zeff, where the corrected call goes in the sentence before the wrong one, since a line after the printed message would be read as part of the message.
+
+**Said of R and Stata.** R collects its warnings and prints them when the top-level call ends, and writes `message` to the error stream; Stata's `error` takes a number, not a text; Stata's `assert` checks every row of the data and has no message of its own; the same seed does not give R's or Stata's numbers.
+
+**Reason.** Open decision #103; the checklist's step 22b3.
+
+**Added to the entry above, found by the full check of step 22b3.**
+- The specification's own example of a help page for `attempt` (`docs/spec/zeff_help_examples.md`) was in the form of before release 0.8.0, and a test of the registry holds the engine's rendering of that page to the example word for word. With `attempt` off the list, the example and the contract could not both hold. The example gained the two parts the contract asks of this function and a caption (logged in `docs/spec_changes.md`); the test's page gained the same, and the two agree again word for word. The examples of `where` and `merge` in that document wait for the step that revises the pages of `data`.
+- In a function written in Zeff, the line of help under a mistake's message lost the two columns it stands in (`mistake prints:` takes the spaces after its colon away). It keeps them now, and a unit test holds it.
+- The made-up page of `print` in the properties tests of `zeff-ir` gained its table and its caption.
+

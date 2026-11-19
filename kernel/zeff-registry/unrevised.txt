@@ -3,12 +3,6 @@
 # decision #103). A page listed here is held to the contract as it stood; one not listed, to the
 # contract in full. A line is struck when its page is revised, and the list is empty at 0.10.0.
 # One line per page: the package and the function's catalogue name.
-core print
-core warn
-core error
-core assert
-core seed
-core attempt
 time date
 time datetime
 time today
@@ -146,7 +140,6 @@ dist dist.mixture
 regress interact
 results derive
 data n_distinct
-core iterate
 datasets dataset
 datasets datasets
 plot points
@@ -171,8 +164,6 @@ plot legend
 plot theme
 plot annotate
 dist dist.tukey
-core note
-core name_of
 results statistic
 results df
 results effect_size
