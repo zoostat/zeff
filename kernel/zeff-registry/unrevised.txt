@@ -3,24 +3,6 @@
 # decision #103). A page listed here is held to the contract as it stood; one not listed, to the
 # contract in full. A line is struck when its page is revised, and the list is empty at 0.10.0.
 # One line per page: the package and the function's catalogue name.
-core abs
-core sign
-core sqrt
-core exp
-core log
-core log2
-core log10
-core log1p
-core expm1
-core round
-core floor
-core ceil
-core truncate
-core min
-core max
-core clamp
-core div
-core mod
 core sin
 core cos
 core tan

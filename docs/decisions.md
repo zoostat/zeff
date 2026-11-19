@@ -6241,3 +6241,29 @@ The library takes `hypher` with every language, and a crate that uses the librar
 
 **Reason.** Open decision #73; the checklist's steps 21b and 21c; risk R4; the rule for dependencies.
 
+## 19 November 2026: the pages of `core` revised, part 1a, and how the revision is done (release 0.8.0, step 22a; open decision #103)
+
+**The count and the split.** The checklist gave `core` 27 pages of maths and constants and 40 others, and `time` 14. The list of unrevised pages has 35, 36 and 10; the total of 94 for steps 22a to 22c stands. The 35 are split: 22a the 18 pages from `abs` to `mod` (arithmetic, rounding, logarithms), 22a2 the 17 from `sin` to `E`.
+
+**What each page gained.** A caption on every example; examples on values written in the statement and on the shipped wages, never on a file of the fixture project; Missing values; Coming from R or Stata, as a table of three columns and the differences that would surprise; A common mistake where the function declares a diagnostic; In brief for `round`, which has three ways of being called; Related tasks where one helps.
+
+**One frame for the row-by-row example of every page**: `dataset(wages).where(worker == 19).select([worker, year, wage, hours, exper])`, five rows. It has a missing wage, so every page shows what `NA` does; two years of no experience, so `log` and `log1p` show what a zero does; and it keeps the panel's two keys, so no note about the panel declaration is printed. One frame read thirty times is easier than thirty frames.
+
+**Missing values on pages the build does not ask it of.** The build requires the part of a function whose declared types read data; these functions are declared on numbers and lifted over columns, so it is not required. The contract's words ("one that takes ... a column") cover them, and each page has it.
+
+**The common mistake is the likeliest one, not the declared one, where they differ.** `abs` declares the overflow of the one Int with no absolute value, which a newcomer will not meet; its page shows a number read as text, refused by the checker, and how to convert it. The others show their own diagnostic: the root of a negative number, the logarithm of zero, both `digits:` and `sig:`, a whole-number division by zero. Every wrong call is run by the example runner and its message compared with the page.
+
+**What is said of R and Stata** was written from their behaviour as known and kept to what is certain: that R's `min(a, b)` on two vectors is one number and `pmin` the row-wise function; that Stata's `min` skips missing; that Stata's second argument of `round` is a unit and not a count of digits; that R's `%/%` and `%%` on integers give `NA` for a divisor of zero and Stata's `mod` missing; that Stata has no logarithm to base 2. Of `log1p` and `expm1` the pages say that Stata has them "in its recent releases only", without a release number that could not be checked here.
+
+**Two faults of the engine, met and corrected.**
+- In a function written in Zeff, an `example:` line after the first example was read as a line of the output above it, so only the first example could have a caption (`kernel/zeff-registry/src/source.rs`, both where the page is built and where the examples are taken out to be run). No page written in Zeff had been revised, so nothing had shown it. `example:` is now a caption wherever it stands; the unit test `every_example_of_a_zeff_function_takes_its_caption` holds it. The page of a project's function shows the caption as a comment.
+- The checker refused the help line `related:` as "not one of its parameters" (Z0320): its list of the keys of a page had not been given the one new key of a single word.
+
+**The catalogue.** `clamp` was said to have no equivalent; Stata has `clip(x, a, b)`. The row and the page are corrected (logged in `docs/spec_changes.md`).
+
+**The fixture pages of the runner's own tests.** Two tests of the example runner build a made-up page of `sign` to show a failing example. `sign` is now off the list, so their page is held to the contract in full: it gained its table and its captions. What they test is unchanged.
+
+**How it was done, for the steps that follow.** The written parts of a page were kept; the new parts were added from a specification of the page; the examples were written as statements, run by the example runner, and their output taken from what it printed, so that no output on a page was typed by hand. The same is to be done for 22a2, 22b and 22c.
+
+**Reason.** Open decision #103; Engine and Project Specification, section 9.1, "The contract of 0.8.0"; the checklist's step 22a.
+

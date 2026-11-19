@@ -21,10 +21,17 @@ fn page(name: &str, args: &[&str], statistical: bool, rest: bool) -> &'static st
     }
     text.push_str("\n## Value\nA value.\n");
     if statistical {
-        text.push_str("\n## Details\nFixture.\n\n## References\nNone (1900).\n");
+        text.push_str("\n## Details\nFixture.\n");
+    }
+    // The table a revised page carries (section 9.1, "The contract of 0.8.0").
+    text.push_str(&format!(
+        "\n## Coming from R or Stata\n| {name}(x) | {name}(x) | {name}(x) |\n"
+    ));
+    if statistical {
+        text.push_str("\n## References\nNone (1900).\n");
     }
     text.push_str(&format!(
-        "\n## See also\nprint\n\n## Examples\n> {name}\n1\n"
+        "\n## See also\nprint\n\n## Examples\n// The one example of the fixture's page.\n> {name}\n1\n"
     ));
     Box::leak(text.into_boxed_str())
 }

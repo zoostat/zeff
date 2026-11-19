@@ -55,7 +55,7 @@ expression: all
     
     USAGE
         sqrt(x)
-    (and 46 lines more)
+    (and 75 lines more)
 ----
 > let z = dist.nor|mal(0, 1)
 0:8-0:19, a function
@@ -108,7 +108,7 @@ expression: all
     
     USAGE
         sqrt(x)
-    (and 46 lines more)
+    (and 75 lines more)
 ----
 > use functions::clean
 > let d = import("data/small.csv")
@@ -167,7 +167,7 @@ in /work/demo/functions/clean.zeff
     
     USAGE
         log(x, base: Float = E)
-    (and 56 lines more)
+    (and 102 lines more)
 ----
 > let d = import("data/small.csv")
 > d.mean(|b)

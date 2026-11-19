@@ -883,6 +883,9 @@ const DOC_KEYS: &[&str] = &[
     "references",
     "example",
     "examples",
+    // Of the contract of 0.8.0, the one key of a single word; the others (`in brief`,
+    // `missing values`, `coming from`, `common mistake`) have a space, which no parameter has.
+    "related",
 ];
 
 impl Checker<'_> {

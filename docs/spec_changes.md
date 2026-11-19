@@ -761,3 +761,7 @@ Applied at step 13b of release 0.8.0. The usage of `ivreg` listed `fe:`, `instru
 
 Applied at step 21a of release 0.8.0, under open decision #73 as decided on 15 November 2026 (option A in steps): `export` writes `.typ` beside `.tex` and `.docx`. The description listed "Word and LaTeX for tables, SVG or PDF (vector) or PNG (raster) for plots"; it now reads "Word, LaTeX and Typst for tables, SVG or PDF (vector), PNG (raster) or Typst for plots". The usage, the options and the status are unchanged. No other normative text names the formats of `export` as a closed list: the Language Reference shows `.docx` in its examples and says of `report` that "the exported .docx and .tex carry the same layout", which stays true and is true of `.typ` as well.
 
+## 19 November 2026 — zeff_functions.csv (row of `clamp`, the column of equivalents)
+
+Found while revising the page of `clamp` at step 22a of release 0.8.0. The row gave "None built in" as the equivalent in R and Stata, and the page said that Stata has no single function. Stata has one, `clip(x, a, b)`, among its programming functions; R has none and writes `pmin(pmax(x, low), high)`. The column now reads "R pmin(pmax()); Stata clip()", and the page has the table of three columns, with the one difference: `clip` returns missing when the lower limit is above the upper, where Zeff and the R form return the upper.
+

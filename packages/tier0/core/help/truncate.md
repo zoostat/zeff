@@ -15,8 +15,16 @@ by row and returns a column of Floats. R calls this function `trunc`.
 ## Value
 A Float; a column of Floats when `x` is a column.
 
+## Missing values
+`NA` gives `NA`. In a column each row is taken by itself: a row with `NA` stays `NA`, no row is dropped and nothing is printed for it.
+
 ## Details
 Exact, as `floor` is. `Inf` and `-Inf` are returned as they are.
+
+## Coming from R or Stata
+| truncate(x) | trunc(x) | trunc(x) or int(x) |
+
+R and Stata shorten the name. The three agree on every value.
 
 ## References
 IEEE Std 754-2019, IEEE Standard for Floating-Point Arithmetic, section 5.9 (roundToIntegral).
@@ -25,14 +33,22 @@ IEEE Std 754-2019, IEEE Standard for Floating-Point Arithmetic, section 5.9 (rou
 floor, ceil, round
 
 ## Examples
+// The fraction dropped.
 > truncate(2.7)
 2
+
+// Towards zero for a negative number, where `floor` goes down.
 > truncate(-2.7)
 -2
-> let wages = import("data/wages.csv")
-note: data/wages.csv read as CSV: 3 rows × 3 variables, types guessed; CSV carries no labels, value labels or categories (line 3)
-> truncate(wages["wage"] / 10)
-Column<Float> · 3 values
-2
-1
-3
+
+// Row by row on the shipped wages: the tens of each wage.
+> let w = dataset(wages).where(worker == 19).select([worker, year, wage, hours, exper])
+> w.add(tens = truncate(wage / 10))
+frame · 5 rows × 6 variables · panel worker × year
+
+      worker   year    wage   hours   exper   tens
+  1       19   2012   12.64    29.2       0      1
+  2       19   2013   25.18    31.4       0      2
+  3       19   2014   35.49    33.5       1      3
+  4       19   2015   26.07    58.2       2      2
+  5       19   2016      NA      30       3     NA

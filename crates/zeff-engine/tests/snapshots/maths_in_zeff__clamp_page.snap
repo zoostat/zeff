@@ -21,28 +21,55 @@ ARGUMENTS
 VALUE
     `x` within the range, a Float, or an Int when all three are Ints; a column when `x` is one.
 
+MISSING VALUES
+    `NA` in any of the three gives `NA`. In a column each row is taken by itself: a row with `NA` stays
+    `NA`, no row is dropped and nothing is printed for it.
+
 DETAILS
     Exact: the result is one of its three arguments, and nothing is rounded.
+
+COMING FROM R OR STATA
+    Equivalents: R pmin(pmax()); Stata clip().
+
+    Zeff                  R                          Stata
+    clamp(x, low, high)   pmin(pmax(x, low), high)   clip(x, low, high)
+
+    R has no single function. Stata's `clip` returns missing when `low` is above `high`, where Zeff and the
+    R form return `high`.
+
+RELATED TASKS
+    - To cap from one side only, use `min` or `max`.
 
 ACCURACY
     Closed form.
 
 REFERENCES
-    Equivalent to R's `pmin(pmax(x, low), high)`; Stata has no single function (`min(max(x, low), high)`).
+    The definition is the two comparisons `min(max(x, low), high)`; nothing is estimated.
 
 SEE ALSO
     min, max, between
 
 EXAMPLES
+    // Above the range, the upper limit.
     > clamp(5, 0, 3)
     3
+
+    // Below the range, the lower limit; a Float among the three gives a Float.
     > clamp(-1.5, 0, 3)
     0
+
+    // Inside the range, the value itself.
     > clamp(1.5, 0, 3)
     1.5
-    > let d = frame(x = [-2, 0.5, 7])
-    > clamp(d["x"], 0, 3)
-    Column<Float> · 3 values
-    0
-    0.5
-    3
+
+    // Row by row on the shipped wages: one worker's hours held between 30 and 40.
+    > let w = dataset(wages).where(worker == 19).select([worker, year, wage, hours, exper])
+    > w.add(held = clamp(hours, 30, 40))
+    frame · 5 rows × 6 variables · panel worker × year
+
+          worker   year    wage   hours   exper   held
+      1       19   2012   12.64    29.2       0     30
+      2       19   2013   25.18    31.4       0   31.4
+      3       19   2014   35.49    33.5       1   33.5
+      4       19   2015   26.07    58.2       2     40
+      5       19   2016      NA      30       3     30

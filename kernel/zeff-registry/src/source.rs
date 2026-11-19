@@ -36,24 +36,31 @@ fn key_line(line: &str) -> Option<(&str, &str)> {
     plain.then_some((key, rest.trim()))
 }
 
+/// A line of the examples as a page writes it: a `> statement` line; an `example:` line as the
+/// `// ` caption of the example that follows, the first and every later one; any other line as
+/// it is, the output printed.
+fn example_line(line: &str) -> String {
+    if let Some(rest) = line.trim_start().strip_prefix('>') {
+        return format!("> {}", rest.trim_start());
+    }
+    match key_line(line) {
+        Some(("example", text)) => format!("// {text}"),
+        _ => line.trim_end().to_string(),
+    }
+}
+
 /// The examples of a function written in Zeff, from the `///` lines above its `fn` (without
 /// their marker): from the first `> statement` line on, each run of such lines with the output
 /// printed under it, read by the rule of every page (section 9.1), so that `zeff test` runs a
 /// project's examples as the engine's own are run.
 pub fn doc_examples(doc: &[String]) -> Vec<crate::help::Example> {
-    let Some(from) = doc
-        .iter()
-        .position(|line| line.trim_start().starts_with('>'))
-    else {
+    // From the first statement, or from the caption above it.
+    let Some(from) = doc.iter().position(|line| {
+        line.trim_start().starts_with('>') || matches!(key_line(line), Some(("example", _)))
+    }) else {
         return Vec::new();
     };
-    let lines: Vec<String> = doc[from..]
-        .iter()
-        .map(|line| match line.trim_start().strip_prefix('>') {
-            Some(rest) => format!("> {}", rest.trim_start()),
-            None => line.trim_end().to_string(),
-        })
-        .collect();
+    let lines: Vec<String> = doc[from..].iter().map(|line| example_line(line)).collect();
     let lines: Vec<&str> = lines.iter().map(String::as_str).collect();
     let (mut examples, mut errors) = (Vec::new(), Vec::new());
     crate::help::parse_examples(&lines, &mut examples, &mut errors);
@@ -91,12 +98,8 @@ pub fn page_markdown(name: &str, params: &[&str], doc: &[String]) -> String {
         .map(|s| s.trim().trim_end_matches('.').to_string())
         .unwrap_or_default();
     for line in doc.iter().skip(1) {
-        if let Some(rest) = line.trim_start().strip_prefix('>') {
-            examples.push(format!("> {}", rest.trim_start()));
-            continue;
-        }
-        if !examples.is_empty() {
-            examples.push(line.trim_end().to_string());
+        if line.trim_start().starts_with('>') || !examples.is_empty() {
+            examples.push(example_line(line));
             continue;
         }
         match key_line(line) {
@@ -221,6 +224,50 @@ mod tests {
         assert_eq!(parsed.examples[0].output, vec!["3"]);
         assert_eq!(parsed.references, vec!["None."]);
         assert!(page.contains("## Details\nExact: nothing is rounded."));
+    }
+
+    /// Every example of a function written in Zeff has its caption, not the first alone: until
+    /// release 0.8.0, step 22a, an `example:` line after the first example was read as a line
+    /// of the output above it.
+    #[test]
+    fn every_example_of_a_zeff_function_takes_its_caption() {
+        let doc = lines(
+            "Doubles.\n\
+             x: The number.\n\
+             returns: Twice the number.\n\
+             example: A whole number.\n\
+             > f(1)\n\
+             2\n\
+             example: A fraction, after a binding that prints nothing.\n\
+             > let half = 0.5\n\
+             > f(half)\n\
+             1\n\
+             example: Nothing.\n\
+             > f(0)\n\
+             0",
+        );
+        let page = page_markdown("f", &["x"], &doc);
+        let parsed = crate::help::parse_help(&page).expect("the page parses");
+        let captions: Vec<Option<&str>> = parsed
+            .examples
+            .iter()
+            .map(|e| e.caption.as_deref())
+            .collect();
+        assert_eq!(
+            captions,
+            [
+                Some("A whole number."),
+                Some("A fraction, after a binding that prints nothing."),
+                Some("Nothing.")
+            ]
+        );
+        assert_eq!(parsed.examples[1].code, ["let half = 0.5", "f(half)"]);
+        assert_eq!(parsed.examples[1].output, ["1"]);
+        // The examples as `zeff test` reads them are the same three, captions included.
+        let run = doc_examples(&doc);
+        assert_eq!(run.len(), 3);
+        assert_eq!(run[0].caption.as_deref(), Some("A whole number."));
+        assert_eq!(run[2].output, ["0"]);
     }
 
     #[test]

@@ -172,6 +172,12 @@ pub fn project_page(function: &zeff_ir::Function) -> String {
             examples.push(format!("> {}", rest.trim_start()));
             continue;
         }
+        // An `example:` line is the caption of the example that follows, shown as the comment
+        // a built-in page shows.
+        if let Some(("example", text)) = is_key(line) {
+            examples.push(format!("// {text}"));
+            continue;
+        }
         if !examples.is_empty() {
             examples.push(line.clone());
             continue;

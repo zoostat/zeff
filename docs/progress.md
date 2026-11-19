@@ -108,55 +108,9 @@ Step 19: `zeff explain <code>` prints a code's page and lists the 144 codes by f
 
 Step 20d `[engine]`: `wilcoxon_test` no longer stores the pairwise differences or the Walsh averages of a large sample; the review's 190,757 rows run in 1.4 s within 220 MB (R: 5.5 s), with R's W and the shift −15.000 where R's root-finder prints −14.999977. Step 20e `[engine]`: `dist.tukey` far out in its upper tail answers at once from a proved bound (28 s before, and some values wrong); `posthoc()` on the same rows takes 0.48 s; the checklist's sentence that the infinite-df limit bounds the tail above is not so, and the bound used is proved in the decisions. Step 20f `[engine]`: the checker reads the option that decides a result's type, so `rank(x) / n()` and `running(x, stat: sum) * 2` are no longer refused. Step 20g `[engine]`: a field a result's record lacks and an index into a test's intervals are refused at the check (Z0209, Z0221) where they stopped the run with an internal error; two regressions joined the conformance suite. Each green locally and on CI (07fc5a4, 1415f88, 13bbdbf, d3b43b5).
 
-## 19 November 2026, release 0.8.0, step 20h (`cluster:` takes the variables `fe:` takes)
+## 19 November 2026, release 0.8.0, steps 20h to 20l (folded)
 
-**Done.** Step 20h `[engine]`: a text variable, a date and a time now serve as `cluster:`, as a category and a number did, in `reg` and `ivreg`; the errors are fixest's on a character vector and on a Date. Every message, explained page and help page was searched for a shipped release named as one to come: nine messages and nine pages were corrected, and a test now holds the rule. One of them had promised `add(v = to(NA, Float))` "with release 0.5.0"; it had never arrived and the specification asks for it, so it is built: `NA` given a type makes a variable of that type.
-
-**Green.** Format, clippy with warnings denied, the tier, message and grammar checks, every test of the workspace; CI read after the push. The CI of step 20g (d3b43b5) is green.
-
-**Next.** Step 20i `[engine]`: the truncated distribution near its lower bound.
-
-**For the owner to decide.** A date in a formula is refused as text is (Z0401), with help that says how to make a number or a category of it; the old message promised dates in models "from release 0.6.0", which nothing in the specification supports. Say if dates should be taken in a formula (as days since a date, as R does). The earlier items stand.
-
-## 19 November 2026, release 0.8.0, step 20i (the truncated distribution near its bounds)
-
-**Done.** Step 20i `[engine]`: a truncated distribution's probabilities beside its bounds keep thirteen digits where they kept five (the normal on [0, 2] at 1.196288e-12), and the quantile is the root of the same function. An interval far in the upper tail, which was refused as empty, is now a distribution like any other (`dist.truncated(dist.normal(), lower: 9)`, a Poisson at 40 and above). The F distribution's own far upper tail keeps its digits. A small integration routine joins the numeric kernel. One regression joins the conformance suite.
-
-**Green.** Format, clippy with warnings denied, the tier, message and grammar checks, every test of the workspace; CI read after the push. The CI of step 20h (77f8d1a) is green.
-
-**Next.** Step 20j `[function]`: the three messages the review found misleading.
-
-**For the owner to decide.** Nothing new. The earlier items stand.
-
-## 19 November 2026, release 0.8.0, step 20j (three refusals that misled)
-
-**Done.** Step 20j `[function]`, split in three in the checklist (20j, 20k, 20l), since its six messages sit on three pieces of machinery. Done here: `n_missing([x1, x2, x3])` inside `add` is refused where it gave 0 in every row, with the line that counts across a row; a term written as text inside `test` is answered with the term as it should be written; a reserved word used as a name (`add(as = asin(x))`) is said to be one.
-
-**Green.** Format, clippy with warnings denied, the tier, message and grammar checks, every test of the workspace; CI read after the push. The CI of step 20i (86ec67a) is green.
-
-**Next.** Step 20k `[function]`: the warning of a branch of `case` counts the rows the branch decides, and a note names a variable reused in `aggregate`.
-
-**For the owner to decide.** Nothing new. The earlier items stand.
-
-## 19 November 2026, release 0.8.0, step 20k (a branch of `case`, and a name reused in `aggregate`)
-
-**Done.** Step 20k `[function]`: a warning raised inside one branch of `case` now counts the rows that branch decides, so `to(floor_txt, Int)` after the branches that take "Ground", "Upper" and "Lower" says nothing of those three, and a division guarded by its branch says nothing at all; the values are unchanged. In `aggregate`, a later definition that reads a name the call has just redefined (`spend = mean(spend)`, then `sd(spend)`) is told so in a note.
-
-**Green.** Format, clippy with warnings denied, the tier, message and grammar checks, every test of the workspace; CI read after the push. The CI of step 20j (f01825b) is green.
-
-**Next.** Step 20l `[function]`: W1006 and the note of `append` said once, with a count.
-
-**For the owner to decide.** Nothing new. The earlier items stand.
-
-## 19 November 2026, release 0.8.0, step 20l (said once, with a count)
-
-**Done.** Step 20l `[function]`: several fits of one statement that are driven by the same observation say W1006 once, "the same for 3 fits", and a chain of appends gives one note, "append, 4 times: 8 rows added below 2 rows", with what was filled. With it the six messages of the review (steps 20j to 20l) are done, and block D of the checklist with them.
-
-**Green.** Format, clippy with warnings denied, the tier, message and grammar checks, every test of the workspace; CI read after the push. The CI of step 20k (fb80b05) is green.
-
-**Next.** Step 21a `[engine]`: `export("….typ")`, the first step of block E.
-
-**For the owner to decide.** Fits on lines of their own each keep W1006 at their line; say if one line for the whole run is wanted instead. The earlier items stand.
+Step 20h `[engine]`: a text variable, a date and a time serve as `cluster:`, as fixest takes them; `add(v = to(NA, Float))` works, which a help line had promised; no message names a shipped release as one to come, and a test holds that. Step 20i `[engine]`: a truncated distribution keeps thirteen digits beside its bounds where it kept five, an interval far in a tail is no longer refused as empty, and the F distribution's far upper tail keeps its digits; a small integration routine joined the numeric kernel. Steps 20j, 20k, 20l `[function]`, one step of six messages split in three: `n_missing` of a list of variables is refused; a term written as text inside `test` is answered with the term as it should be written; a reserved word used as a name is said to be one; a warning inside a branch of `case` counts the rows the branch decides; `aggregate` notes a name it has just redefined; several fits of one statement say W1006 once and a chain of appends gives one note. Each green locally and on CI (77f8d1a, 86ec67a, f01825b, fb80b05, 06754a5). For the owner, still open: whether a date should be taken in a formula as days, as R does; whether fits on lines of their own should say W1006 once for the run.
 
 ## 19 November 2026, release 0.8.0, step 21a (`export` writes Typst)
 
@@ -187,4 +141,14 @@ Step 20d `[engine]`: `wilcoxon_test` no longer stores the pairwise differences o
 **Next.** Step 22a `[function]`: the pages of `core`, part 1, the first step of block F (the pages revised).
 
 **For the owner to decide.** #73 as decided here may be overturned. #172, recommended A; whether the LPPL and the MPL may ever be accepted for data compiled into Zemp is the owner's alone. The earlier items stand.
+
+## 19 November 2026, release 0.8.0, step 22a (the pages of `core`, part 1a)
+
+**Done.** Step 22a `[function]`, counted again and split in two (22a, 22a2): the 35 pages of maths and constants were 27 in the checklist. Done here, 18 pages, `abs` to `mod`: each has a caption on every example, one example on the shipped wages (one worker's five years, with a missing wage and two years of no experience), the part on missing values, the table for a reader coming from R or Stata, and, where the function has a diagnostic of its own, the common mistake as the engine prints it. Two faults of the engine were met and corrected: in a function written in Zeff only the first example's caption was read as one, and the checker refused the help line `related:`. The catalogue's row of `clamp` now names Stata's `clip`.
+
+**Green.** Format, clippy with warnings denied, the tier, message and grammar checks, every test of the workspace; CI read after the push. The CI of step 21c (6d0a309) is green.
+
+**Next.** Step 22a2 `[function]`: the 17 pages of trigonometry, the logistic pair, the special functions, `is_finite` and the two constants.
+
+**For the owner to decide.** Nothing new. The one example frame used on every page (worker 19 of the wages) is a choice of presentation; say if another is wanted. The earlier items stand.
 
