@@ -1,0 +1,23 @@
+// a Zeff export: place it in a document with `#include`
+#table(
+  columns: 3,
+  align: (left, right, right,),
+  stroke: none,
+  table.hline(stroke: 0.8pt),
+  table.header("", "(1)  ", "(2)  "),
+  table.hline(stroke: 0.5pt),
+  "(intercept)", "1.832***", "1.900***",
+  "", "(0.022)  ", "(0.022)  ",
+  "educ", "0.076***", "0.076***",
+  "", "(0.001)  ", "(0.001)  ",
+  "exper", "0.022***", "0.022***",
+  "", "(0.000)  ", "(0.000)  ",
+  "female", "", "-0.133***",
+  "", "", "(0.006)  ",
+  table.hline(stroke: 0.5pt),
+  "SEs", "classical", "hc3",
+  "N", "18,179", "18,179",
+  "R²", "0.184", "0.203",
+  table.hline(stroke: 0.8pt),
+  table.cell(colspan: 3, align: left, text(size: 0.85em, "* p < 0.05, ** p < 0.01, *** p < 0.001")),
+)

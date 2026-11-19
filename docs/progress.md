@@ -168,3 +168,13 @@ Step 20d `[engine]`: `wilcoxon_test` no longer stores the pairwise differences o
 
 **For the owner to decide.** The look of the Typst table (rules of 0.8 and 0.5 points, notes at 0.85 of the type size) follows the LaTeX form; say if another look is wanted. The earlier items stand.
 
+## 19 November 2026, release 0.8.0, step 21b (the Typst library measured, first part)
+
+**Done.** Step 21b `[engine]`, split in two in the checklist (21b, 21c). A measuring tool outside the workspace links the Typst library and nothing else does. Found: no font of Typst's need be linked (one of them is under the GPL, and they are off unless asked for); 14 of its 48 sets of hyphenation patterns are not under a permissive licence and cannot be left out of the library as published; it adds about 26 MB to the engine and 7.2 MB compressed to the browser, where the limit for the whole bundle is 5 MB; this machine and the browser's target give the same PDF, byte for byte.
+
+**Green.** Format, clippy with warnings denied, the tier, message and grammar checks, every test of the workspace; the tool's own format and clippy; CI read after the push. The CI of step 21a (4ca182c) is green.
+
+**Next.** Step 21c `[engine]`: the workflow run on the four targets, and the decision on #73.
+
+**For the owner to decide.** Nothing yet; the decision on #73 comes with step 21c, and it will not link anything without the owner's word.
+

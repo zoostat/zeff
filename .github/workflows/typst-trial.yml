@@ -1,0 +1,99 @@
+# The measurement of release 0.8.0, step 21b (open decision #73): whether a PDF set through the
+# Typst library is the same bytes on every target of the identity jobs when the fonts, the date
+# and the document are fixed. Started by hand only; no push and no schedule runs it. The tool is
+# tools/typst-trial, a package outside the workspace: nothing of Typst is linked into the engine.
+name: Typst trial
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  measure:
+    name: measure (${{ matrix.name }})
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - name: linux-x86-64
+            runner: ubuntu-latest
+            rustflags: ""
+          - name: linux-x86-64-v3
+            runner: ubuntu-latest
+            rustflags: "-C target-cpu=x86-64-v3"
+          - name: linux-arm64
+            runner: ubuntu-24.04-arm
+            rustflags: ""
+          - name: macos-arm64
+            runner: macos-latest
+            rustflags: ""
+    runs-on: ${{ matrix.runner }}
+    env:
+      RUSTFLAGS: ${{ matrix.rustflags }}
+    steps:
+      - name: Check out the repository
+        uses: actions/checkout@v4
+
+      - name: Install the pinned Rust toolchain
+        run: rustup toolchain install
+
+      - name: Set the fixed document through the Typst library
+        working-directory: tools/typst-trial
+        run: |
+          cargo build --release --locked
+          mkdir -p ../../report
+          ./target/release/typst-trial | tee ../../report/line.txt
+          ls -l target/release/typst-trial
+
+      - name: Keep the line for the comparison
+        uses: actions/upload-artifact@v4
+        with:
+          name: typst-${{ matrix.name }}
+          path: report/line.txt
+
+  wasm:
+    name: measure (wasm)
+    runs-on: ubuntu-latest
+    env:
+      RUSTFLAGS: -C target-feature=+simd128 -C link-arg=-zstack-size=8388608
+    steps:
+      - name: Check out the repository
+        uses: actions/checkout@v4
+
+      - name: Install the pinned Rust toolchain
+        run: rustup toolchain install
+
+      - name: Set the fixed document in the browser's target, under Node
+        working-directory: tools/typst-trial
+        run: |
+          cargo build --release --locked --lib --target wasm32-unknown-unknown
+          mkdir -p ../../report
+          node run.cjs target/wasm32-unknown-unknown/release/typst_trial.wasm | tee ../../report/all.txt
+          grep -o '^pdf [0-9]* bytes hash [0-9a-f]*' ../../report/all.txt > ../../report/line.txt
+
+      - name: Keep the line for the comparison
+        uses: actions/upload-artifact@v4
+        with:
+          name: typst-wasm
+          path: report/line.txt
+
+  compare:
+    name: compare
+    needs: [measure, wasm]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Fetch the line of every target
+        uses: actions/download-artifact@v4
+        with:
+          pattern: typst-*
+          path: lines
+
+      - name: The PDF is the same bytes on every target
+        run: |
+          for file in lines/*/line.txt; do
+            echo "$(basename "$(dirname "$file")"): $(cat "$file")"
+          done
+          test "$(ls lines | wc -l)" = "5"
+          test "$(cat lines/*/line.txt | sort -u | wc -l)" = "1"

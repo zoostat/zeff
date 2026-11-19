@@ -1,0 +1,36 @@
+# A measurement, not a part of Zeff (release 0.8.0, step 21b; open decision #73): one fixed
+# document, a table, the lines of a test and a figure as `export` writes them, is set as PDF
+# through the Typst library with the engine's three fonts and a fixed date, and the size and the
+# hash of the PDF are printed. Built only by the workflow `typst-trial`, started by hand, which
+# runs it on every target of the identity jobs and compares the lines. It is a package of its
+# own outside the workspace, with its own lock file, so that nothing of Typst is linked into the
+# engine, the apps or their tests, and the workspace's lock file does not name it.
+[package]
+name = "typst-trial"
+version = "0.0.0"
+edition = "2024"
+license = "Apache-2.0"
+publish = false
+
+[workspace]
+
+[lib]
+crate-type = ["cdylib", "rlib"]
+
+[features]
+default = ["typst"]
+# Without this feature nothing of Typst is linked: the baseline for the size.
+typst = ["dep:typst", "dep:typst-pdf", "dep:typst-layout"]
+
+[dependencies]
+typst = { version = "=0.15.1", optional = true }
+typst-pdf = { version = "=0.15.1", optional = true }
+typst-layout = { version = "=0.15.1", optional = true }
+zeff-hash = { path = "../../kernel/zeff-hash" }
+
+[profile.release]
+opt-level = 3
+lto = "fat"
+codegen-units = 1
+strip = true
+panic = "abort"
