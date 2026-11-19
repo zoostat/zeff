@@ -270,7 +270,7 @@ pub fn where_(ctx: &mut CallContext<'_>, args: Args) -> Result<Value, Fail> {
             )
             .in_file(ctx.script)
             .primary(ctx.span_of(1), "a column of another frame")
-            .help("a condition is built from the frame's own variables; `merge` joins frames (release 0.6.0)"),
+            .help("a condition is built from the frame's own variables; `merge` joins frames"),
         ));
     }
     let mut kept: Vec<usize> = Vec::new();
@@ -394,13 +394,13 @@ fn definition_column(
             )
             .in_file(ctx.script)
             .primary(span, "a column of another length")
-            .help("build the new variable from the frame's own variables; `merge` joins frames (release 0.6.0)"),
+            .help("build the new variable from the frame's own variables; `merge` joins frames"),
         )),
         Value::Na => Err(fail(
             Diagnostic::error("Z0219", format!("`{name} = NA` has no type"))
                 .in_file(ctx.script)
                 .primary(span, "NA alone")
-                .help("a variable of only NA needs a type: build it from one of the frame's, as in `x * NA`; `to(NA, Float)` arrives with release 0.5.0"),
+                .help("a variable of only NA needs a type: `to(NA, Float)` gives it one, as does a variable of the frame, `x * NA`"),
         )),
         other => broadcast(other, rows).ok_or_else(|| {
             fail(

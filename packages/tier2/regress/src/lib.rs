@@ -93,11 +93,11 @@ pub fn functions() -> Vec<Function> {
                     DiagnosticDecl::new("Z0224", "a negative weight"),
                     DiagnosticDecl::new(
                         "Z0304",
-                        "`se: bootstrap` before release 1.1, or a date in the model before 0.6.0",
+                        "`se: bootstrap` before release 1.1",
                     ),
                     DiagnosticDecl::new(
                         "Z0401",
-                        "text in the model, a category as the outcome, a level outside 0 to 1, a weight that is not a number, a frequency weight with a fraction, `fe:` with `*`, a range, an expression or the intercept, or a fixed effect that is a model variable too",
+                        "text or a date in the model, a category as the outcome, a level outside 0 to 1, a weight that is not a number, a frequency weight with a fraction, `fe:` with `*`, a range, an expression or the intercept, or a fixed effect that is a model variable too",
                     ),
                     DiagnosticDecl::new(
                         "Z0410",
@@ -170,7 +170,7 @@ pub fn functions() -> Vec<Function> {
                     ),
                     DiagnosticDecl::new(
                         "Z0401",
-                        "text in the model, a category as the outcome, a level outside 0 to 1, a weight that is not a number, a fixed effect that is a variable of the formula or an instrument, or a product instrumented as one term",
+                        "text or a date in the model, a category as the outcome, a level outside 0 to 1, a weight that is not a number, a fixed effect that is a variable of the formula or an instrument, or a product instrumented as one term",
                     ),
                     DiagnosticDecl::new("Z0406", "no `instruments:`"),
                     DiagnosticDecl::new(

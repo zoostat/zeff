@@ -225,7 +225,7 @@ error[Z0215]: `*` does not apply to text
   |                              ------ this layer draws `wage * 2`, which the plot maps to `y`
   |                                           ^ `wage * 2` cannot be computed on this frame
   |
-  = help: `join` puts texts together and `format` builds text from values (release 0.5.0); a number in text converts with `to(x, Float)`
+  = help: `join` puts texts together and `format` builds text from values; a number in text converts with `to(x, Float)`
 
 let w = dataset(wages)
 w.plot(x: educ, y: wage * 2).points(data: frame(educ = ["a"], wage = [1.0]))

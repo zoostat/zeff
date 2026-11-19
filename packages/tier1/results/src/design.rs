@@ -254,14 +254,31 @@ impl Design {
             builder.expand(term, &mut terms)?;
         }
         builder.drop_duplicates(&mut terms);
-        let extra_sources: Vec<usize> = extra
-            .iter()
-            .map(|name| builder.variable(name))
-            .collect::<Result<_, _>>()?;
-        let masks: Vec<(String, Vec<bool>)> = na_only
+        // A variable beside the model (the weights, a cluster) joins the rows through its
+        // `NA`s. One that no column of a model could be made of, text, a date or a time, is
+        // read for those alone, as a fixed effect is: it serves as a cluster by the identity
+        // of its values (release 0.8.0, step 20h), and as a weight it is refused where the
+        // weights are read.
+        let mut extra_sources: Vec<usize> = Vec::new();
+        let mut masks: Vec<(String, Vec<bool>)> = na_only
             .iter()
             .map(|name| builder.na_mask(name).map(|m| (name.to_string(), m)))
             .collect::<Result<_, _>>()?;
+        for name in extra {
+            let by_identity = builder.frame.column(name).is_some_and(|column| {
+                matches!(
+                    column.ty(),
+                    ColumnType::Str | ColumnType::Date | ColumnType::DateTime
+                )
+            });
+            if by_identity {
+                if !masks.iter().any(|(masked, _)| masked == name) {
+                    masks.push((name.to_string(), builder.na_mask(name)?));
+                }
+            } else {
+                extra_sources.push(builder.variable(name)?);
+            }
+        }
         let intercept = formula.intercept && !absorbed_intercept;
         let (columns, term_columns) = term_columns(
             &builder.sources,
@@ -1173,15 +1190,17 @@ impl Builder<'_, '_> {
             other => {
                 return Err(fail(
                     Diagnostic::error(
-                        "Z0304",
+                        "Z0401",
                         format!(
-                            "`{text}` is a {} variable, which models take from release 0.6.0",
+                            "`{text}` is a {} variable, and a model needs numbers or a category",
                             other.name()
                         ),
                     )
                     .in_file(self.ctx.script)
                     .primary(self.ctx.callee_span, "a date or time in the model")
-                    .help("the `time` package of 0.6.0 brings dates and times to models"),
+                    .help(format!(
+                        "make a number or a category of it with `add` first: `add(days = time_between(start, {text}))` gives the time since a date, `add(yr = year({text}))` its year, and `add(each = category(to({text}, Str)))` each value as a level; as `fe:` or `cluster:` the variable serves as it is"
+                    )),
                 ));
             }
         };
@@ -1452,7 +1471,7 @@ impl Builder<'_, '_> {
                 )
                 .in_file(self.ctx.script)
                 .primary(self.ctx.callee_span, "a category on the left of `~`")
-                .help("`to(y, Int)` gives a category's codes; a model for a categorical outcome arrives with `logistic` (release 0.5.0)"),
+                .help("`to(y, Int)` gives a category's codes; a model for a categorical outcome arrives with `logistic` (release 0.9.0)"),
             ));
         }
         Ok(source)

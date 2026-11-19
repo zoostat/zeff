@@ -144,7 +144,7 @@ error[Z0215]: `+` does not apply to text
 1 | map([1, 2], fn(i) i + "a")
   |                   ^^^^^^^ text in arithmetic
   |
-  = help: `join` puts texts together and `format` builds text from values (release 0.5.0); a number in text converts with `to(x, Float)`
+  = help: `join` puts texts together and `format` builds text from values; a number in text converts with `to(x, Float)`
 
 ## a_literal_as_a_statement_in_a_block
 error[Z0309]: `fn` is only allowed at the top level of a file

@@ -176,7 +176,7 @@ error[Z0215]: `-` does not apply to text
 2 | p.add(y = diff(s))
   |                ^ the operation, row by row
   |
-  = help: `join` puts texts together and `format` builds text from values (release 0.5.0); a number in text converts with `to(x, Float)`
+  = help: `join` puts texts together and `format` builds text from values; a number in text converts with `to(x, Float)`
 
 let p = frame(u = [1, 1], t = [1, 2], x = [1, 2]).panel(unit: u, time: t)
 let q = frame(z = [1, 2, 3])

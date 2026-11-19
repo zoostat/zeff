@@ -29,7 +29,7 @@ data.reg(formula, fe: Terms, [[se: classical | robust | hc2 | hc3]], cluster: Va
 > let d = import("data/small.csv")
 > d.reg(b ~ a, cluster: |
 data.reg(formula, fe: Terms, se: classical | robust | hc2 | hc3, [[cluster: Var]], weights: Var, weight_type: frequency | analytic | sampling = sampling, level: Float = 0.95)
-    cluster: The variable whose values group the observations for clustered errors (CR1).
+    cluster: The variable whose values group the observations for clustered errors (CR1): a number, text, a category, a date or a time, each cluster the rows that share a value.
     (Linear regression by least squares, with fixed effects)
 ----
 > let d = import("data/small.csv")

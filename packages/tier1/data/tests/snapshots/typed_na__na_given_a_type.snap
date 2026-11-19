@@ -1,0 +1,29 @@
+---
+source: packages/tier1/data/tests/typed_na.rs
+expression: "format!(\"{}{}\", outcome.output.stdout, outcome.output.stderr)"
+---
+e · 3 rows × 8 variables
+
+  variable   type       non-missing   missing   example
+  x          Float                3         0   1
+  g          Int                  3         0   1
+  f          Float                0         3   NA
+  i          Int                  0         3   NA
+  s          Str                  0         3   NA
+  b          Bool                 0         3   NA
+  day        Date                 0         3   NA
+  then       DateTime             0         3   NA
+frame · 3 rows × 10 variables
+
+        x   g    f    i   s    b    day   then   sum   known
+  1     1   1   NA   NA   NA   NA   NA    NA      NA   true
+  2   2.5   1   NA   NA   NA   NA   NA    NA      NA   true
+  3     4   2   NA   NA   NA   NA   NA    NA      NA   true
+Column<Float> · 3 values
+NA
+NA
+NA
+Column<Float> · 3 values
+2
+5
+NA

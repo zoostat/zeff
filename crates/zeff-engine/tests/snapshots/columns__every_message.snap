@@ -1,6 +1,5 @@
 ---
 source: crates/zeff-engine/tests/columns.rs
-assertion_line: 235
 expression: all
 ---
 ## no_such_column (exit 1)
@@ -37,7 +36,7 @@ error[Z0217]: columns of 3 and 2 rows cannot be combined
 3 | w["id"] + d["x"]
   | ^^^^^^^^^^^^^^^^ two lengths
   |
-  = help: combine columns of one frame, or of frames with the same rows; `merge` joins frames (release 0.6.0)
+  = help: combine columns of one frame, or of frames with the same rows; `merge` joins frames
 
 ## int_overflow_in_a_row (exit 1)
 error[Z0211]: Int overflow in row 2: 9223372036854775807 + 1 does not fit in 64 bits
@@ -55,7 +54,7 @@ error[Z0215]: `+` does not apply to text
 2 | w["name"] + 1
   | ^^^^^^^^^^^^^ the operation, row by row
   |
-  = help: `join` puts texts together and `format` builds text from values (release 0.5.0); a number in text converts with `to(x, Float)`
+  = help: `join` puts texts together and `format` builds text from values; a number in text converts with `to(x, Float)`
 
 ## bool_column_in_arithmetic (exit 1)
 error[Z0221]: `*` needs numbers, but one side is a Bool

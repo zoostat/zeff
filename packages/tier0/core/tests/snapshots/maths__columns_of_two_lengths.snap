@@ -8,4 +8,4 @@ error[Z0217]: columns of 3 and 1 rows cannot be combined
 3 | min(w["hours"], o["x"])
   | ^^^ two lengths
   |
-  = help: combine columns of one frame, or of frames with the same rows; `merge` joins frames (release 0.6.0)
+  = help: combine columns of one frame, or of frames with the same rows; `merge` joins frames

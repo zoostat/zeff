@@ -159,3 +159,13 @@ Step 19: `zeff explain <code>` prints a code's page and lists the 144 codes by f
 **Next.** Step 20h `[engine]`: `cluster:` takes the variables `fe:` takes.
 
 **For the owner to decide.** Nothing new. The earlier items stand.
+
+## 19 November 2026, release 0.8.0, step 20h (`cluster:` takes the variables `fe:` takes)
+
+**Done.** Step 20h `[engine]`: a text variable, a date and a time now serve as `cluster:`, as a category and a number did, in `reg` and `ivreg`; the errors are fixest's on a character vector and on a Date. Every message, explained page and help page was searched for a shipped release named as one to come: nine messages and nine pages were corrected, and a test now holds the rule. One of them had promised `add(v = to(NA, Float))` "with release 0.5.0"; it had never arrived and the specification asks for it, so it is built: `NA` given a type makes a variable of that type.
+
+**Green.** Format, clippy with warnings denied, the tier, message and grammar checks, every test of the workspace; CI read after the push. The CI of step 20g (d3b43b5) is green.
+
+**Next.** Step 20i `[engine]`: the truncated distribution near its lower bound.
+
+**For the owner to decide.** A date in a formula is refused as text is (Z0401), with help that says how to make a number or a category of it; the old message promised dates in models "from release 0.6.0", which nothing in the specification supports. Say if dates should be taken in a formula (as days since a date, as R does). The earlier items stand.

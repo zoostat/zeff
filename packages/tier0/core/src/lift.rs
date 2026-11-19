@@ -327,7 +327,7 @@ pub fn call_rowwise(
             )
             .in_file(ctx.script)
             .primary(ctx.callee_span, "two lengths")
-            .help("combine columns of one frame, or of frames with the same rows; `merge` joins frames (release 0.6.0)"),
+            .help("combine columns of one frame, or of frames with the same rows; `merge` joins frames"),
         )
     })?;
     let inputs = inputs_of(&args);

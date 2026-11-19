@@ -248,7 +248,7 @@ pub fn kinds_fit(op: Op, a: Kind, b: Kind) -> Result<(), Trouble> {
                 return Err(Trouble::Types {
                     code: "Z0215",
                     message: format!("`{symbol}` does not apply to text"),
-                    help: "`join` puts texts together and `format` builds text from values (release 0.5.0); a number in text converts with `to(x, Float)`",
+                    help: "`join` puts texts together and `format` builds text from values; a number in text converts with `to(x, Float)`",
                 });
             }
             Kind::Bool => {
@@ -1014,7 +1014,7 @@ pub fn column_trouble_diagnostic(trouble: ColumnTrouble, script: &str, span: Spa
             )
             .in_file(script)
             .primary(span, "two lengths")
-            .help("combine columns of one frame, or of frames with the same rows; `merge` joins frames (release 0.6.0)")
+            .help("combine columns of one frame, or of frames with the same rows; `merge` joins frames")
         ,
         ColumnTrouble::Overflow { row, operation } =>
             Diagnostic::error(

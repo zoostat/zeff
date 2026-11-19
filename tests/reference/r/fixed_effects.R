@@ -156,8 +156,33 @@ leverage <- list(
                                       lwage ~ expersq + married + union + factor(nr), wagepan, weights = "hours")
 )
 
+# Clusters by the identity of the values of a text variable and of a date (release 0.8.0, step
+# 20h): `cluster:` takes the variables `fe:` takes. fixest clusters by a character vector and
+# by a Date as by any other; the industry as text has the twelve clusters of the category, and
+# a date made from the year the clusters of the year.
+wages$sector <- as.character(wages$industry)
+wages$day <- as.Date("1970-01-01") + (wages$year - 1970L) * 365L
+identity_case <- function(zeff, fe_text, f, cluster) {
+  fit <- feols(f, wages, vcov = as.formula(paste0("~", cluster)), fixef.tol = TOL)
+  table <- coeftable(fit)
+  names <- vapply(rownames(table), function(n) if (n == "(Intercept)") "(intercept)" else zeff_name(n), "")
+  list(
+    data = "wages", formula = zeff, fe = fe_text, cluster = cluster,
+    n = nobs(fit), clusters = length(unique(wages[[cluster]][obs(fit)])),
+    names = as.list(unname(names)),
+    coefficients = as.list(num17(unname(table[, 1]))),
+    se = as.list(num17(unname(table[, 2])))
+  )
+}
+identity_clusters <- list(
+  text = identity_case("log(wage) ~ educ + exper", "", lwage ~ educ + exper, "sector"),
+  text_with_effects = identity_case("log(wage) ~ educ + exper", "firm", lwage ~ educ + exper | firm, "sector"),
+  dates = identity_case("log(wage) ~ educ + exper", "", lwage ~ educ + exper, "day"),
+  dates_with_effects = identity_case("log(wage) ~ exper + hours", "worker", lwage ~ exper + hours | worker, "day")
+)
+
 write_json(list(reference = list(software = R.version.string,
                                  fixest = as.character(packageVersion("fixest")),
                                  note = "fixest::feols with fixef.tol 1e-11; values written with 17 significant digits"),
-                cases = cases, leverage = leverage),
+                cases = cases, leverage = leverage, identity_clusters = identity_clusters),
            file.path(here(), "fixed_effects.json"))

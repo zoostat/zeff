@@ -1,6 +1,5 @@
 ---
 source: packages/tier1/results/tests/design.rs
-assertion_line: 447
 expression: out
 ---
 > Inf rows: finite ~ plus
@@ -46,16 +45,16 @@ error[Z0401]: the outcome `industry` is a category, and this model needs a numbe
 1 | let d = industry ~ educ
   |         ^^^^^^^^^^^^^^^ a category on the left of `~`
   |
-  = help: `to(y, Int)` gives a category's codes; a model for a categorical outcome arrives with `logistic` (release 0.5.0)
+  = help: `to(y, Int)` gives a category's codes; a model for a categorical outcome arrives with `logistic` (release 0.9.0)
 
 > a date: n ~ day
-error[Z0304]: `day` is a Date variable, which models take from release 0.6.0
+error[Z0401]: `day` is a Date variable, and a model needs numbers or a category
  --> t.zeff:1:9
   |
 1 | let d = n ~ day
   |         ^^^^^^^ a date or time in the model
   |
-  = help: the `time` package of 0.6.0 brings dates and times to models
+  = help: make a number or a category of it with `add` first: `add(days = time_between(start, day))` gives the time since a date, `add(yr = year(day))` its year, and `add(each = category(to(day, Str)))` each value as a level; as `fe:` or `cluster:` the variable serves as it is
 
 > a missing variable: wage ~ eduction
 error[Z0101]: no variable `eduction` in `the frame`

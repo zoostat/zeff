@@ -34,7 +34,8 @@ and Stata's `regress` and `reghdfe`.
   sampling weights are given, when `robust`. With one effect in `fe:`, `hc2` and `hc3` count the
   effect's levels in each leverage; with several effects they are refused (Z0410), since an
   observation's leverage in the full design is then not available.
-- cluster: The variable whose values group the observations for clustered errors (CR1).
+- cluster: The variable whose values group the observations for clustered errors (CR1): a
+  number, text, a category, a date or a time, each cluster the rows that share a value.
 - weights: The weight variable.
 - weight_type: What the weights are: `frequency` counts, `analytic` precision weights, `sampling`
   probability weights.

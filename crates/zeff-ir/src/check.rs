@@ -4771,7 +4771,7 @@ impl Checker<'_> {
                     self.report(
                         Diagnostic::error("Z0215", format!("`{symbol}` does not apply to text"))
                             .primary(span, "text in arithmetic")
-                            .help("`join` puts texts together and `format` builds text from values (release 0.5.0); a number in text converts with `to(x, Float)`"),
+                            .help("`join` puts texts together and `format` builds text from values; a number in text converts with `to(x, Float)`"),
                     );
                     return Expr::error(span);
                 }

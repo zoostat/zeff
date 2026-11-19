@@ -2048,5 +2048,93 @@
     "0.026382828256505269"
    ]
   }
+ },
+ "identity_clusters": {
+  "text": {
+   "data": "wages",
+   "formula": "log(wage) ~ educ + exper",
+   "fe": "",
+   "cluster": "sector",
+   "n": 18179,
+   "clusters": 12,
+   "names": [
+    "(intercept)",
+    "educ",
+    "exper"
+   ],
+   "coefficients": [
+    "1.831629206423715",
+    "0.076010183723323799",
+    "0.022264855887513261"
+   ],
+   "se": [
+    "0.038161422443592184",
+    "0.0021501953532125058",
+    "0.00041020538782072846"
+   ]
+  },
+  "text_with_effects": {
+   "data": "wages",
+   "formula": "log(wage) ~ educ + exper",
+   "fe": "firm",
+   "cluster": "sector",
+   "n": 18179,
+   "clusters": 12,
+   "names": [
+    "educ",
+    "exper"
+   ],
+   "coefficients": [
+    "0.077093165867806387",
+    "0.02218614460972022"
+   ],
+   "se": [
+    "0.002166617719482448",
+    "0.00035576341176112611"
+   ]
+  },
+  "dates": {
+   "data": "wages",
+   "formula": "log(wage) ~ educ + exper",
+   "fe": "",
+   "cluster": "day",
+   "n": 18179,
+   "clusters": 12,
+   "names": [
+    "(intercept)",
+    "educ",
+    "exper"
+   ],
+   "coefficients": [
+    "1.831629206423715",
+    "0.076010183723323799",
+    "0.022264855887513261"
+   ],
+   "se": [
+    "0.044255919861164936",
+    "0.0014970479322482461",
+    "0.0012733751704279682"
+   ]
+  },
+  "dates_with_effects": {
+   "data": "wages",
+   "formula": "log(wage) ~ exper + hours",
+   "fe": "worker",
+   "cluster": "day",
+   "n": 18107,
+   "clusters": 12,
+   "names": [
+    "exper",
+    "hours"
+   ],
+   "coefficients": [
+    "0.032776323784443111",
+    "-0.00012438851985053866"
+   ],
+   "se": [
+    "0.0013954669826692944",
+    "0.00045382789061753801"
+   ]
+  }
  }
 }

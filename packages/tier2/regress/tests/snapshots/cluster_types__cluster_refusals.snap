@@ -1,0 +1,60 @@
+---
+source: packages/tier2/regress/tests/cluster_types.rs
+expression: all
+---
+==== d.reg(y ~ x, cluster: nowhere)
+error[Z0101]: no variable `nowhere` in `d`
+ --> scripts/main.zeff:2:23
+  |
+2 | d.reg(y ~ x, cluster: nowhere)
+  |                       ^^^^^^^ not a variable of d
+  |
+  = help: the variables of `d` are: y, x, z, g, f, s, days, gaps and 3 more
+==== d.add(one = 1).reg(y ~ x, cluster: one)
+error[Z0802]: clustered errors need at least two clusters, and `one` has one
+ --> scripts/main.zeff:2:36
+  |
+2 | d.add(one = 1).reg(y ~ x, cluster: one)
+  |                                    ^^^ one cluster
+  |
+  = help: cluster by a variable with several values, or leave `cluster:` out
+==== d.reg(y ~ x, se: hc3, cluster: s)
+error[Z0410]: `se: hc3` and `cluster:` exclude each other
+ --> scripts/main.zeff:2:18
+  |
+2 | d.reg(y ~ x, se: hc3, cluster: s)
+  |                  ^^^ two kinds of standard error
+  |
+  = help: clustered errors are CR1; leave `se:` out with `cluster:`
+==== d.ivreg(y ~ x, instruments: x ~ z, cluster: nowhere)
+error[Z0101]: no variable `nowhere` in `d`
+ --> scripts/main.zeff:2:45
+  |
+2 | d.ivreg(y ~ x, instruments: x ~ z, cluster: nowhere)
+  |                                             ^^^^^^^ not a variable of d
+  |
+  = help: the variables of `d` are: y, x, z, g, f, s, days, gaps and 3 more
+==== d.reg(y ~ x + s)
+error[Z0401]: `s` is text, and a model needs numbers or a category
+ --> scripts/main.zeff:2:3
+  |
+2 | d.reg(y ~ x + s)
+  |   ^^^ a text variable in the model
+  |
+  = help: `category(s)` makes it a category, in the formula or with `add`
+==== d.reg(y ~ x + day)
+error[Z0401]: `day` is a Date variable, and a model needs numbers or a category
+ --> scripts/main.zeff:2:3
+  |
+2 | d.reg(y ~ x + day)
+  |   ^^^ a date or time in the model
+  |
+  = help: make a number or a category of it with `add` first: `add(days = time_between(start, day))` gives the time since a date, `add(yr = year(day))` its year, and `add(each = category(to(day, Str)))` each value as a level; as `fe:` or `cluster:` the variable serves as it is
+==== d.reg(y ~ x, weights: s)
+error[Z0401]: `weights:` needs a numeric variable, but `s` is a Str variable
+ --> scripts/main.zeff:2:3
+  |
+2 | d.reg(y ~ x, weights: s)
+  |   ^^^ not a weight
+  |
+  = help: a weight is a number for each row: a count, a precision or a sampling weight

@@ -31,7 +31,7 @@ warning says so (W1007).
 - fe: Fixed effects to absorb, as in `reg`: variables or interactions `a:b`, joined by `+`. They are taken out of the outcome, the regressors and the instruments alike.
 - instruments: What is instrumented, and by what: `x ~ z`, or `x1 + x2 ~ z1 + z2 + z3`. Each term on the left is a regressor of the formula; each on the right is a variable outside it.
 - se: The standard errors: `classical`, `robust` (HC1), `hc2` or `hc3`; `classical` unless given, and `robust` with sampling weights. With several effects in `fe:`, `hc2` and `hc3` are refused (Z0410); with one effect they are available.
-- cluster: A variable whose values are the clusters; the standard errors are then clustered (CR1).
+- cluster: A variable whose values are the clusters; the standard errors are then clustered (CR1). A number, text, a category, a date or a time serves, as in `reg`.
 - weights: A variable of weights, zero or positive.
 - weight_type: What the weights are: `frequency`, `analytic` or `sampling`; `sampling` unless given.
 - level: The confidence level of the intervals; 0.95 unless given.

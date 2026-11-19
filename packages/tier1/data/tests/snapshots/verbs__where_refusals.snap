@@ -40,7 +40,7 @@ error[Z0217]: the condition has 1 row and w has 3 rows
 3 | w.where(o["x"] > 1)
   |         ^^^^^^^^^^ a column of another frame
   |
-  = help: a condition is built from the frame's own variables; `merge` joins frames (release 0.6.0)
+  = help: a condition is built from the frame's own variables; `merge` joins frames
 
 note: 3 rows dropped where `hours == to(NA, Float)` was NA; `w.where(is_missing(hours))` lists them (line 2)
 note: no row kept: the result is empty (line 2)

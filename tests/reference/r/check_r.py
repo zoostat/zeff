@@ -277,6 +277,7 @@ def check_fixed_effects(committed, regenerated, problems):
                     problems.append(f"cases.{name}.{key}[{i}]: committed {a}, regenerated {b}")
     # The leverage cases of release 0.8.0: every value within the tolerance, the names exactly.
     check_special({"leverage": committed.get("leverage", {})}, {"leverage": regenerated.get("leverage", {})}, problems, "fixed_effects")
+    check_special({"identity_clusters": committed.get("identity_clusters", {})}, {"identity_clusters": regenerated.get("identity_clusters", {})}, problems, "fixed_effects")
 
 
 def check_event(committed, regenerated, problems):

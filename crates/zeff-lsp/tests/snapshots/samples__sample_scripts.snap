@@ -628,7 +628,7 @@ expression: editor.told
             ]
           },
           {
-            "documentation": "The variable whose values group the observations for clustered errors (CR1).",
+            "documentation": "The variable whose values group the observations for clustered errors (CR1): a number, text, a category, a date or a time, each cluster the rows that share a value.",
             "label": [
               65,
               77

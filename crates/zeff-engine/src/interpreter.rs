@@ -2468,7 +2468,7 @@ impl<'a> Interpreter<'a> {
                                 Diagnostic::error("Z0204", format!("no key `{}` in the mapping", shown(&key)))
                                     .in_file(self.script)
                                     .primary(index.span, "not a key")
-                                    .help("`is_in(k, keys(m))` tests for a key first (release 0.5.0); the keys are those written in the mapping"),
+                                    .help("`is_in(k, keys(m))` tests for a key first; the keys are those written in the mapping"),
                             ));
                             }
                         }
@@ -3567,6 +3567,34 @@ impl<'a> Interpreter<'a> {
                     }
                     match evaluated {
                         Ok(v) => {
+                            // `NA` given a type, `add(v = to(NA, Float))`, is a variable of that
+                            // type with no value in any row (Language Reference, section 3.7:
+                            // the help of Z0219 "gives the type at the use, `to(NA, Int)`").
+                            // The type is the one the check gave the definition; `NA` alone
+                            // has none and is still refused (release 0.8.0, step 20h).
+                            let v = match (&v, call.name.as_str()) {
+                                (Value::Na, "add") if pushed => {
+                                    let ty = match &call.definitions[*i].1.ty {
+                                        Ty::Int => Some(zeff_columns::ColumnType::Int),
+                                        Ty::Float => Some(zeff_columns::ColumnType::Float),
+                                        Ty::Str => Some(zeff_columns::ColumnType::Str),
+                                        Ty::Bool => Some(zeff_columns::ColumnType::Bool),
+                                        Ty::Date => Some(zeff_columns::ColumnType::Date),
+                                        Ty::DateTime => Some(zeff_columns::ColumnType::DateTime),
+                                        _ => None,
+                                    };
+                                    match (ty, self.receivers.last()) {
+                                        (Some(ty), Some(receiver)) => {
+                                            Value::Column(zeff_columns::Column::missing(
+                                                ty,
+                                                receiver.extended.table.rows(),
+                                            ))
+                                        }
+                                        _ => v,
+                                    }
+                                }
+                                _ => v,
+                            };
                             // A definition of a frame method is a variable for the definitions
                             // after it (section 3.7, "Definitions in one call"); the options of
                             // the call keep seeing the frame as given.

@@ -834,3 +834,81 @@ fn one_effect_by_fe_has_the_leverages_of_its_indicators() {
         }
     }
 }
+
+/// `cluster:` takes the variables `fe:` takes (release 0.8.0, step 20h): a text variable and
+/// a date serve as clusters by the identity of their values, with and without fixed effects,
+/// and the errors are fixest's on a character vector and on a Date (`fixed_effects.json`,
+/// `identity_clusters`). Before, `reg` refused the first as "text, and a model needs numbers
+/// or a category" and the second with a message that named release 0.6.0 as to come.
+#[test]
+fn a_text_variable_and_a_date_serve_as_clusters() {
+    let reference = json("r/fixed_effects.json");
+    let cases = reference["identity_clusters"].as_object().unwrap();
+    assert_eq!(cases.len(), 4);
+    // The shipped wages with the industry as text and a date made from the year, as the R
+    // script makes them: the day 365 (year − 1970) days after 1 January 1970.
+    let wages = table_of("wages");
+    let sector: Vec<Option<String>> = wages
+        .column("industry")
+        .unwrap()
+        .as_labels()
+        .expect("a category")
+        .map(|label| label.map(str::to_string))
+        .collect();
+    let day: Vec<Option<i32>> = wages
+        .column("year")
+        .unwrap()
+        .as_ints()
+        .expect("whole years")
+        .map(|year| year.map(|y| (y as i32 - 1970) * 365))
+        .collect();
+    let table = wages
+        .with_column("sector", Column::strs(sector))
+        .unwrap()
+        .with_column("day", Column::dates(day))
+        .unwrap();
+    assert_eq!(table.column("sector").unwrap().ty().name(), "Str");
+    assert_eq!(table.column("day").unwrap().ty().name(), "Date");
+    for (name, case) in cases {
+        let options = Options {
+            fe: case["fe"].as_str().filter(|fe| !fe.is_empty()),
+            cluster: case["cluster"].as_str(),
+            ..Options::default()
+        };
+        let (fit, _) = fit_with(&table, case["formula"].as_str().unwrap(), &options)
+            .unwrap_or_else(|e| panic!("{name}: {e}"));
+        assert_eq!(fit.n as u64, case["n"].as_u64().unwrap(), "{name}: n");
+        let names: Vec<&str> = case["names"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .map(|n| n.as_str().unwrap())
+            .collect();
+        assert_eq!(fit.terms, names, "{name}: terms");
+        for (i, term) in names.iter().enumerate() {
+            let (b, se) = (number(&case["coefficients"][i]), number(&case["se"][i]));
+            assert!(
+                close(fit.estimates[i], b, RELATIVE, 0.0),
+                "{name}: estimate of {term}: {} against {b}",
+                fit.estimates[i]
+            );
+            assert!(
+                close(fit.std_errors[i], se, RELATIVE, 0.0),
+                "{name}: clustered error of {term}: {} against {se}",
+                fit.std_errors[i]
+            );
+        }
+        // The same clusters by the category and by the year give the same errors to the bit:
+        // a cluster is the identity of its values, whatever their type.
+        let twin = Options {
+            cluster: Some(if case["cluster"] == "sector" {
+                "industry"
+            } else {
+                "year"
+            }),
+            ..options
+        };
+        let (other, _) = fit_with(&table, case["formula"].as_str().unwrap(), &twin).unwrap();
+        assert_eq!(fit.std_errors, other.std_errors, "{name}");
+    }
+}

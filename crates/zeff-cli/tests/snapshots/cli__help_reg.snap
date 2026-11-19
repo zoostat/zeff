@@ -46,7 +46,8 @@ ARGUMENTS
                   in the full design is then not available.                                                   (shared)
     cluster:      Var. Cluster-robust standard errors (CR1); one-observation clusters are reported; two-way
                   and multiway clustering arrive after 1.0. The variable whose values group the observations
-                  for clustered errors (CR1).                                                                 (shared)
+                  for clustered errors (CR1): a number, text, a category, a date or a time, each cluster the
+                  rows that share a value.                                                                    (shared)
     weights:      Var. Weight variable. The weight variable.                                                  (shared)
     weight_type:  frequency | analytic | sampling = sampling. Stata's fweight, aweight and pweight. In 1.0
                   the tests refuse `weights:` with `weight_type: sampling` (Z0411) and point to regression
@@ -115,9 +116,9 @@ WARNINGS AND NOTES
     Z0101   a variable of the formula, `cluster:` or `weights:` is not in the frame
     Z0223   an infinite value in a model variable
     Z0224   a negative weight
-    Z0304   `se: bootstrap` before release 1.1, or a date in the model before 0.6.0
-    Z0401   text in the model, a category as the outcome, a level outside 0 to 1, a weight that is not a
-            number, a frequency weight with a fraction, `fe:` with `*`, a range, an expression or the
+    Z0304   `se: bootstrap` before release 1.1
+    Z0401   text or a date in the model, a category as the outcome, a level outside 0 to 1, a weight that is
+            not a number, a frequency weight with a fraction, `fe:` with `*`, a range, an expression or the
             intercept, or a fixed effect that is a model variable too
     Z0410   `se: classical` with sampling weights, `se: hc2` or `hc3` with `cluster:`, or `se: hc2` or `hc3`
             with `fe:`
