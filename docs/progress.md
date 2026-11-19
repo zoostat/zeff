@@ -169,3 +169,15 @@ Steps 22a, 22a2, 22b and 22b2 `[function]`, two steps of the checklist counted a
 **Next.** Block G (model sets) is built only if the owner asks for it in 1.0; question 7 was answered B, so it is passed over. Step 24a `[engine]`: part 1 of the pre-release routine, the weekly mutation and coverage runs.
 
 **For the owner to decide.** Nothing new. The Stata column of the 94 revised pages was written from memory and wants one reading by someone with Stata open. The earlier items stand.
+
+## 19 November 2026, release 0.8.0, step 24a1 (the weekly mutation job's second pass)
+
+**Done.** Step 24a `[engine]` split in two. 24a1: the weekly run of 16 November, the first on the job as repaired at step 3, showed that the second pass tested nothing: every mutant was counted as caught because the conformance tests ran out of memory under the job's limit, and eight shards of fifty were cut off. The second pass now has a limit its tests fit, proves them on the unmutated code first, and counts the mutants that end by memory; the mutants are dealt to 76 shards in turn. Proven by a shard run by hand: three real catches, three real survivors. The coverage report of the commit is above its thresholds.
+
+**Green.** Format, clippy with warnings denied, the tier, message and grammar checks, every test of the workspace; CI read after the push.
+
+**In flight.** The whole weekly mutation run, started by hand on this commit; it takes about twelve hours.
+
+**Next.** Step 24a2 `[engine]`: read that run and the coverage report; a test or a recorded reason for each new survivor and for the uncovered lines of this release (the instrumental-variables code has most). Already found there, to be recorded with it: a truncated distribution whose whole probability lies below about 1e-300 of its inner distribution (a normal cut at 37 standard deviations) loses digits without a word, since probabilities under 2.2e-308 cannot be held; `cdf(-38.4)` of the normal cut at -37 is wrong in its second digit.
+
+**For the owner to decide.** Nothing new yet; the limit of the far tail will come as an open decision with step 24a2.

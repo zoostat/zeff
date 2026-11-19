@@ -542,6 +542,74 @@ fn the_distribution_function_and_the_quantile_undo_each_other() {
     assert!(tried >= 8 * cases, "{tried} of {} trials", 16 * cases);
 }
 
+/// A truncation of a truncation is the truncation to what both intervals keep: the same
+/// density, the same two tails beside a bound, where the density is integrated through both
+/// layers, and the same quantile, for a continuous family, for a mixture and for a count
+/// distribution. Found wanting by the coverage report of release 0.8.0: no test had cut a
+/// truncation again.
+#[test]
+fn a_truncation_cut_again_is_the_truncation_to_what_both_keep() {
+    let mixture = Distribution::Mixture {
+        parts: vec![
+            (standard_normal(), 0.7),
+            (family("normal", vec![("mean", 1.0), ("sd", 0.5)]), 0.3),
+        ],
+    };
+    for inner in [
+        standard_normal(),
+        family("gamma", vec![("shape", 2.5), ("rate", 1.5)]),
+        mixture,
+    ] {
+        let twice = truncated(truncated(inner.clone(), -1.0, 3.0), 0.25, 2.0);
+        let once = truncated(inner.clone(), 0.25, 2.0);
+        for x in [
+            0.25 + 1e-12,
+            0.25 + 1e-6,
+            0.5,
+            1.0,
+            1.9,
+            2.0 - 1e-6,
+            2.0 - 1e-12,
+        ] {
+            let (a, b) = (families::cdf(&twice, x), families::cdf(&once, x));
+            assert!(
+                relative(a.lower, b.lower) < 1e-12 && relative(a.upper, b.upper) < 1e-12,
+                "{inner:?} at {x}: {a:?} and {b:?}"
+            );
+            let (f, g) = (families::pdf(&twice, x), families::pdf(&once, x));
+            assert!(relative(f, g) < 1e-12, "{inner:?} at {x}: {f:e} and {g:e}");
+        }
+        for p in [1e-12, 1e-6, 0.1, 0.5, 0.9, 1.0 - 1e-6, 1.0 - 1e-12] {
+            let (a, b) = (families::quantile(&twice, p), families::quantile(&once, p));
+            assert!(
+                relative(a, b) < 1e-12,
+                "{inner:?} at {p:e}: {a:e} and {b:e}"
+            );
+        }
+    }
+    // A count distribution: 2 to 9 cut again to 4.5 and above keeps 5 to 9.
+    let poisson = family("poisson", vec![("lambda", 3.0)]);
+    let twice = truncated(truncated(poisson.clone(), 2.0, 9.0), 4.5, 20.0);
+    let once = truncated(poisson, 5.0, 9.0);
+    for k in 0..=12 {
+        let k = f64::from(k);
+        let (f, g) = (families::pdf(&twice, k), families::pdf(&once, k));
+        assert!((f - g).abs() <= 1e-15, "at {k}: {f:e} and {g:e}");
+        let (a, b) = (
+            families::cdf(&twice, k).lower,
+            families::cdf(&once, k).lower,
+        );
+        assert!((a - b).abs() <= 1e-15, "at {k}: {a:e} and {b:e}");
+    }
+    for p in [0.0, 0.01, 0.3, 0.5, 0.9, 0.999, 1.0] {
+        assert_eq!(
+            families::quantile(&twice, p),
+            families::quantile(&once, p),
+            "at {p}"
+        );
+    }
+}
+
 /// A mixture with a component far narrower than the interval between a bound and a point: the
 /// rule that integrates the density steps over it, the disagreement with the tails shows, and
 /// the difference of the tails is kept.

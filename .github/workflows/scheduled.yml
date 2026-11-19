@@ -405,18 +405,22 @@ jobs:
           - { package: zeff-results, shard: 13, of: 16, uses: "zeff-regress zeff-stats zeff-plot zeff-conformance" }
           - { package: zeff-results, shard: 14, of: 16, uses: "zeff-regress zeff-stats zeff-plot zeff-conformance" }
           - { package: zeff-results, shard: 15, of: 16, uses: "zeff-regress zeff-stats zeff-plot zeff-conformance" }
-          - { package: zeff-regress, shard: 0, of: 12, uses: "zeff-conformance" }
-          - { package: zeff-regress, shard: 1, of: 12, uses: "zeff-conformance" }
-          - { package: zeff-regress, shard: 2, of: 12, uses: "zeff-conformance" }
-          - { package: zeff-regress, shard: 3, of: 12, uses: "zeff-conformance" }
-          - { package: zeff-regress, shard: 4, of: 12, uses: "zeff-conformance" }
-          - { package: zeff-regress, shard: 5, of: 12, uses: "zeff-conformance" }
-          - { package: zeff-regress, shard: 6, of: 12, uses: "zeff-conformance" }
-          - { package: zeff-regress, shard: 7, of: 12, uses: "zeff-conformance" }
-          - { package: zeff-regress, shard: 8, of: 12, uses: "zeff-conformance" }
-          - { package: zeff-regress, shard: 9, of: 12, uses: "zeff-conformance" }
-          - { package: zeff-regress, shard: 10, of: 12, uses: "zeff-conformance" }
-          - { package: zeff-regress, shard: 11, of: 12, uses: "zeff-conformance" }
+          - { package: zeff-regress, shard: 0, of: 16, uses: "zeff-conformance" }
+          - { package: zeff-regress, shard: 1, of: 16, uses: "zeff-conformance" }
+          - { package: zeff-regress, shard: 2, of: 16, uses: "zeff-conformance" }
+          - { package: zeff-regress, shard: 3, of: 16, uses: "zeff-conformance" }
+          - { package: zeff-regress, shard: 4, of: 16, uses: "zeff-conformance" }
+          - { package: zeff-regress, shard: 5, of: 16, uses: "zeff-conformance" }
+          - { package: zeff-regress, shard: 6, of: 16, uses: "zeff-conformance" }
+          - { package: zeff-regress, shard: 7, of: 16, uses: "zeff-conformance" }
+          - { package: zeff-regress, shard: 8, of: 16, uses: "zeff-conformance" }
+          - { package: zeff-regress, shard: 9, of: 16, uses: "zeff-conformance" }
+          - { package: zeff-regress, shard: 10, of: 16, uses: "zeff-conformance" }
+          - { package: zeff-regress, shard: 11, of: 16, uses: "zeff-conformance" }
+          - { package: zeff-regress, shard: 12, of: 16, uses: "zeff-conformance" }
+          - { package: zeff-regress, shard: 13, of: 16, uses: "zeff-conformance" }
+          - { package: zeff-regress, shard: 14, of: 16, uses: "zeff-conformance" }
+          - { package: zeff-regress, shard: 15, of: 16, uses: "zeff-conformance" }
           - { package: zeff-stats, shard: 0, of: 16, uses: "zeff-plot zeff-conformance" }
           - { package: zeff-stats, shard: 1, of: 16, uses: "zeff-plot zeff-conformance" }
           - { package: zeff-stats, shard: 2, of: 16, uses: "zeff-plot zeff-conformance" }
