@@ -535,3 +535,50 @@ fn labels(
     }
     Ok(labels)
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    /// The heading of a line that several columns share: each number in parentheses, a run
+    /// of three or more neighbours as its first and last, wherever in the report the run or
+    /// the pair stands. (A surviving mutant of release 0.8.0, step 24a2c, made a pair that
+    /// does not begin at the first column a run; the only pairs in the tests began there.)
+    #[test]
+    fn the_numbers_of_the_columns_that_share_a_line() {
+        for (columns, want) in [
+            (vec![4], "(4)"),
+            (vec![1, 2], "(1), (2)"),
+            (vec![2, 3], "(2), (3)"),
+            (vec![5, 6], "(5), (6)"),
+            (vec![1, 3], "(1), (3)"),
+            (vec![1, 2, 3], "(1) to (3)"),
+            (vec![2, 3, 4], "(2) to (4)"),
+            (vec![1, 2, 3, 4, 5], "(1) to (5)"),
+            (vec![1, 2, 3, 5, 7, 8], "(1) to (3), (5), (7), (8)"),
+            (vec![1, 3, 4, 5, 6], "(1), (3) to (6)"),
+            (vec![], ""),
+        ] {
+            assert_eq!(numbered(&columns), want, "{columns:?}");
+        }
+    }
+
+    /// Lines that columns share word for word are written once, in the place of the first
+    /// and headed by all their numbers; a line of one column keeps its own.
+    #[test]
+    fn a_line_several_columns_share_is_written_once() {
+        let lines = vec![
+            (1, "note: a".to_string()),
+            (2, "note: b".to_string()),
+            (2, "note: a".to_string()),
+            (3, "note: a".to_string()),
+            (3, "note: b".to_string()),
+            (3, "note: c".to_string()),
+            (3, "note: a".to_string()),
+        ];
+        assert_eq!(
+            once_for_its_columns(lines),
+            ["(1) to (3) note: a", "(2), (3) note: b", "(3) note: c"]
+        );
+    }
+}

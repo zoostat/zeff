@@ -286,6 +286,10 @@ regressions/truncation_near_its_bound/stdout fd0f83f98d7ef264
 regressions/truncation_near_its_bound/stderr cbf29ce484222325
 regressions/truncation_beside_a_whole_number/stdout 04f40781d297278f
 regressions/truncation_beside_a_whole_number/stderr cbf29ce484222325
+regressions/test_result_as_typst/stdout cbf29ce484222325
+regressions/test_result_as_typst/stderr cbf29ce484222325
+regressions/test_result_as_typst/output/one_mean.typ 84b0fd46ccc0e124
+regressions/test_result_as_typst/output/two_groups.typ 6f50e1a411dd06af
 plot/lines/stdout c69bf28498722bf2
 plot/lines/stderr 292ed9115946fd12
 plot/lines/scene 6a1463f916305adf
@@ -329,6 +333,7 @@ plot/rules/stderr 689ddad8ceaf17f2
 plot/rules/rules.svg b7cda11aa7550e3a
 plot/rules/rules.pdf 5295644743137e94
 plot/rules/rules.png 9d20d3545a11e1d6
+plot/rules/rules.typ 9adcd4c9750bd968
 plot/rug/stdout 18fbe0cfc04e6990
 plot/rug/stderr 72a23d109d8971c1
 plot/rug/rug.svg 1070d339b95c406a

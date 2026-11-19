@@ -159,3 +159,64 @@ Column<Int> · 2 values
 10
 0.123967
 ---- regressions/truncation_beside_a_whole_number/stderr
+==== test_result_as_typst (corrected at 0.8.0)
+// Corrected at release 0.8.0 (step 20m). A test's result written as Typst had its notes as
+// cells across the table, so that a long note pushed the last column to the edge of the page,
+// and the two lines of its hypotheses did not stand under one another. The notes now stand
+// under the table, in a block as wide as the widest of them, and the hypotheses are a grid of
+// two columns, the words and the symbols. Six rows; one result without a table of groups, and
+// one with. (Stored at step 24a2c, when the mutation job showed that only the engine's own
+// tests, on one target, held these files.)
+let d = frame(x = [1.0, 3.0, 2.0, 5.0, 4.0, 7.0], g = ["a", "a", "a", "b", "b", "b"])
+d.t_test(x, mu: 0).export("output/one_mean.typ")
+d.t_test(x, group: g).export("output/two_groups.typ")
+---- regressions/test_result_as_typst/stdout
+---- regressions/test_result_as_typst/stderr
+---- regressions/test_result_as_typst/output/one_mean.typ
+// a Zeff export: place it in a document with `#include`
+// t_test · one-sample · x
+#table(
+  columns: 1,
+  align: left,
+  stroke: none,
+  table.hline(stroke: 0.8pt),
+  grid(columns: 2, column-gutter: 2em, row-gutter: 10pt, "H0: the population mean of x equals 0", "μ = 0", "H1: the population mean of x differs from 0", "μ ≠ 0"),
+  "",
+  "N = 6   mean = 3.667   sd = 2.160",
+  "difference (mean − 0) = 3.667   95% CI [1.400, 5.934]",
+  "t = 4.16   df = 5   p = 0.009",
+  "decision at α = 0.05: reject H0 (p = 0.009)",
+  table.hline(stroke: 0.8pt),
+)
+---- regressions/test_result_as_typst/output/two_groups.typ
+// a Zeff export: place it in a document with `#include`
+// t_test · Welch two-sample · x by g
+#layout(size => {
+  let body = table(
+    columns: 4,
+    align: (left, right, right, right,),
+    stroke: none,
+    table.hline(stroke: 0.8pt),
+    table.header("group", "N", "mean", "sd"),
+    table.hline(stroke: 0.5pt),
+    "a", "3", "2.000", "1.000",
+    "b", "3", "5.333", "1.528",
+    table.hline(stroke: 0.8pt),
+  )
+  let notes = (
+    text(size: 0.85em, grid(columns: 2, column-gutter: 2em, row-gutter: 0.65em, "H0: the population means of x are equal in a and b", "μ(a) − μ(b) = 0", "H1: the population means of x differ between a and b", "μ(a) − μ(b) ≠ 0")),
+    text(size: 0.85em, "difference (a − b) = -3.333   95% CI [-6.454, -0.212]"),
+    text(size: 0.85em, "t = -3.16   df = 3.4   p = 0.042"),
+    text(size: 0.85em, "Hedges' g = -2.07   95% CI [-3.80, -0.33]"),
+    text(size: 0.85em, "decision at α = 0.05: reject H0 (p = 0.042)"),
+  )
+  let widest = calc.max(measure(body).width, ..notes.map(note => measure(note).width + 10pt))
+  block(width: calc.min(size.width, widest), {
+    set align(left)
+    set block(spacing: 0.65em)
+    body
+    for note in notes {
+      block(inset: (x: 5pt), note)
+    }
+  })
+})

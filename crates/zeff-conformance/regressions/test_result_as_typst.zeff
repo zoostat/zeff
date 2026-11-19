@@ -1,0 +1,10 @@
+// Corrected at release 0.8.0 (step 20m). A test's result written as Typst had its notes as
+// cells across the table, so that a long note pushed the last column to the edge of the page,
+// and the two lines of its hypotheses did not stand under one another. The notes now stand
+// under the table, in a block as wide as the widest of them, and the hypotheses are a grid of
+// two columns, the words and the symbols. Six rows; one result without a table of groups, and
+// one with. (Stored at step 24a2c, when the mutation job showed that only the engine's own
+// tests, on one target, held these files.)
+let d = frame(x = [1.0, 3.0, 2.0, 5.0, 4.0, 7.0], g = ["a", "a", "a", "b", "b", "b"])
+d.t_test(x, mu: 0).export("output/one_mean.typ")
+d.t_test(x, group: g).export("output/two_groups.typ")

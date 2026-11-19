@@ -36,3 +36,7 @@ where the difference of two nearly equal tails kept five digits.
 One of 0.8.0 came from the nightly fuzz target and not from a review: a count distribution
 truncated beside a whole number, where the probability of the interval and the quantile read
 the bound differently and the quantile ended in an internal error.
+
+One of 0.8.0 is a layout and no number: a test's result as Typst, whose notes widened the last
+column of its table and whose hypotheses did not stand under one another.
+

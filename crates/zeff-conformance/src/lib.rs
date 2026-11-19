@@ -1826,7 +1826,7 @@ pub struct Regression {
 /// Every regression, oldest first. The first three are the faults the pre-release routine of
 /// 0.7.0 found and corrected before its tag (release notes of 0.7.0, "Validation"); the next
 /// two, the internal errors of step 20g of 0.8.0.
-pub const REGRESSIONS: [Regression; 7] = [
+pub const REGRESSIONS: [Regression; 8] = [
     Regression {
         name: "values_above_1e150",
         corrected: "0.7.0",
@@ -1873,6 +1873,14 @@ pub const REGRESSIONS: [Regression; 7] = [
         corrected: "0.8.0",
         held: Held::Run,
         script: include_str!("../regressions/truncation_beside_a_whole_number.zeff"),
+    },
+    // The Typst form of a test's result, whose notes widened a column and whose hypotheses
+    // did not line up (step 20m; stored at step 24a2c).
+    Regression {
+        name: "test_result_as_typst",
+        corrected: "0.8.0",
+        held: Held::Run,
+        script: include_str!("../regressions/test_result_as_typst.zeff"),
     },
 ];
 
@@ -2320,12 +2328,14 @@ fn plot_cases() -> Vec<Line> {
     }
     // Reference lines (step 23e1): at a number and at the values of a variable of another
     // frame, coloured by it, over the points; what the script prints and the figure in the
-    // three formats.
-    let script = "let w = dataset(wages)\nlet m = w.aggregate(wage = mean(wage), by: union)\nlet few = w.where(worker <= 40)\nlet p = few.plot(x: educ, y: wage).points(alpha: 0.5).hline(data: m, at: wage, color: union).vline(at: 12).vline(at: 16, style: dash_dot, color: \"firebrick\", width: 1)\np\nfew.plot(x: educ).vline(at: educ, style: solid, width: 0.25)\nexport(p, \"rules.svg\")\nexport(p, \"rules.pdf\")\nexport(p, \"rules.png\")\n";
+    // four formats.
+    let script = "let w = dataset(wages)\nlet m = w.aggregate(wage = mean(wage), by: union)\nlet few = w.where(worker <= 40)\nlet p = few.plot(x: educ, y: wage).points(alpha: 0.5).hline(data: m, at: wage, color: union).vline(at: 12).vline(at: 16, style: dash_dot, color: \"firebrick\", width: 1)\np\nfew.plot(x: educ).vline(at: educ, style: solid, width: 0.25)\nexport(p, \"rules.svg\")\nexport(p, \"rules.pdf\")\nexport(p, \"rules.png\")\nexport(p, \"rules.typ\")\n";
     let ruled = run_script(&fs, &project, "scripts/main.zeff", script);
     fills.push(text("plot/rules/stdout", &ruled.output.stdout));
     fills.push(text("plot/rules/stderr", &ruled.output.stderr));
-    for name in ["rules.svg", "rules.pdf", "rules.png"] {
+    // The Typst form of the figure with them (release 0.8.0, step 24a2c): until then the
+    // bytes of a figure's `.typ` were held by the engine's tests alone, on one target.
+    for name in ["rules.svg", "rules.pdf", "rules.png", "rules.typ"] {
         let data = zeff_engine::fs::FileSystem::read(&fs, Path::new(&format!("/g/output/{name}")))
             .unwrap_or_default();
         fills.push(bytes(&format!("plot/rules/{name}"), &data));
