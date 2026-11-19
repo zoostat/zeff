@@ -336,6 +336,17 @@ jobs:
     # test that compares within a tolerance. At 0.7.0 one pass against the whole workspace, whose tests take over twenty minutes on
     # a runner, cut off 29 of 34 shards at the job's limit and listed a mutant that late tests
     # catch as timed out (docs/decisions.md, 14 November 2026, part seven).
+    # From step 24a of 0.8.0 the mutants are dealt to the shards in turn (`--sharding
+    # round-robin`), where the tool's default gives each shard a run of neighbours: the slow
+    # mutants of one file (the studentized range, the signed-rank interval, the estimators) fell
+    # to two or three shards, and eight of fifty were cut off at the limit in the run of 16
+    # November 2026. The second pass has a memory limit of its own and proves its tests on the
+    # unmutated code before it trusts them: in that run every mutant it tested was counted as
+    # caught because the conformance tests ran out of memory under the limit of the first pass,
+    # and the tool's own baseline, which runs the package's tests only, could not show it
+    # (docs/decisions.md, 19 November 2026). A mutant that timed out in the first pass is a
+    # hang or a slow failure under its own package's tests and is listed as that; it is not
+    # tested again, where it would cost ten minutes to learn the same.
     name: weekly (mutation testing, ${{ matrix.package }} ${{ matrix.shard }} of ${{ matrix.of }})
     if: >-
       github.event_name == 'workflow_dispatch' && (inputs.job == 'both' || inputs.job == 'weekly')
@@ -350,40 +361,62 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          - { package: zeff-numeric, shard: 0, of: 16, uses: "zeff-dist zeff-stats zeff-kernels zeff-conformance" }
-          - { package: zeff-numeric, shard: 1, of: 16, uses: "zeff-dist zeff-stats zeff-kernels zeff-conformance" }
-          - { package: zeff-numeric, shard: 2, of: 16, uses: "zeff-dist zeff-stats zeff-kernels zeff-conformance" }
-          - { package: zeff-numeric, shard: 3, of: 16, uses: "zeff-dist zeff-stats zeff-kernels zeff-conformance" }
-          - { package: zeff-numeric, shard: 4, of: 16, uses: "zeff-dist zeff-stats zeff-kernels zeff-conformance" }
-          - { package: zeff-numeric, shard: 5, of: 16, uses: "zeff-dist zeff-stats zeff-kernels zeff-conformance" }
-          - { package: zeff-numeric, shard: 6, of: 16, uses: "zeff-dist zeff-stats zeff-kernels zeff-conformance" }
-          - { package: zeff-numeric, shard: 7, of: 16, uses: "zeff-dist zeff-stats zeff-kernels zeff-conformance" }
-          - { package: zeff-numeric, shard: 8, of: 16, uses: "zeff-dist zeff-stats zeff-kernels zeff-conformance" }
-          - { package: zeff-numeric, shard: 9, of: 16, uses: "zeff-dist zeff-stats zeff-kernels zeff-conformance" }
-          - { package: zeff-numeric, shard: 10, of: 16, uses: "zeff-dist zeff-stats zeff-kernels zeff-conformance" }
-          - { package: zeff-numeric, shard: 11, of: 16, uses: "zeff-dist zeff-stats zeff-kernels zeff-conformance" }
-          - { package: zeff-numeric, shard: 12, of: 16, uses: "zeff-dist zeff-stats zeff-kernels zeff-conformance" }
-          - { package: zeff-numeric, shard: 13, of: 16, uses: "zeff-dist zeff-stats zeff-kernels zeff-conformance" }
-          - { package: zeff-numeric, shard: 14, of: 16, uses: "zeff-dist zeff-stats zeff-kernels zeff-conformance" }
-          - { package: zeff-numeric, shard: 15, of: 16, uses: "zeff-dist zeff-stats zeff-kernels zeff-conformance" }
+          - { package: zeff-numeric, shard: 0, of: 24, uses: "zeff-dist zeff-stats zeff-kernels zeff-conformance" }
+          - { package: zeff-numeric, shard: 1, of: 24, uses: "zeff-dist zeff-stats zeff-kernels zeff-conformance" }
+          - { package: zeff-numeric, shard: 2, of: 24, uses: "zeff-dist zeff-stats zeff-kernels zeff-conformance" }
+          - { package: zeff-numeric, shard: 3, of: 24, uses: "zeff-dist zeff-stats zeff-kernels zeff-conformance" }
+          - { package: zeff-numeric, shard: 4, of: 24, uses: "zeff-dist zeff-stats zeff-kernels zeff-conformance" }
+          - { package: zeff-numeric, shard: 5, of: 24, uses: "zeff-dist zeff-stats zeff-kernels zeff-conformance" }
+          - { package: zeff-numeric, shard: 6, of: 24, uses: "zeff-dist zeff-stats zeff-kernels zeff-conformance" }
+          - { package: zeff-numeric, shard: 7, of: 24, uses: "zeff-dist zeff-stats zeff-kernels zeff-conformance" }
+          - { package: zeff-numeric, shard: 8, of: 24, uses: "zeff-dist zeff-stats zeff-kernels zeff-conformance" }
+          - { package: zeff-numeric, shard: 9, of: 24, uses: "zeff-dist zeff-stats zeff-kernels zeff-conformance" }
+          - { package: zeff-numeric, shard: 10, of: 24, uses: "zeff-dist zeff-stats zeff-kernels zeff-conformance" }
+          - { package: zeff-numeric, shard: 11, of: 24, uses: "zeff-dist zeff-stats zeff-kernels zeff-conformance" }
+          - { package: zeff-numeric, shard: 12, of: 24, uses: "zeff-dist zeff-stats zeff-kernels zeff-conformance" }
+          - { package: zeff-numeric, shard: 13, of: 24, uses: "zeff-dist zeff-stats zeff-kernels zeff-conformance" }
+          - { package: zeff-numeric, shard: 14, of: 24, uses: "zeff-dist zeff-stats zeff-kernels zeff-conformance" }
+          - { package: zeff-numeric, shard: 15, of: 24, uses: "zeff-dist zeff-stats zeff-kernels zeff-conformance" }
+          - { package: zeff-numeric, shard: 16, of: 24, uses: "zeff-dist zeff-stats zeff-kernels zeff-conformance" }
+          - { package: zeff-numeric, shard: 17, of: 24, uses: "zeff-dist zeff-stats zeff-kernels zeff-conformance" }
+          - { package: zeff-numeric, shard: 18, of: 24, uses: "zeff-dist zeff-stats zeff-kernels zeff-conformance" }
+          - { package: zeff-numeric, shard: 19, of: 24, uses: "zeff-dist zeff-stats zeff-kernels zeff-conformance" }
+          - { package: zeff-numeric, shard: 20, of: 24, uses: "zeff-dist zeff-stats zeff-kernels zeff-conformance" }
+          - { package: zeff-numeric, shard: 21, of: 24, uses: "zeff-dist zeff-stats zeff-kernels zeff-conformance" }
+          - { package: zeff-numeric, shard: 22, of: 24, uses: "zeff-dist zeff-stats zeff-kernels zeff-conformance" }
+          - { package: zeff-numeric, shard: 23, of: 24, uses: "zeff-dist zeff-stats zeff-kernels zeff-conformance" }
           - { package: zeff-kernels, shard: 0, of: 4, uses: "zeff-results zeff-regress zeff-stats zeff-conformance" }
           - { package: zeff-kernels, shard: 1, of: 4, uses: "zeff-results zeff-regress zeff-stats zeff-conformance" }
           - { package: zeff-kernels, shard: 2, of: 4, uses: "zeff-results zeff-regress zeff-stats zeff-conformance" }
           - { package: zeff-kernels, shard: 3, of: 4, uses: "zeff-results zeff-regress zeff-stats zeff-conformance" }
-          - { package: zeff-results, shard: 0, of: 10, uses: "zeff-regress zeff-stats zeff-plot zeff-conformance" }
-          - { package: zeff-results, shard: 1, of: 10, uses: "zeff-regress zeff-stats zeff-plot zeff-conformance" }
-          - { package: zeff-results, shard: 2, of: 10, uses: "zeff-regress zeff-stats zeff-plot zeff-conformance" }
-          - { package: zeff-results, shard: 3, of: 10, uses: "zeff-regress zeff-stats zeff-plot zeff-conformance" }
-          - { package: zeff-results, shard: 4, of: 10, uses: "zeff-regress zeff-stats zeff-plot zeff-conformance" }
-          - { package: zeff-results, shard: 5, of: 10, uses: "zeff-regress zeff-stats zeff-plot zeff-conformance" }
-          - { package: zeff-results, shard: 6, of: 10, uses: "zeff-regress zeff-stats zeff-plot zeff-conformance" }
-          - { package: zeff-results, shard: 7, of: 10, uses: "zeff-regress zeff-stats zeff-plot zeff-conformance" }
-          - { package: zeff-results, shard: 8, of: 10, uses: "zeff-regress zeff-stats zeff-plot zeff-conformance" }
-          - { package: zeff-results, shard: 9, of: 10, uses: "zeff-regress zeff-stats zeff-plot zeff-conformance" }
-          - { package: zeff-regress, shard: 0, of: 4, uses: "zeff-conformance" }
-          - { package: zeff-regress, shard: 1, of: 4, uses: "zeff-conformance" }
-          - { package: zeff-regress, shard: 2, of: 4, uses: "zeff-conformance" }
-          - { package: zeff-regress, shard: 3, of: 4, uses: "zeff-conformance" }
+          - { package: zeff-results, shard: 0, of: 16, uses: "zeff-regress zeff-stats zeff-plot zeff-conformance" }
+          - { package: zeff-results, shard: 1, of: 16, uses: "zeff-regress zeff-stats zeff-plot zeff-conformance" }
+          - { package: zeff-results, shard: 2, of: 16, uses: "zeff-regress zeff-stats zeff-plot zeff-conformance" }
+          - { package: zeff-results, shard: 3, of: 16, uses: "zeff-regress zeff-stats zeff-plot zeff-conformance" }
+          - { package: zeff-results, shard: 4, of: 16, uses: "zeff-regress zeff-stats zeff-plot zeff-conformance" }
+          - { package: zeff-results, shard: 5, of: 16, uses: "zeff-regress zeff-stats zeff-plot zeff-conformance" }
+          - { package: zeff-results, shard: 6, of: 16, uses: "zeff-regress zeff-stats zeff-plot zeff-conformance" }
+          - { package: zeff-results, shard: 7, of: 16, uses: "zeff-regress zeff-stats zeff-plot zeff-conformance" }
+          - { package: zeff-results, shard: 8, of: 16, uses: "zeff-regress zeff-stats zeff-plot zeff-conformance" }
+          - { package: zeff-results, shard: 9, of: 16, uses: "zeff-regress zeff-stats zeff-plot zeff-conformance" }
+          - { package: zeff-results, shard: 10, of: 16, uses: "zeff-regress zeff-stats zeff-plot zeff-conformance" }
+          - { package: zeff-results, shard: 11, of: 16, uses: "zeff-regress zeff-stats zeff-plot zeff-conformance" }
+          - { package: zeff-results, shard: 12, of: 16, uses: "zeff-regress zeff-stats zeff-plot zeff-conformance" }
+          - { package: zeff-results, shard: 13, of: 16, uses: "zeff-regress zeff-stats zeff-plot zeff-conformance" }
+          - { package: zeff-results, shard: 14, of: 16, uses: "zeff-regress zeff-stats zeff-plot zeff-conformance" }
+          - { package: zeff-results, shard: 15, of: 16, uses: "zeff-regress zeff-stats zeff-plot zeff-conformance" }
+          - { package: zeff-regress, shard: 0, of: 12, uses: "zeff-conformance" }
+          - { package: zeff-regress, shard: 1, of: 12, uses: "zeff-conformance" }
+          - { package: zeff-regress, shard: 2, of: 12, uses: "zeff-conformance" }
+          - { package: zeff-regress, shard: 3, of: 12, uses: "zeff-conformance" }
+          - { package: zeff-regress, shard: 4, of: 12, uses: "zeff-conformance" }
+          - { package: zeff-regress, shard: 5, of: 12, uses: "zeff-conformance" }
+          - { package: zeff-regress, shard: 6, of: 12, uses: "zeff-conformance" }
+          - { package: zeff-regress, shard: 7, of: 12, uses: "zeff-conformance" }
+          - { package: zeff-regress, shard: 8, of: 12, uses: "zeff-conformance" }
+          - { package: zeff-regress, shard: 9, of: 12, uses: "zeff-conformance" }
+          - { package: zeff-regress, shard: 10, of: 12, uses: "zeff-conformance" }
+          - { package: zeff-regress, shard: 11, of: 12, uses: "zeff-conformance" }
           - { package: zeff-stats, shard: 0, of: 16, uses: "zeff-plot zeff-conformance" }
           - { package: zeff-stats, shard: 1, of: 16, uses: "zeff-plot zeff-conformance" }
           - { package: zeff-stats, shard: 2, of: 16, uses: "zeff-plot zeff-conformance" }
@@ -451,10 +484,10 @@ jobs:
           # tests, which run in seconds, so the floor is the whole budget of each pass.
           # Pass one: the package's own tests, with a floor of two minutes, which covers a slow
           # failure under them and is what a hang by nature costs.
-          (cargo mutants --package ${{ matrix.package }} --shard ${{ matrix.shard }}/${{ matrix.of }} --test-workspace false --timeout-multiplier 5 --minimum-test-timeout 120 --output mutants -- -- --skip draws_recover_their_distribution --skip every_family_agrees_with_r_at_six_digits || true) 2>&1 | tail -40
+          (cargo mutants --package ${{ matrix.package }} --shard ${{ matrix.shard }}/${{ matrix.of }} --sharding round-robin --test-workspace false --timeout-multiplier 5 --minimum-test-timeout 120 --output mutants -- -- --skip draws_recover_their_distribution --skip every_family_agrees_with_r_at_six_digits || true) 2>&1 | tail -40
           mkdir -p pass1 && cp mutants/mutants.out/*.txt pass1/ || true
           echo "Pass one, against the package's own tests: caught $(wc -l < pass1/caught.txt | tr -d ' '), missed $(wc -l < pass1/missed.txt | tr -d ' '), timed out $(wc -l < pass1/timeout.txt | tr -d ' '), unviable $(wc -l < pass1/unviable.txt | tr -d ' ')"
-          # Pass two: what pass one left, against the tests of the packages that use this one,
+          # Pass two: what pass one missed, against the tests of the packages that use this one,
           # with a floor of ten minutes, since those tests come to several minutes under a slow
           # mutant. `--iterate` skips the mutants a previous run caught, but it cuts its shards
           # afresh from what is left of the whole package, so a second run with `--shard` tests
@@ -463,33 +496,64 @@ jobs:
           # that is not one of this shard's leftovers is written down as settled, and the tool
           # is left with exactly the leftovers.
           cargo mutants --list --package ${{ matrix.package }} | sort > all.txt
-          cat pass1/missed.txt pass1/timeout.txt | sort > left.txt
+          sort pass1/missed.txt > left.txt
           comm -23 all.txt left.txt > mutants/mutants.out/caught.txt
           echo "Pass two retests $(wc -l < left.txt | tr -d ' ') mutants of $(wc -l < all.txt | tr -d ' ') in the package"
           TEST_PACKAGES=""
           for p in ${{ matrix.uses }}; do TEST_PACKAGES="$TEST_PACKAGES --test-package $p"; done
+          # The tests of pass two, as the test programs are given them. Three tests of the
+          # conformance package are left out: two that build the whole report again beside the
+          # test that compares it with the committed one, and the test of the formatter, which
+          # no mutant of these packages reaches. The report, the sample projects, the help
+          # pages' examples and the regressions stay.
+          SKIPS="--skip draws_recover_their_distribution --skip every_family_agrees_with_r_at_six_digits --skip the_report_is_the_same_twice --skip every_case_has_its_own_name --skip every_script_of_the_suite_is_formatted_and_stays_so"
+          MEMORY_CAUGHT=0
           if [ -s left.txt ]; then
-            (cargo mutants --package ${{ matrix.package }} --iterate $TEST_PACKAGES --timeout-multiplier 5 --minimum-test-timeout 600 --output mutants -- -- --skip draws_recover_their_distribution --skip every_family_agrees_with_r_at_six_digits || true) 2>&1 | tail -40
+            # The conformance suite asks for two thirds of a gigabyte in one piece, and several
+            # of its tests run at once, so the 2 GB of the first pass is too little for it: 6 GB
+            # here, on a runner of 16 GB that tests one mutant at a time.
+            export CARGO_TARGET_X86_64_UNKNOWN_LINUX_GNU_RUNNER="prlimit --data=6442450944"
+            # The guard: these same tests, under this same limit, on the unmutated code. The
+            # tool's baseline runs the mutated package's tests only, so without this a test that
+            # fails here for a reason of its own (too little memory, a file the copy lacks)
+            # would count every mutant as caught. If they do not pass, the job fails.
+            GUARD_PACKAGES=""
+            for p in ${{ matrix.uses }}; do GUARD_PACKAGES="$GUARD_PACKAGES --package $p"; done
+            if ! cargo test --locked $GUARD_PACKAGES -- $SKIPS > guard.log 2>&1; then
+              tail -60 guard.log
+              echo "::error::The tests of pass two do not pass on the unmutated code under this job's limits, so no verdict of pass two could be trusted. Nothing was retested."
+              exit 1
+            fi
+            echo "The guard: $(grep -c '^test result: ok' guard.log) test programs of pass two pass on the unmutated code under its limit"
+            cargo clean
+            (cargo mutants --package ${{ matrix.package }} --iterate $TEST_PACKAGES --timeout-multiplier 5 --minimum-test-timeout 600 --output mutants -- -- $SKIPS || true) 2>&1 | tail -40
+            # A mutant that asks for memory without bound is caught by the limit, and rightly;
+            # but if most of the mutants of pass two end so, the limit is catching the tests and
+            # not the mutants. The count is printed for the reader of the note.
+            MEMORY_CAUGHT=$( (grep -l "memory allocation of" mutants/mutants.out/log/*.log 2>/dev/null || true) | wc -l | tr -d ' ')
           else
             : > mutants/mutants.out/missed.txt; : > mutants/mutants.out/timeout.txt
           fi
+          cat pass1/timeout.txt mutants/mutants.out/timeout.txt 2>/dev/null | sort > timeouts.txt || true
           # The tool's own output is cut to its last forty lines, which holds the totals and at
           # most nineteen survivors. The lists are printed here in full, so that a shard with
           # more can be read from its log (at 0.7.0 three shards of zeff-stats had more).
           echo "Surviving mutants after both passes, in full:"
           cat mutants/mutants.out/missed.txt || true
-          echo "Timeouts after both passes, in full:"
-          cat mutants/mutants.out/timeout.txt || true
+          echo "Timeouts (those of pass one, which are not retested, and those of pass two), in full:"
+          cat timeouts.txt || true
+          echo "Mutants of pass two that ended by running out of memory: $MEMORY_CAUGHT"
           {
             echo "## Weekly: mutation testing of ${{ matrix.package }}, shard ${{ matrix.shard }} of ${{ matrix.of }}"
             echo
             echo "Pass one (the package's own tests): caught $(wc -l < pass1/caught.txt | tr -d ' '), missed $(wc -l < pass1/missed.txt | tr -d ' '), timed out $(wc -l < pass1/timeout.txt | tr -d ' '), unviable $(wc -l < pass1/unviable.txt | tr -d ' ')"
             echo
-            echo "After pass two (what pass one left, against the tests of ${{ matrix.uses }}):"
+            echo "After pass two (what pass one missed, against the tests of ${{ matrix.uses }}):"
             echo
             echo "Retested: $(wc -l < left.txt | tr -d ' ')"
             echo "Missed (surviving mutants, each a test to write): $(wc -l < mutants/mutants.out/missed.txt | tr -d ' ')"
-            echo "Timed out: $(wc -l < mutants/mutants.out/timeout.txt | tr -d ' ')"
+            echo "Timed out in pass two: $(wc -l < mutants/mutants.out/timeout.txt | tr -d ' ')"
+            echo "Ended by running out of memory in pass two: $MEMORY_CAUGHT"
             echo
             echo '```'
             cat mutants/mutants.out/missed.txt
@@ -505,3 +569,5 @@ jobs:
             mutants/mutants.out
             pass1
             left.txt
+            timeouts.txt
+            guard.log
