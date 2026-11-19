@@ -6397,3 +6397,21 @@ The library takes `hypher` with every language, and a crate that uses the librar
 **Not changed.** `dist.truncated` still refuses `lower` equal to `upper`, so a count distribution cannot be truncated to one number by writing it twice; `lower: 2, upper: 2.5` does it. Whether equal bounds should be allowed for a count distribution is a question of design and not of this fault; it is left as it is.
 
 **Reason.** The testing handbook, section 3 (a crash is of the second severity and is corrected before anything else is taken up) and section 1 (a fault found is held as a regression); the checklist's steps 20i and 20n.
+
+## 19 November 2026: the ten pages of `time` brought to the help contract (release 0.8.0, step 22c2)
+
+**Done.** `date`, `datetime`, `today`, `now`, `year`, `month`, `day`, `weekday`, `quarter` and `week` are struck from the list of unrevised pages. With them the first third of open decision #103 is complete: 94 pages (`core` 71, `text` 13, `time` 10) are held to the contract of 0.8.0 in full.
+
+**What each page gained.** A caption on every example; "Missing values"; "Coming from R or Stata", with the sentences on R and Stata moved out of the descriptions; "Related tasks"; "In brief" on `date` and `datetime`, which are called in several ways; and "A common mistake" with the diagnostic the engine prints.
+
+**The examples.** Every page has an example on a shipped file: the founding dates of `firms` (by decade, by quarter, by day of the week, the one firm founded on a 29 February, the one founded in a week 53) and the numeric year of `wages` made a date. The fixed clock of the help pages, 1 November 2026 at 09:30, makes the examples of `today` and `now` print one value everywhere.
+
+**The mistakes chosen.** `date`: text written day first with no format, which becomes `NA` with W0203. `datetime`: a number with nothing to say what it counts (Z0401). `today` and `now`: reading the clock inside a function (Z0110); the example function carries its summary line, written as two lines of the call, since a function without one adds W0303 to what is printed. The six functions that read a part of a date share one mistake seen from six pages: the text of a date given where a date is wanted (Z0401).
+
+**Said of R and Stata, each checked in R 4.6.0 where it is a statement about R.** `as.Date("16/10/2026")` is 20 October of the year 16, with no warning, and `as.Date("26-10-16", format = "%Y-%m-%d")` the year 26; `format(d, "%u")` and `format(d, "%V")` are the ISO day of the week and week; `lubridate::wday` starts on Sunday unless told, `lubridate::week` counts from 1 January (1 January 2021: 1, and the ISO week 53, of the ISO year 2020); `lubridate::yday` of 16 October 2026 is 289. Of Stata, from memory and not run: `date(s, "DMY")`, `mdy`, `clock`, `dofc`, `dow` from Sunday 0, `qofd`, `doy`, `tc()` for the start of 1970, and that a date and time must be stored as a double. For the day of today the table gives `date(c(current_date), "DMY")`, which every version has, and leaves out a newer function I could not check here. The Stata column of all 94 pages wants one reading by someone with Stata open; it is among the owner's items.
+
+**The pages left, by the release that revises them (#103).** 145 remain on the list. Release 0.9.0: `data` 50, `datasets` 2, `dist` 19, `stats` 13, together 84. Release 0.10.0: `results` 23, `regress` 7, `plot` 31, together 61, with whatever pages of 0.8.0 and 0.9.0 the reading of the whole then finds wanting. The plan of 15 November counted 87 and 65; the difference is the pages that the merges of this release removed (the list began with 251 and lost 12 to them).
+
+**A tool.** The script that builds the pages writes a mistake of several lines line by line; it lives outside the repository, in `~/dev/handbook/help-revision-tools`, with the specification of these ten pages (`pages_g.py`).
+
+**Reason.** Open decision #103; the checklist's step 22c2.

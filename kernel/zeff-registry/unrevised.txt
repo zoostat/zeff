@@ -3,16 +3,6 @@
 # decision #103). A page listed here is held to the contract as it stood; one not listed, to the
 # contract in full. A line is struck when its page is revised, and the list is empty at 0.10.0.
 # One line per page: the package and the function's catalogue name.
-time date
-time datetime
-time today
-time now
-time year
-time month
-time day
-time weekday
-time quarter
-time week
 data frame
 data import
 data n_rows

@@ -159,3 +159,13 @@ Steps 22a, 22a2, 22b and 22b2 `[function]`, two steps of the checklist counted a
 **Next.** Step 22c2 `[function]`: the 10 pages of `time`.
 
 **For the owner to decide.** Nothing new. The earlier items stand.
+
+## 19 November 2026, release 0.8.0, step 22c2 (the pages of `time`)
+
+**Done.** Step 22c2 `[function]`: the 10 pages of `time` brought to the contract, each with an example on the shipped firms or wages. Block F is complete: 94 pages (`core`, `text`, `time`) are held to the contract of 0.8.0 in full, and 145 remain on the list, 84 for release 0.9.0 (`data`, `datasets`, `dist`, `stats`) and 61 for 0.10.0 (`results`, `regress`, `plot`).
+
+**Green.** Format, clippy with warnings denied, the tier, message and grammar checks, every test of the workspace; CI read after the push. The fuzz job started by hand on the fix of step 20n was read as well.
+
+**Next.** Block G (model sets) is built only if the owner asks for it in 1.0; question 7 was answered B, so it is passed over. Step 24a `[engine]`: part 1 of the pre-release routine, the weekly mutation and coverage runs.
+
+**For the owner to decide.** Nothing new. The Stata column of the 94 revised pages was written from memory and wants one reading by someone with Stata open. The earlier items stand.
