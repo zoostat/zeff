@@ -1931,13 +1931,14 @@ fn regression_cases() -> Vec<Line> {
         .collect()
 }
 
-/// The exported files of release 0.4.0 (step 13): the sample table as Word and LaTeX, so that the
-/// four targets prove the bytes identical.
+/// The exported files of release 0.4.0 (step 13): the sample table as Word and LaTeX, and as
+/// Typst from release 0.8.0 (step 21a), so that the four targets prove the bytes identical.
 fn export_cases() -> Vec<Line> {
     let sample = zeff_results::export::sample();
     vec![
         bytes("export/sample.docx", &zeff_results::export::docx(&sample)),
         text("export/sample.tex", &zeff_results::export::tex(&sample)),
+        text("export/sample.typ", &zeff_results::export::typ(&sample)),
     ]
 }
 

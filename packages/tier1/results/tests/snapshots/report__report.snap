@@ -251,7 +251,7 @@ error[Z0716]: `output/m1.csv` has an extension Zeff does not write
 3 | m1.export("output/m1.csv")
   |           ^^^^^^^^^^^^^^^ `.csv` is not a format of `export`
   |
-  = help: a table is written as `.docx` (Word) or `.tex` (LaTeX): `output/m1.docx`
+  = help: a table is written as `.docx` (Word), `.tex` (LaTeX) or `.typ` (Typst): `output/m1.docx`
 [exit 1]
 
 > let s = import("data/small.csv")

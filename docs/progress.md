@@ -158,3 +158,13 @@ Step 20d `[engine]`: `wilcoxon_test` no longer stores the pairwise differences o
 
 **For the owner to decide.** Fits on lines of their own each keep W1006 at their line; say if one line for the whole run is wanted instead. The earlier items stand.
 
+## 19 November 2026, release 0.8.0, step 21a (`export` writes Typst)
+
+**Done.** Step 21a `[engine]`: `x.export("name.typ")` writes a table, a result or a plot as a Typst file, in the layout of the LaTeX form; a plot is placed as its SVG, inside the file. Every kind of result compiles to PDF with Typst 0.15.0 on this machine, with no warning. The writer is text alone: nothing is linked and no dependency is added.
+
+**Green.** Format, clippy with warnings denied, the tier, message and grammar checks, every test of the workspace; CI read after the push. The CI of step 20l (06754a5) is green.
+
+**Next.** Step 21b `[engine]`: the dependency checks of the typst library, as a tool-only measurement; it ends in a decision on #73 that needs the owner's agreement before anything is linked.
+
+**For the owner to decide.** The look of the Typst table (rules of 0.8 and 0.5 points, notes at 0.85 of the type size) follows the LaTeX form; say if another look is wanted. The earlier items stand.
+

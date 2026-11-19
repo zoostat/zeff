@@ -1,0 +1,141 @@
+---
+source: crates/zeff-engine/tests/export.rs
+expression: all
+---
+==== report.typ
+// a Zeff export: place it in a document with `#include`
+#table(
+  columns: 3,
+  align: (left, right, right,),
+  stroke: none,
+  table.hline(stroke: 0.8pt),
+  table.header("", "(1)  ", "(2)  "),
+  table.hline(stroke: 0.5pt),
+  "(intercept)", "1.832***", "1.900***",
+  "", "(0.022)  ", "(0.022)  ",
+  "educ", "0.076***", "0.076***",
+  "", "(0.001)  ", "(0.001)  ",
+  "exper", "0.022***", "0.022***",
+  "", "(0.000)  ", "(0.000)  ",
+  "female", "", "-0.133***",
+  "", "", "(0.006)  ",
+  table.hline(stroke: 0.5pt),
+  "SEs", "classical", "hc3",
+  "N", "18,179", "18,179",
+  "R²", "0.184", "0.203",
+  table.hline(stroke: 0.8pt),
+  table.cell(colspan: 3, align: left, text(size: 0.85em, "* p < 0.05, ** p < 0.01, *** p < 0.001")),
+)
+==== fit.typ
+// a Zeff export: place it in a document with `#include`
+// reg · log(wage) ~ educ + exper
+#table(
+  columns: 6,
+  align: (left, right, right, right, right, left,),
+  stroke: none,
+  table.hline(stroke: 0.8pt),
+  table.header("term", "estimate", "std.error", "t value", "p value", "95% CI"),
+  table.hline(stroke: 0.5pt),
+  "(intercept)", "1.8316", "0.0221", "82.93", "<0.001", "[1.7883, 1.8749]",
+  "educ", "0.0760", "0.0014", "55.05", "<0.001", "[0.0733, 0.0787]",
+  "exper", "0.0223", "0.0005", "48.77", "<0.001", "[0.0214, 0.0232]",
+  table.hline(stroke: 0.8pt),
+  table.cell(colspan: 6, align: left, text(size: 0.85em, "N = 18,179 (233 rows dropped for NA in model variables)")),
+  table.cell(colspan: 6, align: left, text(size: 0.85em, "standard errors: classical")),
+  table.cell(colspan: 6, align: left, text(size: 0.85em, "R² 0.184 · adjusted R² 0.184")),
+)
+==== wald.typ
+// a Zeff export: place it in a document with `#include`
+// test · m1 · educ == exper
+#table(
+  columns: 4,
+  align: (left, right, right, right,),
+  stroke: none,
+  table.hline(stroke: 0.8pt),
+  table.header("statistic", "value", "df", "p value"),
+  table.hline(stroke: 0.5pt),
+  "F", "1693.31", "1, 18,176", "<0.001",
+  table.hline(stroke: 0.8pt),
+)
+==== one.typ
+// a Zeff export: place it in a document with `#include`
+// t_test · one-sample · x
+#table(
+  columns: 1,
+  align: left,
+  stroke: none,
+  table.hline(stroke: 0.8pt),
+  "  H0: the population mean of x equals 0            μ = 0",
+  "  H1: the population mean of x differs from 0      μ ≠ 0",
+  "",
+  "N = 6   mean = 3.667   sd = 2.160",
+  "difference (mean − 0) = 3.667   95% CI [1.400, 5.934]",
+  "t = 4.16   df = 5   p = 0.009",
+  "decision at α = 0.05: reject H0 (p = 0.009)",
+  table.hline(stroke: 0.8pt),
+)
+==== two.typ
+// a Zeff export: place it in a document with `#include`
+// t_test · Welch two-sample · x by g
+#table(
+  columns: 4,
+  align: (left, right, right, right,),
+  stroke: none,
+  table.hline(stroke: 0.8pt),
+  table.header("group", "N", "mean", "sd"),
+  table.hline(stroke: 0.5pt),
+  "a", "3", "2.000", "1.000",
+  "b", "3", "5.333", "1.528",
+  table.hline(stroke: 0.8pt),
+  table.cell(colspan: 4, align: left, text(size: 0.85em, "  H0: the population means of x are equal in a and b        μ(a) − μ(b) = 0")),
+  table.cell(colspan: 4, align: left, text(size: 0.85em, "  H1: the population means of x differ between a and b      μ(a) − μ(b) ≠ 0")),
+  table.cell(colspan: 4, align: left, text(size: 0.85em, "difference (a − b) = -3.333   95% CI [-6.454, -0.212]")),
+  table.cell(colspan: 4, align: left, text(size: 0.85em, "t = -3.16   df = 3.4   p = 0.042")),
+  table.cell(colspan: 4, align: left, text(size: 0.85em, "Hedges' g = -2.07   95% CI [-3.80, -0.33]")),
+  table.cell(colspan: 4, align: left, text(size: 0.85em, "decision at α = 0.05: reject H0 (p = 0.042)")),
+)
+==== correlation.typ
+// a Zeff export: place it in a document with `#include`
+// correlation · w · pearson
+#table(
+  columns: 4,
+  align: (left, right, right, right,),
+  stroke: none,
+  table.hline(stroke: 0.8pt),
+  table.header("", "wage", "educ", "exper"),
+  table.hline(stroke: 0.5pt),
+  "wage", "1.000", "0.265", "0.200",
+  "educ", "0.265", "1.000", "-0.324",
+  "exper", "0.200", "-0.324", "1.000",
+  table.hline(stroke: 0.8pt),
+)
+
+// N per pair
+#table(
+  columns: 4,
+  align: (left, right, right, right,),
+  stroke: none,
+  table.hline(stroke: 0.8pt),
+  table.header("", "wage", "educ", "exper"),
+  table.hline(stroke: 0.5pt),
+  "wage", "18,201", "18,201", "18,179",
+  "educ", "18,201", "18,412", "18,390",
+  "exper", "18,179", "18,390", "18,390",
+  table.hline(stroke: 0.8pt),
+)
+==== describe.TYP
+// a Zeff export: place it in a document with `#include`
+// d · 6 rows × 4 variables
+#table(
+  columns: 5,
+  align: (left, left, right, right, left,),
+  stroke: none,
+  table.hline(stroke: 0.8pt),
+  table.header("variable", "type", "non-missing", "missing", "example"),
+  table.hline(stroke: 0.5pt),
+  "x", "Float", "6", "0", "1",
+  "z", "Float", "6", "0", "0.5",
+  "g", "Str", "6", "0", "a",
+  "odd \\ \"name\" #1 $x_1$", "Int", "6", "0", "1",
+  table.hline(stroke: 0.8pt),
+)

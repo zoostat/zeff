@@ -49,7 +49,7 @@ error[Z0716]: `wages.xlsx` has an extension Zeff does not write
 2 | wages.describe().export("wages.xlsx")
   |                         ^^^^^^^^^^^^ `.xlsx` is not a format of `export`
   |
-  = help: a table is written as `.docx` (Word) or `.tex` (LaTeX): `output/wages.docx`
+  = help: a table is written as `.docx` (Word), `.tex` (LaTeX) or `.typ` (Typst): `output/wages.docx`
 --- no_extension
 error[Z0716]: `output/wages` has no extension, so no format is chosen
  --> scripts/main.zeff:2:25
@@ -57,7 +57,7 @@ error[Z0716]: `output/wages` has no extension, so no format is chosen
 2 | wages.describe().export("output/wages")
   |                         ^^^^^^^^^^^^^^ which format?
   |
-  = help: write `.docx` for Word or `.tex` for LaTeX: `output/wages.docx`
+  = help: write `.docx` for Word, `.tex` for LaTeX or `.typ` for Typst: `output/wages.docx`
 --- dot_only
 error[Z0716]: `.docx` has no name before its extension
  --> scripts/main.zeff:2:25

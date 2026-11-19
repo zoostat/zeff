@@ -9,7 +9,7 @@ extension of the path names. A path with no folder goes to `output/`, which is c
 needed; any other folder must exist, and a path outside the project is refused.
 
 A table, as `describe`, `summary`, `report` and the other table functions return it, is written
-as `.docx` for Word or `.tex` for LaTeX. A regression exports its summary table, with the lines
+as `.docx` for Word, `.tex` for LaTeX or `.typ` for Typst. A regression exports its summary table, with the lines
 above and below the grid as notes, and a test's result its title, its statistic and, for
 `compare`, the models it sets side by side. The file carries the same layout as the printed
 table: its title, its columns with numbers to the right, and its rows. Like Stata's
@@ -17,14 +17,15 @@ table: its title, its columns with numbers to the right, and its rows. Like Stat
 
 A plot is written as a figure on a page of the size `size:` gives: one column of a journal
 unless told otherwise. `.pdf` and `.svg` are drawn with lines and stay sharp at any
-enlargement; `.png` is drawn in dots, 300 to the inch. The figure is drawn by Zeff itself with
-its own fonts, so each file is the same, byte for byte, on every computer. Like R's `ggsave`.
+enlargement; `.png` is drawn in dots, 300 to the inch; `.typ` is a Typst file that places the
+drawing. The figure is drawn by Zeff itself with its own fonts, so each file is the same, byte
+for byte, on every computer. Like R's `ggsave`.
 
 ## Arguments
 - x: The table, result or plot to write.
 - path: Where to write it, from the project folder: `output/table1.docx`. The extension chooses
-  the format, whether written in small letters or in capitals: `.docx` or `.tex` for a table
-  or a result, `.pdf`, `.svg` or `.png` for a plot.
+  the format, whether written in small letters or in capitals: `.docx`, `.tex` or `.typ` for a
+  table or a result, `.pdf`, `.svg`, `.png` or `.typ` for a plot.
 - size: For a plot, the size of the page: `one_column` (89 mm wide and 66 mm high),
   `two_column` (183 by 110 mm), `slide` (254 by 143 mm), or a width and a height in
   millimetres as a list, `[120, 80]`. Without it the page is `one_column`. The text of a
@@ -44,8 +45,14 @@ rules of the `booktabs` package, the title in a comment above it and the notes a
 under the bottom rule, with `&`, `%`, `_`, `^` and the other special characters escaped; put it
 inside a `table` environment with `\input` in a document that loads `booktabs`. A rule inside
 the table, as `report` draws one above its statistics, is a `\midrule` in LaTeX and a border in
-Word. Both files depend on the table alone, so they are the same bytes on every machine, and the
-conformance suite checks them.
+Word. The Typst file is a `table` without cell borders, with the same rules (one above the
+headings, one under them, one below, and one above the statistics of a `report`), the title in a
+comment above it and the notes as rows across the table under the last rule, in smaller type.
+Every cell is written as a string, so no character of a name or a number is read as markup and
+nothing needs escaping. The file is content: `#include "table.typ"` places it in a document, and
+`#figure(include "table.typ", caption: [Wages])` gives it a number and a caption; it needs Typst
+0.11 or later and no package. The three files depend on the table alone, so they are the same
+bytes on every machine, and the conformance suite checks them.
 
 A figure. The plot is laid out for the page it is written on, so a wider page has a wider
 panel and the same size of type, 8 points for labels and 9 for titles, in IBM Plex Sans; give
@@ -63,6 +70,11 @@ but a label cannot be retyped in a drawing program. A PNG is a picture in dots, 
 neither of the two is taken: a web page, or an older word processor. It has 300 dots to the
 inch and says so, so a page of 89 mm is 1051 dots wide and is placed 89 mm wide. Its page is
 white, without transparency. Enlarged, a PNG shows its dots; the other two do not.
+
+A plot as Typst. `p.export("wage.typ")` writes a Typst file that holds the drawing, the same
+SVG that `.svg` writes, and places it at its own size: `#include "wage.typ"`, or inside
+`#figure(...)` for a caption. The drawing is inside the file, so the file stands alone; it needs
+Typst 0.13 or later.
 
 The largest page. A page of a PDF is at most 5080 mm each way, and a PNG holds at most 40
 million dots, a page of about 535 mm each way; a larger page is refused (Z0401). An SVG has no
@@ -83,10 +95,12 @@ note: data/wages.csv read as CSV: 3 rows × 3 variables, types guessed; CSV carr
 > let m = dataset(wages).reg(log(wage) ~ educ + exper + female)
 > m.export("output/model.docx")
 > m.test(educ == exper).export("output/test.tex")
+> m.export("output/model.typ")
 > let p = dataset(wages).plot(x: educ, y: wage, color: union).points(alpha: 0.3)
-note: 211 rows with NA in educ or wage dropped (line 7)
+note: 211 rows with NA in educ or wage dropped (line 8)
 > p.export("output/wage.pdf")
 > p.export("output/wage.svg")
 > p.export("output/wage.png")
+> p.export("output/wage.typ")
 > p.export("wage_wide.pdf", size: two_column, notes: true)
 > p.export("output/wage_own.png", size: [120, 80])

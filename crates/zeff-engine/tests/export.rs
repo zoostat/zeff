@@ -479,3 +479,179 @@ fn a_report_beside_an_instrumented_fit_is_written_as_latex() {
         "{tex}"
     );
 }
+
+/// The Typst form (release 0.8.0, step 21a; open decision #73): each kind of result written
+/// as a `.typ` file in the layout of the LaTeX form, a plot placed as its SVG, and, where the
+/// `typst` command is installed, every file compiled into one PDF, as the LaTeX test does
+/// with pdfLaTeX.
+#[test]
+fn every_kind_of_result_is_written_as_typst_that_compiles() {
+    let (fs, project) = project();
+    let script = "let w = dataset(wages)\n\
+        let d = frame(x = [1.0, 3.0, 2.0, 5.0, 4.0, 7.0], z = [0.5, 2.0, 2.5, 3.0, 5.0, 6.0], g = [\"a\", \"a\", \"a\", \"b\", \"b\", \"b\"], `odd \\ \"name\" #1 $x_1$` = [1, 2, 3, 4, 5, 6])\n\
+        let m1 = w.reg(log(wage) ~ educ + exper)\n\
+        let m2 = w.reg(log(wage) ~ educ + exper + female, se: hc3)\n\
+        report([m1, m2]).export(\"report.typ\")\n\
+        m1.export(\"fit.typ\")\n\
+        m1.test(educ == exper).export(\"wald.typ\")\n\
+        d.t_test(x, mu: 0).export(\"one.typ\")\n\
+        d.t_test(x, group: g).export(\"two.typ\")\n\
+        w.correlation([wage, educ, exper]).export(\"correlation.typ\")\n\
+        d.describe().export(\"describe.TYP\")\n\
+        d.plot(x: x, y: z).points().export(\"figure.typ\")\n";
+    let (code, stdout, stderr) = go(&fs, &project, script);
+    assert_eq!(code, 0, "{stderr}");
+    assert_eq!(stdout, "", "an export prints nothing");
+    let read = |name: &str| {
+        fs.read_to_string(Path::new(&format!("/p/output/{name}")))
+            .unwrap()
+    };
+    let tables = [
+        "report.typ",
+        "fit.typ",
+        "wald.typ",
+        "one.typ",
+        "two.typ",
+        "correlation.typ",
+        "describe.TYP",
+    ];
+    let mut all = String::new();
+    for name in tables {
+        all.push_str(&format!("==== {name}\n{}", read(name)));
+    }
+    insta::assert_snapshot!("every_kind_as_typst", all);
+    // A report has rules above its statistics, and its stars' line as a note under the table.
+    let report = read("report.typ");
+    assert_eq!(
+        report.matches("table.hline(stroke: 0.5pt)").count(),
+        2,
+        "{report}"
+    );
+    assert_eq!(
+        report.matches("table.hline(stroke: 0.8pt)").count(),
+        2,
+        "{report}"
+    );
+    assert!(
+        report.contains("table.cell(colspan: 3, align: left, text(size: 0.85em, \"* p < 0.05, ** p < 0.01, *** p < 0.001\")),"),
+        "{report}"
+    );
+    // A result without a grid is its lines in one column; the Greek letters and the signs are
+    // written as they are, since a Typst file is UTF-8 and a string is not markup.
+    let one = read("one.typ");
+    assert!(one.contains("  columns: 1,\n  align: left,\n"), "{one}");
+    assert!(one.contains("μ ≠ 0\","), "{one}");
+    // A name with a backslash, a quote, a hash and dollars is one string, escaped where a
+    // string needs it and nowhere else.
+    let describe = read("describe.TYP");
+    assert!(
+        describe.contains(r#""odd \\ \"name\" #1 $x_1$""#),
+        "{describe}"
+    );
+    // The plot: the SVG that `.svg` writes, inside the file.
+    let figure = read("figure.typ");
+    assert!(
+        figure.starts_with("// a Zeff export: place it in a document with `#include`\n#image(bytes(\"<?xml version=\\\"1.0\\\""),
+        "{}",
+        &figure[..200]
+    );
+    assert!(
+        figure.ends_with("</svg>\\n\"), format: \"svg\")\n"),
+        "{}",
+        &figure[figure.len() - 80..]
+    );
+    let (_, _, _) = go(
+        &fs,
+        &project,
+        "frame(x = [1.0, 3.0, 2.0, 5.0, 4.0, 7.0], z = [0.5, 2.0, 2.5, 3.0, 5.0, 6.0]).plot(x: x, y: z).points().export(\"figure.svg\")\n",
+    );
+    let svg = read("figure.svg");
+    assert_eq!(figure, zeff_results::export::figure_typ(&svg));
+    // Compiled, where there is a Typst to compile with.
+    let installed = std::process::Command::new("typst")
+        .arg("--version")
+        .output()
+        .is_ok_and(|o| o.status.success());
+    if !installed {
+        return;
+    }
+    let folder = Path::new(env!("CARGO_TARGET_TMPDIR")).join("typst_of_exports");
+    std::fs::create_dir_all(&folder).unwrap();
+    let mut document = String::from("#set page(width: 210mm, height: auto, margin: 15mm)\n");
+    for name in tables.iter().chain(&["figure.typ"]) {
+        std::fs::write(folder.join(name), read(name)).unwrap();
+        document.push_str(&format!("#figure(include \"{name}\", caption: [{name}])\n"));
+    }
+    std::fs::write(folder.join("all.typ"), document).unwrap();
+    let run = std::process::Command::new("typst")
+        .args(["compile", "all.typ", "all.pdf"])
+        .current_dir(&folder)
+        .output()
+        .unwrap();
+    assert!(
+        run.status.success(),
+        "{}{}",
+        String::from_utf8_lossy(&run.stdout),
+        String::from_utf8_lossy(&run.stderr)
+    );
+    let pdf = std::fs::read(folder.join("all.pdf")).unwrap();
+    assert!(pdf.starts_with(b"%PDF-"));
+    // The compiler warns of nothing: no character without a glyph, no unknown function.
+    assert_eq!(String::from_utf8_lossy(&run.stderr), "");
+}
+
+/// A Typst string holds any text: what must be escaped is, and the compiler reads back the
+/// text that was written (where it is installed).
+#[test]
+fn a_typst_string_holds_any_text() {
+    use zeff_results::export::typ_string;
+    assert_eq!(typ_string("plain"), "\"plain\"");
+    assert_eq!(typ_string("a\\b"), "\"a\\\\b\"");
+    assert_eq!(typ_string("say \"x\""), "\"say \\\"x\\\"\"");
+    assert_eq!(
+        typ_string("two\nlines\tand\ra tab"),
+        "\"two\\nlines\\tand\\ra tab\""
+    );
+    assert_eq!(
+        typ_string("#let $x$ *b* _i_ [c] <l> @r ~ = - `raw` //"),
+        "\"#let $x$ *b* _i_ [c] <l> @r ~ = - `raw` //\""
+    );
+    assert_eq!(typ_string("R² · μ ≠ 0 − 5 × 2"), "\"R² · μ ≠ 0 − 5 × 2\"");
+    let installed = std::process::Command::new("typst")
+        .arg("--version")
+        .output()
+        .is_ok_and(|o| o.status.success());
+    if !installed {
+        return;
+    }
+    // Each text is asserted, inside Typst, to be the text it was written from: its length in
+    // characters is that of the original, and a failed assertion fails the compilation.
+    let folder = Path::new(env!("CARGO_TARGET_TMPDIR")).join("typst_strings");
+    std::fs::create_dir_all(&folder).unwrap();
+    let mut document = String::new();
+    for text in [
+        "a\\b",
+        "say \"x\"",
+        "two\nlines\tand\ra tab",
+        "#let $x$ *b* _i_ [c] <l> @r ~ = - `raw` //",
+        "R² · μ ≠ 0 − 5 × 2",
+        "\\u{41} \\n \\\\ \\\"",
+    ] {
+        document.push_str(&format!(
+            "#assert.eq({}.clusters().len(), {})\n",
+            typ_string(text),
+            text.chars().count()
+        ));
+    }
+    std::fs::write(folder.join("strings.typ"), document).unwrap();
+    let run = std::process::Command::new("typst")
+        .args(["compile", "strings.typ", "strings.pdf"])
+        .current_dir(&folder)
+        .output()
+        .unwrap();
+    assert!(
+        run.status.success(),
+        "{}",
+        String::from_utf8_lossy(&run.stderr)
+    );
+}

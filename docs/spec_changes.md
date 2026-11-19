@@ -756,3 +756,8 @@ Applied at step 12c of release 0.8.0, under the release's ruling that a statisti
 ## 16 November 2026 — zeff_functions.csv (row 239, the usage and status of `ivreg`)
 
 Applied at step 13b of release 0.8.0. The usage of `ivreg` listed `fe:`, `instruments:` and `first:`; the release's checklist gives the function the options every model shares with `reg`, and the registry holds a function to the parameters its catalogue row lists. The usage is now `data.ivreg(formula, fe: Terms, instruments: Instruments, se: classical | robust | hc2 | hc3, cluster: Var, weights: Var, weight_type: frequency | analytic | sampling = sampling, level: Float = 0.95, first: Bool = false)`, the formula and the instruments written by their types as `reg`'s row writes its own, and the status is `implemented`. The description and the equivalents are unchanged.
+
+## 19 November 2026 — zeff_functions.csv (row 165, the description of `export`)
+
+Applied at step 21a of release 0.8.0, under open decision #73 as decided on 15 November 2026 (option A in steps): `export` writes `.typ` beside `.tex` and `.docx`. The description listed "Word and LaTeX for tables, SVG or PDF (vector) or PNG (raster) for plots"; it now reads "Word, LaTeX and Typst for tables, SVG or PDF (vector), PNG (raster) or Typst for plots". The usage, the options and the status are unchanged. No other normative text names the formats of `export` as a closed list: the Language Reference shows `.docx` in its examples and says of `report` that "the exported .docx and .tex carry the same layout", which stays true and is true of `.typ` as well.
+

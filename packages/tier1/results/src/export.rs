@@ -34,6 +34,8 @@ pub enum Format {
     Docx,
     /// LaTeX, `.tex`.
     Tex,
+    /// Typst, `.typ`.
+    Typ,
 }
 
 impl Format {
@@ -48,6 +50,7 @@ impl Format {
         match extension.to_ascii_lowercase().as_str() {
             "docx" => Some(Format::Docx),
             "tex" => Some(Format::Tex),
+            "typ" => Some(Format::Typ),
             _ => None,
         }
     }
@@ -92,10 +95,12 @@ fn export_plot(
         stem
     };
     let instead = format!(
-        "a plot is written as `.pdf` or `.svg`, drawn with lines and sharp at any size, or as `.png`, in dots at 300 to the inch: `output/{stem}.pdf`"
+        "a plot is written as `.pdf` or `.svg`, drawn with lines and sharp at any size, as `.png`, in dots at 300 to the inch, or as `.typ`, its drawing placed in a Typst document: `output/{stem}.pdf`"
     );
+    // A Typst file places the plot as its SVG.
+    let as_typst = extension.as_deref() == Some("typ");
     let format = match extension.as_deref() {
-        Some("svg") => FigureFormat::Svg,
+        Some("svg" | "typ") => FigureFormat::Svg,
         Some("pdf") => FigureFormat::Pdf,
         Some("png") => FigureFormat::Png,
         Some(table @ ("docx" | "tex")) => {
@@ -215,6 +220,11 @@ fn export_plot(
                 .help(problem.help),
         )
     })?;
+    let bytes = if as_typst {
+        figure_typ(&String::from_utf8_lossy(&bytes)).into_bytes()
+    } else {
+        bytes
+    };
     ctx.files
         .write(&written_at(path), &bytes, span, ctx.script)?;
     Ok(Value::Nothing)
@@ -301,7 +311,7 @@ pub fn export(ctx: &mut CallContext<'_>, mut args: Args) -> Result<Value, Fail> 
                 )
                 .primary(span, "not a format of a table")
                 .help(format!(
-                    "a table is written as `.docx` (Word) or `.tex` (LaTeX): `output/{stem}.docx`"
+                    "a table is written as `.docx` (Word), `.tex` (LaTeX) or `.typ` (Typst): `output/{stem}.docx`"
                 ))
             }
             Some((stem, extension)) if !extension.is_empty() => Diagnostic::error(
@@ -310,7 +320,7 @@ pub fn export(ctx: &mut CallContext<'_>, mut args: Args) -> Result<Value, Fail> 
             )
             .primary(span, format!("`.{extension}` is not a format of `export`"))
             .help(format!(
-                "a table is written as `.docx` (Word) or `.tex` (LaTeX): `output/{stem}.docx`"
+                "a table is written as `.docx` (Word), `.tex` (LaTeX) or `.typ` (Typst): `output/{stem}.docx`"
             )),
             _ => Diagnostic::error(
                 "Z0716",
@@ -318,7 +328,7 @@ pub fn export(ctx: &mut CallContext<'_>, mut args: Args) -> Result<Value, Fail> 
             )
             .primary(span, "which format?")
             .help(format!(
-                "write `.docx` for Word or `.tex` for LaTeX: `output/{}.docx`",
+                "write `.docx` for Word, `.tex` for LaTeX or `.typ` for Typst: `output/{}.docx`",
                 if name.is_empty() {
                     "table"
                 } else {
@@ -331,6 +341,7 @@ pub fn export(ctx: &mut CallContext<'_>, mut args: Args) -> Result<Value, Fail> 
     let bytes = match format {
         Format::Docx => docx(&table),
         Format::Tex => tex(&table).into_bytes(),
+        Format::Typ => typ(&table).into_bytes(),
     };
     ctx.files
         .write(&written_at(path), &bytes, span, ctx.script)?;
@@ -598,6 +609,128 @@ pub fn escape_tex(text: &str) -> String {
         }
     }
     out
+}
+
+// ----- Typst -----
+
+/// The first line of every Typst file `export` writes: what it is and how it is placed.
+const TYP_HEAD: &str = "// a Zeff export: place it in a document with `#include`\n";
+
+/// The weight of the rules above and below a table, and of those inside it: the proportions of
+/// the booktabs rules the LaTeX form draws.
+const TYP_OUTER_RULE: &str = "0.8pt";
+const TYP_INNER_RULE: &str = "0.5pt";
+
+/// The Typst form, in the layout of the LaTeX form: a comment with the title, then a `table`
+/// with no cell borders, a rule above the headings, one under them and above each row the
+/// table rules, and one below; each column aligned as the printed table aligns it; the lines
+/// above and below the printed grid as notes under the last rule, across the table. A further
+/// table follows after a blank line. Every cell is a string, so that no character of a name
+/// or a number is read as markup. The file is content: `#include "table.typ"` places it, and
+/// `#figure(include "table.typ", caption: [...])` numbers it. Typst 0.11 or later.
+pub fn typ(table: &Table) -> String {
+    let mut out = String::from(TYP_HEAD);
+    table_typ(&mut out, table);
+    out
+}
+
+fn table_typ(out: &mut String, table: &Table) {
+    // A table without a title (a `report`) has no comment for one.
+    if !table.title.trim().is_empty() {
+        out.push_str(&format!("// {}\n", table.title.replace('\n', " ")));
+    }
+    let rule = |weight: &str| format!("  table.hline(stroke: {weight}),\n");
+    // A result without a grid (a test with an estimate and no table of groups) is its lines
+    // alone: one column between two rules.
+    if table.columns.is_empty() {
+        out.push_str("#table(\n  columns: 1,\n  align: left,\n  stroke: none,\n");
+        out.push_str(&rule(TYP_OUTER_RULE));
+        for line in table.before.iter().chain(&table.after) {
+            out.push_str(&format!("  {},\n", typ_string(line)));
+        }
+        out.push_str(&rule(TYP_OUTER_RULE));
+        out.push_str(")\n");
+        for further in &table.more {
+            out.push('\n');
+            table_typ(out, further);
+        }
+        return;
+    }
+    let k = table.columns.len();
+    let aligns: Vec<&str> = table
+        .columns
+        .iter()
+        .map(|(_, align)| match align {
+            Align::Left => "left",
+            Align::Right => "right",
+        })
+        .collect();
+    out.push_str(&format!(
+        "#table(\n  columns: {k},\n  align: ({},),\n  stroke: none,\n",
+        aligns.join(", ")
+    ));
+    let row = |cells: Vec<String>| -> String { format!("  {},\n", cells.join(", ")) };
+    out.push_str(&rule(TYP_OUTER_RULE));
+    out.push_str(&format!(
+        "  table.header({}),\n",
+        table
+            .columns
+            .iter()
+            .map(|(heading, _)| typ_string(heading))
+            .collect::<Vec<_>>()
+            .join(", ")
+    ));
+    out.push_str(&rule(TYP_INNER_RULE));
+    for (r, cells) in table.rows.iter().enumerate() {
+        if table.rules.contains(&r) {
+            out.push_str(&rule(TYP_INNER_RULE));
+        }
+        let mut written: Vec<String> = cells.iter().map(|c| typ_string(c)).collect();
+        written.resize(k, typ_string(""));
+        out.push_str(&row(written));
+    }
+    out.push_str(&rule(TYP_OUTER_RULE));
+    for line in table.before.iter().chain(&table.after) {
+        out.push_str(&format!(
+            "  table.cell(colspan: {k}, align: left, text(size: 0.85em, {})),\n",
+            typ_string(line)
+        ));
+    }
+    out.push_str(")\n");
+    for further in &table.more {
+        out.push('\n');
+        table_typ(out, further);
+    }
+}
+
+/// Text as a Typst string: in quotes, the backslash and the quote escaped, a line break, a
+/// carriage return and a tab as their escapes. Everything else is written as it is: a Typst
+/// file is UTF-8, and inside a string nothing is markup.
+pub fn typ_string(text: &str) -> String {
+    let mut out = String::with_capacity(text.len() + 2);
+    out.push('"');
+    for c in text.chars() {
+        match c {
+            '\\' => out.push_str("\\\\"),
+            '"' => out.push_str("\\\""),
+            '\n' => out.push_str("\\n"),
+            '\r' => out.push_str("\\r"),
+            '\t' => out.push_str("\\t"),
+            other => out.push(other),
+        }
+    }
+    out.push('"');
+    out
+}
+
+/// A plot as a Typst file: its SVG, as the `.svg` export writes it, placed as an image at its
+/// own size. The drawing is inside the file, so the file stands alone. Typst 0.13 or later,
+/// which reads an image from bytes.
+pub fn figure_typ(svg: &str) -> String {
+    format!(
+        "{TYP_HEAD}#image(bytes({}), format: \"svg\")\n",
+        typ_string(svg)
+    )
 }
 
 // ----- Word -----

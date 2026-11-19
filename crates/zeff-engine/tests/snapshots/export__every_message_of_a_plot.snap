@@ -10,7 +10,7 @@ error[Z0716]: `wage.docx`: `.docx` is the format of a table, and this is a plot
 3 | p.export("wage.docx")
   |          ^^^^^^^^^^^ not a format of a figure
   |
-  = help: a plot is written as `.pdf` or `.svg`, drawn with lines and sharp at any size, or as `.png`, in dots at 300 to the inch: `output/wage.pdf`
+  = help: a plot is written as `.pdf` or `.svg`, drawn with lines and sharp at any size, as `.png`, in dots at 300 to the inch, or as `.typ`, its drawing placed in a Typst document: `output/wage.pdf`
 
 == a_table_format_in_capitals
 note: 6 rows with NA in educ or wage dropped (line 2)
@@ -20,7 +20,7 @@ error[Z0716]: `wage.TEX`: `.tex` is the format of a table, and this is a plot
 3 | p.export("wage.TEX")
   |          ^^^^^^^^^^ not a format of a figure
   |
-  = help: a plot is written as `.pdf` or `.svg`, drawn with lines and sharp at any size, or as `.png`, in dots at 300 to the inch: `output/wage.pdf`
+  = help: a plot is written as `.pdf` or `.svg`, drawn with lines and sharp at any size, as `.png`, in dots at 300 to the inch, or as `.typ`, its drawing placed in a Typst document: `output/wage.pdf`
 
 == unknown_extension
 note: 6 rows with NA in educ or wage dropped (line 2)
@@ -30,7 +30,7 @@ error[Z0716]: `wage.jpeg` has an extension Zeff does not write
 3 | p.export("wage.jpeg")
   |          ^^^^^^^^^^^ `.jpeg` is not a format of `export`
   |
-  = help: a plot is written as `.pdf` or `.svg`, drawn with lines and sharp at any size, or as `.png`, in dots at 300 to the inch: `output/wage.pdf`
+  = help: a plot is written as `.pdf` or `.svg`, drawn with lines and sharp at any size, as `.png`, in dots at 300 to the inch, or as `.typ`, its drawing placed in a Typst document: `output/wage.pdf`
 
 == no_extension
 note: 6 rows with NA in educ or wage dropped (line 2)
@@ -40,7 +40,7 @@ error[Z0716]: `output/wage` has no extension, so no format is chosen
 3 | p.export("output/wage")
   |          ^^^^^^^^^^^^^ which format?
   |
-  = help: a plot is written as `.pdf` or `.svg`, drawn with lines and sharp at any size, or as `.png`, in dots at 300 to the inch: `output/wage.pdf`
+  = help: a plot is written as `.pdf` or `.svg`, drawn with lines and sharp at any size, as `.png`, in dots at 300 to the inch, or as `.typ`, its drawing placed in a Typst document: `output/wage.pdf`
 
 == dot_only
 note: 6 rows with NA in educ or wage dropped (line 2)
@@ -50,7 +50,7 @@ error[Z0716]: `.svg` has no name before its extension
 3 | p.export(".svg")
   |          ^^^^^^ a name is needed
   |
-  = help: a plot is written as `.pdf` or `.svg`, drawn with lines and sharp at any size, or as `.png`, in dots at 300 to the inch: `output/figure.pdf`
+  = help: a plot is written as `.pdf` or `.svg`, drawn with lines and sharp at any size, as `.png`, in dots at 300 to the inch, or as `.typ`, its drawing placed in a Typst document: `output/figure.pdf`
 
 == not_a_word
 error[Z0402]: `poster` is not one of the allowed words
@@ -262,7 +262,7 @@ error[Z0716]: `w.svg`: `.svg` is the format of a figure, and this is not a plot
 3 | w.describe().export("w.svg")
   |                     ^^^^^^^ not a format of a table
   |
-  = help: a table is written as `.docx` (Word) or `.tex` (LaTeX): `output/w.docx`
+  = help: a table is written as `.docx` (Word), `.tex` (LaTeX) or `.typ` (Typst): `output/w.docx`
 
 == a_figure_format_for_a_result
 note: 6 rows with NA in educ or wage dropped (line 2)
@@ -272,7 +272,7 @@ error[Z0716]: `m.pdf`: `.pdf` is the format of a figure, and this is not a plot
 3 | w.reg(wage ~ educ).export("m.pdf")
   |                           ^^^^^^^ not a format of a table
   |
-  = help: a table is written as `.docx` (Word) or `.tex` (LaTeX): `output/m.docx`
+  = help: a table is written as `.docx` (Word), `.tex` (LaTeX) or `.typ` (Typst): `output/m.docx`
 
 == a_frame
 error[Z0401]: `export` cannot be called on a Frame

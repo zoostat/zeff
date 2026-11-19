@@ -6172,3 +6172,25 @@ Where the option is not a word written in the call (it comes from a record of op
 
 **Reason.** The review against R of 19 November 2026; the checklist's step 20l.
 
+## 19 November 2026: `export` writes Typst (release 0.8.0, step 21a; open decision #73)
+
+**What is written.** `x.export("name.typ")` writes a table, a result or a plot as a Typst file, beside `.docx` and `.tex`. The writer is text alone; nothing is linked into the engine and no dependency is added.
+
+**A table.** A `table` with no cell borders, in the layout of the LaTeX form: a rule above the headings (0.8 pt), one under them (0.5 pt), one above each row the table rules (the statistics of a `report`), one below (0.8 pt); the columns aligned as printed; the title in a comment; the lines above and below the printed grid as rows across the table under the last rule, at 0.85 of the type size. A result with no grid (a test with an estimate) is its lines in one column between two rules, as in LaTeX. A further table (the N per pair of `correlation`) follows after a blank line.
+
+**Every cell is a string.** Typst markup gives a meaning to `#`, `$`, `*`, `_`, `[`, `<`, `@`, `~`, `=`, `-` and more, and a term's name may hold any of them. Written as content, each would need its escape, and a new Typst could add another. Written as a string, `"exper^2"`, nothing is markup: only the backslash and the quote are escaped (and a line break, a return and a tab written as `\n`, `\r`, `\t`). A Typst file is UTF-8 and its default font has the letters and signs the tables use (`²`, `·`, `−`, `×`, `≠`, the Greek of the hypotheses), so they are written as they are; the test compiles every kind of result and requires that the compiler warn of nothing, which it would for a character without a glyph.
+
+**How it is placed.** The file is content, not a document: `#include "table.typ"`, or `#figure(include "table.typ", caption: [...])` for a number and a caption. Its first line says so. It needs Typst 0.11 (the rules and the header of a table) and no package.
+
+**A plot.** `p.export("fig.typ")` writes `#image(bytes("…"), format: "svg")` with the SVG that `.svg` writes inside the string, so the file stands alone and is placed at the drawing's own size; the spike of 0.7.0 found that Typst places Zeff's SVG as lines and keeps its words searchable. Typst 0.13 or later (an image read from bytes). The other choice, a `.typ` that names an `.svg` beside it, makes two files of one export and breaks when one is moved.
+
+**Notes that are wider than the grid** widen the last column, as the full-width rows do in LaTeX. Setting the notes outside the table would keep the columns, but a table inside a stack cannot break across pages, and a long table matters more than a wide note. Left as the LaTeX form has it.
+
+**Messages.** The help lines of Z0716 name `.typ` among the formats of a table and of a plot; the code and its sentences are otherwise unchanged, as the checklist asks.
+
+**Held by.** `zeff-engine/tests/export.rs`: `every_kind_of_result_is_written_as_typst_that_compiles` (a report, a fit, a Wald test, two t tests, a correlation, a description with a name full of markup characters, a plot; the texts stored; compiled into one PDF by Typst 0.15.0 on this machine with no warning; the plot's file equal to the wrapping of the `.svg` export) and `a_typst_string_holds_any_text` (the escapes, and Typst asserting the length of each text it reads back). The conformance report gains `export/sample.typ`, the same bytes on the four targets. CI has no `typst` command, so there the tests check the text and skip the compilation, as the LaTeX test does without pdfLaTeX.
+
+**The catalogue.** Row 165's description names Typst (logged in `docs/spec_changes.md`).
+
+**Reason.** Open decision #73, decided 15 November 2026 (option A in steps); the checklist's step 21a.
+
