@@ -6342,3 +6342,21 @@ The library takes `hypher` with every language, and a crate that uses the librar
 - In a function written in Zeff, the line of help under a mistake's message lost the two columns it stands in (`mistake prints:` takes the spaces after its colon away). It keeps them now, and a unit test holds it.
 - The made-up page of `print` in the properties tests of `zeff-ir` gained its table and its caption.
 
+## 19 November 2026: the pages of `text` revised (release 0.8.0, step 22c; open decision #103)
+
+**The split.** Step 22c held two packages; `text` (13 pages) is done here and `time` (10 pages) is step 22c2.
+
+**Done as the pages of `core` were**, for `upper`, `lower`, `trim`, `contains`, `starts_with`, `ends_with`, `replace`, `extract`, `split`, `join`, `slice`, `pad` and `format`. The list of unrevised pages holds 155.
+
+**The row-by-row example.** The shipped data has little text: the wages and the firms have a category of industries, whose labels the text functions read, and that is shown where it serves (`contains`, `starts_with`, `upper`, `format` of the firms' dates). For names and codes typed by hand, which is what these functions are for, the pages use one small frame written in the statement, three people with stray spaces, mixed case, a missing name and a code of a letter and a number.
+
+**The mistakes chosen.** Four are the same mistake seen from four functions: a character that means something in a regular expression (`(`, `+`, `[`), given as the text to look for; the page says to leave `regex:` off or to escape it. `extract`: look-ahead, which a pattern written for R with `perl = TRUE` may have and which these expressions do not. `slice`: counting from 0. `pad`: a fill of two characters. `format`: a `sprintf` pattern for a number.
+
+**A line of mine that the build refused, rightly.** A related task on the page of `join` said that `+` puts two texts together; it does not, and the build, which checks that each related task ends in a function's name, stopped it before any reader saw it.
+
+**Said of R and Stata.** R's `grepl` reads its pattern as a regular expression unless told otherwise, and gives `FALSE` for a missing text; R's `regmatches` leaves out the texts with no match, so its result no longer lines up with the data; R's `format(x, digits = 2)` counts significant digits; `paste` has `sep` and `collapse`; R's `substr` takes the last position, not a length. Stata's `strupper`, `strlower`, `strtrim` and `substr` work on the letters a to z, on blanks and on bytes, with `ustr` forms for the rest; its `subinstr` needs a full stop to replace every occurrence; its `replace` is the command that changes a variable, which is `update` here, and its `split` makes new variables from one, which nothing here does in one call. For a date's pattern in Stata the table gives `string(d, "%td")` and says in words that Stata has letters of its own, without spelling a format that could not be run here.
+
+**The tools.** The two scripts that build and fill the pages take the help folder from the environment now, so that they serve any package.
+
+**Reason.** Open decision #103; the checklist's step 22c.
+

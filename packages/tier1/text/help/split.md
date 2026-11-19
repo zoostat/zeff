@@ -22,17 +22,49 @@ read is Z0419. `NA` in either argument gives `NA`. `split` works on one text, no
 ## Value
 A list of Strs.
 
+## Missing values
+`NA` in the text or in the separator gives `NA`.
+
+## A common mistake
+Splitting at a character that means something in a regular expression. A square bracket opens a class of characters there, and alone it cannot be read:
+
+> split("a[1]", "[")
+error[Z0419]: `[` is not a regular expression: unclosed character class
+  = help: the syntax is Rust's `regex` crate's: Unicode classes, no back-references or look-around (section 3.8); for a literal text, leave `regex:` off
+
+Escape the character in a raw string: `split("a[1]", r"\[")` gives `a` and `1]`.
+
+## Coming from R or Stata
+| split(s, ",") | strsplit(s, ",", perl = TRUE)[[1]] | tokenize "`s'", parse(",") |
+
+R's `strsplit` drops an empty piece after a trailing separator; here every piece is kept, so the
+pieces joined again give the text back. Stata's `split` is a command that makes new variables
+from one variable of the data; `split` here works on one text and gives a list.
+
+## Related tasks
+- To put pieces together, use `join`.
+- For one part of every row of a variable, use `extract`.
+
 ## See also
 join, extract, replace, contains
 
 ## Examples
+// Pieces between commas.
 > split("a,b,c", ",")
 a
 b
 c
+
+// The separator is a regular expression: any run of white space.
 > split("one  two three", r"\s+")
 one
 two
 three
+
+// The empty piece after a trailing separator is kept: three pieces.
 > len(split("a,b,", ","))
 3
+
+// Split and joined again with another separator.
+> join(split("2026-10-16", "-"), sep: "/")
+2026/10/16

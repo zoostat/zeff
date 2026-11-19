@@ -18,13 +18,39 @@ Like R's `tolower`.
 ## Value
 A Str of the same length; a column of Strs when `s` is a column.
 
+## Missing values
+`NA` gives `NA`. In a column each row is taken by itself: a row with `NA` stays `NA`, no row is dropped and nothing is printed for it.
+
+## Coming from R or Stata
+| lower(s) | tolower(s) | strlower(s), or ustrlower(s) |
+
+Stata's `strlower` changes the letters A to Z only; `ustrlower` knows the accented ones. R's
+`tolower` follows the computer's language setting; here the mapping is Unicode's and the same on
+every machine.
+
+## Related tasks
+- For capitals, use `upper`.
+- To test a text without regard to case, use `contains`.
+
 ## See also
 upper, trim, len
 
 ## Examples
-> lower("ÉCOLE")
-école
-> lower("MiXeD 123")
-mixed 123
-> lower("Привет")
-привет
+// Accented capitals have their small letters.
+> lower("ÉCOLE Straße")
+école straße
+
+// Digits and spaces are unchanged.
+> lower("Mixed Case 1")
+mixed case 1
+
+// Row by row, to make codes typed two ways the same.
+> let people = frame(name = ["  Ann Lee", "bob STONE ", NA], code = ["A-12", "b-7", "C-103"])
+> people.add(code = lower(code))
+frame · 3 rows × 2 variables
+
+      name         code
+  1     Ann Lee    a-12
+  2   bob STONE    b-7
+  3   NA           c-103
+note: `code` replaced the variable of that name (line 4)

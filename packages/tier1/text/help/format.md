@@ -3,6 +3,11 @@
 ## Summary
 Number or date to text
 
+## In brief
+- `format(x, digits: 2)`: a number with two decimal places, as text.
+- `format(x, digits: 0, big_mark: ",")`: with a separator between every three digits.
+- `format(d, pattern: "%d %B %Y")`: a date written by a pattern, `16 October 2026`.
+
 ## Description
 Writes `x` as text. A number without options prints as section 3.8 of the Language Reference
 prints it: an Int in full, a Float to six significant digits with trailing zeros dropped; with
@@ -30,34 +35,78 @@ by name rather than by a format code.
 ## Value
 A Str; a column of Strs when `x` is a column.
 
+## Missing values
+`NA` gives `NA`. In a column each row is taken by itself: a row with `NA` stays `NA`, no row is dropped and nothing is printed for it.
+
 ## Details
 Exact: the decimals are those of the correctly rounded decimal expansion of the value, so every
 target writes the same text; the calendar names are English, whatever the machine's locale.
+
+## A common mistake
+Giving a number a pattern, as `sprintf` takes one in R. `pattern:` is for dates and times; a number is shaped by `digits:` and `big_mark:`:
+
+> format(3.14159, pattern: "%.2f")
+error[Z0401]: `pattern:` of `format` does not apply to a Float
+  = help: `pattern:` prints a date or a time, as `pattern: "%d/%m/%Y"`; a number is shaped by `digits:` and `big_mark:`
+
+Say the decimals by name: `format(3.14159, digits: 2)` is `3.14`.
+
+## Coming from R or Stata
+| format(x, digits: 2) | formatC(x, format = "f", digits = 2) | string(x, "%9.2f") |
+| format(x, digits: 0, big_mark: ",") | format(x, big.mark = ",") | string(x, "%12.0fc") |
+| format(d, pattern: "%d %B %Y") | format(d, "%d %B %Y") | string(d, "%td") |
+
+In R's own `format`, `digits` counts significant digits, not decimal places, and `nsmall` is the
+least number of decimals; here `digits:` is the number of decimal places, always. R writes the
+names of months in the computer's language; here they are English everywhere. Stata writes a
+date by a `%td` format with letters of its own.
+
+## Related tasks
+- To round a number and keep it a number, use `round`.
+- To convert without shaping, use `to`.
+- To print values on one line, use `print`.
 
 ## See also
 to, round, date, print
 
 ## Examples
+// Two decimal places.
 > format(1234567.891, digits: 2)
 1234567.89
+
+// A separator between every three digits.
 > format(1234567.891, digits: 2, big_mark: ",")
 1,234,567.89
+
+// Trailing zeros are kept.
 > format(42, digits: 1)
 42.0
-> format(2.675, digits: 2)
-2.67
-> format(1 / 3)
-0.333333
+
+// A date by a pattern.
 > format(date("2026-10-16"), pattern: "%d %B %Y")
 16 October 2026
-> format(date("2026-10-16"), pattern: "%a %b %y")
-Fri Oct 26
+
+// A date and time.
 > format(datetime("2026-10-16T09:05"), pattern: "%Y-%m-%d %H:%M")
 2026-10-16 09:05
-> let sales = frame(sold = [date("2026-01-05"), date("2024-02-29")], amount = [1250.5, 980])
-> sales.add(month = format(sold, pattern: "%b %Y"), text = format(amount, digits: 2, big_mark: ","))
-frame · 2 rows × 4 variables
 
-      sold         amount   month      text
-  1   2026-01-05   1250.5   Jan 2026   1,250.50
-  2   2024-02-29      980   Feb 2024   980.00
+// Row by row on the shipped firms: the month each was founded.
+> dataset(firms).head(3).add(since = format(founded, pattern: "%B %Y"))
+frame · 3 rows × 5 variables
+
+      firm   industry      size   founded      since
+  1      1   Agriculture      3   1990-11-06   November 1990
+  2      2   Agriculture      5   1957-07-02   July 1957
+  3      3   Agriculture      3   1998-11-07   November 1998
+
+// Row by row on the shipped wages: each wage to one decimal; the missing one stays missing.
+> let w = dataset(wages).where(worker == 19).select([worker, year, wage, hours, exper])
+> w.add(shown = format(wage, digits: 1))
+frame · 5 rows × 6 variables · panel worker × year
+
+      worker   year    wage   hours   exper   shown
+  1       19   2012   12.64    29.2       0   12.6
+  2       19   2013   25.18    31.4       0   25.2
+  3       19   2014   35.49    33.5       1   35.5
+  4       19   2015   26.07    58.2       2   26.1
+  5       19   2016      NA      30       3   NA

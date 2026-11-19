@@ -130,3 +130,13 @@ Steps 22a, 22a2, 22b and 22b2 `[function]`, two steps of the checklist counted a
 
 **For the owner to decide.** Nothing new. The earlier items stand.
 
+## 19 November 2026, release 0.8.0, step 22c (the pages of `text`)
+
+**Done.** Step 22c `[function]`, split from `time`: the 13 pages of `text` brought to the contract. The list of unrevised pages holds 155.
+
+**Green.** Format, clippy with warnings denied, the tier, message and grammar checks, every test of the workspace; CI read after the push. The CI of step 22b3 (097f5fa) is read with this one.
+
+**Next.** Step 22c2 `[function]`: the 10 pages of `time`, the last step of block F.
+
+**For the owner to decide.** Nothing new. The earlier items stand.
+
