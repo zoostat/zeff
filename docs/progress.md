@@ -58,6 +58,8 @@ Step 2 `[function]`: the names of #112 in the catalogue and the volumes. `glm` (
 
 Step 4 `[engine]`: the likelihood trait and the shared optimiser. The kernels fit any model whose log-likelihood runs through one linear predictor per row, by Fisher scoring or Newton's method, with step halving; `results` holds the trait and the binomial family with the logit and probit links. On a design of 400 generated rows and on the wages, the coefficients, log-likelihood, deviance and variance agree with R's `glm` (iterated to its maximum) to 15 digits; the stopping rule also waits for the coefficients to be still, which R's does not, so R's own probit fit had to be refitted from its answer to reach the maximum. CI green for step 2 (c2270b0).
 
-**Next.** Step 5 `[engine]`: `glm` with `family: binomial`. Step 3, the weekly run of 23 November, when it has ended.
+Beside the checklist: the owner's answers to the seventeen questions of Zemp Lite 0.2 entered in the register and both specifications (c6d55e7). Step 5 split in two; step 5a `[engine]`: the package `glm`, `data.glm(formula, family: binomial, link: logit | probit, level:)` and the result type `GlmFit`; the printed table with z values and, under it, the log-likelihood, AIC, McFadden's R², the deviance and the iterations, every figure equal to R's `glm` on the wages; the methods not yet right for a likelihood fit (`test`, `compare`, `derive`, `residuals`, `fit_measures`, `predict`, `report`) refuse it until step 8, in words the close's check will not let stand.
+
+**Next.** Step 5b `[engine]`: the refusals and the edge cases of `glm`. Step 3, the weekly run of 23 November, when it has ended.
 
 **For the owner to decide or do.** Nothing blocks. The R packages `marginaleffects`, `rstatix` and `pROC` for the reference library (and `ivmodel`, `ivDiag`), if he wants the references held to them; the signing key at step 23; the archive link of #161; the reader test at step 45.

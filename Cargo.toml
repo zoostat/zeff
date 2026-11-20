@@ -18,6 +18,7 @@ members = [
     "packages/tier1/stats",
     "packages/tier1/plot",
     "packages/tier2/regress",
+    "packages/tier2/glm",
     "crates/zeff-syntax",
     "crates/zeff-ir",
     "crates/zeff-engine",
@@ -61,6 +62,7 @@ zeff-results = { path = "packages/tier1/results" }
 zeff-stats = { path = "packages/tier1/stats" }
 zeff-plot = { path = "packages/tier1/plot" }
 zeff-regress = { path = "packages/tier2/regress" }
+zeff-glm = { path = "packages/tier2/glm" }
 zeff-dates = { path = "kernel/zeff-dates" }
 zeff-diagnostics = { path = "kernel/zeff-diagnostics" }
 zeff-hash = { path = "kernel/zeff-hash" }

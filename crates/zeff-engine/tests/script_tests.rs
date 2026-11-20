@@ -518,6 +518,8 @@ fn the_sample_script_of_the_specification_checks_with_its_module() {
         .count();
     // At 0.7.0: 75 statements, 63 taken whole; 12 waited for `ivreg`, `first_stage`, `logistic`,
     // `probit`, `reliability`, the `dag { }` block and its three functions. From release 0.8.0,
-    // step 13b, `ivreg` is taken, and from step 14b `first_stage`: 10 wait.
-    assert_eq!((parsed.script.items.len(), waiting), (75, 10));
+    // step 13b, `ivreg` is taken, and from step 14b `first_stage`: 10 wait. From release 0.9.0,
+    // step 5a, `glm`: the two fits without `cluster:` and the one inside `attempt` are taken,
+    // and the two with `cluster:` wait for step 7: 7 wait.
+    assert_eq!((parsed.script.items.len(), waiting), (75, 7));
 }

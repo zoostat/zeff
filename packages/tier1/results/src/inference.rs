@@ -21,7 +21,10 @@ use zeff_numeric::maths;
 /// The regression fit at argument `at`; a test's result has no coefficients.
 fn regression(ctx: &CallContext<'_>, args: &Args, at: usize, name: &str) -> Result<Rc<Fit>, Fail> {
     match args.get(at) {
-        Some(Value::Fit(fit)) => Ok(Rc::clone(fit)),
+        Some(Value::Fit(fit)) => {
+            crate::interface::refuse_likelihood(ctx, fit, name)?;
+            Ok(Rc::clone(fit))
+        }
         other => Err(fail(
             Diagnostic::error(
                 "Z0401",

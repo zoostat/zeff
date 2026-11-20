@@ -1,0 +1,54 @@
+//! Package glm (tier 2): generalized linear models (Engine and Project Specification, sections
+//! 8.2 and 14; open decision #112). At this release one function, `glm`, with the binomial
+//! family and the logit and probit links, fitted by maximum likelihood through the shared
+//! optimiser of the kernels and the likelihood trait of `results`; further families and links
+//! are words added to `family:` and `link:` from release 1.7.
+
+pub mod binary;
+
+use zeff_core::runtime::Function;
+use zeff_registry::{AccuracyRecord, DiagnosticDecl, FunctionSpec, ParamSpec};
+
+/// The functions of `glm` in this release, with their help pages.
+pub fn functions() -> Vec<Function> {
+    vec![Function {
+        spec: FunctionSpec {
+            name: "glm",
+            package: "glm",
+            method: true,
+            params: vec![
+                ParamSpec::required("data", "Frame"),
+                ParamSpec::required("formula", "Formula"),
+                ParamSpec::option("family", "binomial"),
+                ParamSpec::option_with_default("link", "logit | probit", "logit"),
+                ParamSpec::option_with_default("level", "Float", "0.95"),
+            ],
+            rest: None,
+            returns: "GlmFit",
+            diagnostics: vec![
+                DiagnosticDecl::note(
+                    "a term written twice kept once; a collinear column, a level with no observations, a zero column or one too small or too large to scale dropped; a fit that did not converge",
+                ),
+                DiagnosticDecl::new("Z0406", "`family:` left out"),
+                DiagnosticDecl::new(
+                    "Z0401",
+                    "an outcome that is not 0 and 1, or true and false; a level outside (0, 1)",
+                ),
+                DiagnosticDecl::new(
+                    "Z0801",
+                    "no row remains to fit the model",
+                ),
+                DiagnosticDecl::new(
+                    "Z0803",
+                    "the estimates diverge, so that maximum likelihood does not exist",
+                ),
+            ],
+            help: include_str!("../help/glm.md"),
+            accuracy: Some(AccuracyRecord {
+                reference: "R 4.6.0 glm(family = binomial) with the logit and probit links, iterated to its maximum (tests/reference/r/binary.R)".to_string(),
+                last_run: None,
+            }),
+        },
+        body: binary::glm,
+    }]
+}

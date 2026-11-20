@@ -4,9 +4,11 @@
 
 use crate::design::Design;
 use crate::estimator::Fitted;
-use zeff_core::display::{fixed, p_value_text};
-use zeff_core::value::{Align, Distribution, Fit, FixedEffect, Formula, Table};
-use zeff_diagnostics::count;
+use std::rc::Rc;
+use zeff_core::display::{fixed, fixed_grouped, p_value_text};
+use zeff_core::runtime::CallContext;
+use zeff_core::value::{Align, Distribution, Fit, FixedEffect, Formula, LikelihoodFit, Table};
+use zeff_diagnostics::{Diagnostic, count};
 use zeff_dist::families;
 use zeff_kernels::Matrix;
 use zeff_numeric::order::WeightKind;
@@ -179,6 +181,7 @@ pub fn linear_fit(design: &Design, fitted: &Fitted, vcov: &Matrix, setting: &Set
             sum * fitted.scales[i] * fitted.scales[j]
         })
         .collect();
+    let (title, after) = linear_title_and_measures(setting, r_squared, adjusted, r_squared_within);
     let summary = summary_of(
         design,
         &terms,
@@ -189,9 +192,11 @@ pub fn linear_fit(design: &Design, fitted: &Fitted, vcov: &Matrix, setting: &Set
         &p_values,
         &intervals,
         setting,
-        r_squared,
-        adjusted,
-        r_squared_within,
+        Lines {
+            title,
+            statistic: "t value",
+            after: vec![after],
+        },
     );
     Fit {
         kind: "RegFit",
@@ -244,7 +249,289 @@ pub fn linear_fit(design: &Design, fitted: &Fitted, vcov: &Matrix, setting: &Set
         r_squared_within,
         adjusted_r_squared_within,
         instrumented: None,
+        likelihood: None,
     }
+}
+
+/// The fit value of a model fitted by maximum likelihood (release 0.9.0, step 5a): the z table
+/// of the estimates under the variance `vcov`, normal p-values and intervals, and under the
+/// table the log-likelihood, AIC and McFadden's R², then the deviance against the null
+/// deviance and how many iterations the optimiser took. `log_likelihood` and `null` are the
+/// log-likelihoods of the model and of the intercept alone.
+pub fn likelihood_fit(
+    design: &Design,
+    fitted: &Fitted,
+    vcov: &Matrix,
+    setting: &Setting<'_>,
+    likelihood: LikelihoodFit,
+    log_likelihood: f64,
+    null: f64,
+) -> Fit {
+    let k = fitted.kept.len();
+    let terms: Vec<String> = fitted
+        .kept
+        .iter()
+        .map(|&c| design.names[c].clone())
+        .collect();
+    let omitted: Vec<String> = fitted
+        .omitted
+        .iter()
+        .map(|&c| design.names[c].clone())
+        .collect();
+    let std_errors: Vec<f64> = (0..k).map(|i| vcov.get(i, i).sqrt()).collect();
+    let statistics: Vec<f64> = fitted
+        .estimates
+        .iter()
+        .zip(&std_errors)
+        .map(|(b, se)| b / se)
+        .collect();
+    let p_values: Vec<f64> = statistics
+        .iter()
+        .map(|z| (2.0 * zeff_numeric::special::normal_tails(z.abs()).upper).min(1.0))
+        .collect();
+    let q = zeff_numeric::special::normal_quantile((1.0 - setting.level) / 2.0, true);
+    let intervals: Vec<(f64, f64)> = fitted
+        .estimates
+        .iter()
+        .zip(&std_errors)
+        .map(|(b, se)| (b - q * se, b + q * se))
+        .collect();
+    let aic = -2.0 * log_likelihood + 2.0 * k as f64;
+    let mcfadden = if null < 0.0 {
+        1.0 - log_likelihood / null
+    } else {
+        f64::NAN
+    };
+    let after = vec![
+        format!(
+            "log-likelihood {} · AIC {} · McFadden R² {}",
+            fixed_grouped(log_likelihood, 2),
+            fixed_grouped(aic, 2),
+            fixed(mcfadden, 3)
+        ),
+        format!(
+            "deviance {} on {} df · null deviance {} on {} df",
+            fixed_grouped(likelihood.deviance, 2),
+            count(likelihood.df_deviance as u64),
+            fixed_grouped(likelihood.null_deviance, 2),
+            count(likelihood.df_null as u64),
+        ),
+        format!(
+            "{} {} {} of {}",
+            if likelihood.converged {
+                "converged in"
+            } else {
+                "stopped after"
+            },
+            likelihood.iterations,
+            if likelihood.iterations == 1 {
+                "iteration"
+            } else {
+                "iterations"
+            },
+            likelihood.method
+        ),
+    ];
+    let title = format!(
+        "{} · {} · {}, {}",
+        setting.method, setting.formula, likelihood.family, likelihood.link
+    );
+    let summary = summary_of(
+        design,
+        &terms,
+        &omitted,
+        &fitted.estimates,
+        &std_errors,
+        &statistics,
+        &p_values,
+        &intervals,
+        setting,
+        Lines {
+            title,
+            statistic: "z value",
+            after,
+        },
+    );
+    let (term_sd, outcome_sd) = deviations(design, fitted);
+    let gram = |inverse: bool| -> Vec<f64> {
+        let factor = if inverse {
+            zeff_kernels::triangular::inverse_upper(&fitted.r)
+                .expect("the accepted pivots are not zero")
+        } else {
+            fitted.r.clone()
+        };
+        (0..k)
+            .flat_map(|i| (0..k).map(move |j| (i, j)))
+            .map(|(i, j)| {
+                let mut sum = 0.0;
+                for l in 0..k {
+                    sum += if inverse {
+                        factor.get(i, l) * factor.get(j, l)
+                    } else {
+                        factor.get(l, i) * factor.get(l, j)
+                    };
+                }
+                if inverse {
+                    sum * fitted.scales[i] * fitted.scales[j]
+                } else {
+                    sum / (fitted.scales[i] * fitted.scales[j])
+                }
+            })
+            .collect()
+    };
+    let df_residual = likelihood.df_deviance;
+    Fit {
+        kind: "GlmFit",
+        name: None,
+        source: None,
+        method: setting.method.to_string(),
+        formula: setting.formula.to_string(),
+        terms,
+        omitted,
+        estimates: fitted.estimates.clone(),
+        std_errors,
+        statistics,
+        p_values,
+        intervals,
+        vcov: (0..k)
+            .flat_map(|i| (0..k).map(move |j| (i, j)))
+            .map(|(i, j)| vcov.get(i, j))
+            .collect(),
+        se_kind: setting.se_line.to_string(),
+        level: setting.level,
+        n: setting.n,
+        dropped: design.dropped,
+        dropped_in: design.dropped_in.clone(),
+        df_residual,
+        rows: design.rows.clone(),
+        residuals: fitted.residuals.clone(),
+        fitted: fitted.fitted.clone(),
+        leverage: fitted.leverage.clone(),
+        r_squared: None,
+        adjusted_r_squared: None,
+        log_likelihood,
+        // The deviance stands where a least-squares fit keeps its residual sum of squares, and
+        // the dispersion of the binomial family, one, where it keeps σ.
+        residual_sum_of_squares: likelihood.deviance,
+        sigma: 1.0,
+        condition_number: fitted.condition_number,
+        notes: design.notes.clone(),
+        warnings: Vec::new(),
+        term_sd,
+        outcome_sd,
+        summary,
+        model: setting.model.clone(),
+        levels: setting.levels.clone(),
+        frame_rows: setting.frame_rows,
+        weights: design.weights.clone(),
+        weight_kind: design.weight_kind,
+        // The information XᵀWX at the solution, and its inverse.
+        gram: gram(false),
+        inverse_gram: gram(true),
+        effects: Vec::new(),
+        singletons: 0,
+        absorbed_parameters: 0,
+        r_squared_within: None,
+        adjusted_r_squared_within: None,
+        instrumented: None,
+        likelihood: Some(Rc::new(likelihood)),
+    }
+}
+
+/// The notes for the columns a fit dropped, each kind in its own words (section 7.2,
+/// "Collinearity"): a column the fixed effects absorbed (`absorbed_columns`, with the effects as
+/// written), a category level with no observations among the rows used, a column that is zero
+/// in every row, a column whose values are too small or too large to be scaled, and the rest
+/// collinear with the columns before them. Each is printed and kept in `notes`.
+pub fn dropped_notes(
+    ctx: &mut CallContext<'_>,
+    notes: &mut Vec<String>,
+    design: &Design,
+    fitted: &Fitted,
+    absorbed_columns: &[usize],
+    effects_text: &str,
+) {
+    // The columns dropped, each kind with its own note: a category level with no observations
+    // among the rows used, a column that is zero in every row, a column whose values are too
+    // small to be scaled, and the rest collinear with the columns before them.
+    let names = |columns: &[usize]| -> Vec<String> {
+        columns
+            .iter()
+            .map(|&c| format!("`{}`", design.names[c]))
+            .collect()
+    };
+    let note = |ctx: &mut CallContext<'_>,
+                notes: &mut Vec<String>,
+                listed: Vec<String>,
+                one: &str,
+                several: &str| {
+        let text = match listed.len() {
+            0 => return,
+            1 => format!("{} {one}", listed[0]),
+            _ => format!("{} {several}", listed.join(", ")),
+        };
+        notes.push(text.clone());
+        ctx.message(Diagnostic::plain_note(text));
+    };
+    // A column the fixed effects absorbed (section 7.2, "Collinearity") is zeroed by the
+    // projection and dropped by the fit; it is named so, and not as a zero column.
+    note(
+        ctx,
+        notes,
+        names(absorbed_columns),
+        &format!("is absorbed by fe: {effects_text} and was dropped"),
+        &format!("are absorbed by fe: {effects_text} and were dropped"),
+    );
+    let (levels, zeros): (Vec<usize>, Vec<usize>) = fitted
+        .zero
+        .iter()
+        .filter(|c| !absorbed_columns.contains(c))
+        .partition(|&&c| design.names[c].contains('='));
+    note(
+        ctx,
+        notes,
+        names(&levels),
+        "has no observations among the rows used and was dropped",
+        "have no observations among the rows used and were dropped",
+    );
+    note(
+        ctx,
+        notes,
+        names(&zeros),
+        "is zero in every row used and was dropped",
+        "are zero in every row used and were dropped",
+    );
+    note(
+        ctx,
+        notes,
+        names(&fitted.vanishing),
+        "has values too small to be scaled (below 1e-150 in size) and was dropped",
+        "have values too small to be scaled (below 1e-150 in size) and were dropped",
+    );
+    note(
+        ctx,
+        notes,
+        names(&fitted.oversized),
+        "has values too large to be scaled (above 1e150 in size) and was dropped",
+        "have values too large to be scaled (above 1e150 in size) and were dropped",
+    );
+    let collinear: Vec<usize> = fitted
+        .omitted
+        .iter()
+        .copied()
+        .filter(|c| {
+            !fitted.zero.contains(c)
+                && !fitted.vanishing.contains(c)
+                && !fitted.oversized.contains(c)
+        })
+        .collect();
+    note(
+        ctx,
+        notes,
+        names(&collinear),
+        "is collinear with the columns before it and was dropped",
+        "are collinear with the columns before them and were dropped",
+    );
 }
 
 /// The confidence level as a column heading writes it: `95% CI`, `99.9% CI`.
@@ -258,8 +545,55 @@ fn level_heading(level: f64) -> String {
     format!("{text}% CI")
 }
 
-/// The summary of question 3 (a): `reg · formula`, the N line, the weights line when weighted,
-/// the standard-error line, the table of section 10.2, and the fit measures.
+/// The title of a fit's summary, the heading of its statistic and the lines under its table.
+struct Lines {
+    title: String,
+    statistic: &'static str,
+    after: Vec<String>,
+}
+
+/// The title of a least-squares fit, `reg · formula` (with `· fe: ...` under fixed effects),
+/// and the line of its fit measures under the table.
+fn linear_title_and_measures(
+    setting: &Setting<'_>,
+    r_squared: Option<f64>,
+    adjusted: Option<f64>,
+    r_squared_within: Option<f64>,
+) -> (String, String) {
+    let measure = |x: Option<f64>| x.map_or("NA".to_string(), |v| fixed(v, 3));
+    if setting.effects.is_empty() {
+        (
+            format!("{} · {}", setting.method, setting.formula),
+            format!(
+                "R² {} · adjusted R² {}",
+                measure(r_squared),
+                measure(adjusted)
+            ),
+        )
+    } else {
+        (
+            format!(
+                "{} · {} · fe: {}",
+                setting.method,
+                setting.formula,
+                setting
+                    .effects
+                    .iter()
+                    .map(|e| e.name.as_str())
+                    .collect::<Vec<_>>()
+                    .join(" + ")
+            ),
+            format!(
+                "R² within {} · R² overall {}",
+                measure(r_squared_within),
+                measure(r_squared)
+            ),
+        )
+    }
+}
+
+/// The summary of question 3 (a): the title, the N line, the weights line when weighted, the
+/// standard-error line, the table of section 10.2, and the lines under it.
 #[allow(clippy::too_many_arguments)]
 fn summary_of(
     design: &Design,
@@ -271,9 +605,7 @@ fn summary_of(
     p_values: &[f64],
     intervals: &[(f64, f64)],
     setting: &Setting<'_>,
-    r_squared: Option<f64>,
-    adjusted: Option<f64>,
-    r_squared_within: Option<f64>,
+    lines: Lines,
 ) -> Table {
     let mut before = Vec::new();
     let n_line = match &setting.n_note {
@@ -325,49 +657,19 @@ fn summary_of(
             ),
         ]);
     }
-    let measure = |x: Option<f64>| x.map_or("NA".to_string(), |v| fixed(v, 3));
-    let (title, after) = if setting.effects.is_empty() {
-        (
-            format!("{} · {}", setting.method, setting.formula),
-            format!(
-                "R² {} · adjusted R² {}",
-                measure(r_squared),
-                measure(adjusted)
-            ),
-        )
-    } else {
-        (
-            format!(
-                "{} · {} · fe: {}",
-                setting.method,
-                setting.formula,
-                setting
-                    .effects
-                    .iter()
-                    .map(|e| e.name.as_str())
-                    .collect::<Vec<_>>()
-                    .join(" + ")
-            ),
-            format!(
-                "R² within {} · R² overall {}",
-                measure(r_squared_within),
-                measure(r_squared)
-            ),
-        )
-    };
     Table {
-        title,
+        title: lines.title,
         before,
         columns: vec![
             ("term".to_string(), Align::Left),
             ("estimate".to_string(), Align::Right),
             ("std.error".to_string(), Align::Right),
-            ("t value".to_string(), Align::Right),
+            (lines.statistic.to_string(), Align::Right),
             ("p value".to_string(), Align::Right),
             (level_heading(setting.level), Align::Left),
         ],
         rows: rows_out,
-        after: vec![after],
+        after: lines.after,
         more: Vec::new(),
         rules: Vec::new(),
     }

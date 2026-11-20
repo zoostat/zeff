@@ -1,0 +1,24 @@
+[package]
+name = "zeff-glm"
+description = "Package glm (tier 2): generalized linear models; at this release the binary family, with the logit and probit links."
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+publish = false
+
+[lints]
+workspace = true
+
+[dependencies]
+zeff-core.workspace = true
+zeff-diagnostics.workspace = true
+zeff-registry.workspace = true
+zeff-results.workspace = true
+zeff-kernels.workspace = true
+
+[dev-dependencies]
+zeff-columns.workspace = true
+zeff-datasets.workspace = true
+zeff-testkit.workspace = true
+insta = "=1.49.0"
+serde_json = "=1.0.154"

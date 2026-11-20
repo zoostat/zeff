@@ -575,6 +575,7 @@ fn reads_data(ty: &str) -> bool {
         "Result",
         "RegFit",
         "IvFit",
+        "GlmFit",
         "TestResult",
     ]
     .iter()

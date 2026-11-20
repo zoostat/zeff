@@ -178,7 +178,7 @@ impl FunctionSpec {
 /// The result types of this release (Language Reference, section 4): the kinds a `Result` may be.
 /// A method registered on `Result` applies to every one of them and one registered on a kind to
 /// that kind alone (Engine and Project Specification, section 8.1, rules 5 and 6).
-pub const RESULT_KINDS: &[&str] = &["RegFit", "IvFit", "TestResult"];
+pub const RESULT_KINDS: &[&str] = &["RegFit", "IvFit", "GlmFit", "TestResult"];
 
 /// Whether a type written in a signature is a result type: the interface `Result` or one of its
 /// kinds.

@@ -10,7 +10,7 @@ use crate::iv::{Column, Designs, Projection, TwoStage, estimate};
 use crate::ols::{Ols, internal};
 use crate::reg::{
     At, CONDITION_WARNING, Choices, checked_variance, choices, cluster_and_weight_warnings,
-    dropped_notes, observations, se_line, weights_line,
+    observations, se_line, weights_line,
 };
 use std::rc::Rc;
 use zeff_core::runtime::{Args, CallContext, Fail, fail};
@@ -18,6 +18,7 @@ use zeff_core::value::{FitSource, FixedEffect, Instrumented, Table, Term, Value,
 use zeff_diagnostics::{Diagnostic, count};
 use zeff_results::absorb::{EffectGroups, effect_values};
 use zeff_results::estimator::Estimator;
+use zeff_results::summary::dropped_notes;
 use zeff_results::summary::{self, Setting, rows};
 use zeff_results::variance::{self, Clusters, Kind};
 

@@ -1,0 +1,138 @@
+---
+source: packages/tier2/glm/tests/glm.rs
+expression: all
+---
+let wages = dataset(wages)
+wages.glm(union ~ educ + exper + female, family: binomial)
+---
+glm · union ~ educ + exper + female · binomial, logit
+N = 18,390 (22 rows dropped for NA in model variables)
+standard errors: classical
+
+  term          estimate   std.error   z value   p value   95% CI
+  (intercept)    -1.2274      0.1100    -11.16    <0.001   [-1.4429, -1.0119]
+  educ            0.0009      0.0068      0.14     0.892   [-0.0123, 0.0142]
+  exper           0.0277      0.0022     12.32    <0.001   [0.0233, 0.0321]
+  female          0.0556      0.0318      1.75     0.081   [-0.0068, 0.1180]
+
+log-likelihood -11,415.06 · AIC 22,838.13 · McFadden R² 0.007
+deviance 22,830.13 on 18,386 df · null deviance 23,001.97 on 18,389 df
+converged in 5 iterations of Fisher scoring
+
+====
+let wages = dataset(wages)
+wages.glm(union ~ educ + exper + female, family: binomial, link: probit, level: 0.99)
+---
+glm · union ~ educ + exper + female · binomial, probit
+N = 18,390 (22 rows dropped for NA in model variables)
+standard errors: classical
+
+  term          estimate   std.error   z value   p value   99% CI
+  (intercept)    -0.7532      0.0666    -11.30    <0.001   [-0.9248, -0.5816]
+  educ            0.0005      0.0041      0.13     0.894   [-0.0100, 0.0111]
+  exper           0.0167      0.0014     12.29    <0.001   [0.0132, 0.0203]
+  female          0.0342      0.0193      1.77     0.077   [-0.0156, 0.0840]
+
+log-likelihood -11,415.43 · AIC 22,838.86 · McFadden R² 0.007
+deviance 22,830.86 on 18,386 df · null deviance 23,001.97 on 18,389 df
+converged in 8 iterations of Fisher scoring
+
+====
+let wages = dataset(wages).add(twice = 2 * educ)
+wages.glm(union ~ educ + twice + industry, family: binomial)
+---
+glm · union ~ educ + twice + industry · binomial, logit
+N = 18,412
+standard errors: classical
+
+  term                              estimate   std.error   z value   p value   95% CI
+  (intercept)                        -0.1661      0.1265     -1.31     0.189   [-0.4141, 0.0818]
+  educ                               -0.0301      0.0066     -4.56    <0.001   [-0.0430, -0.0172]
+  twice                            (omitted)
+  industry=Mining                     0.3341      0.1685      1.98     0.047   [0.0038, 0.6643]
+  industry=Utilities                  0.6261      0.1377      4.55    <0.001   [0.3562, 0.8960]
+  industry=Construction              -0.0501      0.1053     -0.48     0.634   [-0.2566, 0.1563]
+  industry=Manufacturing              0.3392      0.0985      3.44     0.001   [0.1462, 0.5322]
+  industry=Retail                    -0.7985      0.1014     -7.88    <0.001   [-0.9972, -0.5998]
+  industry=Transport                 -0.0570      0.1124     -0.51     0.612   [-0.2774, 0.1633]
+  industry=Finance                   -1.0427      0.1129     -9.24    <0.001   [-1.2639, -0.8215]
+  industry=Services                  -0.6401      0.1013     -6.32    <0.001   [-0.8386, -0.4416]
+  industry=Education                  0.1628      0.1029      1.58     0.113   [-0.0388, 0.3644]
+  industry=Health                    -0.3538      0.1023     -3.46     0.001   [-0.5542, -0.1533]
+  industry=Public administration      0.4673      0.1046      4.47    <0.001   [0.2623, 0.6723]
+
+log-likelihood -11,031.09 · AIC 22,088.18 · McFadden R² 0.042
+deviance 22,062.18 on 18,399 df · null deviance 23,029.49 on 18,411 df
+converged in 5 iterations of Fisher scoring
+note: `twice` is collinear with the columns before it and was dropped (line 2)
+
+====
+let m = dataset(wages).glm(union ~ educ + exper, family: binomial)
+m.coef(exper)
+m.std_errors()
+m.p_values(exper)
+m.ci(exper, level: 0.9)
+m.n_obs()
+m.estimates()
+m.vcov()
+m.is(GlmFit)
+m.is(RegFit)
+---
+0.027599
+(intercept) => 0.10869
+educ => 0.00676834
+exper => 0.00224808
+1.20832e-34
+0.0239012
+0.0312967
+18390
+frame · 3 rows × 9 variables
+
+      term             estimate    std_error   statistic   df   df2       p_value     ci_lower    ci_upper
+  1   (intercept)      -1.19869      0.10869    -11.0285   NA    NA   2.78392e-28     -1.41172    -0.98566
+  2   educ          0.000910196   0.00676834    0.134478   NA    NA      0.893024   -0.0123555   0.0141759
+  3   exper            0.027599   0.00224808     12.2767   NA    NA   1.20832e-34    0.0231928   0.0320051
+vcov · classical
+
+  term           (intercept)           educ          exper
+  (intercept)      0.0118135   -0.000692027   -0.000144834
+  educ          -0.000692027    4.58105e-05    4.90127e-06
+  exper         -0.000144834    4.90127e-06    5.05385e-06
+true
+false
+
+====
+let m = dataset(wages).glm(union ~ educ + exper, family: binomial)
+m.test(exper == 0)
+---
+error[Z0401]: `test` of a `glm` fit arrives with release 0.9.0
+ --> scripts/main.zeff:2:3
+  |
+2 | m.test(exper == 0)
+  |   ^^^^ not yet for a likelihood fit
+  |
+  = help: the fit's table, `coef`, `vcov`, `std_errors`, `p_values`, `ci`, `estimates` and `n_obs` are there now
+
+====
+let m = dataset(wages).glm(union ~ educ + exper, family: binomial)
+m.residuals()
+---
+error[Z0401]: `residuals` of a `glm` fit arrives with release 0.9.0
+ --> scripts/main.zeff:2:3
+  |
+2 | m.residuals()
+  |   ^^^^^^^^^ not yet for a likelihood fit
+  |
+  = help: the fit's table, `coef`, `vcov`, `std_errors`, `p_values`, `ci`, `estimates` and `n_obs` are there now
+
+====
+let m = dataset(wages).glm(union ~ educ + exper, family: binomial)
+report([m])
+---
+error[Z0401]: `report` of a `glm` fit arrives with release 0.9.0
+ --> scripts/main.zeff:2:1
+  |
+2 | report([m])
+  | ^^^^^^ not yet for a likelihood fit
+  |
+  = help: the fit's table, `coef`, `vcov`, `std_errors`, `p_values`, `ci`, `estimates` and `n_obs` are there now

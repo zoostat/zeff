@@ -1120,6 +1120,30 @@ pub struct Fit {
     /// What a fit by instrumental variables keeps beside its table (`IvFit`); `None` for any
     /// other fit.
     pub instrumented: Option<Rc<Instrumented>>,
+    /// What a fit by maximum likelihood keeps beside its table (`GlmFit`, release 0.9.0): its
+    /// statistics are z values and its intervals normal ones; `None` for a least-squares fit.
+    pub likelihood: Option<Rc<LikelihoodFit>>,
+}
+
+/// What a fit by maximum likelihood keeps beside its table (release 0.9.0, step 5a): the
+/// family and the link, the deviance of the model and of the intercept alone, and how the
+/// optimiser reached the maximum.
+#[derive(Debug, Clone, PartialEq)]
+pub struct LikelihoodFit {
+    /// `binomial`.
+    pub family: String,
+    /// `logit`, `probit`.
+    pub link: String,
+    pub deviance: f64,
+    /// The deviance of the model with the intercept alone (or with nothing, without one).
+    pub null_deviance: f64,
+    /// The residual degrees of freedom of the deviance and of the null deviance.
+    pub df_deviance: usize,
+    pub df_null: usize,
+    pub iterations: usize,
+    pub converged: bool,
+    /// `Fisher scoring` or `Newton`.
+    pub method: String,
 }
 
 /// What a fit by instrumental variables keeps beside its table (release 0.8.0, step 13b): what

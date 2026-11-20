@@ -25,7 +25,7 @@ use zeff_numeric::order::WeightKind;
 use zeff_results::absorb::{Absorbed, EffectGroups, effect_values};
 use zeff_results::design::Design;
 use zeff_results::estimator::{Estimator, Fitted};
-use zeff_results::summary::{self, Setting, n_note, rows};
+use zeff_results::summary::{self, Setting, dropped_notes, n_note, rows};
 use zeff_results::variance::{self, Clusters, Kind, VarianceError, effective_sample_size};
 
 /// The condition number above which the design is warned about (W1001, section 11.1).
@@ -199,102 +199,6 @@ pub(crate) fn absorbed_parameters(groups: &[EffectGroups], clusters: Option<&Clu
     let counted: Vec<&EffectGroups> = groups.iter().filter(|e| !nested(e)).collect();
     let levels: usize = counted.iter().map(|e| e.levels()).sum();
     levels + 1 - counted.len()
-}
-
-/// The notes for the columns a fit dropped, each kind in its own words (section 7.2,
-/// "Collinearity"): a column the fixed effects absorbed (`absorbed_columns`, with the effects as
-/// written), a category level with no observations among the rows used, a column that is zero
-/// in every row, a column whose values are too small or too large to be scaled, and the rest
-/// collinear with the columns before them. Each is printed and kept in `notes`.
-pub(crate) fn dropped_notes(
-    ctx: &mut CallContext<'_>,
-    notes: &mut Vec<String>,
-    design: &Design,
-    fitted: &Fitted,
-    absorbed_columns: &[usize],
-    effects_text: &str,
-) {
-    // The columns dropped, each kind with its own note: a category level with no observations
-    // among the rows used, a column that is zero in every row, a column whose values are too
-    // small to be scaled, and the rest collinear with the columns before them.
-    let names = |columns: &[usize]| -> Vec<String> {
-        columns
-            .iter()
-            .map(|&c| format!("`{}`", design.names[c]))
-            .collect()
-    };
-    let note = |ctx: &mut CallContext<'_>,
-                notes: &mut Vec<String>,
-                listed: Vec<String>,
-                one: &str,
-                several: &str| {
-        let text = match listed.len() {
-            0 => return,
-            1 => format!("{} {one}", listed[0]),
-            _ => format!("{} {several}", listed.join(", ")),
-        };
-        notes.push(text.clone());
-        ctx.message(Diagnostic::plain_note(text));
-    };
-    // A column the fixed effects absorbed (section 7.2, "Collinearity") is zeroed by the
-    // projection and dropped by the fit; it is named so, and not as a zero column.
-    note(
-        ctx,
-        notes,
-        names(absorbed_columns),
-        &format!("is absorbed by fe: {effects_text} and was dropped"),
-        &format!("are absorbed by fe: {effects_text} and were dropped"),
-    );
-    let (levels, zeros): (Vec<usize>, Vec<usize>) = fitted
-        .zero
-        .iter()
-        .filter(|c| !absorbed_columns.contains(c))
-        .partition(|&&c| design.names[c].contains('='));
-    note(
-        ctx,
-        notes,
-        names(&levels),
-        "has no observations among the rows used and was dropped",
-        "have no observations among the rows used and were dropped",
-    );
-    note(
-        ctx,
-        notes,
-        names(&zeros),
-        "is zero in every row used and was dropped",
-        "are zero in every row used and were dropped",
-    );
-    note(
-        ctx,
-        notes,
-        names(&fitted.vanishing),
-        "has values too small to be scaled (below 1e-150 in size) and was dropped",
-        "have values too small to be scaled (below 1e-150 in size) and were dropped",
-    );
-    note(
-        ctx,
-        notes,
-        names(&fitted.oversized),
-        "has values too large to be scaled (above 1e150 in size) and was dropped",
-        "have values too large to be scaled (above 1e150 in size) and were dropped",
-    );
-    let collinear: Vec<usize> = fitted
-        .omitted
-        .iter()
-        .copied()
-        .filter(|c| {
-            !fitted.zero.contains(c)
-                && !fitted.vanishing.contains(c)
-                && !fitted.oversized.contains(c)
-        })
-        .collect();
-    note(
-        ctx,
-        notes,
-        names(&collinear),
-        "is collinear with the columns before it and was dropped",
-        "are collinear with the columns before them and were dropped",
-    );
 }
 
 /// A variance from the variance layer, with what it could not compute turned into the refusal

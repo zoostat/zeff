@@ -9,6 +9,8 @@ pub enum ResultKind {
     RegFit,
     /// A fit by instrumental variables, `card.ivreg(f, instruments: ...)`.
     IvFit,
+    /// A generalized linear model, `wages.glm(f, family: binomial)`.
+    GlmFit,
     /// The result of a test, `m.test(...)`.
     TestResult,
 }
@@ -18,6 +20,7 @@ impl ResultKind {
         match self {
             ResultKind::RegFit => "RegFit",
             ResultKind::IvFit => "IvFit",
+            ResultKind::GlmFit => "GlmFit",
             ResultKind::TestResult => "TestResult",
         }
     }
@@ -26,6 +29,7 @@ impl ResultKind {
         match text {
             "RegFit" => Some(ResultKind::RegFit),
             "IvFit" => Some(ResultKind::IvFit),
+            "GlmFit" => Some(ResultKind::GlmFit),
             "TestResult" => Some(ResultKind::TestResult),
             _ => None,
         }
@@ -265,6 +269,15 @@ impl Ty {
             }
             return Some(Ty::Union(options));
         }
+        // One word alone is a list of one word (`family: binomial`, which later releases widen
+        // with further words; release 0.9.0, step 5a): type names begin with a capital.
+        if !text.is_empty()
+            && text
+                .chars()
+                .all(|c| c.is_ascii_lowercase() || c.is_ascii_digit() || c == '_')
+        {
+            return Some(Ty::Words(vec![text.to_string()]));
+        }
         Some(match text {
             "Bool" => Ty::Bool,
             "Int" => Ty::Int,
@@ -482,6 +495,7 @@ mod tests {
             "Result",
             "RegFit",
             "IvFit",
+            "GlmFit",
             "TestResult",
             "Term",
             "Term<Bool>",
@@ -618,6 +632,7 @@ mod tests {
             [
                 ResultKind::RegFit,
                 ResultKind::IvFit,
+                ResultKind::GlmFit,
                 ResultKind::TestResult
             ]
             .len()

@@ -471,7 +471,10 @@ fn fits(ctx: &mut CallContext<'_>, args: &Args) -> Result<Vec<Rc<Fit>>, Fail> {
         .filter(|item| !matches!(item, Value::Failed(_)))
         .enumerate()
         .map(|(i, item)| match item {
-            Value::Fit(fit) => Ok(Rc::clone(fit)),
+            Value::Fit(fit) => {
+                crate::interface::refuse_likelihood(ctx, fit, "report")?;
+                Ok(Rc::clone(fit))
+            }
             other => Err(fail(
                 Diagnostic::error(
                     "Z0401",

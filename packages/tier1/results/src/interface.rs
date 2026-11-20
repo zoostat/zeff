@@ -45,6 +45,25 @@ fn receiver(ctx: &CallContext<'_>, args: &Args, name: &str) -> Result<Receiver, 
     }
 }
 
+/// The methods of the result interface that a fit by maximum likelihood does not yet answer
+/// (release 0.9.0, step 5a): each reads what a least-squares fit keeps (a t table, residuals of
+/// least squares, R²), and step 8 gives each its likelihood form. Until then a `glm` fit is
+/// refused by them rather than answered as a regression would be.
+pub fn refuse_likelihood(ctx: &CallContext<'_>, fit: &Fit, name: &str) -> Result<(), Fail> {
+    if fit.likelihood.is_none() {
+        return Ok(());
+    }
+    Err(fail(
+        Diagnostic::error(
+            "Z0401",
+            format!("`{name}` of a `glm` fit arrives with release 0.9.0"),
+        )
+        .in_file(ctx.script)
+        .primary(ctx.callee_span, "not yet for a likelihood fit")
+        .help("the fit's table, `coef`, `vcov`, `std_errors`, `p_values`, `ci`, `estimates` and `n_obs` are there now"),
+    ))
+}
+
 /// The term a `Term` argument names, when one is given: its position among the terms with an
 /// estimate, or `None` for a term omitted as collinear. The interpreter has already checked the
 /// name against the fit's terms (Z0414).
@@ -147,7 +166,8 @@ fn level_text(level: f64) -> String {
 
 /// `fit.ci(term?, level: 0.95)`: the intervals of every term as a table, or `[lower, upper]` for
 /// one term, at the level asked for; recomputed from the estimates, the standard errors and the
-/// t table of the fit, so that any level is available after the fit. A test's result gives `NA`.
+/// t table of the fit (the normal one of a likelihood fit), so that any level is available after
+/// the fit. A test's result gives `NA`.
 pub fn ci(ctx: &mut CallContext<'_>, args: Args) -> Result<Value, Fail> {
     // `level:` written out, or the level the fit was made at (open decision #67).
     let given = match args.get(2) {
@@ -181,7 +201,12 @@ pub fn ci(ctx: &mut CallContext<'_>, args: Args) -> Result<Value, Fail> {
     ];
     match received {
         Receiver::Fit(fit) => {
-            let q = quantile(fit.df_residual, level);
+            // A likelihood fit's intervals are normal ones, as its z table (release 0.9.0).
+            let q = if fit.likelihood.is_some() {
+                zeff_numeric::special::normal_quantile((1.0 - level) / 2.0, true)
+            } else {
+                quantile(fit.df_residual, level)
+            };
             let intervals: Vec<(f64, f64)> = fit
                 .estimates
                 .iter()
@@ -303,10 +328,16 @@ pub fn estimates(ctx: &mut CallContext<'_>, args: Args) -> Result<Value, Fail> {
                 "statistic".to_string(),
                 floats(fit.statistics.iter().map(|v| Some(*v)).collect()),
             ),
-            // The t statistics share the residual degrees of freedom; `df2` is for an F.
+            // The t statistics share the residual degrees of freedom; `df2` is for an F. A
+            // likelihood fit's z statistics have none.
             (
                 "df".to_string(),
-                floats(vec![Some(fit.df_residual as f64); fit.terms.len()]),
+                floats(vec![
+                    fit.likelihood
+                        .is_none()
+                        .then_some(fit.df_residual as f64);
+                    fit.terms.len()
+                ]),
             ),
             ("df2".to_string(), floats(vec![None; fit.terms.len()])),
             (
@@ -583,6 +614,7 @@ pub fn vcov(ctx: &mut CallContext<'_>, args: Args) -> Result<Value, Fail> {
 pub fn fit_measures(ctx: &mut CallContext<'_>, args: Args) -> Result<Value, Fail> {
     match receiver(ctx, &args, "fit_measures")? {
         Receiver::Fit(fit) => {
+            refuse_likelihood(ctx, &fit, "fit_measures")?;
             let (aic, bic) = information_criteria(&fit);
             let measure = |x: Option<f64>| x.map_or(Value::Na, Value::Float);
             Ok(Value::Record(vec![
@@ -613,7 +645,10 @@ fn full_length(fit: &Fit, values: &[f64]) -> Value {
 /// `fit.residuals()`: the residuals, one per row of the fitted frame.
 pub fn residuals(ctx: &mut CallContext<'_>, args: Args) -> Result<Value, Fail> {
     match receiver(ctx, &args, "residuals")? {
-        Receiver::Fit(fit) => Ok(full_length(&fit, &fit.residuals)),
+        Receiver::Fit(fit) => {
+            refuse_likelihood(ctx, &fit, "residuals")?;
+            Ok(full_length(&fit, &fit.residuals))
+        }
         Receiver::Test(_) => Ok(Value::Na),
     }
 }
@@ -661,7 +696,10 @@ pub fn predict(ctx: &mut CallContext<'_>, args: Args) -> Result<Value, Fail> {
         }
     };
     let fit = match receiver(ctx, &args, "predict")? {
-        Receiver::Fit(fit) => fit,
+        Receiver::Fit(fit) => {
+            refuse_likelihood(ctx, &fit, "predict")?;
+            fit
+        }
         Receiver::Test(_) => return Ok(Value::Na),
     };
     let mut model = fit.model.clone();
