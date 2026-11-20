@@ -172,6 +172,10 @@ Step 24a split in two, and 24a2 in four. 24a1: the weekly run of 16 November sho
 
 **Figures.** 2,470 tests in 314 programs on a push; 551 conformance cases; a clean release build in 105 s for a 17.6 MB binary; the bundle 2,782 kB with a cold start of 143 ms.
 
-**Next.** "Start release 0.9.0" is the owner's word. At its opening: the conformance cases of `tools/report_bug` are to mask the engine's version, so that no digest changes with the version alone; the decisions due at 0.9.0 are put to him; the reader test is owed.
+**Next.** "Start release 0.9.0" is the owner's word. At its opening: the conformance cases of `tools/report_bug` are to mask the engine's version, so that no digest changes with the version alone; the decisions due at 0.9.0 are put to him; the reader test is owed; every address the launcher trusts is to be under `zeff-lang.dev` (`docs/decisions.md`, 20 November, after the release).
 
-**For the owner to decide or do.** The reader test, owed at 0.9.0. The Stata run, if a colleague has Stata. `ivmodel` and `ivDiag` for the reference library. #18, due and unsettled (difference-in-differences stays first unless he says otherwise). The notes of the scheduled weekly run of Monday 23 November, the first to read the corrections of step 24a2d together. The copy of the Zemp Specification in the Zemp Lite repository, and the Zemp Lite notes for the register before "Start release 0.2".
+**For the owner to decide or do.** The reader test, owed at 0.9.0. The Stata run, if a colleague has Stata. `ivmodel` and `ivDiag` for the reference library. The notes of the scheduled weekly run of Monday 23 November, the first to read the corrections of step 24a2d together. The copy of the Zemp Specification in the Zemp Lite repository, and the Zemp Lite notes for the register before "Start release 0.2".
+
+## 20 November 2026, after the release (the register)
+
+**Done.** Three answers of the owner, passed on from the session that keeps the plan of releases, are recorded in the register and in `docs/decisions.md`: #18 closed as settled by the plan of #113 (no change to the plan); #151 (the licence) and the organisation of #31 moved from 0.9.0 to 0.11.0.

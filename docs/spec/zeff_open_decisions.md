@@ -108,6 +108,8 @@ Date: 17 October 2026 · Source: Zeff Specification section 15, Zemp Specificati
 
 **Status (20 November 2026, at the close of release 0.8.0).** Built at this release, as decided: #86, #87, #89, #90, #95, #96, #97 with question 4 of #99, #108 and #147, the second halves of #130 and #131, the first third of the pages of #103 (`core`, `text` and `time`), and the plan of releases of #113, #120 and #122 in the catalogue and the three volumes. Decided during the release: #73's last step on the figures of steps 21b and 21c (the engine does not link Typst; `export` writes `.typ`), which leaves #172 for the Zemp release that builds the export of a script with its output; #150, option A, taken on the recommendation at step 13 (one form of the two-stage standard errors at 1.0, the N − k of `reg`); #173, option A now and C after 1.0. The owner decided on 20 November 2026 to skip the reader test of the testing handbook (section 2.4, item 4) at this release; the handbook is unchanged and the test is owed at 0.9.0. Due at 0.8.0 and still the owner's: #18, which was to be settled by what the alpha's users ask for; the alpha has not yet been in a user's hands, so the rule written into the entry keeps difference-in-differences first until he says otherwise. #74 and #75 are the alpha's and are settled in the Zemp Lite repository at its release 0.2. Due at 0.9.0, each taken as recommended under the standing instruction of 12 November 2026 unless the owner says otherwise, and put to him at "Start release 0.9.0": #85, #149, #153, #161 and #165 to #171; and, his own word, #151 (the licence and the journal's rule) and the organisation of #31. No normative text is changed.
 
+**Status (20 November 2026, after the release of 0.8.0).** Three answers of the owner, given in the session that keeps the plan of releases and passed on to the Zeff session with his words. #18 is closed: "Yes, close it", as settled by the plan of #113, under which difference-in-differences (1.9) already comes before the latent-variable models (1.12); no change to the plan. #151 (the licence) and the organisation of #31 are moved from 0.9.0 to 0.11.0: "I want to skip #151 and #31 now and want to move it to 0.11.0". For #31 the launcher of 0.9.0 is to trust addresses under the decided domain only; for #151 an outside contribution offered before 0.11.0 brings the question back to him first. Each entry carries its paragraph. No normative text is changed.
+
 ## Summary
 
 | # | Decision | Recommendation | Decide by |
@@ -129,7 +131,7 @@ Date: 17 October 2026 · Source: Zeff Specification section 15, Zemp Specificati
 | 15 | Power functions | Defer to 1.9 as one Design release | decided 16 October 2026 |
 | 16 | `survey()` in 1.0 | Defer to 1.9 | decided 16 October 2026 |
 | 17 | Panels (0.6.0) before tests and plots (0.7.0) | Keep the order | decided 30 October 2026 |
-| 18 | Swap 1.2 DiD and 1.3 SEM | Decide at the 0.8.0 alpha from what its users ask for; DiD first otherwise | 0.8.0 |
+| 18 | Swap 1.2 DiD and 1.3 SEM | Decide at the 0.8.0 alpha from what its users ask for; DiD first otherwise | decided 20 November 2026 (closed as settled by #113; no change to the plan of releases) |
 | 19 | Design methods for 1.9 | Add designed experiments, repeated-measures ANOVA and TOST to the catalogue now | now |
 | 20 | Bayesian estimation | `prior:` arguments taking `Distribution` values; `reg`, `logistic`, `mixed` first | 1.9 |
 | 21 | Licence | Apache 2.0 (decided 16 October 2026) | decided |
@@ -142,7 +144,7 @@ Date: 17 October 2026 · Source: Zeff Specification section 15, Zemp Specificati
 | 28 | AI assistance model | User's own key to a remote model, a local model as the private option, both off by default; whether Zemp also sells metered access of its own (the business model's Pro tier) is part of the same decision | Zemp 1.11 |
 | 29 | Zemp version coupling | Follow Zeff's minors until 1.11 | 1.0 |
 | 30 | Performance targets | Put the two stress cases in the benchmark suite now; set targets at first measurement, tighten each release | decided 23 October 2026 |
-| 31 | Names: domain and GitHub organisation | The domain `zeff-lang.dev` (decided 6 November 2026); the organisation `zeff-lang` as recommended, still to be confirmed | organisation before 0.9.0 |
+| 31 | Names: domain and GitHub organisation | The domain `zeff-lang.dev` (decided 6 November 2026); the organisation `zeff-lang` as recommended, still to be confirmed | organisation by 0.11.0 (moved from 0.9.0 by the owner on 20 November 2026) |
 | 32 | A file of several frames and fitted results | A zip of Arrow files and JSON result descriptions, at 1.14 with the heavy models (1.5 before the plan of #113); never a binary format of Zeff's own | 1.14 |
 | 33 | Interface revamp: density, icons, desktop menus, tablet and phone (the dark theme was decided on 17 October 2026) | As zemp_gui_revamp.md section 4 recommends for the four: one density with a larger-type setting; no icons; native menus mirroring the palette; no tablet or phone in 1.0 | decided 11 November 2026 (as recommended) |
 | 34 | Long-term-support releases for institutions | None: exact pins and engines downloadable for ever already keep results stable; sell support, not a release line | Zemp Institution tier |
@@ -221,7 +223,7 @@ Date: 17 October 2026 · Source: Zeff Specification section 15, Zemp Specificati
 | 154 | Independent checking of the numerical core | Recommended A: the owner reads the reference scripts of the estimators and runs the Stata references himself by 0.10.0; an outside audit of the kernels and the variance layer, published, before submission | open; deadline 1.0.0 |
 | 153 | The NIST Statistical Reference Datasets in the validation suite | Recommended A: the linear-regression, univariate and analysis-of-variance problems at 0.9.0, accuracy as the log relative error, with R's and Stata's beside it | open; deadline 0.9.0 |
 | 152 | A home in a standard repository: an R package on CRAN and a Python wheel on PyPI | Recommended A: both at 1.0.0, the R package running a script or project and returning frames and results | open; deadline 0.10.0 |
-| 151 | The licence and the journal's rule of GPL compatibility | Recommended A: dual licence, MIT or Apache 2.0 at the user's choice, from 0.9.0, after a word with the editors | open; the owner's word; deadline 0.9.0 |
+| 151 | The licence and the journal's rule of GPL compatibility | Recommended A: dual licence, MIT or Apache 2.0 at the user's choice, from 0.9.0, after a word with the editors | open; the owner's word; deadline 0.11.0 (moved from 0.9.0 by the owner on 20 November 2026) |
 | 150 | The small-sample form of the two-stage standard errors, and Stata's large-sample default | Recommended A: one form at 1.0, the N − k of `reg` with the t table (R's `ivreg`, fixest, Stata's `ivregress 2sls, small`), the page saying how Stata's default differs; the large-sample form an option after 1.0. B: an option on `ivreg` now | decided 16 November 2026 (option A, on the recommendation under the owner's standing instruction); built at step 13 of 0.8.0 |
 | 149 | A warning repeated word for word in the passes of a loop | Recommended A: said once with the count of passes, as a note is from step 8o of 0.8.0; B: every pass, as now | open; deadline 0.9.0 |
 | 148 | Zemp Lite in a public repository under Apache 2.0; Zemp Studio in a private one | The owner's ruling: Zemp Lite is developed in the public repository `zemp-lite` under Apache 2.0, as Zeff; Zemp Studio, when its work starts, gets a separate private repository and a proprietary licence and builds on Lite; Lite never depends on Studio's modules | decided 15 November 2026 (owner's ruling); the Zemp Specification amended the same day; replaces the repository and licence parts of #125, and with them #25 |
@@ -460,6 +462,8 @@ The plan requires these to be adopted or dropped by 0.7.0; deciding now removes 
 
 *Recommendation.* Decide at the 0.8.0 alpha with a rule written down now: whichever family the alpha users ask for most goes first; DiD first if the alpha does not settle it.
 
+*Decided 20 November 2026: closed, as settled by #113.* The question was put to the owner after the release of 0.8.0, in the session that keeps the plan of releases: the plan he decided on 11 November 2026 (#113) has overtaken the swap. Under it 1.2 is basic econometrics and 1.3 basic psychometrics; the two-by-two difference-in-differences is at 1.9 and confirmatory factor analysis and structural equation models at 1.12, so difference-in-differences already comes before the latent-variable models, which is what this entry's own rule would have chosen with no alpha user yet to ask. Asked "Close #18 as settled by the plan of 11 November?", he answered: "Yes, close it". Nothing in section 14 of the Engine Specification or in the catalogue changes. (#163, which would move difference-in-differences earlier still, is a separate question and stays open.)
+
 ### 19. Design methods for 1.9
 
 *Recommendation.* Add to the catalogue now as 1.9 rows: designed experiments (factorial and fractional designs, blocking, response surfaces), repeated-measures ANOVA and equivalence tests (TOST). Questionnaire pre-tests are item analysis, already in `measure`.
@@ -581,6 +585,8 @@ The installer script, the documentation, the registry index (#9) and the signed 
 *Recommendation.* B, registered now and pointed at GitHub Pages, so that nothing breaks if the hosting changes.
 
 *Domain decided 6 November 2026: `zeff-lang.dev`,* option A's zone with option B's name, since `zeff.dev` was found registered by others. The owner preferred `.dev` to `.org` and to `.io`: `.dev` is a generic zone that serves only HTTPS, which suits a host carrying the installer and the signed key list, while `.io` is the country code of the British Indian Ocean Territory, whose future is uncertain since the 2025 agreement to transfer the territory, a risk a key-list address that cannot move should not take. The name is registered by the owner and pointed at GitHub Pages, as the recommendation says, so that nothing breaks if the hosting changes; `zeff-lang.org` may be held later to forward to it. The organisation is still open, with `zeff-lang` recommended (free on GitHub on 6 November 2026), due before 0.9.0.
+
+*Organisation moved to 0.11.0 on 20 November 2026.* The owner's words, after the release of 0.8.0: "I want to skip #151 and #31 now and want to move it to 0.11.0". The domain stays as decided; the organisation is decided by 0.11.0. This entry says the organisation must be fixed before the launcher ships at 0.9.0, because the address of the key list cannot move without a launcher update. The engineering answer, recorded in `docs/decisions.md` under the same date for the session that plans 0.9.0: every address the launcher of 0.9.0 is built to trust (the key list, the index of engines, and through that index the downloads) is under the decided domain `zeff-lang.dev`, and none is a path of a GitHub organisation; the organisation, and any later move of the repository, then breaks no installed launcher. If the planning of 0.9.0 finds that this cannot hold, the question comes back to the owner before the launcher's step, not after it.
 
 ### 32. A file of several frames and fitted results
 
@@ -3113,6 +3119,8 @@ Zeff is under Apache 2.0 (#21, decided 16 October 2026; section 1.4 of the Engin
 | C. The GPL | Beyond doubt for the journal | Against the permissive rule of section 1.4 and the open-core plan; discourages packages and institutional use |
 
 **Recommended: A**, from 0.9.0, after a short message to the editors confirming that the dual licence meets their rule. The owner's word is asked: this reverses #21.
+
+**Moved to 0.11.0 on 20 November 2026.** The owner's words, after the release of 0.8.0: "I want to skip #151 and #31 now and want to move it to 0.11.0". The decision is his and is due by 0.11.0; the licence stays Apache 2.0 until then. Two things follow from this entry's own text and are kept in view. The change costs one commit only while he holds all the copyright: the repository is public, so if an outside contribution is offered before 0.11.0, this decision is put to him before it is merged. And the article is not submitted to the journal before this is settled (#156, still open, puts the submission at 1.0.0 at the earliest).
 
 ### 152. A home in a standard repository: an R package on CRAN and a Python wheel on PyPI
 
