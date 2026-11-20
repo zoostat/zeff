@@ -2490,6 +2490,16 @@ mod tests {
         assert_eq!(found.pieces.len(), 3, "{:?}", found.pieces);
         assert!(near(found.pieces[1].0, -1.0) && near(found.pieces[1].1, 2.0));
         assert_eq!(found.shape(), Shape::Other);
+        // Ends far from one, in both directions and on both sides of zero: the grid runs
+        // from 1e-8 to 1e8 in size. b² ≤ 1e12 is an interval of a million either way, and
+        // b² ≥ 1e-12 two rays that end a millionth from zero.
+        let found = searched_set(&|b: f64| Some(b * b - 1e12), Some(1.0)).unwrap();
+        assert_eq!(found.pieces.len(), 1, "{:?}", found.pieces);
+        assert!(near(found.pieces[0].0, -1e6) && near(found.pieces[0].1, 1e6));
+        let found = searched_set(&|b: f64| Some(1e-12 - b * b), Some(-1.0)).unwrap();
+        assert_eq!(found.pieces.len(), 2, "{:?}", found.pieces);
+        let (left, right) = (found.pieces[0].1, found.pieces[1].0);
+        assert!((left / -1e-6 - 1.0).abs() < 1e-9 && (right / 1e-6 - 1.0).abs() < 1e-9);
         // Nothing where the limit, or a value on the way, cannot be had.
         assert_eq!(searched_set(&cubic, None), None);
         assert_eq!(

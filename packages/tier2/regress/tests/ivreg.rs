@@ -612,6 +612,22 @@ fn a_variable_too_large_or_too_small_to_scale_is_named_so() {
             "{instrument}"
         );
     }
+    // The second of two instrumented regressors: it is the one named, and the other keeps
+    // the statistics of its own first stage (the F of `training` on `offer` and `distance`).
+    let second = printed(
+        "let staff = dataset(staff).add(big = tenure * 1e200)\nstaff.ivreg(productivity ~ age + training + big, instruments: training + big ~ offer + distance)\n",
+    );
+    assert!(
+        second.contains("note: `big` has values too large to be scaled (above 1e150 in size) and was dropped (line 2)"),
+        "{second}"
+    );
+    assert!(!second.contains("is zero in every row"), "{second}");
+    assert!(
+        second.contains(
+            "instrumented: training · instruments: offer, distance\nCragg–Donald F 387.89\n"
+        ),
+        "{second}"
+    );
 }
 
 /// The residuals and the fitted values of a weighted fit are those of the rows as observed:
@@ -647,6 +663,14 @@ fn a_range_of_variables_in_the_instruments_is_the_variables_written_out() {
         "{ranged}"
     );
     assert_eq!(from_the_table(&ranged), from_the_table(&written));
+    // A range that runs backwards is refused, in `instruments:` as in a formula.
+    let backwards = printed(&format!(
+        "{frame}staff.ivreg(productivity ~ training, instruments: training ~ z3..z1)\n"
+    ));
+    assert!(
+        backwards.contains("error[Z0401]: the range `z3..z1` runs backwards"),
+        "{backwards}"
+    );
 }
 
 /// An instrumented regressor that the fit drops as collinear leaves the model with the others,
@@ -764,6 +788,15 @@ fn weights_and_missing_instruments_give_what_the_rows_written_out_give() {
     ));
     assert!(missing.contains("sqrt(d2)"), "{missing}");
     assert_eq!(missing, complete);
+    // And the count of the rows left out, which is that of the frame less the rows both
+    // designs keep.
+    let counted = printed(
+        "let staff = dataset(staff).add(d2 = distance - 5)\nstaff.ivreg(productivity ~ age + training, instruments: training ~ offer + sqrt(d2))\n",
+    );
+    assert!(
+        counted.contains("N = 2,096 (304 rows dropped for NA in model variables)"),
+        "{counted}"
+    );
 }
 
 /// Clusters that are an absorbed effect are taken from the projection; clusters by any other
