@@ -154,4 +154,6 @@ Step 24a split in two, and 24a2 in four. 24a1: the weekly run of 16 November sho
 
 **Next.** Read that run shard by shard and tick 24a2d; the checklist is then complete and waits for the owner's "Release 0.8.0".
 
-**For the owner to decide or do.** The reader test (the testing handbook, section 2.4, item 4), or the word that 0.8.0 is released without one and its notes say so. The Stata run, if a colleague has Stata. The copy of the Zemp Specification in the Zemp Lite repository still has the older counts, and the Zemp Lite notes of the shared folder are to be entered in the register before "Start release 0.2".
+**Read so far (39 of 84 shards, 20 November).** The linear-algebra kernel and 11 shards of the results package: nothing new. The numeric kernel: 23 new timeouts, no new survivor, every one a mutant the run of 19 November caught; a test of step 24a2c ran on under them. The test is tightened (3705649); six of the 23 are caught within seconds again and seventeen are recorded under the new key `late` (`docs/decisions.md`, this date).
+
+**For the owner to decide or do.** The reader test (the testing handbook, section 2.4, item 4): the owner said on 20 November that he will run it before "Release 0.8.0"; the sheet and its key are in the handbook folder. The Stata run, if a colleague has Stata. The copy of the Zemp Specification in the Zemp Lite repository still has the older counts, and the Zemp Lite notes of the shared folder are to be entered in the register before "Start release 0.2".

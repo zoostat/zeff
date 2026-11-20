@@ -31,6 +31,11 @@
 #   edge         a comparison at a value that is never met exactly
 #   unavailable  "not available" at a further place in one computation, after the first checks
 #                of the same kind have passed
+# The last is of the run of 20 November 2026 (44653636848), read at step 24a2d.
+#   late         a mutant that older tests catch, each by failing, and under which the test
+#                of the bounds of the studentized range over its grid of 240 points runs on,
+#                so that the suite ends late or past the job's limit: caught in the run of
+#                19 November, a timeout in that of 20 November (docs/decisions.md)
 kernel/zeff-kernels/src/demean.rs	delete ! in without_singletons	2	hang
 kernel/zeff-kernels/src/demean.rs	replace && with || in demean	1	earlier
 kernel/zeff-kernels/src/demean.rs	replace < with <= in demean	4	earlier
@@ -128,6 +133,7 @@ kernel/zeff-numeric/src/special.rs	replace > with >= in newton_with_bracket	2	ea
 kernel/zeff-numeric/src/special.rs	replace >= with < in newton_with_bracket	1	earlier
 kernel/zeff-numeric/src/special.rs	replace erfc -> f64 with -1.0	1	hang
 kernel/zeff-numeric/src/special.rs	replace erfc -> f64 with 0.0	1	hang
+kernel/zeff-numeric/src/special.rs	replace erfc -> f64 with 1.0	1	late
 kernel/zeff-numeric/src/special.rs	replace normal_quantile -> f64 with -1.0	1	hang
 kernel/zeff-numeric/src/special.rs	replace || with && in incomplete_gamma	1	earlier
 kernel/zeff-numeric/src/special.rs	replace || with && in normal_quantile	1	earlier
@@ -142,19 +148,24 @@ kernel/zeff-numeric/src/tukey.rs	replace * with + in inner	2	hang
 kernel/zeff-numeric/src/tukey.rs	replace * with + in ln_band	9	hang
 kernel/zeff-numeric/src/tukey.rs	replace * with + in log_integral	4	earlier
 kernel/zeff-numeric/src/tukey.rs	replace * with + in log_integral	2	hang
+kernel/zeff-numeric/src/tukey.rs	replace * with + in studentized	1	late
 kernel/zeff-numeric/src/tukey.rs	replace * with + in tails	1	earlier
 kernel/zeff-numeric/src/tukey.rs	replace * with + in upper_tail	2	hang
 kernel/zeff-numeric/src/tukey.rs	replace * with / in expm1_minus	2	hang
+kernel/zeff-numeric/src/tukey.rs	replace * with / in inner	1	late
 kernel/zeff-numeric/src/tukey.rs	replace * with / in ln_band	1	earlier
 kernel/zeff-numeric/src/tukey.rs	replace * with / in ln_band	8	hang
 kernel/zeff-numeric/src/tukey.rs	replace * with / in log_integral	6	earlier
 kernel/zeff-numeric/src/tukey.rs	replace * with / in log_integral	3	hang
 kernel/zeff-numeric/src/tukey.rs	replace * with / in quantile	2	earlier
 kernel/zeff-numeric/src/tukey.rs	replace * with / in quantile	1	hang
+kernel/zeff-numeric/src/tukey.rs	replace * with / in range	1	late
 kernel/zeff-numeric/src/tukey.rs	replace * with / in tails	1	earlier
 kernel/zeff-numeric/src/tukey.rs	replace * with / in upper_tail	2	hang
 kernel/zeff-numeric/src/tukey.rs	replace *= with += in expm1_minus	1	hang
+kernel/zeff-numeric/src/tukey.rs	replace *= with += in ln_band	1	late
 kernel/zeff-numeric/src/tukey.rs	replace *= with /= in expm1_minus	1	hang
+kernel/zeff-numeric/src/tukey.rs	replace *= with /= in ln_band	1	late
 kernel/zeff-numeric/src/tukey.rs	replace *= with /= in log_integral	1	hang
 kernel/zeff-numeric/src/tukey.rs	replace *= with /= in quantile	1	hang
 kernel/zeff-numeric/src/tukey.rs	replace + with * in ln_band	4	hang
@@ -166,17 +177,21 @@ kernel/zeff-numeric/src/tukey.rs	replace + with - in ln_band	5	hang
 kernel/zeff-numeric/src/tukey.rs	replace + with - in log_integral	3	earlier
 kernel/zeff-numeric/src/tukey.rs	replace + with - in log_integral	2	hang
 kernel/zeff-numeric/src/tukey.rs	replace + with - in quantile	1	hang
+kernel/zeff-numeric/src/tukey.rs	replace + with - in studentized	1	late
 kernel/zeff-numeric/src/tukey.rs	replace + with - in tails	1	earlier
 kernel/zeff-numeric/src/tukey.rs	replace += with *= in expm1_minus	2	hang
+kernel/zeff-numeric/src/tukey.rs	replace += with *= in ln_band	1	late
 kernel/zeff-numeric/src/tukey.rs	replace += with *= in log_integral	1	hang
 kernel/zeff-numeric/src/tukey.rs	replace += with -= in expm1_minus	2	hang
 kernel/zeff-numeric/src/tukey.rs	replace += with -= in ln_band	1	hang
 kernel/zeff-numeric/src/tukey.rs	replace += with -= in log_integral	1	hang
+kernel/zeff-numeric/src/tukey.rs	replace - with + in expm1_minus	1	late
 kernel/zeff-numeric/src/tukey.rs	replace - with + in inner	1	hang
 kernel/zeff-numeric/src/tukey.rs	replace - with + in ln_band	8	hang
 kernel/zeff-numeric/src/tukey.rs	replace - with + in log_integral	1	earlier
 kernel/zeff-numeric/src/tukey.rs	replace - with + in log_integral	6	hang
 kernel/zeff-numeric/src/tukey.rs	replace - with + in quantile	1	earlier
+kernel/zeff-numeric/src/tukey.rs	replace - with + in studentized	1	late
 kernel/zeff-numeric/src/tukey.rs	replace - with / in inner	2	hang
 kernel/zeff-numeric/src/tukey.rs	replace - with / in ln_band	7	hang
 kernel/zeff-numeric/src/tukey.rs	replace - with / in log_integral	2	earlier
@@ -184,11 +199,14 @@ kernel/zeff-numeric/src/tukey.rs	replace - with / in log_integral	8	hang
 kernel/zeff-numeric/src/tukey.rs	replace - with / in quantile	1	earlier
 kernel/zeff-numeric/src/tukey.rs	replace / with % in expm1_minus	1	hang
 kernel/zeff-numeric/src/tukey.rs	replace / with % in inner	1	hang
+kernel/zeff-numeric/src/tukey.rs	replace / with % in ln_band	1	late
 kernel/zeff-numeric/src/tukey.rs	replace / with % in log_integral	1	earlier
 kernel/zeff-numeric/src/tukey.rs	replace / with % in log_integral	3	hang
 kernel/zeff-numeric/src/tukey.rs	replace / with % in quantile	1	hang
 kernel/zeff-numeric/src/tukey.rs	replace / with % in tails	1	earlier
+kernel/zeff-numeric/src/tukey.rs	replace / with * in expm1_minus	1	late
 kernel/zeff-numeric/src/tukey.rs	replace / with * in inner	1	hang
+kernel/zeff-numeric/src/tukey.rs	replace / with * in ln_band	1	late
 kernel/zeff-numeric/src/tukey.rs	replace / with * in log_integral	1	earlier
 kernel/zeff-numeric/src/tukey.rs	replace / with * in log_integral	3	hang
 kernel/zeff-numeric/src/tukey.rs	replace / with * in quantile	1	hang
@@ -197,9 +215,11 @@ kernel/zeff-numeric/src/tukey.rs	replace < with <= in quantile	6	earlier
 kernel/zeff-numeric/src/tukey.rs	replace < with <= in studentized	3	edge
 kernel/zeff-numeric/src/tukey.rs	replace < with == in studentized	1	edge
 kernel/zeff-numeric/src/tukey.rs	replace <= with > in expm1_minus	2	hang
+kernel/zeff-numeric/src/tukey.rs	replace <= with > in inner	1	late
 kernel/zeff-numeric/src/tukey.rs	replace <= with > in ln_band	3	hang
 kernel/zeff-numeric/src/tukey.rs	replace <= with > in log_integral	2	hang
 kernel/zeff-numeric/src/tukey.rs	replace == with != in log_integral	1	earlier
+kernel/zeff-numeric/src/tukey.rs	replace > with < in log_integral	2	late
 kernel/zeff-numeric/src/tukey.rs	replace > with < in quantile	1	earlier
 kernel/zeff-numeric/src/tukey.rs	replace > with < in tails	1	earlier
 kernel/zeff-numeric/src/tukey.rs	replace > with == in log_integral	2	earlier
@@ -220,6 +240,7 @@ kernel/zeff-numeric/src/tukey.rs	replace >= with < in studentized	1	hang
 kernel/zeff-numeric/src/tukey.rs	replace ln -> f64 with -1.0	1	hang
 kernel/zeff-numeric/src/tukey.rs	replace ln -> f64 with 0.0	1	hang
 kernel/zeff-numeric/src/tukey.rs	replace ln -> f64 with 1.0	1	hang
+kernel/zeff-numeric/src/tukey.rs	replace ln_band -> f64 with -1.0	1	late
 kernel/zeff-numeric/src/tukey.rs	replace match guard ln_upper_bound(q, k, nu) < LN_SMALLEST with false in studentized	1	fence
 kernel/zeff-numeric/src/tukey.rs	replace match guard typical > 0.0 with true in studentized	1	earlier
 kernel/zeff-numeric/src/tukey.rs	replace upper_tail -> f64 with 1.0	1	hang

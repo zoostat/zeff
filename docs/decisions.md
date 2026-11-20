@@ -6593,3 +6593,27 @@ The library takes `hypher` with every language, and a crate that uses the librar
 **Step 24b is done.** With the local half recorded above (the self-test, the nine samples, the sample script, the figures, the bundle), every item of the step holds. The mutation shards of the confirming run are read under step 24a2d.
 
 **Reason.** The testing handbook, section 2.4, items 2 and 3; the checklist's step 24b.
+
+## 20 November 2026: the numeric kernel in the confirming run: a test that ran on, tightened, and seventeen mutants recorded as late (release 0.8.0, step 24a2d, the first part)
+
+**What the run shows so far.** The confirming weekly run (44653636848, on 5bbca60) had finished 39 of its 84 mutation shards when this was written: all 24 of the numeric kernel, the 4 of the linear-algebra kernel and 11 of the 16 of the results package. The kernel of linear algebra and the results package show nothing that is not on the recorded list (14 and 44 survivors read, all recorded). The numeric kernel shows 401 survivors read, 378 recorded and 23 new; no shard was ended by running out of memory. The 23 are all timeouts of the first pass, none is a missed mutant, and every one of them stands in the list of caught mutants of the run of 19 November (44578380798), at the same line and column: nothing of the code is untested that was tested before.
+
+**The cause is a test of step 24a2c.** `the_bounds_stand_above_what_they_bound` (`kernel/zeff-numeric/src/tukey.rs`) evaluates the studentized range and its density at 240 points and holds each under its bound. It compared only where the value was finite, so under a mutant that makes the routine return nothing finite it neither failed nor ended early, and under a mutant that makes the integration slow it ran through all 240 points: the suite, which the older tests had already failed, went past the limit of the job (about five times the 31 seconds of the unmutated suite), and the tool reports a timeout where it had reported a catch.
+
+**The test tightened (commit 3705649).** It now requires a finite value at every point, which the grid gives without exception in correct code. A guard of the form "compare if finite" is not to be written in a test again: a value that must be finite is asserted so.
+
+**The 23 tried by hand against the tightened test,** each mutant applied to a saved copy of the source, the suite of the kernel run with a cap of 170 seconds, the source put back and compared (the unmutated suite takes 38 seconds on the same machine):
+
+- caught within seconds, and so not recorded: `exp -> 1.0` (4 s), `sqrt -> -1.0` (3 s), `ln_band -> 0.0` (7 s), `> with <` and `> with ==` in `ln` (2 s and 1 s), and `+ with *` in `inner` (38 s);
+- ended by failing tests but late, between 111 and 135 seconds: `/ with *` and `- with +` in `expm1_minus`, `* with /` in `range`, and `- with +`, `* with +`, `+ with -` in `studentized`;
+- still running at the cap, with one to six older tests already failed: `erfc -> 1.0`, `> with <` in `log_integral` (twice), `ln_band -> -1.0`, `*= with +=`, `*= with /=`, `/ with %`, `/ with *` and `+= with *=` in `ln_band`, and `* with /` and `<= with >` in `inner`.
+
+**Choice.** The seventeen of the last two groups are entered in `tools/mutants/recorded.txt` under a new key, `late`: a mutant that older tests catch, each by failing, and under which the test of the bounds runs on, so that the suite ends late or past the job's limit. The list now holds 775 recorded survivors in 507 lines. The six of the first group are left off the list: the next run should report them caught, and says so if it does not.
+
+**Reason.** The definition of the step: what is new has its test or its reason. These mutants have their tests (the older ones, which fail under each); what is new is only the time the suite takes to end, and the key says so apart from `hang`, which the legend gives to a loop that never ends, or runs for hours, under the mutant. The test of the bounds is kept at its 240 points and not thinned to make the mutants end sooner: it is what kills the survivors of step 24a2c in the bounds themselves, and a smaller grid to please the clock would be a weaker test. A reporter that stops the suite at the first failure would report all seventeen as caught; changing the test runner of the job is not work for the day before a release, and is noted here for the review of the job after 0.8.0.
+
+## 20 November 2026: the owner runs the reader test before the release (release 0.8.0)
+
+**Choice (the owner's, in the session of 20 November 2026).** Asked whether the reader test of the testing handbook (section 2.4, item 4, required from 0.8.0) would be run before "Release 0.8.0", the owner answered that he will run it. The sheet of eight scripts, its key and the scripts themselves are outside the repository, in the handbook folder under `zeff-0.8.0-prerelease/reader-test`.
+
+**What follows.** The release waits for the findings. What readers misread is corrected, where it is a fault of a printed result, a message or a help page, before the release; the notes of 0.8.0 report who read, what was asked and what was changed. Step 24c stays ticked: its other items hold, and its note in the checklist already says that no reader test had been reported when it was ticked.
