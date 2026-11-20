@@ -170,3 +170,11 @@ Step 22b3: the last nine pages of `core` brought to the help contract (the funct
 
 **For the owner to decide.** Nothing that stops the work. On the list: #173 (decided for A on the recommendation); a perfect first stage prints a Cragg–Donald F of twenty-one digits.
 
+## 20 November 2026, release 0.8.0, step 24b (part 2 of the pre-release routine; the jobs still run)
+
+**Done so far.** The local half of step 24b `[engine]`: the self-test (551 of 551), the nine sample projects byte for byte with every file they write, the new sample and the changes of the others read by eye, the Typst form set and looked at, the bundle (2,782 kB of 5,000) and its cold start (143 ms of 1,000).
+
+**In flight, all on 5bbca60, started at 01:26 UTC on 20 November.** The nightly 44653690714, the fuzzing 44653699954, the benchmark 44653713356, and the confirming weekly run 44653636848 of step 24a2d (about fifteen hours). Step 24b is ticked when the first three are read; 24a2d when the fourth is.
+
+**Next.** Read those runs; then step 24c `[engine]`, part 3.
+

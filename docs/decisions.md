@@ -6536,3 +6536,19 @@ The library takes `hypher` with every language, and a crate that uses the librar
 
 **Reason.** The testing handbook, sections 1, 2.3 and 2.4; the checklist's step 24a2c.
 
+## 20 November 2026: the samples, the self-test and the bundle of 0.8.0 (release 0.8.0, step 24b; the jobs still run)
+
+**The commit.** 5bbca60. The scheduled jobs were started on it by hand at 01:26 UTC: the nightly (44653690714), the fuzzing (44653699954), the benchmark of the reduction shape (44653713356), and the whole weekly job as the confirming run of step 24a2d (44653636848). Their results are a later entry.
+
+**The samples and the self-test.** On this machine, from a release build of the commit: `zeff selftest` reports 551 of 551 cases conformant (ARM64); 486 at 0.7.0. The nine sample projects (`first_engine`, `data_cleaning`, `simulation`, `regression`, `user_functions`, `panel`, `tests`, `plots`, and the new `instruments`) each print their stored output and their stored messages byte for byte, and every file they write (the 31 figures of `plots`, the three of `regression`, the tables of `panel` and `instruments`) is the stored file to the byte.
+
+**Read by eye.** The new sample, `instruments`, whole: the comparison that misleads gives 5.93 for the course, the offer as an instrument 4.60 with a 95 per cent interval that holds the 4.5 the data were made with, the first stage and its F of 748, the over-identification test with a second instrument, a weak instrument on 300 rows with its warning and a confidence set of two rays, and the table of the three fits. It reads as the story its comments tell. One wart, known and due at 0.9.0 (#171): in the table a coefficient of -0.0004 prints as 0.000. The older samples: what changed in their pages since 0.7.0 is `print` writing its values on one line and one warning naming its variable once, both intended (#130); nothing else moved, and those pages were read at 0.7.0. The specification's sample script: twelve diagnostics remain, each a function, a block or a module of a later release (`logistic`, `probit`, `robustness`, `reliability`, the three of the diagrams, `check`); its section on instrumental variables runs as written and gives fixest's 0.225 for schooling.
+
+**The figures.** None of the fifteen figures of `plots` has changed since they were read one by one at 0.7.0: the files are the same bytes. Two were opened again. What is new to the eye at this release is the Typst form: a test's result, a report and a figure were exported as `.typ` and set by Typst 0.15.0 on this machine; the notes stand under the test's table without widening it, the hypotheses stand in two columns, and the figure is placed whole. The page is kept for the owner at `~/dev/handbook/zeff-0.8.0-prerelease/typst_page.png`, with the script and the document that made it.
+
+**The bundle and the cold start (risk R4).** CI's measure on d8ad441, the commit before, with the same code: the worker build a browser loads is 2,782 kB with Brotli (4,003 kB with gzip, 14,491 kB raw) against the warning level of 5,000 kB, and its cold start 143 ms under Node 24 against 1,000 ms; at 0.7.0, 2,535 kB and 52 ms. The conformance bundle is 2,906 kB with Brotli. Both limits hold; 56 per cent of the size limit is used, where 51 was.
+
+**An observation of step 24a1, looked at here.** The single request of 331 MB and then 662 MB inside the conformance suite is not yet traced to its case; it is carried to step 24c as an item of the known issues if it is not found before.
+
+**Reason.** The testing handbook, section 2.4, items 2 and 3; the checklist's step 24b.
+
