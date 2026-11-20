@@ -160,6 +160,6 @@ Step 24a split in two, and 24a2 in four. 24a1: the weekly run of 16 November sho
 
 **Not yet read on GitHub.** The changes of this step itself were tried by hand, mutant by mutant; the scheduled weekly run of Monday 23 November is the first to read them together, and its notes are to be read as these were.
 
-**Next.** The checklist of 0.8.0 is complete but for 23a and 23b, which the owner's answer to question 7 puts after 1.0. The release waits for the owner's reader test and his "Release 0.8.0".
+**Next.** The checklist of 0.8.0 is complete but for 23a and 23b, which the owner's answer to question 7 puts after 1.0. The release waits for the owner's "Release 0.8.0": on 20 November, after this step, he chose to skip the reader test at this release (`docs/decisions.md`, that date); the notes are to say that it was not run, and it is owed again at 0.9.0.
 
-**For the owner to decide or do.** The reader test (the testing handbook, section 2.4, item 4): the owner said on 20 November that he will run it before "Release 0.8.0"; the sheet and its key are in the handbook folder. The Stata run, if a colleague has Stata. The copy of the Zemp Specification in the Zemp Lite repository still has the older counts, and the Zemp Lite notes of the shared folder are to be entered in the register before "Start release 0.2".
+**For the owner to decide or do.** "Release 0.8.0", when he is ready. The Stata run, if a colleague has Stata. The copy of the Zemp Specification in the Zemp Lite repository still has the older counts, and the Zemp Lite notes of the shared folder are to be entered in the register before "Start release 0.2".
