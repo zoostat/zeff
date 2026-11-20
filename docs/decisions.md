@@ -6659,3 +6659,31 @@ The library takes `hypher` with every language, and a crate that uses the librar
 **Choice.** The limit of the class from five degrees of freedom goes from 10 to 20 ms; the other two limits stay at 50 ms, and those of a debug build at 300 ms for the first class and 750 ms for the others. A call over its limit is timed again, twice at most, and its quickest time is held to the limit.
 
 **Reason.** A limit a quarter above the slowest call measures the machine and not the routine: it had passed every night by that quarter. The fault the test was written for at step 20e took half a minute for one call, which a limit of 20 ms catches as a limit of 10 does; the other two classes already had twice their slowest call. Taking the quickest of three leaves out what the machine was doing beside the test, which only ever adds to a time. This is a change of a limit in a test, made because the limit was wrong and said here as such; no assertion about a value is touched. The nightly job is run again by hand on the commit that holds it.
+
+## 20 November 2026: the confirming run read to its end (release 0.8.0, step 24a2d, closed)
+
+**What was read.** The whole weekly job on 5bbca60 (run 44653636848, started by hand at 01:26 UTC and ended at 15:11 UTC): 84 mutation shards and the coverage job, every one green, none ended by running out of memory. Each shard's note was read against `tools/mutants/recorded.txt` as it stood on that commit.
+
+| package | shards | mutants tested | caught, first pass | caught, second pass | survivors and timeouts | on the list | new |
+|---|---:|---:|---:|---:|---:|---:|---:|
+| `zeff-numeric` | 24 | 2,660 | 2,024 | 220 | 401 | 378 | 23 |
+| `zeff-kernels` | 4 | 627 | 573 | 17 | 14 | 14 | 0 |
+| `results` | 16 | 1,579 | 1,084 | 304 | 74 | 70 | 4 |
+| `regress` | 16 | 1,457 | 1,250 | 1 | 150 | 147 | 3 |
+| `stats` | 24 | 4,037 | 3,713 | 0 | 176 | 176 | 0 |
+| all | 84 | 10,360 | 8,644 | 542 | 815 | 785 | 30 |
+
+Of the 10,360 mutants 359 did not compile. The 815 are 540 that no test failed under, 249 timeouts of the first pass and 26 of the second.
+
+**The thirty that were new, each with its test or its reason.**
+
+- *Numeric kernel, 23.* Every one a timeout and none a survivor: mutants the run of 19 November caught, under which a test of step 24a2c ran on. The test is tightened (3705649); six are caught within seconds again and seventeen are recorded under the key `late` (the first part, above).
+- *Results, 4.* Catches of the day before, reported as timeouts because the second pass's tests met its floor of ten minutes; each is caught at once by hand. The floor is fifteen minutes, and shards 3 and 4 run again by hand on 3be6d50 (44715782541) show nothing new (the second, third and fifth parts). Shard 14 holds one of the four and was not run again: the same cause, and the same catch by hand.
+- *Regress, 3.* Real survivors, which the run of 19 November showed as well and step 24a2c overlooked: a line of `ivreg` that proved redundant and is removed, an assertion added to a test of `iv`, and one recorded under `fence` (the third and fourth parts).
+- *Linear-algebra kernel and stats, 0.*
+
+**Step 24a2d is done, and with it 24a2 and 24a.** The checklist's condition holds: the notes are read, and what is new has its test or its reason. The list stands at 776 recorded mutants in 508 lines.
+
+**The nightly job, run again by hand on 87b9057 (44749235796): green.** The long tests pass, the timing test of the studentized range among them (316 suites), and after them the stochastic class, the truth-recovery runs and the benchmarks. The failure of the scheduled run of the night is thereby closed.
+
+**What no run on GitHub has yet read.** The changes of this step itself: the tightened test of the bounds, the seventeen `late` lines, the `fence` line, the line removed from `ivreg` and the two assertions. Each was tried by hand on the development machine, mutant by mutant, and the fifteen-minute floor in a hand run of two shards. The scheduled weekly run of Monday 23 November (03:41 UTC) is the first to read all of them together; its notes are to be read as those of this run were, whichever release is then in hand.
