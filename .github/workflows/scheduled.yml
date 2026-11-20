@@ -346,7 +346,7 @@ jobs:
     # and the tool's own baseline, which runs the package's tests only, could not show it
     # (docs/decisions.md, 19 November 2026). A mutant that timed out in the first pass is a
     # hang or a slow failure under its own package's tests and is listed as that; it is not
-    # tested again, where it would cost ten minutes to learn the same.
+    # tested again, where it would cost fifteen minutes to learn the same.
     name: weekly (mutation testing, ${{ matrix.package }} ${{ matrix.shard }} of ${{ matrix.of }})
     if: >-
       github.event_name == 'workflow_dispatch' && (inputs.job == 'both' || inputs.job == 'weekly')
@@ -504,8 +504,12 @@ jobs:
           mkdir -p pass1 && cp mutants/mutants.out/*.txt pass1/ || true
           echo "Pass one, against the package's own tests: caught $(wc -l < pass1/caught.txt | tr -d ' '), missed $(wc -l < pass1/missed.txt | tr -d ' '), timed out $(wc -l < pass1/timeout.txt | tr -d ' '), unviable $(wc -l < pass1/unviable.txt | tr -d ' ')"
           # Pass two: what pass one missed, against the tests of the packages that use this one,
-          # with a floor of ten minutes, since those tests come to several minutes under a slow
-          # mutant. `--iterate` skips the mutants a previous run caught, but it cuts its shards
+          # with a floor of fifteen minutes. Those tests take about ten minutes on the unmutated
+          # code where the plot package is among them (586 seconds in the run of 20 November
+          # 2026, 44653636848, 489 the day before), and cargo stops at the first test program
+          # that fails: under the floor of ten minutes that stood until then, a mutant caught
+          # by one of the last programs was cut off before that program ran and reported as a
+          # timeout, and so was every mutant that no test catches. `--iterate` skips the mutants a previous run caught, but it cuts its shards
           # afresh from what is left of the whole package, so a second run with `--shard` tests
           # other shards' mutants (the run of 15 November 2026 by hand, 43675253535, tested 106
           # where 14 were left). So the second pass takes no shard: every mutant of the package
@@ -542,7 +546,7 @@ jobs:
             fi
             echo "The guard: $(grep -c '^test result: ok' guard.log) test programs of pass two pass on the unmutated code under its limit"
             cargo clean
-            (cargo mutants --package ${{ matrix.package }} --iterate $TEST_PACKAGES --timeout-multiplier 5 --minimum-test-timeout 600 --output mutants -- -- $SKIPS || true) 2>&1 | tail -40
+            (cargo mutants --package ${{ matrix.package }} --iterate $TEST_PACKAGES --timeout-multiplier 5 --minimum-test-timeout 900 --output mutants -- -- $SKIPS || true) 2>&1 | tail -40
             # A mutant that asks for memory without bound is caught by the limit, and rightly;
             # but if most of the mutants of pass two end so, the limit is catching the tests and
             # not the mutants. The count is printed for the reader of the note.
