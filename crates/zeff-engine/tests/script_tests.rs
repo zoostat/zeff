@@ -10,7 +10,7 @@
 //! functions and constructs of later releases.
 //!
 //! The statements are adapted where the shipped data or the release differ from the text:
-//! `fe:` (release 0.6.0) is left out, `logistic` (0.9.0) is `reg`, the subsamples are the
+//! `fe:` (release 0.6.0) is left out, `glm` (0.9.0) is `reg`, the subsamples are the
 //! wages' years rather than a simulation's replications, and the default cluster is the
 //! `worker` the wages have rather than `firm`. The EM of section 5.5 runs on one year of the
 //! wages (1,091 rows with a wage), so that even the 500 passes of its `max:`, which a mutated

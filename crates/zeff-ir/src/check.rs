@@ -6219,6 +6219,10 @@ impl Checker<'_> {
                             format!(
                                 "`{name}` is a method of {takes}; this value may be any kind of result, so bind the fit under its own name and call `{name}` on that"
                             )
+                        } else if name == "logit" && r.ty == Ty::Frame {
+                            // `d.logit(y ~ x)` means a model (open decision #112): the maths
+                            // function keeps its name, and the help names the model's.
+                            "`logit(p)` is the log-odds of a number; a logistic regression is `data.glm(y ~ x, family: binomial)`".to_string()
                         } else {
                             format!(
                                 "`{name}` takes {takes} first; `x.{name}(...)` is `{name}(x, ...)`"

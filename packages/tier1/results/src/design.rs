@@ -1471,7 +1471,7 @@ impl Builder<'_, '_> {
                 )
                 .in_file(self.ctx.script)
                 .primary(self.ctx.callee_span, "a category on the left of `~`")
-                .help("`to(y, Int)` gives a category's codes; a model for a categorical outcome arrives with `logistic` (release 0.9.0)"),
+                .help("`to(y, Int)` gives a category's codes; a model for a categorical outcome arrives with `glm` (release 0.9.0)"),
             ));
         }
         Ok(source)

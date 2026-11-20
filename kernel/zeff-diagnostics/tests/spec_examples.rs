@@ -89,8 +89,8 @@ fn diagnostic(code: &str, s: &Source) -> Diagnostic {
         "Z0701" => d("path `../shared/wages.csv` is outside the project")
             .primary(at(s, 2, "\"../shared/wages.csv\""), "projects read only their own files and declared data roots")
             .help("declare the folder under [data] in zeff.toml and write `import(\"shared:wages.csv\")`, or copy the file into data/"),
-        "Z0803" => d("logistic: `female` perfectly predicts `union` (separation)")
-            .primary(at(s, 49, "logistic"), "estimates diverge; maximum likelihood does not exist")
+        "Z0803" => d("glm: `female` perfectly predicts `union` (separation)")
+            .primary(at(s, 49, "glm"), "estimates diverge; maximum likelihood does not exist")
             .help("drop or combine the predictor, or check how `union` was coded"),
         other => panic!("the specification has an example for {other} that this test does not build"),
     }

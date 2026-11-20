@@ -173,11 +173,14 @@ p_adjust(p, method: holm)
 
 // ── 10. Binary outcomes ──────────────────────────────────────────────
 
-let lg = wages.logistic(union ~ educ + exper + female + industry, cluster: worker)
-let pr = wages.probit(union ~ educ + exper + female + industry, cluster: worker)
+let lg = wages.glm(union ~ educ + exper + female + industry, family: binomial, cluster: worker)
+let pr = wages.glm(union ~ educ + exper + female + industry,
+                   family: binomial,
+                   link: probit,
+                   cluster: worker)
 report([lg, pr]).export("output/table_union.docx")
-let lr1 = wages.logistic(union ~ educ + exper + female + industry)
-let lr0 = wages.logistic(union ~ educ + exper)
+let lr1 = wages.glm(union ~ educ + exper + female + industry, family: binomial)
+let lr0 = wages.glm(union ~ educ + exper, family: binomial)
 lr1.compare(lr0)                                      // likelihood-ratio test on the same rows
 lg.test(female == 0)                                  // Wald test with clustered SEs
 
@@ -189,7 +192,7 @@ let sims = [for s in 1..500 {
     let d = frame(x = dist.normal().draw(n: size, seed: s),
                   u = dist.uniform().draw(n: size, seed: s + 10000))
         .add(y = case { inv_logit(0.5 * x) > u => 1, _ => 0 })
-    attempt(d.logistic(y ~ x))                        // separation gives a Failed value
+    attempt(d.glm(y ~ x, family: binomial))           // separation gives a Failed value
 }]
 len(sims)                                             // warns how many fits failed
 let slopes = [for m in sims {
@@ -254,7 +257,7 @@ plot(means, x: industry, y: mean_lwage, color: female)
 // ── Previews: syntax fixed now, available from 1.x ───────────────────
 
 // From 1.1: bootstrap SEs that tolerate failed draws (the engine release: threads, bootstrap, lazy chains)
-//     let b = wages.logistic(union ~ educ, se: bootstrap, reps: 2000, on_fail: skip)
+//     let b = wages.glm(union ~ educ, family: binomial, se: bootstrap, reps: 2000, on_fail: skip)
 //
 // From 1.19: staggered difference-in-differences
 //     let cs = counties.did(emp, cohort: first_treat, method: cs, control: not_yet)

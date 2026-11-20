@@ -1,0 +1,51 @@
+---
+source: crates/zeff-engine/tests/binary_model_names.rs
+expression: all
+---
+dataset(wages).logistic(union ~ educ)
+---- exit code 1
+error[Z0103]: no function is called `logistic`
+ --> scripts/main.zeff:1:16
+  |
+1 | dataset(wages).logistic(union ~ educ)
+  |                ^^^^^^^^ not a function of Zeff
+  |
+  = help: a logistic regression is `data.glm(y ~ x, family: binomial)` since release 0.9.0
+
+====
+dataset(wages).probit(union ~ educ)
+---- exit code 1
+error[Z0103]: no function is called `probit`
+ --> scripts/main.zeff:1:16
+  |
+1 | dataset(wages).probit(union ~ educ)
+  |                ^^^^^^ not a function of Zeff
+  |
+  = help: a probit regression is `data.glm(y ~ x, family: binomial, link: probit)` since release 0.9.0
+
+====
+dataset(wages).logit(union ~ educ)
+---- exit code 1
+error[Z0401]: `logit` cannot be called on a Frame
+ --> scripts/main.zeff:1:1
+  |
+1 | dataset(wages).logit(union ~ educ)
+  | ^^^^^^^^^^^^^^ this is a Frame
+  |
+  = help: `logit(p)` is the log-odds of a number; a logistic regression is `data.glm(y ~ x, family: binomial)`
+
+====
+dataset(wages).reg(log(wage) ~ educ).roc()
+---- exit code 1
+error[Z0103]: no function is called `roc`
+ --> scripts/main.zeff:1:38
+  |
+1 | dataset(wages).reg(log(wage) ~ educ).roc()
+  |                                      ^^^ not a function of Zeff
+  |
+  = help: `fit.roc()` is `fit.curve(type: roc)` since release 0.9.0
+
+====
+logit(0.25)
+---- exit code 0
+-1.09861

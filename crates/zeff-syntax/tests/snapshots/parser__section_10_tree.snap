@@ -22,6 +22,6 @@ expression: "sexp::script(&parsed.script)"
 (let dd (method reg counties (~ emp (* treated post)) fe:(+ county year) cluster:county))
 (method export (method coef_plot dd) "output/fig2.pdf" size:two_column)
 (method t_test wages lwage group:female)
-(let lg (method logistic wages (~ union (+ (+ educ exper) female)) cluster:worker))
+(let lg (method glm wages (~ union (+ (+ educ exper) female)) family:binomial cluster:worker))
 (let engage (import "data/engagement.csv"))
 (method reliability engage [(.. eng1 eng6)])

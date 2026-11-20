@@ -294,7 +294,7 @@ error[Z0102]: no variable `Wage` in `wages`; names are case-sensitive
 | Conversions and reshapes | Start with `to_` | `to`, `to_long`, `to_wide`, `to_timezone` |
 | Tests | End in `_test`, return a `TestResult` | `t_test`, `chi2_test`, `egger_test`; long-established names keep their own form (`anova`, `hausman`, `kmo`), and design checks are named for what they check (`pre_trends`) |
 | Plots | Plain chart nouns for data plots, `_plot` for derived ones | `histogram`, `scatter`, `qq_plot`, `coef_plot` |
-| Models | Short method names, written out where an abbreviation is unclear | `reg`, `ivreg`, `logistic`, `causal_forest`, not `lr` or `cf` |
+| Models | Short method names, written out where an abbreviation is unclear | `reg`, `ivreg`, `glm`, `causal_forest`, not `lr` or `cf` |
 | Result methods | Nouns for what they return | `coef`, `residuals`, `effects`, `loadings` |
 | Bool arguments | Named for the true case, default false where possible | `paired: true`, `ordered: true`, `first: true` |
 | Script and function files | snake_case with `.zeff` | `main.zeff`, `clean_wages.zeff` |
@@ -698,7 +698,7 @@ report(wages.robustness(lwage ~ educ + exper)).export("output/table3.docx")
 **Built-in resampling** (from 1.1). Everything that takes `reps:` (bootstrap SEs, and later `bootstrap`, permutation tests and simulations) also takes `on_fail: stop | skip = stop` and `max_fail: Float = 0.01`. With `skip`, a draw that fails to converge or errors is left out and counted; the run stops if the failed share passes `max_fail`.
 
 ```
-let fit = wages.logistic(union ~ educ + exper, se: bootstrap, reps: 2000, seed: 42, on_fail: skip)
+let fit = wages.glm(union ~ educ + exper, family: binomial, se: bootstrap, reps: 2000, seed: 42, on_fail: skip)
 ```
 
 ```
@@ -710,7 +710,7 @@ warning[W0801]: 17 of 2,000 bootstrap draws did not converge and were skipped (l
 
 ```
 let fits = [for s in 1..200 {
-    attempt(sims.where(rep == s).logistic(y ~ treat + x))
+    attempt(sims.where(rep == s).glm(y ~ treat + x, family: binomial))
 }]
 report(fits)      // warning[W0801]: 3 of 200 fits failed (Z0803 at line 51) and were skipped
 ```
@@ -1028,7 +1028,7 @@ fit.score(d.testing())                            // the one permitted look at t
 | Order | Steps apply in the order written; a step may use columns an earlier step made |
 | Levels | `one_hot` fixes the levels at fit; a level first seen at apply goes to `other` with a note, never to a new column |
 | Inspection | `rec.prepare(train)` estimates the steps and `.apply(frame)` applies them, for looking at what the model saw; `learn`, `tune` and `score` do both without being asked |
-| Model specifications | `spec.penalized(...)`, `spec.random_forest(...)`, `spec.boosting(...)`, `spec.logistic()` and `spec.reg()` are unfitted specifications, a namespace like `dist.` and `power.`; a parameter given as `grid(20)` or `grid([0.01, 0.1, 1])` is tuned |
+| Model specifications | `spec.penalized(...)`, `spec.random_forest(...)`, `spec.boosting(...)`, `spec.glm(family: binomial)` and `spec.reg()` are unfitted specifications, a namespace like `dist.` and `power.`; a parameter given as `grid(20)` or `grid([0.01, 0.1, 1])` is tuned |
 | Formulas | `y ~ .` means every column except the outcome and the columns with a role: the split marker, a `panel` unit and time, and anything removed with `- id`; an identifier left in is warned (W1106) |
 | Fitting | `data.learn(formula, recipe:, model:)` returns a `LearnFit` with the result and estimator interfaces plus `score`, `calibration`, `shap` and `feature_effects`; `folds.tune(...)` returns a `TuneResult` whose `best()` picks the parameters by the metric |
 
@@ -1160,7 +1160,7 @@ dd.coef_plot().export("output/fig2.pdf", size: two_column)
 
 // 6. A test and a binary outcome
 wages.t_test(lwage, group: female)
-let lg = wages.logistic(union ~ educ + exper + female, cluster: worker)
+let lg = wages.glm(union ~ educ + exper + female, family: binomial, cluster: worker)
 
 // 7. Reliability of a survey scale (CFA and SEM from 1.12)
 let engage = import("data/engagement.csv")
@@ -1439,11 +1439,11 @@ error[Z0606]: row 14,207 of `data/wages.csv` has text in a numeric column
 ```
 
 ```
-error[Z0803]: logistic: `female` perfectly predicts `union` (separation)
+error[Z0803]: glm: `female` perfectly predicts `union` (separation)
  --> scripts/main.zeff:49:16
    |
-49 | let lg = wages.logistic(union ~ educ + exper + female, cluster: worker)
-   |                ^^^^^^^^ estimates diverge; maximum likelihood does not exist
+49 | let lg = wages.glm(union ~ educ + exper + female, family: binomial, cluster: worker)
+   |                ^^^ estimates diverge; maximum likelihood does not exist
    |
    = help: drop or combine the predictor, or check how `union` was coded
 ```

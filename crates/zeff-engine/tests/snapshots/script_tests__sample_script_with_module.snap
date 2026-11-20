@@ -2,23 +2,23 @@
 source: crates/zeff-engine/tests/script_tests.rs
 expression: all
 ---
-error[Z0103]: no function is called `logistic`
+error[Z0103]: no function is called `glm`
  --> zeff_samples.zeff:176:16
-error[Z0103]: no function is called `probit`
+error[Z0103]: no function is called `glm`
  --> zeff_samples.zeff:177:16
-error[Z0103]: no function is called `logistic`
- --> zeff_samples.zeff:179:17
-error[Z0103]: no function is called `logistic`
- --> zeff_samples.zeff:180:17
-error[Z0103]: no function is called `logistic`
- --> zeff_samples.zeff:192:15
+error[Z0103]: no function is called `glm`
+ --> zeff_samples.zeff:182:17
+error[Z0103]: no function is called `glm`
+ --> zeff_samples.zeff:183:17
+error[Z0103]: no function is called `glm`
+ --> zeff_samples.zeff:195:15
 error[Z0103]: no function is called `reliability`
- --> zeff_samples.zeff:205:8
+ --> zeff_samples.zeff:208:8
 error[Z0304]: a `dag { }` block is not available in this release
- --> zeff_samples.zeff:211:9
+ --> zeff_samples.zeff:214:9
 error[Z0103]: no function is called `adjustment_sets`
- --> zeff_samples.zeff:218:3
+ --> zeff_samples.zeff:221:3
 error[Z0103]: no function is called `implied_independencies`
- --> zeff_samples.zeff:219:3
+ --> zeff_samples.zeff:222:3
 error[Z0103]: no function is called `check`
- --> zeff_samples.zeff:224:4
+ --> zeff_samples.zeff:227:4

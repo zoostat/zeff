@@ -45,7 +45,7 @@ error[Z0401]: the outcome `industry` is a category, and this model needs a numbe
 1 | let d = industry ~ educ
   |         ^^^^^^^^^^^^^^^ a category on the left of `~`
   |
-  = help: `to(y, Int)` gives a category's codes; a model for a categorical outcome arrives with `logistic` (release 0.9.0)
+  = help: `to(y, Int)` gives a category's codes; a model for a categorical outcome arrives with `glm` (release 0.9.0)
 
 > a date: n ~ day
 error[Z0401]: `day` is a Date variable, and a model needs numbers or a category

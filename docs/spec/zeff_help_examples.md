@@ -68,7 +68,7 @@ REFERENCES
     Cameron & Miller (2015), A practitioner's guide to cluster-robust inference, J. Human Resources 50, 317–372.
 
 SEE ALSO
-    ivreg, logistic, probit, report, derive, test, compare, interact
+    ivreg, glm, report, derive, test, compare, interact
 
 EXAMPLES
     > let wages = import("zeff:wages.csv")
@@ -382,7 +382,7 @@ A COMMON MISTAKE
     Using the result as if the expression had succeeded. A `Failed` value is refused wherever a value is
     needed, and the error names the failure it holds:
 
-    > attempt(sims.where(rep == 0).logistic(y ~ treat + x)).coef()
+    > attempt(sims.where(rep == 0).glm(y ~ treat + x, family: binomial)).coef()
     error[Z0220]: a failed value cannot be used as an argument: it failed with Z0801 at line 1: no row remains to fit the model: the frame has no rows
       = help: test it first with `x.is(Failed)`, or keep it in a list for `report` and `len` to skip with a count (section 5.4)
 
@@ -408,7 +408,7 @@ EXAMPLES
     // Two hundred fits in a loop, three of which fail: the loop carries on, and `report` counts them.
     > let sims = import("zeff:sims.csv")
     > let fits = [for s in 1..200 {
-    >     attempt(sims.where(rep == s).logistic(y ~ treat + x))
+    >     attempt(sims.where(rep == s).glm(y ~ treat + x, family: binomial))
     > }]
     > report(fits)
     warning[W0801]: 3 of 200 fits failed (Z0803 at line 3) and were skipped

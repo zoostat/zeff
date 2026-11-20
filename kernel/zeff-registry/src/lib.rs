@@ -39,8 +39,9 @@ pub fn unrevised_pages() -> Vec<(&'static str, &'static str)> {
         .collect()
 }
 
-/// The names a release before 1.0 took out of the language, each with the call that takes its
-/// place: a script that still uses one is refused with this line (Z0103), and `zeff help` gives
+/// The names a release before 1.0 took out of the language, or that the catalogue named and a
+/// decision renamed before they shipped (`logistic`, `probit` and `roc`, open decision #112),
+/// each with the call that takes its place: a script that still uses one is refused with this line (Z0103), and `zeff help` gives
 /// it too, so that a breaking change of a minor release (Engine and Project Specification,
 /// section 14) always says what to write instead.
 pub const REPLACED: &[(&str, &str)] = &[
@@ -79,6 +80,18 @@ pub const REPLACED: &[(&str, &str)] = &[
     (
         "fill_forward",
         "`fill_forward(x)` is `fill_missing(x, method: forward)` since release 0.8.0",
+    ),
+    (
+        "logistic",
+        "a logistic regression is `data.glm(y ~ x, family: binomial)` since release 0.9.0",
+    ),
+    (
+        "probit",
+        "a probit regression is `data.glm(y ~ x, family: binomial, link: probit)` since release 0.9.0",
+    ),
+    (
+        "roc",
+        "`fit.roc()` is `fit.curve(type: roc)` since release 0.9.0",
     ),
     (
         "quantile_group",
