@@ -626,6 +626,9 @@ fn a_variable_too_large_or_too_small_to_scale_is_named_so() {
             )),
             "{instrument}"
         );
+        // An instrument too small to be scaled is not also called zero: its squares are, its
+        // values are not.
+        assert!(!instrument.contains("zero in every row"), "{instrument}");
         // The fit is the fit without that instrument.
         assert!(
             instrument.contains("instrumented: training · instruments: offer\n"),
@@ -642,6 +645,9 @@ fn a_variable_too_large_or_too_small_to_scale_is_named_so() {
         "{second}"
     );
     assert!(!second.contains("is zero in every row"), "{second}");
+    // One of two instrumented regressors remains, so the model is still instrumented and no
+    // note says otherwise.
+    assert!(!second.contains("nothing is instrumented"), "{second}");
     assert!(
         second.contains(
             "instrumented: training · instruments: offer, distance\nCragg–Donald F 387.89\n"

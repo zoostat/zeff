@@ -514,6 +514,7 @@ packages/tier2/regress/src/iv.rs	replace match guard i <= j with true in parts_o
 packages/tier2/regress/src/iv.rs	replace match guard observed.kept == self.fitted.kept with true in TwoStage::diagnostics	1	fence
 packages/tier2/regress/src/iv.rs	replace || with && in TwoStage::anderson_rubin	2	unavailable
 packages/tier2/regress/src/iv.rs	replace || with && in TwoStage::weak	1	unavailable
+packages/tier2/regress/src/ivreg.rs	replace && with || in ivreg	1	fence
 packages/tier2/regress/src/ivreg.rs	replace && with || in stage_tables	1	edge
 packages/tier2/regress/src/ivreg.rs	replace < with <= in ar_test	2	edge
 packages/tier2/regress/src/ivreg.rs	replace == with != in clusters_for	1	identity
