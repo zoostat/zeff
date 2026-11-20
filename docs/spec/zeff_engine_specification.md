@@ -790,7 +790,7 @@ Zeff ships a language server (`zeff lsp`, the Language Server Protocol), a forma
 | Snippets | Templates for common analyses (a regression table, an IV model with diagnostics, a two-period DiD, a logistic regression) |
 | Inlay hints (1.1) | Optional: the type of each `let` binding and the row count of each frame after a chain step |
 
-**Running code interactively.** A project keeps one live session per window. Running a statement updates the session's bindings, which the object panel shows with their memory use. Because bindings never change, re-running a chain simply shadows the old result; `zeff run` from a clean session always reproduces the script's output exactly, and Zemp marks the session "out of sync" when statements were run out of order.
+**Running code interactively.** A project keeps one live session per window. Running a statement runs it with every statement it reads, directly or through others, that is out of date or not yet run, in script order; a statement that is current is not run again, its result served from the session or the cache. So every result a run leaves is the result of its statement as the script stands, or is marked stale, and the script's own statements cannot put the session out of sync; only a statement typed in the console, which is not in the script, can, and Zemp then marks the session "out of sync". Because bindings never change, re-running a chain simply shadows the old result, and `zeff run` from a clean session always reproduces the script's output exactly.
 
 **Testing.** `zeff test` runs every `assert` and each project function's examples written in its `///` help, so a project can check its own numbers on every run.
 
