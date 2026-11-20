@@ -142,13 +142,9 @@ pub fn ivreg(ctx: &mut CallContext<'_>, args: Args) -> Result<Value, Fail> {
             ctx.message(Diagnostic::plain_note(note.clone()));
         }
     }
-    let mut notes: Vec<String> = designs
-        .excluded
-        .notes
-        .iter()
-        .filter(|n| !design_notes.contains(n))
-        .cloned()
-        .collect();
+    // The notes that follow are kept on the fit after those of the designs, which `said` holds
+    // already, those of the instruments' design among them.
+    let mut notes: Vec<String> = Vec::new();
     let zero_weights = projection
         .as_ref()
         .map_or(designs.structural.zero_weights, |p| p.original.zero_weights);

@@ -538,6 +538,26 @@ fn the_forms_no_test_had_printed() {
     insta::assert_snapshot!("ivreg_unprinted_forms", all_of(&scripts, false));
 }
 
+/// The notes of the two designs are kept on the fit once each: a report of the fit writes the
+/// note of the formula's design and the note of the instruments' design once, under the number
+/// of its column.
+#[test]
+fn a_report_writes_each_note_of_the_designs_once() {
+    let out = printed(
+        "let staff = dataset(staff)\nlet iv = staff.ivreg(productivity ~ age + age + training, instruments: training ~ offer + distance + offer)\nreport([iv])\n",
+    );
+    for note in [
+        "`age` is written twice and is kept once",
+        "`offer` is written twice and is kept once",
+    ] {
+        assert_eq!(
+            out.matches(&format!("(1) note: {note}")).count(),
+            1,
+            "{out}"
+        );
+    }
+}
+
 /// An under-identified model said in the plural: three instrumented regressors that three
 /// instruments move only together, so that two of them cannot be told from the first; and two
 /// instruments that the formula already holds, which leave one for two regressors. The columns
