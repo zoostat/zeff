@@ -518,6 +518,7 @@ kernels/inverse 5b7382e62c183d11
 kernels/cholesky 85270cf23d1a64ab
 kernels/singular_values 196e8a08c4421003
 kernels/symmetric_eigen f2bc0956a6e01ad9
+kernels/irls 6b409ba7934b62b2
 milestone/stdout 0d6778e9348f5625
 milestone/stderr b9c8b38efbf6aca6
 milestone/exit_code a8c7f832281a39c5

@@ -22,6 +22,7 @@
 pub mod cholesky;
 pub mod demean;
 pub mod eigen;
+pub mod irls;
 pub mod matrix;
 pub mod product;
 pub mod qr;

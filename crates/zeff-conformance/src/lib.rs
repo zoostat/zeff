@@ -969,7 +969,55 @@ fn kernels_cases() -> Vec<Line> {
         eigen.extend(found.vectors.data());
     }
     lines.push(series("kernels/symmetric_eigen", &eigen));
+    lines.push(series("kernels/irls", &irls_bits()));
     lines
+}
+
+/// The shared optimiser of the likelihood models (release 0.9.0, step 4): the binomial family
+/// with each link, by Fisher scoring and by Newton's method, on the generated design of
+/// `tests/reference/r/binary.R`: the coefficients, the log-likelihood after each iteration, the
+/// R factor of the information and the counts of iterations and halvings, so that the four
+/// targets prove the same bits through the exponential, the normal tails and every reduction.
+fn irls_bits() -> Vec<f64> {
+    use zeff_kernels::Matrix;
+    use zeff_kernels::irls::{Control, Method, irls};
+    use zeff_results::likelihood::{Binomial, Likelihood, Link};
+    let mut rows = Vec::new();
+    let mut y = Vec::new();
+    for i in 0..400_i64 {
+        let x1 = (i % 17) as f64 / 4.0 - 2.0;
+        let x2 = ((i * 37) % 23) as f64 / 5.0 - 2.2;
+        let threshold = 4 + (i % 17) / 3 - ((i * 37) % 23) / 6;
+        y.push(if (i * 7919) % 11 < threshold {
+            1.0
+        } else {
+            0.0
+        });
+        rows.push(vec![1.0, x1, x2]);
+    }
+    let x = Matrix::from_rows(&rows);
+    let mut out = Vec::new();
+    for link in [Link::Logit, Link::Probit] {
+        let family = Binomial::new(y.clone(), link);
+        let start: Vec<f64> = (0..y.len()).map(|r| family.start(r)).collect();
+        for method in [Method::Scoring, Method::Newton] {
+            let control = Control {
+                method,
+                ..Control::default()
+            };
+            match irls(&x, &family, &start, &control) {
+                Ok(solution) => {
+                    out.extend(&solution.coefficients);
+                    out.extend(&solution.history);
+                    out.extend(solution.r.data());
+                    out.push(solution.iterations as f64);
+                    out.push(solution.halvings as f64);
+                }
+                Err(_) => out.push(f64::NAN),
+            }
+        }
+    }
+    out
 }
 
 /// The regressions of release 0.4.0 (step 10): three fits through the whole engine, on the
