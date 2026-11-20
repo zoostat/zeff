@@ -188,7 +188,7 @@ assert(scaled == by_definition, \"mad differs from its definition\")
         )
     );
     // The report holds no row; its text is stored.
-    insta::assert_snapshot!("report_of_the_fault_of_mad", report.text);
+    insta::assert_snapshot!("report_of_the_fault_of_mad", masked(&report.text));
 }
 
 const STAFF: &str = "worker;site;wage;joined;grade
@@ -234,7 +234,7 @@ assert(staff.max(wage) < 50000, \"a wage of 50,000 or more\")
         reproduced(&report),
         (1, "error[Z0001]: a wage of 50,000 or more".to_string())
     );
-    insta::assert_snapshot!("report_with_made_up_values", report.text);
+    insta::assert_snapshot!("report_with_made_up_values", masked(&report.text));
     // Written beside the report, as `--include-data` writes its files.
     let project = Project::open(&fs, Path::new("/p")).unwrap();
     let written = write(&fs, &project, &report).unwrap();
@@ -424,4 +424,13 @@ fn a_shrunk_reproducer_fails_as_the_original_did() {
             assert_eq!((report.kept, report.of), (2, 4), "case {case}");
         }
     }
+}
+
+/// The report with the engine's version masked, so that its snapshot does not change at every
+/// opening and close of a release with nothing else changed (release 0.9.0, step 1).
+fn masked(report: &str) -> String {
+    report.replace(
+        &format!("- version: {}\n", zeff_engine::VERSION),
+        "- version: (the engine's version)\n",
+    )
 }

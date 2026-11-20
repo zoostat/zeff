@@ -23,7 +23,7 @@ The script stopped with an error:
 
 ## Zeff
 
-- version: 0.8.0
+- version: (the engine's version)
 - edition: preview
 - platform: the test's machine
 

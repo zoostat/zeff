@@ -136,7 +136,7 @@ fn a_report_of_an_error() {
             ("data/pay.csv".to_string(), None)
         ]
     );
-    insta::assert_snapshot!("report_of_an_error", report.text);
+    insta::assert_snapshot!("report_of_an_error", masked(&report.text));
     // The same failure gives the same report under the same name.
     let again = self::report(&fs, &asked(MERGE)).unwrap();
     assert_eq!(again, report);
@@ -209,7 +209,7 @@ fn the_data_comes_only_when_asked_for() {
         fs.read_to_string(Path::new("/p/data/firms.csv")).unwrap(),
         FIRMS
     );
-    insta::assert_snapshot!("report_with_its_data", report.text);
+    insta::assert_snapshot!("report_with_its_data", masked(&report.text));
 }
 
 /// An internal error, planted by the test hook at the line of a statement: the report says it
@@ -230,7 +230,7 @@ fn a_report_of_an_internal_error() {
     assert!(report.reduced);
     assert_eq!((report.kept, report.of), (4, 12));
     assert!(report.name.starts_with("main-Z9001-"));
-    insta::assert_snapshot!("report_of_an_internal_error", report.text);
+    insta::assert_snapshot!("report_of_an_internal_error", masked(&report.text));
 }
 
 /// A result believed wrong: nothing failed; the statement is named by its line and the
@@ -276,7 +276,7 @@ m
     assert_eq!((inside.kept, inside.of), (2, 5));
     assert!(report.text.contains("    -19.137  1.151"));
     assert_eq!(report.files, [("data/pay.csv".to_string(), None)]);
-    insta::assert_snapshot!("report_of_a_wrong_result", report.text);
+    insta::assert_snapshot!("report_of_a_wrong_result", masked(&report.text));
     // What cannot be reported, and why.
     let no = |asked: Asked<'_>| self::report(&fs, &asked).unwrap_err();
     assert_eq!(no(asked(script)), NoReport::NothingFailed);
@@ -334,7 +334,7 @@ fn a_report_of_an_error_found_before_the_run() {
     assert_eq!(report.code.as_deref(), Some("Z0101"));
     assert!(report.reduced);
     assert_eq!((report.kept, report.of), (2, 4));
-    insta::assert_snapshot!("report_of_an_error_of_the_check", report.text);
+    insta::assert_snapshot!("report_of_an_error_of_the_check", masked(&report.text));
     let unread = self::report(
         &fs,
         &asked("let pay = import(\"data/pay.csv\"\nlet x = (\n"),
@@ -342,7 +342,10 @@ fn a_report_of_an_error_found_before_the_run() {
     .unwrap();
     assert_eq!(unread.kind, Kind::Error);
     assert!(!unread.reduced);
-    insta::assert_snapshot!("report_of_a_script_that_cannot_be_read", unread.text);
+    insta::assert_snapshot!(
+        "report_of_a_script_that_cannot_be_read",
+        masked(&unread.text)
+    );
 }
 
 /// A statement that depends on another through a file, which the graph does not see: the
@@ -369,7 +372,7 @@ print(\"after\")
     // Nothing a run of the report wrote is in the project.
     assert!(!fs.is_file(Path::new("/p/output/t.csv")));
     assert!(!report.text.contains("print(\"after\")"));
-    insta::assert_snapshot!("report_kept_up_to_the_failure", report.text);
+    insta::assert_snapshot!("report_kept_up_to_the_failure", masked(&report.text));
 }
 
 /// The specification's sample script (`docs/spec/zeff_samples.zeff`), which this release does
@@ -443,5 +446,14 @@ fn the_report_of_the_sample_scripts_failure_reads_as_the_specification_describes
     ] {
         assert!(report.text.contains(part), "{part}:\n{}", report.text);
     }
-    insta::assert_snapshot!("report_of_the_sample_script", report.text);
+    insta::assert_snapshot!("report_of_the_sample_script", masked(&report.text));
+}
+
+/// The report with the engine's version masked, so that its snapshot does not change at every
+/// opening and close of a release with nothing else changed (release 0.9.0, step 1).
+fn masked(report: &str) -> String {
+    report.replace(
+        &format!("- version: {}\n", zeff_engine::VERSION),
+        "- version: (the engine's version)\n",
+    )
 }

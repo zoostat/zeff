@@ -1,4 +1,4 @@
 [project]
 name = "simulation"
-zeff = "0.8.0"
+zeff = "0.9.0-dev"
 edition = "preview"

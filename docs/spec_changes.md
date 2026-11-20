@@ -785,3 +785,7 @@ After the release of 0.8.0 the owner closed #18 as settled by the plan of #113 a
 ## 20 November 2026 — zeff_open_decisions.md, status, 24 summary rows, a new group of entries #174 to #197, and a paragraph in each of #76, #146, #158 and #164
 
 The notes the Zemp Lite sessions wrote for this register between 15 and 20 November 2026 are entered, on the owner's word: #174 records his ruling of 18 November that the margin editor is the editor of Zemp Lite from the 0.2 alpha, and #175 to #197 are proposals with deadlines, none decided. The Zemp Specification is not amended: #174 names the sections (2, 5, 7, 8 and 15) that are amended when the 0.2 alpha is planned, each change to be logged then. No normative text of the two volumes, the catalogue or the testing handbook is changed.
+
+## 21 November 2026 — zeff_open_decisions.md, status, 21 summary rows, a dated paragraph in 22 entries (the opening of release 0.9.0)
+
+The owner said "go" to the checklist of release 0.9.0 and its answers were taken as recommended under his standing instruction: #85, #149, #153, #161, #165 to #171, #175, #178, #180, #181, #184 to #186, #195, #196 and #197 are decided, each with its summary row and a dated paragraph, and the three definitions of `margins` that #88 left for this opening are written into #88. No normative text of the two volumes, the catalogue or the testing handbook is changed at the opening; #112 is applied to them at step 2.

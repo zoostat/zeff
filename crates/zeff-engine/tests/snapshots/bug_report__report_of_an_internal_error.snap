@@ -25,7 +25,7 @@ Zeff stopped with an internal error. This is a bug in Zeff, not in the script:
 
 ## Zeff
 
-- version: 0.8.0
+- version: (the engine's version)
 - edition: preview
 - platform: the test's machine
 

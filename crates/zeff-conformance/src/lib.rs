@@ -1761,8 +1761,8 @@ fn tools_cases() -> Vec<Line> {
     };
     let mut lines = match build(&fs, &project, &asked) {
         Ok(report) => vec![
-            text("tools/report_bug/name", &report.name),
-            text("tools/report_bug/report", &report.text),
+            text("tools/report_bug/name", &without_version_name(&report.name)),
+            text("tools/report_bug/report", &without_version(&report.text)),
         ],
         Err(none) => vec![text("tools/report_bug/report", &none.to_string())],
     };
@@ -1783,7 +1783,10 @@ fn tools_cases() -> Vec<Line> {
     };
     match build(&fs, &project, &shrinking) {
         Ok(report) => {
-            lines.push(text("tools/report_bug/shrunk/report", &report.text));
+            lines.push(text(
+                "tools/report_bug/shrunk/report",
+                &without_version(&report.text),
+            ));
             for (name, data) in &report.files {
                 lines.push(bytes(
                     &format!("tools/report_bug/shrunk/{name}"),
@@ -1798,6 +1801,25 @@ fn tools_cases() -> Vec<Line> {
         Err(none) => lines.push(text("tools/report_bug/shrunk/report", &none.to_string())),
     }
     lines
+}
+
+/// A report with the engine's version masked (release 0.9.0, step 1): the report says which
+/// engine wrote it, and a digest that held the version would change at every opening and every
+/// close of a release with nothing else changed. Every other character is held.
+fn without_version(report: &str) -> String {
+    report.replace(
+        &format!("- version: {}\n", zeff_engine::VERSION),
+        "- version: (the engine's version)\n",
+    )
+}
+
+/// A report's file name with its last part masked: `main-Z0401-1a2b3c4d.md` ends in a digest of
+/// the report, version included, which the case of the report's text already holds.
+fn without_version_name(name: &str) -> String {
+    match name.rsplit_once('-') {
+        Some((stem, _)) => format!("{stem}-(digest).md"),
+        None => name.to_string(),
+    }
 }
 
 /// How a regression is held: by what its script prints, says and writes when it is run, or by

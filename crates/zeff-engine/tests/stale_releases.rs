@@ -1,7 +1,8 @@
 //! No message, explained page or help page names a release that has shipped as one to come
 //! (release 0.8.0, step 20h; step 17 held the same of 0.8.0 alone). The sources of the engine
 //! and of the packages, the explained pages and the help pages are read for a release up to
-//! the current one written after words that look forward: "arrives with", "waits for
+//! the last one shipped (the current one, or the one before it while a `-dev` version is
+//! built) written after words that look forward: "arrives with", "waits for
 //! release", "take from release", "ships later in release", and in a message a bare
 //! "(release 0.5.0)", which marked a function as new. "Since release 0.8.0" looks back and is
 //! history; so is anything in a comment.
@@ -86,11 +87,19 @@ fn looks_forward(before: &str, line: &str, is_source: bool) -> bool {
 #[test]
 fn no_text_names_a_release_that_has_shipped_as_one_to_come() {
     let root = Path::new(env!("CARGO_MANIFEST_DIR")).join("../..");
-    let current: u32 = zeff_engine::VERSION
+    let minor: u32 = zeff_engine::VERSION
         .split('.')
         .nth(1)
         .and_then(|minor| minor.parse().ok())
         .expect("a version of three numbers");
+    // A development version has not shipped: while 0.9.0-dev is built, a message may say that
+    // a piece of 0.9.0 arrives with it, and the release version (no `-dev`) holds it to the
+    // rule at the close (release 0.9.0, step 1).
+    let current = if zeff_engine::VERSION.contains('-') {
+        minor - 1
+    } else {
+        minor
+    };
     let mut sources = Vec::new();
     for part in ["packages", "kernel", "crates"] {
         files(&root.join(part), &["rs"], &mut sources);
