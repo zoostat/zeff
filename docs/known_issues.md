@@ -5,6 +5,64 @@ each release (testing handbook, section 2.4) and copied into the release notes. 
 release that introduced it and, where one is planned, the release that removes it. A wrong result
 is never listed here as accepted: it is fixed or the function is withdrawn.
 
+## As of 0.8.0
+
+- **`ivreg` is two-stage least squares, with the standard errors of `reg`.** Limited-information
+  maximum likelihood and the generalised method of moments are after 1.0. The standard errors
+  divide by N − k and use the t table, as R's `ivreg`, fixest and Stata's `ivregress 2sls,
+  small` do; Stata's default, which divides by N and uses the normal table, gives slightly
+  smaller ones (open decision #150). `influence` and `vif` take a fit of `reg` only. (Since
+  0.8.0.)
+- **The Anderson–Rubin confidence set is for one instrumented regressor.** With several,
+  `ar_test` gives the joint test that all their coefficients are zero and no set. Under
+  clustered errors the test needs more clusters than instruments outside the equation, and so
+  do the F of the first stage and the Kleibergen–Paap F, which print as "not available" below
+  that: a clustered variance has no higher rank than the clusters less one. (Since 0.8.0.)
+- **A first stage that fits exactly prints an F of twenty-one digits.** An instrumented
+  regressor that is an exact combination of the instruments has no residual in its first
+  stage; its F is infinite, and what prints is the rounding of a division by nearly nothing.
+  The estimates are those of least squares and are right. R warns of an "essentially perfect
+  fit" in the same place; Zeff does so for `reg` and not yet for a first stage. (Since 0.8.0.)
+- **`export` writes Typst, and the engine sets no PDF from it.** A `.typ` file is set by a Typst
+  the user has installed; the library is not inside the engine, for its size and for the
+  licences of some of its hyphenation patterns (open decisions #73 and #172). In the LaTeX
+  form the notes of a test's result are rows across the table and widen its last column when
+  they are long, which the Typst form no longer does; and a table exported without a title
+  writes an empty comment line as its second line. (Since 0.8.0; the LaTeX form since 0.4.0.)
+- **145 help pages are not yet of the quality of the rest.** The pages of `core`, `text` and
+  `time` (94) carry what release 0.8.0 asks of a page: the commonest forms first, missing
+  values under their own heading, a caption on every example, a common mistake with its real
+  message, and the equivalents in R and Stata. The pages of `data`, `datasets`, `dist` and
+  `stats` (84) follow at 0.9.0, and those of `results`, `regress` and `plot` (61) at 0.10.0;
+  the functions new at 0.8.0 have theirs. The Stata column of the revised pages was written
+  from Stata's documented behaviour and has not been run in Stata. (Since 0.8.0; open decision
+  #103.)
+- **A probability below the smallest double has few digits, and a truncation far in a tail
+  shows it.** A double holds a number below 2.2e-308 with fewer digits and nothing below
+  4.9e-324, so `dist.normal().cdf(-38.4)` is 6.4e-323 to two digits, in Zeff as in R. Inside a
+  truncation that lies wholly that far out the same loss appears in probabilities of ordinary
+  size: for `dist.truncated(dist.normal(), upper: -37)` the distribution function is right to
+  nine digits down to −37.8, 5 per cent off at −38.4 and 0 from −38.5 (R on the log scale:
+  1.15e-23 at −38.4), and `quantile(1e-300)` is −38.49 where −52.44 is right; an exponential
+  cut at 700 mean lifetimes behaves the same beyond 740. Nearer than 37 standard deviations
+  nothing is lost. A log scale for the tails, as R's `log.p`, is open decision #173. (Since 0.3.0 for the
+  distributions; seen in a truncation at 0.8.0.)
+- **`dist.truncated` refuses equal bounds.** A count distribution cannot be cut to one number by
+  writing it twice, `lower: 2, upper: 2`; `lower: 2, upper: 2.5` does it, since a truncated
+  count distribution keeps the whole numbers of its interval. (Since 0.3.0.)
+- **Gaps that the review against R met, each with a way round it, due at 0.9.0.** A row number
+  (`row_number()`, #167); the length of each text value of a column (#165); one value taken
+  out of a column (#168); a count of missing values across variables in each row, written
+  today as a sum of `to(is_missing(x), Int)` (#166); a column guessed as whole numbers on
+  import that meets a decimal further down, which stops the import where it should widen
+  (#169); six smaller refusals (#170) and six printed layouts, among them a coefficient of
+  -0.0004 that prints as 0.000 in `report` (#171). Each is an error or a layout, never a
+  wrong number.
+- **A warning is said once for a statement, not once for a script.** The same observation
+  driving three fits made in one statement is one warning with a count (W1006, since 0.8.0);
+  three fits on three lines are three warnings, and so are the passes of a loop (#149, due at
+  0.9.0). (Since 0.8.0 for the count; before it, every repetition.)
+
 ## As of 0.7.0
 
 - **In a script, a loop variable does not stand for a term of a fit.** `for v in vars(educ) {
@@ -131,24 +189,16 @@ is never listed here as accepted: it is fixed or the function is withdrawn.
 - **The reference file of `posthoc` after a formula was written with emmeans 2.0.3**, while CI
   holds it to the pinned 2.0.4 within tolerance; `emmeans` is not on the development machine,
   so that script is regenerated in CI alone. (Since 0.7.0; the installation is the owner's.)
-- **The weekly mutation job runs each shard in two passes**, since 0.8.0 (step 3): every mutant
-  against its own package's tests, then the mutants that pass against the tests of the packages
-  that use the mutated one, never against the whole workspace, whose tests took over twenty
-  minutes a mutant at 0.7.0 and cut off 29 of 34 shards. A mutant that only a package outside
-  that set would catch is counted as missed, which errs on the side of reading one more. The
-  lists the job gave for the four older packages at 0.7.0 were completed by runs on the
-  development machine; the first scheduled run of the two passes is read at the close of 0.8.0.
-  (Since 0.7.0; the job repaired at 0.8.0.)
-- **A probability below the smallest double has few digits, and a truncation far in a tail
-  shows it.** A double holds a number below 2.2e-308 with fewer digits and nothing below
-  4.9e-324, so `dist.normal().cdf(-38.4)` is 6.4e-323 to two digits, in Zeff as in R. Inside a
-  truncation that lies wholly that far out the same loss appears in probabilities of ordinary
-  size: for `dist.truncated(dist.normal(), upper: -37)` the distribution function is right to
-  nine digits down to −37.8, 5 per cent off at −38.4 and 0 from −38.5 (R on the log scale:
-  1.15e-23 at −38.4), and `quantile(1e-300)` is −38.49 where −52.44 is right; an exponential
-  cut at 700 mean lifetimes behaves the same beyond 740. Nearer than 37 standard deviations
-  nothing is lost. A log scale for the tails, as R's `log.p`, is open decision #173. (Since
-  0.3.0 for the distributions; seen in a truncation at 0.8.0.)
+- **The weekly mutation job runs each shard in two passes**, since 0.8.0: every mutant against
+  its own package's tests, then the mutants that pass against the tests of the packages that
+  use the mutated one, never against the whole workspace. A mutant that only a package outside
+  that set would catch is counted as a survivor, which errs on the side of reading one more.
+  The second pass as first built (step 3) counted every mutant as caught, by a failure of
+  memory and not of a test; it was repaired and proven at step 24a1, and the run of 19
+  November 2026 is the first whose second pass can be trusted. The accepted survivors are a
+  list, `tools/mutants/recorded.txt`, and each shard's note prints what is not on it. A whole
+  run takes about fifteen hours at fourteen shards at a time. (Since 0.7.0; the job repaired
+  twice at 0.8.0.)
 - **A one-sided interval of `wilcoxon_test` at a level of exactly 50 per cent is not unique under
   the normal approximation.** The standardised statistic can equal the quantile, which is 0
   there, along a whole step of the shift, and any point of the step is a bound. Zeff gives the
@@ -230,12 +280,6 @@ is never listed here as accepted: it is fixed or the function is withdrawn.
   Float and refuses any other pair of types for one column (Z0609). `aggregate` takes definitions
   that give one value per group and drops a panel declaration with a note, as `to_wide` does.
   (Since 0.6.0; by design, section 6.)
-- **`winsorize` warns twice and names `value`.** It is written in Zeff over two calls of
-  `quantile`, each of which counts the missing rows of the body's own column, so a column with
-  `NA` prints "rows with NA in value were skipped" twice, where the script's variable is meant;
-  a share outside 0 to 0.5 is refused by the body's `assert` (Z0001). A body can raise a coded
-  warning since 0.7.0 (open decision #70), but it cannot yet name the script's variable behind
-  a column it was given, so the body is as it was. (Since 0.6.0.)
 - **Four functions planned in Zeff are written in Rust** (five until `row_mean` and `row_sum`
   became `row` at step 8k of 0.8.0), each with the reason in its catalogue
   row: `row` (the kernel's compensated row reduction, which `+` over columns
@@ -441,6 +485,23 @@ is never listed here as accepted: it is fixed or the function is withdrawn.
 - **The function catalogue's status column** is updated at each release close, not per function,
   so between releases it lags the registry; `zeff help <package>` shows what is shipped. (Since
   0.1.0.)
+
+## Resolved at 0.8.0
+
+- `winsorize` warned twice and named `value`, the column of its own body, where the script's
+  variable was meant, and refused a share outside 0 to 0.5 through an `assert`. Since step 8o a
+  built-in written in Zeff names the argument as the script wrote it and its warning is said
+  once: `warning[W0201]: 211 rows with NA in wage were skipped`; the share is refused with
+  Z0401 and the reason. Listed since 0.6.0.
+- **Wrong results, corrected, none of them in a released version unless said.** A count
+  distribution truncated beside a whole number ended in an internal error (0.8.0 only, step
+  20n). With no more clusters than instruments the first-stage F and the Kleibergen–Paap F of
+  `ivreg` printed numbers of seventeen digits; fixed effects that leave no residual degree of
+  freedom ended in an internal error, in `reg` since 0.6.0; a dropped instrumented regressor
+  was still counted in the statistics of the first stage (steps 24a2a and 24a2c). The
+  probability of a truncated distribution close to its bound kept five digits where thirteen
+  are right, since 0.3.0 (step 20i). `wilcoxon_test` stored every pair of two groups, 662 MB
+  for the shipped wages by sex, and now stores none (step 20d).
 
 ## Resolved at 0.7.0
 

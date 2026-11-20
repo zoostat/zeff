@@ -178,3 +178,15 @@ Step 22b3: the last nine pages of `core` brought to the help contract (the funct
 
 **Next.** Read those runs; then step 24c `[engine]`, part 3.
 
+
+## 20 November 2026, release 0.8.0, step 24c (part 3 of the pre-release routine)
+
+**Done.** Step 24c `[engine]`: the known-issues list has its sections "As of 0.8.0" (nine entries) and "Resolved at 0.8.0"; the counts of section 8.2 agree with the catalogue in all 31 packages (278 in 1.0, 394 on the roadmap, 672 in all, 259 implemented), and two sentences that still carried the older counts are corrected and logged; the material of the notes is in `docs/decisions.md` under this date (the breaking changes with their rewrites, the functions by package, the reference versions, the validation figures, the alpha's state). No reader test has been reported; a sheet for it (eight scripts, questions, a key) and a Stata do-file wait in `~/dev/handbook/zeff-0.8.0-prerelease/`.
+
+**Green.** Format, clippy with warnings denied, the tier, message and grammar checks, every test of the workspace.
+
+**In flight, on 5bbca60.** The nightly 44653690714 and the fuzzing 44653699954 (step 24b), and the confirming weekly run 44653636848 (step 24a2d, about fifteen hours from 01:26 UTC on 20 November).
+
+**Next.** Read those three runs, tick 24b and 24a2d; the checklist is then complete and waits for the owner's "Release 0.8.0".
+
+**For the owner to decide or do.** The reader test (the testing handbook, section 2.4, item 4), or the word that 0.8.0 is released without one and its notes say so. The Stata run, if a colleague has Stata. The copy of the Zemp Specification in the Zemp Lite repository still has the older counts, and the Zemp Lite notes of the shared folder are to be entered in the register before "Start release 0.2".
