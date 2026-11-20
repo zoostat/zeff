@@ -51,14 +51,36 @@ fn far_out_the_tail_is_nothing_and_is_said_at_once() {
     );
 }
 
+/// The value of `call` and the time it took: the quickest of up to three runs where the
+/// first is over `limit`. What the machine does beside the test only adds to a time, so a
+/// call is slow when it is slow three times.
+fn timed<T>(limit: f64, call: impl Fn() -> T) -> (T, f64) {
+    let started = Instant::now();
+    let mut value = call();
+    let mut took = started.elapsed().as_secs_f64();
+    for _ in 0..2 {
+        if took < limit {
+            break;
+        }
+        let started = Instant::now();
+        value = call();
+        took = took.min(started.elapsed().as_secs_f64());
+    }
+    (value, took)
+}
+
 /// A grid of q to 1,000, of degrees of freedom to ten million and of 2 to 50 groups: every
 /// tail is a number between nothing and one, the two tails make one, the upper tail falls as
 /// q grows and never passes the bound, the density is a number, and no call is slow. In
-/// release mode, as the nightly run is, each call from five degrees of freedom takes under
-/// 10 ms; a debug build is given thirty times that.
+/// release mode, as the nightly run is, the slowest call from five degrees of freedom takes
+/// about 8 ms (q = 1, two groups, five degrees of freedom) and is given 20; a debug build is
+/// given 300 ms. The limit was 10 ms until the nightly run of 20 November 2026 (44715282433)
+/// measured that call once at 10.04 ms, on code that the run of the night before had passed:
+/// a limit a quarter above the slowest call measures the machine, and the fault this test
+/// guards against took half a minute.
 #[test]
 fn a_grid_of_far_values_is_right_and_quick() {
-    let limit = if cfg!(debug_assertions) { 0.3 } else { 0.01 };
+    let limit = if cfg!(debug_assertions) { 0.3 } else { 0.02 };
     let qs = [
         0.5, 1.0, 2.0, 3.5, 5.0, 7.0, 10.0, 14.0, 20.0, 28.0, 35.0, 40.0, 45.0, 50.0, 53.0, 55.0,
         56.0, 57.0, 58.0, 59.0, 60.0, 61.0, 65.0, 80.0, 120.0, 250.0, 500.0, 1000.0,
@@ -69,18 +91,16 @@ fn a_grid_of_far_values_is_right_and_quick() {
         for df in [1.0, 2.0, 5.0, 10.0, 100.0, 1e3, 1e4, 1e5, 1e6, 1e7] {
             let mut before = 1.0;
             for q in qs {
-                let started = Instant::now();
-                let t = tails(q, k, df);
-                let took = started.elapsed().as_secs_f64();
+                // One and two degrees of freedom have the heaviest tails and the slowest
+                // integrals, up to 24 ms near the centre in release mode, as before this
+                // step: they are given two and a half times the limit.
+                let allowed = if df < 5.0 { 2.5 * limit } else { limit };
+                let (t, took) = timed(allowed, || tails(q, k, df));
                 calls += 1;
                 if took > slowest.0 {
                     slowest = (took, q, k, df);
                 }
                 let at = format!("q {q}, k {k}, df {df}");
-                // One and two degrees of freedom have the heaviest tails and the slowest
-                // integrals, up to 22 ms near the centre in release mode, as before this
-                // step: they are given five times the limit.
-                let allowed = if df < 5.0 { 5.0 * limit } else { limit };
                 assert!(took < allowed, "{at}: {took} s");
                 assert!(
                     (0.0..=1.0).contains(&t.upper) && (0.0..=1.0).contains(&t.lower),
@@ -98,11 +118,9 @@ fn a_grid_of_far_values_is_right_and_quick() {
                         t.upper.ln()
                     );
                 }
-                let started = Instant::now();
-                let d = density(q, k, df);
-                let took = started.elapsed().as_secs_f64();
+                let (d, took) = timed(2.5 * limit, || density(q, k, df));
                 assert!(d >= 0.0 && d.is_finite(), "{at}: the density {d}");
-                assert!(took < 5.0 * limit, "{at}: the density took {took} s");
+                assert!(took < 2.5 * limit, "{at}: the density took {took} s");
             }
             assert_eq!(
                 before,
