@@ -6572,8 +6572,24 @@ The library takes `hypher` with every language, and a crate that uses the librar
 
 **The reference versions.** R 4.6.0 with sandwich 3.1.1, wooldridge 1.4-7, fixest 0.14.2, nortest 1.0-4, car 3.1-5, DescTools 0.99.60 and emmeans 2.0.4, pinned in `tests/reference/`; Typst 0.15.0 for the pages set from the exported form; cargo-mutants 27.1.0, cargo-llvm-cov 0.9.1 and cargo-fuzz 0.13.2 for the tooling. No Python reference and no Stata output at this release.
 
-**The validation figures, as they stand.** 551 conformance cases (486 at 0.7.0), eight of them stored regressions, the same digests on the four targets wherever CI is green; nine sample projects byte for byte; the specification's sample script with twelve diagnostics left, each of a later release; coverage of 94.4 per cent of lines and 93.4 of regions on c0c8c3c, to be read again from the confirming run; the mutation run of 10,333 mutants with its 758 recorded survivors and timeouts in `tools/mutants/recorded.txt`; the worker bundle of 2,782 kB with Brotli and a cold start of 143 ms. The nightly, the fuzzing and the confirming weekly run on 5bbca60 are read under steps 24b and 24a2d, and their figures replace these where they differ.
+**The validation figures, as they stand.** 551 conformance cases (486 at 0.7.0), eight of them stored regressions, the same digests on the four targets wherever CI is green; nine sample projects byte for byte; the specification's sample script with twelve diagnostics left, each of a later release; coverage of 94.4 per cent of the kernel's lines and 94.6 of the estimators' on 5bbca60 (the entry on the scheduled jobs, below, has the figures; this sentence first gave those of c0c8c3c and named them wrongly as lines and regions); the mutation run of 10,333 mutants with its 758 recorded survivors and timeouts in `tools/mutants/recorded.txt`; the worker bundle of 2,782 kB with Brotli and a cold start of 143 ms. The nightly, the fuzzing and the confirming weekly run on 5bbca60 are read under steps 24b and 24a2d, and their figures replace these where they differ.
 
 **The alpha's state.** Zemp Lite is tagged v0.1.0 in its own repository, public under Apache 2.0; its 0.2 alpha, with the margin editor, waits for Zeff 0.8.0 ("Start release 0.2" there), and its progress file asks that a Zeff session first enter the notes of the shared folder in the open-decisions register.
 
 **Reason.** The testing handbook, section 2.4, items 4 to 6; the checklist's step 24c; the specification freeze (#40) for the two corrected sentences.
+
+## 20 November 2026: the scheduled jobs on the commit of 0.8.0 (release 0.8.0, step 24b, the second half)
+
+**The four targets.** CI on 5bbca60, and on the three commits after it (0b1e810, 181c5e5, cc8b17e, which change documents only): every job green, the conformance digests the same on Linux x86-64 (both levels), Linux ARM64, macOS ARM64 and WebAssembly, and the reference job against R.
+
+**The nightly (44653690714), by hand on 5bbca60: green.** The whole suite in release mode with the long property runs, 316 suites and no failure; the stochastic tests of `dist` (71 seconds) and `data`; the four truth runs of the regressions; the benchmark suite and the browser benchmark.
+
+**The fuzzing (44653699954), by hand on 5bbca60: green.** Eight targets, ten minutes each under libFuzzer, 3,142,373 inputs in all (lexer 1,397,258; csv 683,125; parser 429,013; format 375,285; formula 109,297; checker 76,786; distribution 56,452; lsp 15,157): no crash, no timeout, no leak reported in any log. The distribution target is the one that found the fault of step 20n; it ran clean on the fix a second time.
+
+**The benchmark of the reduction shape (44653713356), by hand on 5bbca60: green.** On the job's x86-64 machine the sum of ten million numbers takes 4.85 ms in the shape the engine fixes (eight lanes) against 8.22 ms for the plain loop, and the dot product 6.59 ms in eight lanes: the fixed shape that gives the same bits everywhere is also the faster one.
+
+**The coverage report of the confirming run (the job of 44653636848), on 5bbca60.** 94.4 per cent of the kernel's 9,545 lines and 94.6 per cent of the estimators' 10,453 (94.4 of 9,498 and 93.4 of 10,177 on c0c8c3c, before the tests of step 24a2; 93.9 and 93.3 at 0.7.0), both above the 80 the handbook asks; 93.3 per cent of the language tooling's 24,652 lines and 94.1 of the other packages' 45,196; 93.4 per cent of the 95,964 lines of the whole workspace.
+
+**Step 24b is done.** With the local half recorded above (the self-test, the nine samples, the sample script, the figures, the bundle), every item of the step holds. The mutation shards of the confirming run are read under step 24a2d.
+
+**Reason.** The testing handbook, section 2.4, items 2 and 3; the checklist's step 24b.

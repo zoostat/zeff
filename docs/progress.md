@@ -124,39 +124,9 @@ Steps 22a, 22a2, 22b and 22b2 `[function]`, two steps of the checklist counted a
 
 Step 22b3: the last nine pages of `core` brought to the help contract (the functions of a program: `attempt`, `iterate`, `assert` and their kin), with the specification's example page of `attempt`. Step 22c: the 13 pages of `text`. Step 20m, from the check against R: a printed `report` writes a footnote that several columns share once, headed by their numbers; the Typst form sets notes under the table; the page of `dist.tukey` says where R's `ptukey` jumps. Step 20n, from the nightly fuzz job: a count distribution truncated beside a whole number no longer ends in an internal error; the bounds are read by one rule everywhere. Step 22c2: the 10 pages of `time`, which completes block F: 94 pages at the contract, 145 left (84 for 0.9.0, 61 for 0.10.0). All green locally and on CI, the fuzz job run by hand on the fix included. For the owner, still open: the Stata column of the 94 pages was written from memory and wants one reading with Stata open; the heading of a shared footnote and the look of the Typst notes are layouts and his.
 
-## 19 November 2026, release 0.8.0, step 24a1 (the weekly mutation job's second pass)
+## 19 and 20 November 2026, release 0.8.0, steps 24a1 to 24a2b (folded)
 
-**Done.** Step 24a `[engine]` split in two. 24a1: the weekly run of 16 November, the first on the job as repaired at step 3, showed that the second pass tested nothing: every mutant was counted as caught because the conformance tests ran out of memory under the job's limit, and eight shards of fifty were cut off. The second pass now has a limit its tests fit, proves them on the unmutated code first, and counts the mutants that end by memory; the mutants are dealt to 76 shards in turn. Proven by a shard run by hand: three real catches, three real survivors. The coverage report of the commit is above its thresholds.
-
-**Green.** Format, clippy with warnings denied, the tier, message and grammar checks, every test of the workspace; CI read after the push.
-
-**In flight.** The whole weekly mutation run, started by hand on this commit; it takes about twelve hours.
-
-**Next.** Step 24a2 `[engine]`: read that run and the coverage report; a test or a recorded reason for each new survivor and for the uncovered lines of this release (the instrumental-variables code has most). Already found there, to be recorded with it: a truncated distribution whose whole probability lies below about 1e-300 of its inner distribution (a normal cut at 37 standard deviations) loses digits without a word, since probabilities under 2.2e-308 cannot be held; `cdf(-38.4)` of the normal cut at -37 is wrong in its second digit.
-
-**For the owner to decide.** Nothing new yet; the limit of the far tail will come as an open decision with step 24a2.
-
-## 20 November 2026, release 0.8.0, step 24a2a (the untested lines of the regressions)
-
-**Done.** Step 24a2 split in three. 24a2a `[engine]`: the coverage report read for the regressions, each untested place of this release's code reached by a script or a direct call, or recorded with its reason. Trying them found three faults, all corrected: with no more clusters than instruments the first-stage F and the Kleibergen–Paap F printed a number of seventeen digits (now "not available", as Stata prints it missing); fixed effects that leave no degree of freedom ended in an internal error (now refused, Z0802); an instrumented regressor too large to scale was reported as "zero in every row". Tests against R (HC2 and HC3 for the Anderson–Rubin test, an unbounded set found by search), identities, direct tests of the small routines, and twelve printed forms.
-
-**Green.** Format, clippy with warnings denied, the tier, message and grammar checks, every test of the workspace; CI read after the push.
-
-**In flight.** The weekly mutation run 44578380798 on c2635ea.
-
-**Next.** Step 24a2b `[engine]`: the untested lines of the kernel, the distributions, the tests and the results, with the far-tail limit of a truncation; then 24a2c, the mutation run. By the owner's word of 20 November each step follows the last without waiting.
-
-**For the owner to decide.** Nothing that stops the work. For the list: a perfect first stage prints a Cragg–Donald F of twenty-one digits.
-
-## 20 November 2026, release 0.8.0, step 24a2b (the untested lines of the kernel, the distributions, the tests and the results)
-
-**Done.** Step 24a2b `[engine]`: the 28 untested places of the other result-bearing packages, each with a test or a recorded reason. An unreachable arm of the eigenvalue routine removed, with the proof where it stood. A limit stated and held by a test against R: a truncation whose whole probability is near the smallest double (a normal cut beyond 37 standard deviations) keeps its digits near the bound and loses them further in, as any probability below 2.2e-308 does (open decision #173, option A on the recommendation; tails on the log scale after 1.0).
-
-**Green.** Format, clippy with warnings denied, the tier, message and grammar checks, every test of the workspace; CI read after the push.
-
-**Next.** Step 24a2c `[engine]`: the weekly mutation run 44578380798, each new survivor a test or a recorded reason.
-
-**For the owner to decide.** #173 is decided for A on the recommendation and is his to overturn.
+Step 24a split in two, and 24a2 in four. 24a1: the weekly run of 16 November showed that the mutation job's second pass tested nothing (every mutant counted as caught because the conformance tests ran out of memory under the job's limit); the pass now has a limit its tests fit, proves them on the unmutated code first and counts the mutants that end by memory. 24a2a: the coverage report read for the regressions, each untested place of this release reached or recorded; three faults found and corrected (with no more clusters than instruments the first-stage F and the Kleibergen–Paap F printed seventeen digits, now "not available"; fixed effects that leave no degree of freedom ended in an internal error, now Z0802; an instrumented regressor too large to scale was called "zero in every row"). 24a2b: the 28 untested places of the other result-bearing packages; an unreachable arm of the eigenvalue routine removed; the limit of a truncation far in a tail stated and held against R (open decision #173, option A on the recommendation, the owner's to overturn). By the owner's word of 20 November each step follows the last without waiting. All green locally; on CI the reference job failed on four commits for a line a new R script lacked, corrected at e97ceb4.
 
 ## 20 November 2026, release 0.8.0, step 24a2c (the weekly mutation run read)
 
@@ -170,14 +140,9 @@ Step 22b3: the last nine pages of `core` brought to the help contract (the funct
 
 **For the owner to decide.** Nothing that stops the work. On the list: #173 (decided for A on the recommendation); a perfect first stage prints a Cragg–Donald F of twenty-one digits.
 
-## 20 November 2026, release 0.8.0, step 24b (part 2 of the pre-release routine; the jobs still run)
+## 20 November 2026, release 0.8.0, step 24b (part 2 of the pre-release routine)
 
-**Done so far.** The local half of step 24b `[engine]`: the self-test (551 of 551), the nine sample projects byte for byte with every file they write, the new sample and the changes of the others read by eye, the Typst form set and looked at, the bundle (2,782 kB of 5,000) and its cold start (143 ms of 1,000).
-
-**In flight, all on 5bbca60, started at 01:26 UTC on 20 November.** The nightly 44653690714, the fuzzing 44653699954, the benchmark 44653713356, and the confirming weekly run 44653636848 of step 24a2d (about fifteen hours). Step 24b is ticked when the first three are read; 24a2d when the fourth is.
-
-**Next.** Read those runs; then step 24c `[engine]`, part 3.
-
+**Done.** Step 24b `[engine]`. Locally: the self-test (551 of 551), the nine sample projects byte for byte with every file they write, the new sample and the changes of the others read by eye, the Typst form set and looked at, the bundle (2,782 kB of 5,000) and its cold start (143 ms of 1,000). On GitHub, by hand on 5bbca60: the nightly green (316 suites, the stochastic and truth runs, the benchmarks), the fuzzing green (eight targets, 3.1 million inputs, no crash and no leak), the benchmark of the reduction shape green; CI green on the four targets; coverage 94.4 per cent of the kernel and 94.6 of the estimators.
 
 ## 20 November 2026, release 0.8.0, step 24c (part 3 of the pre-release routine)
 
@@ -185,8 +150,8 @@ Step 22b3: the last nine pages of `core` brought to the help contract (the funct
 
 **Green.** Format, clippy with warnings denied, the tier, message and grammar checks, every test of the workspace.
 
-**In flight, on 5bbca60.** The nightly 44653690714 and the fuzzing 44653699954 (step 24b), and the confirming weekly run 44653636848 (step 24a2d, about fifteen hours from 01:26 UTC on 20 November).
+**In flight, on 5bbca60.** The confirming weekly run 44653636848 (step 24a2d, about fifteen hours from 01:26 UTC on 20 November).
 
-**Next.** Read those three runs, tick 24b and 24a2d; the checklist is then complete and waits for the owner's "Release 0.8.0".
+**Next.** Read that run shard by shard and tick 24a2d; the checklist is then complete and waits for the owner's "Release 0.8.0".
 
 **For the owner to decide or do.** The reader test (the testing handbook, section 2.4, item 4), or the word that 0.8.0 is released without one and its notes say so. The Stata run, if a colleague has Stata. The copy of the Zemp Specification in the Zemp Lite repository still has the older counts, and the Zemp Lite notes of the shared folder are to be entered in the register before "Start release 0.2".
