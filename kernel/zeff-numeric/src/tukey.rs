@@ -636,20 +636,16 @@ mod tests {
                 for &q in &[0.5, 2.0, 5.0, 10.0, 30.0] {
                     let tail = studentized(Kind::Upper, q, k, nu);
                     let bound = ln_upper_bound(q, k, nu);
-                    if tail.is_finite() {
-                        assert!(
-                            bound >= tail - 1e-9 && bound <= tail + 8.0,
-                            "tail at q = {q}, k = {k}, nu = {nu:e}: {tail} under {bound}"
-                        );
-                    }
+                    assert!(
+                        tail.is_finite() && bound >= tail - 1e-9 && bound <= tail + 8.0,
+                        "tail at q = {q}, k = {k}, nu = {nu:e}: {tail} under {bound}"
+                    );
                     let density = studentized(Kind::Density, q, k, nu);
-                    if density.is_finite() {
-                        assert!(
-                            ln_density_bound(q, k, nu) >= density - 1e-9,
-                            "density at q = {q}, k = {k}, nu = {nu:e}: {density} under {}",
-                            ln_density_bound(q, k, nu)
-                        );
-                    }
+                    assert!(
+                        density.is_finite() && ln_density_bound(q, k, nu) >= density - 1e-9,
+                        "density at q = {q}, k = {k}, nu = {nu:e}: {density} under {}",
+                        ln_density_bound(q, k, nu)
+                    );
                 }
             }
         }
