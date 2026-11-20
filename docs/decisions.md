@@ -6548,7 +6548,7 @@ The library takes `hypher` with every language, and a crate that uses the librar
 
 **The bundle and the cold start (risk R4).** CI's measure on d8ad441, the commit before, with the same code: the worker build a browser loads is 2,782 kB with Brotli (4,003 kB with gzip, 14,491 kB raw) against the warning level of 5,000 kB, and its cold start 143 ms under Node 24 against 1,000 ms; at 0.7.0, 2,535 kB and 52 ms. The conformance bundle is 2,906 kB with Brotli. Both limits hold; 56 per cent of the size limit is used, where 51 was.
 
-**An observation of step 24a1, looked at here.** The single request of 331 MB and then 662 MB inside the conformance suite is not yet traced to its case; it is carried to step 24c as an item of the known issues if it is not found before.
+**An observation of step 24a1, traced and closed.** The single request of 331 MB and then 662 MB inside the conformance suite was `wilcoxon_test` on the shipped wages by sex: 330,975,000 bytes is 9,375 men times 8,826 women times four bytes, and 661,950,000 the same at eight, every pairwise difference stored for the Hodges–Lehmann estimate. The run that showed it, of 16 November, was on the code of step 16. Step 20d, on 19 November, takes the estimate by selection without storing a pair, and the same call now peaks at 23 MB in 0.04 seconds on this machine. Nothing is left to do; the second pass's own limit and its guard stay, since they are what made the fault visible.
 
 **Reason.** The testing handbook, section 2.4, items 2 and 3; the checklist's step 24b.
 
