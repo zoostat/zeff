@@ -8,3 +8,517 @@
 # One survivor a line, four fields separated by tabs: the path; the mutation as cargo-mutants
 # words it, without the line and column, which move with every edit; how many times it is
 # recorded in that routine; and the key of its reason.
+#
+# The keys. The first two stand for records made before this list was: every survivor and
+# timeout of the run of 19 November 2026 (44578380798) on a line that release 0.7.0 already
+# had. They were read at releases 0.5.0 to 0.7.0 (docs/decisions.md, 22 October to 15 November
+# 2026) and matched to this run by file and routine at step 24a2c of release 0.8.0.
+#   earlier      a survivor on a line of release 0.7.0 or before
+#   hang         a timeout: a loop that never ends, or runs for hours, under the mutant
+# The others are of the code release 0.8.0 added, read on 20 November 2026 (step 24a2c).
+#   identity     an identity of algebra hides the change: a sum of (v + m)(v - m) about the
+#                mean m is the sum of squares; a vector that enters as a square may change
+#                sign; a regression that holds x spans the same columns with x + f as with x - f
+#   scale        a scale by which columns are brought to unit size before a factorisation; the
+#                statistic does not depend on it (held by a test under a change of units)
+#   fence        a second fence behind a first that decides: the checker or an earlier refusal
+#                comes before, an outer comparison shortcuts an inner one, or a later step
+#                refuses what this one let through
+#   guard        a guard or a self-check against the engine's own faults, which ends in Z9001
+#                and which correct code never fails
+#   margin       a bracket, a reach, a tolerance or a stopping rule with room to spare, whose
+#                change moves no digit that a test holds or could hold
+#   edge         a comparison at a value that is never met exactly
+#   unavailable  "not available" at a further place in one computation, after the first checks
+#                of the same kind have passed
+kernel/zeff-kernels/src/demean.rs	delete ! in without_singletons	2	hang
+kernel/zeff-kernels/src/demean.rs	replace && with || in demean	1	earlier
+kernel/zeff-kernels/src/demean.rs	replace < with <= in demean	4	earlier
+kernel/zeff-kernels/src/demean.rs	replace < with == in demean	1	earlier
+kernel/zeff-kernels/src/demean.rs	replace > with >= in demean	1	earlier
+kernel/zeff-kernels/src/demean.rs	replace || with && in demean	1	earlier
+kernel/zeff-kernels/src/eigen.rs	replace != with == in symmetric_eigen	1	fence
+kernel/zeff-kernels/src/qr.rs	replace += with *= in pivoted_qr	1	hang
+kernel/zeff-kernels/src/qr.rs	replace -= with /= in pivoted_qr	1	hang
+kernel/zeff-kernels/src/qr.rs	replace < with <= in pivoted_qr	1	earlier
+kernel/zeff-numeric/src/association.rs	replace * with / in kendall	1	earlier
+kernel/zeff-numeric/src/association.rs	replace + with * in kendall	1	earlier
+kernel/zeff-numeric/src/association.rs	replace + with * in ranks	1	hang
+kernel/zeff-numeric/src/association.rs	replace + with * in spearman_exact_tail	1	earlier
+kernel/zeff-numeric/src/association.rs	replace + with * in spearman_exact_tail	1	hang
+kernel/zeff-numeric/src/association.rs	replace + with * in tie_groups	1	hang
+kernel/zeff-numeric/src/association.rs	replace + with - in spearman_exact_tail	1	hang
+kernel/zeff-numeric/src/association.rs	replace += with *= in ranks	1	hang
+kernel/zeff-numeric/src/association.rs	replace += with *= in tie_groups	1	hang
+kernel/zeff-numeric/src/association.rs	replace - with + in kendall_exact_cdf	1	earlier
+kernel/zeff-numeric/src/association.rs	replace - with + in spearman_exact_tail	1	earlier
+kernel/zeff-numeric/src/association.rs	replace - with / in kendall_exact_cdf	1	earlier
+kernel/zeff-numeric/src/association.rs	replace - with / in spearman_exact_tail	1	earlier
+kernel/zeff-numeric/src/association.rs	replace / with * in kendall_exact_cdf	1	earlier
+kernel/zeff-numeric/src/association.rs	replace / with * in spearman_exact_tail	1	earlier
+kernel/zeff-numeric/src/association.rs	replace < with <= in spearman_exact_tail	1	earlier
+kernel/zeff-numeric/src/association.rs	replace < with <= in tie_groups	1	earlier
+kernel/zeff-numeric/src/association.rs	replace > with >= in kendall	1	earlier
+kernel/zeff-numeric/src/association.rs	replace > with >= in spearman_exact_tail	1	earlier
+kernel/zeff-numeric/src/maths.rs	replace / with * in div_float	1	earlier
+kernel/zeff-numeric/src/maths.rs	replace < with <= in div_float	2	earlier
+kernel/zeff-numeric/src/maths.rs	replace < with <= in div_int	2	earlier
+kernel/zeff-numeric/src/maths.rs	replace < with <= in mod_float	4	earlier
+kernel/zeff-numeric/src/maths.rs	replace < with <= in mod_int	2	earlier
+kernel/zeff-numeric/src/maths.rs	replace < with <= in round	1	earlier
+kernel/zeff-numeric/src/maths.rs	replace > with >= in away_from_zero	1	earlier
+kernel/zeff-numeric/src/maths.rs	replace > with >= in div_float	1	earlier
+kernel/zeff-numeric/src/maths.rs	replace expm1 -> f64 with -1.0	1	hang
+kernel/zeff-numeric/src/maths.rs	replace log -> f64 with -1.0	1	hang
+kernel/zeff-numeric/src/maths.rs	replace log -> f64 with 0.0	1	hang
+kernel/zeff-numeric/src/maths.rs	replace log -> f64 with 1.0	1	hang
+kernel/zeff-numeric/src/maths.rs	replace log1p -> f64 with -1.0	1	hang
+kernel/zeff-numeric/src/maths.rs	replace log1p -> f64 with 0.0	1	hang
+kernel/zeff-numeric/src/maths.rs	replace log1p -> f64 with 1.0	1	hang
+kernel/zeff-numeric/src/maths.rs	replace | with ^ in is_tie	1	earlier
+kernel/zeff-numeric/src/maths.rs	replace || with && in mod_float	1	earlier
+kernel/zeff-numeric/src/maths.rs	replace || with && in round	1	earlier
+kernel/zeff-numeric/src/maths.rs	replace || with && in round_significant	1	earlier
+kernel/zeff-numeric/src/order.rs	replace + with * in quantile	1	earlier
+kernel/zeff-numeric/src/order.rs	replace + with - in quantile	1	earlier
+kernel/zeff-numeric/src/order.rs	replace < with <= in quantile	1	earlier
+kernel/zeff-numeric/src/order.rs	replace > with >= in weighted_sum	1	earlier
+kernel/zeff-numeric/src/special.rs	delete - in normal_quantile	2	hang
+kernel/zeff-numeric/src/special.rs	replace != with == in newton_with_bracket	2	earlier
+kernel/zeff-numeric/src/special.rs	replace && with || in incomplete_beta_inverse	1	earlier
+kernel/zeff-numeric/src/special.rs	replace && with || in newton_with_bracket	6	earlier
+kernel/zeff-numeric/src/special.rs	replace * with + in newton_with_bracket	1	earlier
+kernel/zeff-numeric/src/special.rs	replace * with + in normal_quantile	2	hang
+kernel/zeff-numeric/src/special.rs	replace * with / in newton_with_bracket	1	earlier
+kernel/zeff-numeric/src/special.rs	replace * with / in normal_quantile	1	hang
+kernel/zeff-numeric/src/special.rs	replace * with / in stirling_remainder	1	hang
+kernel/zeff-numeric/src/special.rs	replace *= with /= in stirling_remainder	1	hang
+kernel/zeff-numeric/src/special.rs	replace + with * in newton_with_bracket	1	earlier
+kernel/zeff-numeric/src/special.rs	replace + with - in incomplete_beta_inverse	2	earlier
+kernel/zeff-numeric/src/special.rs	replace + with - in newton_with_bracket	2	earlier
+kernel/zeff-numeric/src/special.rs	replace + with - in normal_quantile	1	hang
+kernel/zeff-numeric/src/special.rs	replace += with *= in choose	1	hang
+kernel/zeff-numeric/src/special.rs	replace - with + in newton_with_bracket	1	earlier
+kernel/zeff-numeric/src/special.rs	replace - with / in newton_with_bracket	1	earlier
+kernel/zeff-numeric/src/special.rs	replace - with / in normal_quantile	1	hang
+kernel/zeff-numeric/src/special.rs	replace / with % in normal_quantile	1	hang
+kernel/zeff-numeric/src/special.rs	replace / with * in normal_quantile	1	hang
+kernel/zeff-numeric/src/special.rs	replace / with * in stirling_remainder	1	hang
+kernel/zeff-numeric/src/special.rs	replace < with <= in beta_fraction	6	earlier
+kernel/zeff-numeric/src/special.rs	replace < with <= in deviance	1	earlier
+kernel/zeff-numeric/src/special.rs	replace < with <= in gamma	1	earlier
+kernel/zeff-numeric/src/special.rs	replace < with <= in incomplete_beta_inverse	4	earlier
+kernel/zeff-numeric/src/special.rs	replace < with <= in incomplete_gamma	4	earlier
+kernel/zeff-numeric/src/special.rs	replace < with <= in incomplete_gamma_inverse	1	earlier
+kernel/zeff-numeric/src/special.rs	replace < with <= in log_beta	1	earlier
+kernel/zeff-numeric/src/special.rs	replace < with <= in newton_with_bracket	1	earlier
+kernel/zeff-numeric/src/special.rs	replace < with <= in normal_quantile	1	earlier
+kernel/zeff-numeric/src/special.rs	replace < with == in beta_fraction	5	earlier
+kernel/zeff-numeric/src/special.rs	replace < with == in gamma	1	earlier
+kernel/zeff-numeric/src/special.rs	replace < with == in incomplete_gamma	2	earlier
+kernel/zeff-numeric/src/special.rs	replace <= with > in choose	1	hang
+kernel/zeff-numeric/src/special.rs	replace == with != in normal_quantile	1	hang
+kernel/zeff-numeric/src/special.rs	replace > with == in choose	1	earlier
+kernel/zeff-numeric/src/special.rs	replace > with >= in beta_prefix	2	earlier
+kernel/zeff-numeric/src/special.rs	replace > with >= in choose	1	earlier
+kernel/zeff-numeric/src/special.rs	replace > with >= in gamma	1	earlier
+kernel/zeff-numeric/src/special.rs	replace > with >= in incomplete_beta_inverse	2	earlier
+kernel/zeff-numeric/src/special.rs	replace > with >= in incomplete_gamma_inverse	1	earlier
+kernel/zeff-numeric/src/special.rs	replace > with >= in newton_with_bracket	2	earlier
+kernel/zeff-numeric/src/special.rs	replace >= with < in newton_with_bracket	1	earlier
+kernel/zeff-numeric/src/special.rs	replace erfc -> f64 with -1.0	1	hang
+kernel/zeff-numeric/src/special.rs	replace erfc -> f64 with 0.0	1	hang
+kernel/zeff-numeric/src/special.rs	replace normal_quantile -> f64 with -1.0	1	hang
+kernel/zeff-numeric/src/special.rs	replace || with && in incomplete_gamma	1	earlier
+kernel/zeff-numeric/src/special.rs	replace || with && in normal_quantile	1	earlier
+kernel/zeff-numeric/src/tukey.rs	delete - in inner	2	hang
+kernel/zeff-numeric/src/tukey.rs	delete - in ln_band	1	hang
+kernel/zeff-numeric/src/tukey.rs	delete - in log_integral	1	hang
+kernel/zeff-numeric/src/tukey.rs	replace && with || in ln_band	1	earlier
+kernel/zeff-numeric/src/tukey.rs	replace && with || in log_integral	1	earlier
+kernel/zeff-numeric/src/tukey.rs	replace && with || in quantile	1	earlier
+kernel/zeff-numeric/src/tukey.rs	replace * with + in expm1_minus	3	hang
+kernel/zeff-numeric/src/tukey.rs	replace * with + in inner	2	hang
+kernel/zeff-numeric/src/tukey.rs	replace * with + in ln_band	9	hang
+kernel/zeff-numeric/src/tukey.rs	replace * with + in log_integral	4	earlier
+kernel/zeff-numeric/src/tukey.rs	replace * with + in log_integral	2	hang
+kernel/zeff-numeric/src/tukey.rs	replace * with + in tails	1	earlier
+kernel/zeff-numeric/src/tukey.rs	replace * with + in upper_tail	2	hang
+kernel/zeff-numeric/src/tukey.rs	replace * with / in expm1_minus	2	hang
+kernel/zeff-numeric/src/tukey.rs	replace * with / in ln_band	1	earlier
+kernel/zeff-numeric/src/tukey.rs	replace * with / in ln_band	8	hang
+kernel/zeff-numeric/src/tukey.rs	replace * with / in log_integral	6	earlier
+kernel/zeff-numeric/src/tukey.rs	replace * with / in log_integral	3	hang
+kernel/zeff-numeric/src/tukey.rs	replace * with / in quantile	2	earlier
+kernel/zeff-numeric/src/tukey.rs	replace * with / in quantile	1	hang
+kernel/zeff-numeric/src/tukey.rs	replace * with / in tails	1	earlier
+kernel/zeff-numeric/src/tukey.rs	replace * with / in upper_tail	2	hang
+kernel/zeff-numeric/src/tukey.rs	replace *= with += in expm1_minus	1	hang
+kernel/zeff-numeric/src/tukey.rs	replace *= with /= in expm1_minus	1	hang
+kernel/zeff-numeric/src/tukey.rs	replace *= with /= in log_integral	1	hang
+kernel/zeff-numeric/src/tukey.rs	replace *= with /= in quantile	1	hang
+kernel/zeff-numeric/src/tukey.rs	replace + with * in ln_band	4	hang
+kernel/zeff-numeric/src/tukey.rs	replace + with * in log_integral	3	earlier
+kernel/zeff-numeric/src/tukey.rs	replace + with * in log_integral	6	hang
+kernel/zeff-numeric/src/tukey.rs	replace + with * in tails	1	earlier
+kernel/zeff-numeric/src/tukey.rs	replace + with - in inner	2	hang
+kernel/zeff-numeric/src/tukey.rs	replace + with - in ln_band	5	hang
+kernel/zeff-numeric/src/tukey.rs	replace + with - in log_integral	3	earlier
+kernel/zeff-numeric/src/tukey.rs	replace + with - in log_integral	2	hang
+kernel/zeff-numeric/src/tukey.rs	replace + with - in quantile	1	hang
+kernel/zeff-numeric/src/tukey.rs	replace + with - in tails	1	earlier
+kernel/zeff-numeric/src/tukey.rs	replace += with *= in expm1_minus	2	hang
+kernel/zeff-numeric/src/tukey.rs	replace += with *= in log_integral	1	hang
+kernel/zeff-numeric/src/tukey.rs	replace += with -= in expm1_minus	2	hang
+kernel/zeff-numeric/src/tukey.rs	replace += with -= in ln_band	1	hang
+kernel/zeff-numeric/src/tukey.rs	replace += with -= in log_integral	1	hang
+kernel/zeff-numeric/src/tukey.rs	replace - with + in inner	1	hang
+kernel/zeff-numeric/src/tukey.rs	replace - with + in ln_band	8	hang
+kernel/zeff-numeric/src/tukey.rs	replace - with + in log_integral	1	earlier
+kernel/zeff-numeric/src/tukey.rs	replace - with + in log_integral	6	hang
+kernel/zeff-numeric/src/tukey.rs	replace - with + in quantile	1	earlier
+kernel/zeff-numeric/src/tukey.rs	replace - with / in inner	2	hang
+kernel/zeff-numeric/src/tukey.rs	replace - with / in ln_band	7	hang
+kernel/zeff-numeric/src/tukey.rs	replace - with / in log_integral	2	earlier
+kernel/zeff-numeric/src/tukey.rs	replace - with / in log_integral	8	hang
+kernel/zeff-numeric/src/tukey.rs	replace - with / in quantile	1	earlier
+kernel/zeff-numeric/src/tukey.rs	replace / with % in expm1_minus	1	hang
+kernel/zeff-numeric/src/tukey.rs	replace / with % in inner	1	hang
+kernel/zeff-numeric/src/tukey.rs	replace / with % in log_integral	1	earlier
+kernel/zeff-numeric/src/tukey.rs	replace / with % in log_integral	3	hang
+kernel/zeff-numeric/src/tukey.rs	replace / with % in quantile	1	hang
+kernel/zeff-numeric/src/tukey.rs	replace / with % in tails	1	earlier
+kernel/zeff-numeric/src/tukey.rs	replace / with * in inner	1	hang
+kernel/zeff-numeric/src/tukey.rs	replace / with * in log_integral	1	earlier
+kernel/zeff-numeric/src/tukey.rs	replace / with * in log_integral	3	hang
+kernel/zeff-numeric/src/tukey.rs	replace / with * in quantile	1	hang
+kernel/zeff-numeric/src/tukey.rs	replace / with * in tails	1	earlier
+kernel/zeff-numeric/src/tukey.rs	replace < with <= in quantile	6	earlier
+kernel/zeff-numeric/src/tukey.rs	replace < with <= in studentized	3	edge
+kernel/zeff-numeric/src/tukey.rs	replace < with == in studentized	1	edge
+kernel/zeff-numeric/src/tukey.rs	replace <= with > in expm1_minus	2	hang
+kernel/zeff-numeric/src/tukey.rs	replace <= with > in ln_band	3	hang
+kernel/zeff-numeric/src/tukey.rs	replace <= with > in log_integral	2	hang
+kernel/zeff-numeric/src/tukey.rs	replace == with != in log_integral	1	earlier
+kernel/zeff-numeric/src/tukey.rs	replace > with < in quantile	1	earlier
+kernel/zeff-numeric/src/tukey.rs	replace > with < in tails	1	earlier
+kernel/zeff-numeric/src/tukey.rs	replace > with == in log_integral	2	earlier
+kernel/zeff-numeric/src/tukey.rs	replace > with == in log_integral	2	hang
+kernel/zeff-numeric/src/tukey.rs	replace > with == in quantile	2	earlier
+kernel/zeff-numeric/src/tukey.rs	replace > with == in tails	1	earlier
+kernel/zeff-numeric/src/tukey.rs	replace > with == in tails	1	margin
+kernel/zeff-numeric/src/tukey.rs	replace > with >= in inner	1	earlier
+kernel/zeff-numeric/src/tukey.rs	replace > with >= in ln	1	earlier
+kernel/zeff-numeric/src/tukey.rs	replace > with >= in log_integral	8	earlier
+kernel/zeff-numeric/src/tukey.rs	replace > with >= in quantile	2	earlier
+kernel/zeff-numeric/src/tukey.rs	replace > with >= in studentized	1	earlier
+kernel/zeff-numeric/src/tukey.rs	replace > with >= in studentized	1	edge
+kernel/zeff-numeric/src/tukey.rs	replace > with >= in tails	1	earlier
+kernel/zeff-numeric/src/tukey.rs	replace > with >= in tails	1	margin
+kernel/zeff-numeric/src/tukey.rs	replace >= with < in ln_band	1	earlier
+kernel/zeff-numeric/src/tukey.rs	replace >= with < in studentized	1	hang
+kernel/zeff-numeric/src/tukey.rs	replace ln -> f64 with -1.0	1	hang
+kernel/zeff-numeric/src/tukey.rs	replace ln -> f64 with 0.0	1	hang
+kernel/zeff-numeric/src/tukey.rs	replace ln -> f64 with 1.0	1	hang
+kernel/zeff-numeric/src/tukey.rs	replace match guard ln_upper_bound(q, k, nu) < LN_SMALLEST with false in studentized	1	fence
+kernel/zeff-numeric/src/tukey.rs	replace match guard typical > 0.0 with true in studentized	1	earlier
+kernel/zeff-numeric/src/tukey.rs	replace upper_tail -> f64 with 1.0	1	hang
+kernel/zeff-numeric/src/tukey.rs	replace || with && in density	2	earlier
+kernel/zeff-numeric/src/tukey.rs	replace || with && in log_integral	2	earlier
+kernel/zeff-numeric/src/tukey.rs	replace || with && in quantile	2	earlier
+kernel/zeff-numeric/src/tukey.rs	replace || with && in tails	1	margin
+kernel/zeff-numeric/src/wilcoxon.rs	replace * with / in Exact::quantile	1	earlier
+kernel/zeff-numeric/src/wilcoxon.rs	replace - with + in Exact::quantile	2	earlier
+kernel/zeff-numeric/src/wilcoxon.rs	replace - with / in Exact::quantile	1	earlier
+kernel/zeff-numeric/src/wilcoxon.rs	replace / with % in Exact::quantile	1	earlier
+kernel/zeff-numeric/src/wilcoxon.rs	replace / with * in Exact::quantile	2	earlier
+kernel/zeff-numeric/src/wilcoxon.rs	replace < with <= in Exact::count_below_or_at	1	earlier
+kernel/zeff-numeric/src/wilcoxon.rs	replace Exact::is_empty -> bool with false	1	earlier
+kernel/zeff-numeric/src/wilcoxon.rs	replace Exact::is_empty -> bool with true	1	earlier
+kernel/zeff-numeric/src/wilcoxon.rs	replace Exact::probabilities -> Vec<f64> with vec![1.0]	1	earlier
+packages/tier1/results/src/absorb.rs	replace - with + in effect_values	2	hang
+packages/tier1/results/src/absorb.rs	replace - with / in effect_values	1	hang
+packages/tier1/results/src/absorb.rs	replace < with <= in Design::absorb	2	earlier
+packages/tier1/results/src/absorb.rs	replace > with >= in Design::absorb	1	earlier
+packages/tier1/results/src/absorb.rs	replace > with >= in EffectGroups::over	1	earlier
+packages/tier1/results/src/absorb.rs	replace > with >= in effect_values	1	hang
+packages/tier1/results/src/absorb.rs	replace codes_of -> Option<Vec<i64>> with None	1	earlier
+packages/tier1/results/src/absorb.rs	replace || with && in effect_values	1	earlier
+packages/tier1/results/src/design.rs	replace && with || in Builder<'_, '_>::expand	1	earlier
+packages/tier1/results/src/design.rs	replace && with || in Builder<'_, '_>::expression	1	earlier
+packages/tier1/results/src/design.rs	replace + with * in orthonormal_polynomials	1	hang
+packages/tier1/results/src/design.rs	replace + with - in orthonormal_polynomials	1	earlier
+packages/tier1/results/src/design.rs	replace - with + in orthonormal_polynomials	1	earlier
+packages/tier1/results/src/design.rs	replace - with / in orthonormal_polynomials	1	earlier
+packages/tier1/results/src/design.rs	replace / with * in orthonormal_polynomials	2	earlier
+packages/tier1/results/src/design.rs	replace == with != in Design::build_full	1	fence
+packages/tier1/results/src/design.rs	replace == with != in Design::coding	1	earlier
+packages/tier1/results/src/design.rs	replace == with != in Design::coding	1	hang
+packages/tier1/results/src/design.rs	replace > with >= in Builder<'_, '_>::refuse_infinite_products	1	earlier
+packages/tier1/results/src/design.rs	replace Design::has_outcome -> bool with true	1	earlier
+packages/tier1/results/src/design.rs	replace match guard (name == "category" || name == "base") && matches!(args.first(), Some(Some(ColumnExpr::Var(_)))) with true in Builder<'_, '_>::expression	1	earlier
+packages/tier1/results/src/export.rs	delete ! in export	1	earlier
+packages/tier1/results/src/export.rs	delete match arm Value::Float(x) in export_plot	1	earlier
+packages/tier1/results/src/export.rs	replace && with || in export_plot	2	earlier
+packages/tier1/results/src/export.rs	replace && with || in parts	1	earlier
+packages/tier1/results/src/export.rs	replace == with != in export	1	earlier
+packages/tier1/results/src/export.rs	replace > with < in export_plot	1	earlier
+packages/tier1/results/src/export.rs	replace > with == in export_plot	1	earlier
+packages/tier1/results/src/export.rs	replace > with >= in export_plot	1	earlier
+packages/tier1/results/src/export.rs	replace match guard FIGURE_EXTENSIONS.contains(&extension.to_ascii_lowercase().as_str()) with false in export	1	hang
+packages/tier1/results/src/export.rs	replace match guard stem.is_empty() && !extension.is_empty() with false in export	1	hang
+packages/tier1/results/src/export.rs	replace || with && in export_plot	1	hang
+packages/tier1/results/src/inference.rs	replace && with || in test	1	fence
+packages/tier1/results/src/inference.rs	replace + with - in dual	1	earlier
+packages/tier1/results/src/inference.rs	replace < with <= in level_heading	1	earlier
+packages/tier1/results/src/inference.rs	replace == with != in test	2	fence
+packages/tier1/results/src/inference.rs	replace match guard matches!(op, Op::Ne | Op::Lt | Op::Le | Op::Gt | Op::Ge | Op::Or) with true in restriction	1	earlier
+packages/tier1/results/src/inference.rs	replace match guard plain(name) with false in test	1	fence
+packages/tier1/results/src/inference.rs	replace match guard plain(name) with true in test	1	fence
+packages/tier1/results/src/inference.rs	replace || with && in test	2	fence
+packages/tier1/results/src/interface.rs	replace < with <= in level_text	1	earlier
+packages/tier1/results/src/interface.rs	replace > with >= in ci	1	earlier
+packages/tier1/results/src/report.rs	delete ! in report	1	hang
+packages/tier1/results/src/report.rs	replace + with * in numbered	1	hang
+packages/tier1/results/src/report.rs	replace + with * in tests_report	1	fence
+packages/tier1/results/src/report.rs	replace + with - in tests_report	2	fence
+packages/tier1/results/src/report.rs	replace += with *= in numbered	1	hang
+packages/tier1/results/src/report.rs	replace - with + in tests_report	1	hang
+packages/tier1/results/src/report.rs	replace < with > in numbered	1	hang
+packages/tier1/results/src/summary.rs	replace - with + in deviations	2	earlier
+packages/tier1/results/src/summary.rs	replace - with + in deviations	1	hang
+packages/tier1/results/src/summary.rs	replace - with + in linear_fit	1	earlier
+packages/tier1/results/src/summary.rs	replace - with + in linear_fit	1	hang
+packages/tier1/results/src/summary.rs	replace - with / in deviations	1	earlier
+packages/tier1/results/src/summary.rs	replace / with * in deviations	1	hang
+packages/tier1/results/src/summary.rs	replace < with <= in level_heading	1	earlier
+packages/tier1/results/src/summary.rs	replace > with >= in deviations	1	hang
+packages/tier1/results/src/summary.rs	replace > with >= in linear_fit	1	earlier
+packages/tier1/results/src/variance.rs	replace * with + in layered	1	hang
+packages/tier1/results/src/variance.rs	replace * with + in term_magnitudes	1	earlier
+packages/tier1/results/src/variance.rs	replace * with / in layered	1	earlier
+packages/tier1/results/src/variance.rs	replace * with / in term_magnitudes	1	earlier
+packages/tier1/results/src/variance.rs	replace += with *= in layered	1	hang
+packages/tier1/results/src/variance.rs	replace += with -= in layered	2	earlier
+packages/tier1/results/src/variance.rs	replace < with <= in symmetrised	1	earlier
+packages/tier1/results/src/variance.rs	replace > with >= in symmetrised	1	earlier
+packages/tier1/stats/src/anova.rs	replace && with || in sums_of_squares	1	earlier
+packages/tier1/stats/src/anova.rs	replace - with + in sums_of_squares	2	earlier
+packages/tier1/stats/src/anova.rs	replace > with >= in sums_of_squares	1	earlier
+packages/tier1/stats/src/anova.rs	replace match guard w == "epsilon" with true in effect	1	earlier
+packages/tier1/stats/src/anova_factorial.rs	replace && with || in factor	1	earlier
+packages/tier1/stats/src/anova_factorial.rs	replace / with % in factorial	1	earlier
+packages/tier1/stats/src/anova_factorial.rs	replace / with * in factorial	1	earlier
+packages/tier1/stats/src/anova_factorial.rs	replace < with <= in anova	2	earlier
+packages/tier1/stats/src/anova_factorial.rs	replace < with <= in factorial	1	earlier
+packages/tier1/stats/src/anova_factorial.rs	replace > with >= in anova	1	earlier
+packages/tier1/stats/src/anova_factorial.rs	replace || with && in factorial	1	earlier
+packages/tier1/stats/src/chi2_test.rs	replace - with + in goodness_of_fit	2	earlier
+packages/tier1/stats/src/chi2_test.rs	replace > with >= in goodness_of_fit	1	earlier
+packages/tier1/stats/src/chi2_test.rs	replace match guard !w.counts(row) with false in goodness_of_fit	1	earlier
+packages/tier1/stats/src/chi2_test.rs	replace match guard !w.counts(row) with false in independence	1	earlier
+packages/tier1/stats/src/density.rs	replace - with + in quantile	1	earlier
+packages/tier1/stats/src/density.rs	replace - with + in silverman	2	earlier
+packages/tier1/stats/src/density.rs	replace - with / in quantile	1	earlier
+packages/tier1/stats/src/fisher_test.rs	replace * with + in crossing	1	earlier
+packages/tier1/stats/src/fisher_test.rs	replace *= with /= in crossing	1	hang
+packages/tier1/stats/src/fisher_test.rs	replace + with * in exact_p_limited::Walk<'_>::fill	1	hang
+packages/tier1/stats/src/fisher_test.rs	replace += with *= in Conditional::probabilities	1	hang
+packages/tier1/stats/src/fisher_test.rs	replace - with + in Conditional::probabilities	1	earlier
+packages/tier1/stats/src/fisher_test.rs	replace /= with %= in crossing	1	hang
+packages/tier1/stats/src/fisher_test.rs	replace /= with *= in crossing	1	hang
+packages/tier1/stats/src/fisher_test.rs	replace < with <= in Conditional::probabilities	1	earlier
+packages/tier1/stats/src/fisher_test.rs	replace < with <= in crossing	2	earlier
+packages/tier1/stats/src/fisher_test.rs	replace < with == in crossing	1	earlier
+packages/tier1/stats/src/fisher_test.rs	replace > with == in crossing	1	earlier
+packages/tier1/stats/src/fisher_test.rs	replace > with >= in crossing	2	earlier
+packages/tier1/stats/src/fisher_test.rs	replace || with && in crossing	1	earlier
+packages/tier1/stats/src/fisher_test.rs	replace || with && in fisher_test	1	earlier
+packages/tier1/stats/src/kruskal_test.rs	replace + with * in kruskal	1	earlier
+packages/tier1/stats/src/kruskal_test.rs	replace += with *= in kruskal	1	hang
+packages/tier1/stats/src/kruskal_test.rs	replace < with <= in kruskal	1	earlier
+packages/tier1/stats/src/ks_test.rs	delete - in kolmogorov_exact_cdf	1	earlier
+packages/tier1/stats/src/ks_test.rs	replace * with + in lilliefors	4	earlier
+packages/tier1/stats/src/ks_test.rs	replace * with / in kolmogorov_exact_cdf	1	earlier
+packages/tier1/stats/src/ks_test.rs	replace * with / in kolmogorov_exact_cdf	1	hang
+packages/tier1/stats/src/ks_test.rs	replace * with / in lilliefors	4	earlier
+packages/tier1/stats/src/ks_test.rs	replace * with / in m_power	1	earlier
+packages/tier1/stats/src/ks_test.rs	replace + with * in kolmogorov_exact_cdf	1	earlier
+packages/tier1/stats/src/ks_test.rs	replace + with * in lilliefors	2	earlier
+packages/tier1/stats/src/ks_test.rs	replace + with * in tied	1	earlier
+packages/tier1/stats/src/ks_test.rs	replace + with - in lilliefors	2	earlier
+packages/tier1/stats/src/ks_test.rs	replace + with - in m_power	1	earlier
+packages/tier1/stats/src/ks_test.rs	replace += with *= in kolmogorov_limit	1	hang
+packages/tier1/stats/src/ks_test.rs	replace += with *= in tied	1	hang
+packages/tier1/stats/src/ks_test.rs	replace - with + in lilliefors	2	earlier
+packages/tier1/stats/src/ks_test.rs	replace - with / in lilliefors	2	earlier
+packages/tier1/stats/src/ks_test.rs	replace / with % in kolmogorov_exact_cdf	1	earlier
+packages/tier1/stats/src/ks_test.rs	replace < with <= in kolmogorov_exact_cdf	1	earlier
+packages/tier1/stats/src/ks_test.rs	replace < with <= in kolmogorov_limit	5	earlier
+packages/tier1/stats/src/ks_test.rs	replace < with <= in tied	1	earlier
+packages/tier1/stats/src/ks_test.rs	replace < with == in kolmogorov_limit	2	earlier
+packages/tier1/stats/src/ks_test.rs	replace <= with > in lilliefors	1	earlier
+packages/tier1/stats/src/ks_test.rs	replace > with == in kolmogorov_exact_cdf	1	earlier
+packages/tier1/stats/src/ks_test.rs	replace > with == in pow_int	1	hang
+packages/tier1/stats/src/ks_test.rs	replace > with >= in kolmogorov_exact_cdf	2	earlier
+packages/tier1/stats/src/ks_test.rs	replace > with >= in lilliefors	1	earlier
+packages/tier1/stats/src/ks_test.rs	replace > with >= in m_power	1	earlier
+packages/tier1/stats/src/ks_test.rs	replace > with >= in pow_int	1	earlier
+packages/tier1/stats/src/ks_test.rs	replace > with >= in pow_int	1	hang
+packages/tier1/stats/src/ks_test.rs	replace || with && in lilliefors	1	earlier
+packages/tier1/stats/src/lib.rs	delete match arm Some(Value::Var(name)) in series	1	earlier
+packages/tier1/stats/src/lib.rs	replace && with || in correlate	1	hang
+packages/tier1/stats/src/lib.rs	replace - with + in correlate	2	earlier
+packages/tier1/stats/src/lib.rs	replace < with <= in correlation	2	earlier
+packages/tier1/stats/src/lib.rs	replace < with == in correlation	1	earlier
+packages/tier1/stats/src/lib.rs	replace < with > in correlate	1	hang
+packages/tier1/stats/src/lib.rs	replace > with >= in correlate	2	earlier
+packages/tier1/stats/src/line.rs	replace < with > in line	1	earlier
+packages/tier1/stats/src/marginal.rs	replace * with / in linear	1	earlier
+packages/tier1/stats/src/p_adjust.rs	replace * with + in hommel	1	earlier
+packages/tier1/stats/src/p_adjust.rs	replace * with / in hommel	1	earlier
+packages/tier1/stats/src/p_adjust.rs	replace - with / in hommel	1	earlier
+packages/tier1/stats/src/p_adjust.rs	replace < with <= in hommel	1	earlier
+packages/tier1/stats/src/posthoc.rs	replace && with || in posthoc	1	earlier
+packages/tier1/stats/src/posthoc.rs	replace match guard df == row.df with false in finish	1	earlier
+packages/tier1/stats/src/proportion_test.rs	replace * with + in one_sample	1	earlier
+packages/tier1/stats/src/proportion_test.rs	replace * with / in one_sample	2	earlier
+packages/tier1/stats/src/proportion_test.rs	replace * with / in two_groups	1	earlier
+packages/tier1/stats/src/qq.rs	replace - with + in quantile	1	earlier
+packages/tier1/stats/src/qq.rs	replace - with / in quantile	1	earlier
+packages/tier1/stats/src/selection.rs	replace += with *= in Pairs<'_>::at_most	1	hang
+packages/tier1/stats/src/selection.rs	replace - with / in Pairs<'_>::select	1	hang
+packages/tier1/stats/src/selection.rs	replace -= with /= in Pairs<'_>::at_most	1	hang
+packages/tier1/stats/src/selection.rs	replace / with % in Pairs<'_>::select	1	hang
+packages/tier1/stats/src/selection.rs	replace > with >= in Pairs<'_>::select	1	hang
+packages/tier1/stats/src/selection.rs	replace || with && in Pairs<'_>::select	1	fence
+packages/tier1/stats/src/shapiro_test.rs	delete - in shapiro	1	earlier
+packages/tier1/stats/src/shapiro_test.rs	replace += with -= in shapiro	1	earlier
+packages/tier1/stats/src/shapiro_test.rs	replace - with + in shapiro	1	earlier
+packages/tier1/stats/src/shapiro_test.rs	replace /= with %= in shapiro	1	earlier
+packages/tier1/stats/src/shapiro_test.rs	replace /= with *= in shapiro	1	earlier
+packages/tier1/stats/src/shapiro_test.rs	replace > with >= in poly	1	earlier
+packages/tier1/stats/src/shapiro_test.rs	replace > with >= in sign	1	earlier
+packages/tier1/stats/src/testing.rs	replace > with >= in two_groups	1	earlier
+packages/tier1/stats/src/testing.rs	replace match guard !w.counts(row) with false in cross_table	1	earlier
+packages/tier1/stats/src/testing.rs	replace match guard !w.counts(row) with false in replicated	1	earlier
+packages/tier1/stats/src/testing.rs	replace match guard w == "greater" with true in alternative	1	earlier
+packages/tier1/stats/src/variance_test.rs	replace - with + in levene	2	identity
+packages/tier1/stats/src/variance_test.rs	replace - with + in variance	2	identity
+packages/tier1/stats/src/variance_test.rs	replace < with <= in bartlett	1	fence
+packages/tier1/stats/src/variance_test.rs	replace < with == in bartlett	1	fence
+packages/tier1/stats/src/variance_test.rs	replace || with && in bartlett	3	fence
+packages/tier1/stats/src/variance_test.rs	replace || with && in levene	1	fence
+packages/tier1/stats/src/wilcoxon_test.rs	delete ! in rank_sum_interval	1	hang
+packages/tier1/stats/src/wilcoxon_test.rs	replace * with / in correction	1	earlier
+packages/tier1/stats/src/wilcoxon_test.rs	replace *= with /= in asymptotic_interval	3	hang
+packages/tier1/stats/src/wilcoxon_test.rs	replace + with * in searched_interval	1	earlier
+packages/tier1/stats/src/wilcoxon_test.rs	replace + with * in tie_sum	1	hang
+packages/tier1/stats/src/wilcoxon_test.rs	replace + with - in tie_sum	1	hang
+packages/tier1/stats/src/wilcoxon_test.rs	replace += with *= in tie_sum	1	hang
+packages/tier1/stats/src/wilcoxon_test.rs	replace - with + in rank_sum_interval	1	earlier
+packages/tier1/stats/src/wilcoxon_test.rs	replace - with + in searched_interval	2	earlier
+packages/tier1/stats/src/wilcoxon_test.rs	replace - with / in rank_sum_form	1	hang
+packages/tier1/stats/src/wilcoxon_test.rs	replace - with / in rank_sum_interval	1	earlier
+packages/tier1/stats/src/wilcoxon_test.rs	replace - with / in searched_interval	2	earlier
+packages/tier1/stats/src/wilcoxon_test.rs	replace < with <= in asymptotic_interval	6	earlier
+packages/tier1/stats/src/wilcoxon_test.rs	replace < with <= in tie_sum	1	earlier
+packages/tier1/stats/src/wilcoxon_test.rs	replace == with != in has_ties	1	hang
+packages/tier1/stats/src/wilcoxon_test.rs	replace > with == in searched_interval	1	earlier
+packages/tier1/stats/src/wilcoxon_test.rs	replace > with >= in asymptotic_interval	2	earlier
+packages/tier1/stats/src/wilcoxon_test.rs	replace > with >= in exact_p_signed	1	earlier
+packages/tier1/stats/src/wilcoxon_test.rs	replace > with >= in root	1	earlier
+packages/tier1/stats/src/wilcoxon_test.rs	replace > with >= in searched_interval	4	earlier
+packages/tier1/stats/src/wilcoxon_test.rs	replace > with >= in signed_rank_interval	1	earlier
+packages/tier1/stats/src/wilcoxon_test.rs	replace > with >= in signed_rank_test	2	earlier
+packages/tier1/stats/src/wilcoxon_test.rs	replace has_ties -> bool with true	1	hang
+packages/tier1/stats/src/wilcoxon_test.rs	replace match guard !w.counts(row) with false in values	1	earlier
+packages/tier1/stats/src/wilcoxon_test.rs	replace || with && in asymptotic_interval	1	earlier
+packages/tier1/stats/src/wilcoxon_test.rs	replace || with && in root	2	earlier
+packages/tier2/regress/src/iv.rs	delete ! in Designs::build_full	2	fence
+packages/tier2/regress/src/iv.rs	delete - in TwoStage::hansen_j	1	edge
+packages/tier2/regress/src/iv.rs	replace != with == in TwoStage::weak	1	fence
+packages/tier2/regress/src/iv.rs	replace && with || in <impl Estimator for SecondStage<'_>>::fit	1	guard
+packages/tier2/regress/src/iv.rs	replace && with || in TwoStage::anderson_rubin	3	unavailable
+packages/tier2/regress/src/iv.rs	replace && with || in TwoStage::diagnostics	1	unavailable
+packages/tier2/regress/src/iv.rs	replace && with || in TwoStage::hansen_j	3	unavailable
+packages/tier2/regress/src/iv.rs	replace && with || in TwoStage::weak	5	unavailable
+packages/tier2/regress/src/iv.rs	replace * with + in <impl Estimator for SecondStage<'_>>::fit	5	guard
+packages/tier2/regress/src/iv.rs	replace * with + in noncentral_chi_square_point	2	margin
+packages/tier2/regress/src/iv.rs	replace * with / in <impl Estimator for SecondStage<'_>>::fit	4	guard
+packages/tier2/regress/src/iv.rs	replace * with / in TwoStage::weak	1	margin
+packages/tier2/regress/src/iv.rs	replace * with / in noncentral_chi_square_point	1	margin
+packages/tier2/regress/src/iv.rs	replace * with / in quadratic_form	1	margin
+packages/tier2/regress/src/iv.rs	replace * with / in symmetric_power	1	margin
+packages/tier2/regress/src/iv.rs	replace + with * in <impl Estimator for SecondStage<'_>>::fit	2	guard
+packages/tier2/regress/src/iv.rs	replace + with * in noncentral_chi_square_point	6	margin
+packages/tier2/regress/src/iv.rs	replace + with - in <impl Estimator for SecondStage<'_>>::fit	2	guard
+packages/tier2/regress/src/iv.rs	replace + with - in TwoStage::hansen_j	1	identity
+packages/tier2/regress/src/iv.rs	replace + with - in noncentral_chi_square_point	1	margin
+packages/tier2/regress/src/iv.rs	replace += with *= in <impl Estimator for SecondStage<'_>>::fit	1	guard
+packages/tier2/regress/src/iv.rs	replace += with -= in <impl Estimator for SecondStage<'_>>::fit	1	guard
+packages/tier2/regress/src/iv.rs	replace += with -= in TwoStage::hansen_j	2	identity
+packages/tier2/regress/src/iv.rs	replace - with + in Designs::build_full	1	fence
+packages/tier2/regress/src/iv.rs	replace - with + in TwoStage::diagnostics	1	identity
+packages/tier2/regress/src/iv.rs	replace - with + in noncentral_chi_square_point	1	margin
+packages/tier2/regress/src/iv.rs	replace - with / in noncentral_chi_square_point	2	margin
+packages/tier2/regress/src/iv.rs	replace - with / in searched_set	1	margin
+packages/tier2/regress/src/iv.rs	replace / with % in TwoStage::anderson_rubin	1	scale
+packages/tier2/regress/src/iv.rs	replace / with % in TwoStage::weak	4	scale
+packages/tier2/regress/src/iv.rs	replace / with * in TwoStage::anderson_rubin	1	scale
+packages/tier2/regress/src/iv.rs	replace / with * in TwoStage::weak	4	scale
+packages/tier2/regress/src/iv.rs	replace < with <= in estimate	1	fence
+packages/tier2/regress/src/iv.rs	replace < with <= in quadratic_set	2	fence
+packages/tier2/regress/src/iv.rs	replace == with != in Designs::build_full	2	fence
+packages/tier2/regress/src/iv.rs	replace == with != in TwoStage::anderson_rubin	2	guard
+packages/tier2/regress/src/iv.rs	replace == with != in TwoStage::diagnostics	2	guard
+packages/tier2/regress/src/iv.rs	replace == with != in TwoStage::weak	1	guard
+packages/tier2/regress/src/iv.rs	replace > with < in <impl Estimator for SecondStage<'_>>::fit	1	guard
+packages/tier2/regress/src/iv.rs	replace > with == in <impl Estimator for SecondStage<'_>>::fit	2	guard
+packages/tier2/regress/src/iv.rs	replace > with >= in <impl Estimator for SecondStage<'_>>::fit	2	guard
+packages/tier2/regress/src/iv.rs	replace > with >= in TwoStage::anderson_rubin	3	unavailable
+packages/tier2/regress/src/iv.rs	replace > with >= in TwoStage::diagnostics	2	unavailable
+packages/tier2/regress/src/iv.rs	replace > with >= in TwoStage::hansen_j	2	unavailable
+packages/tier2/regress/src/iv.rs	replace > with >= in TwoStage::weak	4	unavailable
+packages/tier2/regress/src/iv.rs	replace > with >= in noncentral_chi_square_point	1	margin
+packages/tier2/regress/src/iv.rs	replace > with >= in quadratic_form	1	fence
+packages/tier2/regress/src/iv.rs	replace > with >= in quadratic_set	2	fence
+packages/tier2/regress/src/iv.rs	replace match guard e.code == "Z9001" with false in TwoStage::anderson_rubin	2	guard
+packages/tier2/regress/src/iv.rs	replace match guard e.code == "Z9001" with false in TwoStage::diagnostics	2	guard
+packages/tier2/regress/src/iv.rs	replace match guard e.code == "Z9001" with false in TwoStage::weak	1	guard
+packages/tier2/regress/src/iv.rs	replace match guard e.code == "Z9001" with true in TwoStage::anderson_rubin	2	guard
+packages/tier2/regress/src/iv.rs	replace match guard e.code == "Z9001" with true in TwoStage::diagnostics	2	guard
+packages/tier2/regress/src/iv.rs	replace match guard e.code == "Z9001" with true in TwoStage::weak	1	guard
+packages/tier2/regress/src/iv.rs	replace match guard i <= j with true in parts_of	1	fence
+packages/tier2/regress/src/iv.rs	replace match guard observed.kept == self.fitted.kept with true in TwoStage::diagnostics	1	fence
+packages/tier2/regress/src/iv.rs	replace || with && in TwoStage::anderson_rubin	2	unavailable
+packages/tier2/regress/src/iv.rs	replace || with && in TwoStage::weak	1	unavailable
+packages/tier2/regress/src/ivreg.rs	replace && with || in stage_tables	1	edge
+packages/tier2/regress/src/ivreg.rs	replace < with <= in ar_test	2	edge
+packages/tier2/regress/src/ivreg.rs	replace == with != in clusters_for	1	identity
+packages/tier2/regress/src/ivreg.rs	replace > with >= in ar_test	1	edge
+packages/tier2/regress/src/ivreg.rs	replace > with >= in ivreg	1	edge
+packages/tier2/regress/src/ivreg.rs	replace > with >= in stage_tables	1	edge
+packages/tier2/regress/src/ivreg.rs	replace match guard shared.kind == Kind::Cluster && weak.df1 as u64 > second with true in stage_tables	1	edge
+packages/tier2/regress/src/lib.rs	replace zeff_sources -> Vec<zeff_registry::ZeffSource> with vec![]	1	earlier
+packages/tier2/regress/src/ols.rs	replace * with + in <impl Estimator for Ols>::fit	5	earlier
+packages/tier2/regress/src/ols.rs	replace * with / in <impl Estimator for Ols>::fit	3	earlier
+packages/tier2/regress/src/ols.rs	replace += with *= in <impl Estimator for Ols>::fit	1	earlier
+packages/tier2/regress/src/ols.rs	replace += with -= in <impl Estimator for Ols>::fit	2	earlier
+packages/tier2/regress/src/ols.rs	replace > with >= in <impl Estimator for Ols>::fit	1	earlier
+packages/tier2/regress/src/reg.rs	replace && with || in formula_variables::of_expr	1	earlier
+packages/tier2/regress/src/reg.rs	replace * with + in checked_variance	1	guard
+packages/tier2/regress/src/reg.rs	replace * with / in checked_variance	1	guard
+packages/tier2/regress/src/reg.rs	replace + with * in driving_observations	2	fence
+packages/tier2/regress/src/reg.rs	replace + with - in driving_observations	1	fence
+packages/tier2/regress/src/reg.rs	replace += with -= in driving_observations	1	earlier
+packages/tier2/regress/src/reg.rs	replace - with + in essentially_perfect	2	earlier
+packages/tier2/regress/src/reg.rs	replace == with != in fit_with_effects	1	fence
+packages/tier2/regress/src/reg.rs	replace == with != in reg	1	earlier
+packages/tier2/regress/src/reg.rs	replace > with == in checked_variance	1	guard
+packages/tier2/regress/src/reg.rs	replace > with >= in checked_variance	1	guard
+packages/tier2/regress/src/reg.rs	replace > with >= in cluster_and_weight_warnings	1	edge
+packages/tier2/regress/src/reg.rs	replace > with >= in driving_observations	1	earlier
+packages/tier2/regress/src/reg.rs	replace > with >= in reg	2	earlier
+packages/tier2/regress/src/reg.rs	replace || with && in checked_variance	1	guard
+packages/tier2/regress/src/reg.rs	replace || with && in driving_observations	1	earlier

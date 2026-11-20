@@ -453,6 +453,20 @@ fn groups_of_one_value_and_groups_with_no_spread() {
     assert!(ratio(&[1.0, 1.0], &[2.0, 3.0], 0.95).is_none());
 }
 
+/// A group of exactly two values is enough for each test: R's `bartlett.test` gives K² =
+/// 1.08436438663089 with p = 0.581477969538514 on two degrees of freedom, and car's
+/// `leveneTest` about the median F = 0.706013363028953 with p = 0.53044800612945. (Three
+/// surviving mutants of release 0.8.0, step 24a2c, refused a group of two, or took one of
+/// fewer; every group in the tests had three values or more, or one.)
+#[test]
+fn a_group_of_exactly_two_values_is_enough() {
+    let (exit, stdout, stderr) = go(
+        "let d = frame(x = [1, 3, 2, 5, 9, 4, 4.5, 7, 8], g = [1, 1, 2, 2, 2, 3, 3, 3, 3])\nlet b = d.variance_test(x, group: g, method: bartlett)\nprint(abs(b.statistic() - 1.08436438663089) < 1e-12)\nprint(abs(b.p_values() - 0.581477969538514) < 1e-12)\nprint(b.df())\nlet l = d.variance_test(x, group: g)\nprint(abs(l.statistic() - 0.706013363028953) < 1e-12)\nprint(abs(l.p_values() - 0.53044800612945) < 1e-12)\n",
+    );
+    assert_eq!(exit, 0, "{stderr}");
+    assert_eq!(stdout, "true\ntrue\n2\ntrue\ntrue\n", "{stdout}{stderr}");
+}
+
 #[test]
 fn every_form_and_every_message() {
     let (exit, stdout, stderr) = go(

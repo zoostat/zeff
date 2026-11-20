@@ -158,3 +158,15 @@ Step 22b3: the last nine pages of `core` brought to the help contract (the funct
 
 **For the owner to decide.** #173 is decided for A on the recommendation and is his to overturn.
 
+## 20 November 2026, release 0.8.0, step 24a2c (the weekly mutation run read)
+
+**Done.** Step 24a2c `[engine]`: the run of 76 shards read to its end (10,333 mutants, 657 survivors, 212 timeouts) and the regressions' shards a second time after the tests. Tests for the survivors that showed a gap, among them two real faults found on the way and corrected: a range of variables in `instruments:` that one mutant read as its two ends (the code was right; no test held it), and a dropped instrumented regressor that was still counted, so that a fit printed a Kleibergen–Paap F of 0.18 with a false warning where the model has 402.49. The accepted survivors are now a list, `tools/mutants/recorded.txt` (758 lines of record, each with the key of its reason), and the weekly job prints what is not on it.
+
+**Green.** Format, clippy with warnings denied, the tier, message and grammar checks, every test of the workspace; CI read after each push (the reference job failed on four commits for a line my script lacked, corrected at e97ceb4).
+
+**In flight.** Step 24a2d: the whole weekly job once more on the commit, to confirm that nothing is new; about fifteen hours at fourteen shards at a time.
+
+**Next.** Step 24b `[engine]`, part 2 of the pre-release routine, while that run goes on; 24a2d is ticked when its notes are read.
+
+**For the owner to decide.** Nothing that stops the work. On the list: #173 (decided for A on the recommendation); a perfect first stage prints a Cragg–Donald F of twenty-one digits.
+

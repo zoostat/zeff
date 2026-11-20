@@ -39,7 +39,10 @@ def recorded(path):
         if len(parts) != 4:
             sys.exit(f"{path}: a line with {len(parts)} fields, not four: {line!r}")
         file, mutation, count, reason = parts
-        found[(file, mutation)] = (int(count), reason)
+        # One mutation may be recorded under two keys (a survivor and a timeout of the same
+        # wording at two places of a routine): the counts add.
+        before = found.get((file, mutation), (0, reason))
+        found[(file, mutation)] = (before[0] + int(count), before[1])
     return found
 
 
