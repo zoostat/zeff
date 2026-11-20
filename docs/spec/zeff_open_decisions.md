@@ -110,6 +110,8 @@ Date: 17 October 2026 · Source: Zeff Specification section 15, Zemp Specificati
 
 **Status (20 November 2026, after the release of 0.8.0).** Three answers of the owner, given in the session that keeps the plan of releases and passed on to the Zeff session with his words. #18 is closed: "Yes, close it", as settled by the plan of #113, under which difference-in-differences (1.9) already comes before the latent-variable models (1.12); no change to the plan. #151 (the licence) and the organisation of #31 are moved from 0.9.0 to 0.11.0: "I want to skip #151 and #31 now and want to move it to 0.11.0". For #31 the launcher of 0.9.0 is to trust addresses under the decided domain only; for #151 an outside contribution offered before 0.11.0 brings the question back to him first. Each entry carries its paragraph. No normative text is changed.
 
+**Status (20 November 2026, the notes of Zemp Lite entered).** On the owner's word ("Yes, set it up", to the question whether the register should be brought up to date before Zeff 0.9.0 and Zemp Lite 0.2 are started), the notes the Zemp Lite sessions wrote between 15 and 20 November 2026 are entered as #174 to #197, in a new group "Raised from Zemp Lite". One records a ruling he has made: #174, the margin editor adopted on 18 November 2026 as the editor of Zemp Lite from the 0.2 alpha ("Yes, adopt it"), with what was ruled the same day. The others are proposals, each his to decide, with the deadline its note proposed: what the editor asks of the engine (#175) and leaves open (#176); the proposals from his review of notebook features (#177 to #182); finding a fault (#183 to #187); comparing fits in the engine (#188, #189); five refinements of the diagram plan of #121 (#190 to #194); `margins` through a transformed term and two messages an R user meets (#195, #196); and the plots of a run handed to an interface (#197). Four entries gain a paragraph: #76 (how **Run to here** is read in the margin editor), #146 (the amendment covers the paragraph "The look" of section 5), #158 (two findings from the shipped data) and #164 (the names of a `poly` term's columns, and the rows and weights its basis is orthogonal on). Due at the opening of Zeff 0.9.0 among them: #175 in part, #178, #180, #184, #185, #186, #195, #196 and #197; due at the Zemp 0.2 alpha: #176 in part, #177, #181, #183 and #187. Nothing is settled here that the owner must decide, and no normative text is changed.
+
 ## Summary
 
 | # | Decision | Recommendation | Decide by |
@@ -201,6 +203,30 @@ Date: 17 October 2026 · Source: Zeff Specification section 15, Zemp Specificati
 | 85 | The Games–Howell comparison in `posthoc` | Add `games_howell` to `method:` in the first release after 0.7.0 with room; until then Tukey's HSD after Welch's ANOVA prints a note | 0.9.0 |
 | 86 | Folding, snippets and the statement ranges behind **Run** in the language server | At 0.8.0, with Zemp's alpha; formatting through the server is built at 0.7.0 | decided 15 November 2026 (option A); built at 0.8.0, step 8b |
 | 87 | A variable name in an option record | Accept a `Vars` of exactly one variable where a parameter takes a `Var`, so that `{ se: robust, cluster: vars(firm) }` can be named once and spread | decided 15 November 2026 (option A); built at 0.8.0, step 4 |
+| 197 | The plots of a run handed to an interface | Recommended A: an engine step at 0.9.0 by which the browser build keeps the plots of a run, lays one out at a size and theme without a new run, and hands over the scene (C16 of #175) | open; the owner's priority; deadline 0.9.0 |
+| 196 | Two messages R users meet: `I()` and `poly` in a formula, and a function of a later release | Recommended A: inside a formula, the help of Z0103 for `I(...)` shows the term without it and for `poly(x, k)` writes the powers out; a catalogued name of a later release says its release | open; deadline 0.9.0 |
+| 195 | Slopes and turning points: `margins` through a transformed term | Recommended A: `margins` differentiates through every term that is a function of the variable asked for (`exper` and `exper^2` today; `poly` and `spline` when they arrive) | open; deadline 0.9.0 |
+| 194 | Statistical guard rails, written into the diagram rules | Adopt rule 1 (no edge suggested by the data, on a causal graph or an SEM diagram) and rule 5 (stars only beside an estimate in `path_plot`); rules 2 to 4 stay where they are | open; deadline 0.10.0 for rule 1, 1.12 for rule 5 |
+| 193 | Dragged positions in Zemp Lite: Copy as Zeff | Recommended A: **Copy as Zeff** (#114) extends to dragged positions in every diagram viewer, as `layout:` or `at:` on the clipboard | open; deadline: Zemp 0.4, with Zeff 0.10.0 |
+| 192 | Testing layouts against known figures | Recommended A, or B if nothing EPL is wanted even in tooling: a suite of reference figures measured on every change, Graphviz's `dot` a yardstick in the tests alone; the licence question is the owner's | open; the owner's word on Graphviz; deadline 0.10.0 |
+| 191 | One graph form under every diagram | Recommended A: every diagram lowered to one graph form (nodes, edges, groups, ports, stable names) that layout, the viewer, the table view and the exports read; fixed at 0.10.0 | open; deadline 0.10.0 |
+| 190 | Building the layout engine in stages | Recommended A: the layout engine of #121 in three stages, each with the release that first needs it (0.10.0 for causal graphs, 1.2 for flowcharts, 1.12 for SEM) | open; deadline 0.10.0 |
+| 189 | A coefficient plot of several fits | Recommended A: `coef_plot([fits])` in `plot`, one row per term with each fit's estimate and interval; fits of different outcomes or estimators refused; the name before 1.0 | open; deadline 0.10.0 |
+| 188 | `report()` says when its columns cannot be compared | Recommended A: a note in the table's footer for each column that differs from the one before it in outcome, estimator or rows; nothing when the columns agree | open; deadline 0.10.0 |
+| 187 | Where the time and memory of a run went | Recommended A: two lists in the run record, the statements by their time and the bindings by their memory, read from the engine (C26) | open; deadline: the Zemp 0.2 alpha |
+| 186 | The console line inside a pass or a call | Recommended A, with #185: while a pass or a call is open, the console line runs in its names and can change nothing; needs C25 | open; deadline as #185 |
+| 185 | Opening a pass or a call, by replay | Recommended A: the engine runs one call or one pass again from the arguments the run gave it, bit for bit, and shows each `let` of the body for that call; no breakpoints (#76); needs C24 | open; deadline 0.9.0, for placing C24 |
+| 184 | Searching the passes of a block, and drawing a field across them | Recommended A: find the first pass that failed, warned or kept no rows; for `iterate`, each field's change and one field drawn against the pass; needs C23 and C27 of #175 | open; deadline 0.9.0 |
+| 183 | The error's trail in the margin | Recommended A: the failing statement's output lists each link of the chain as a link, each file opening with a note on the lines the chain names; nothing run again | open; deadline: the Zemp 0.2 alpha |
+| 182 | Small conveniences, none before 1.0 | Keep as roadmap, each weighed after Zemp Lite 1.0: moving a statement, hiding one output, a heading as formatted text, a point's values on hover, the time a statement last ran | open; deadline 1.1 |
+| 181 | Run from here to the end | Recommended A, as an amendment of #76: **Run from here** as a command and a gutter action beside **Run to here** | open; deadline: the Zemp 0.2 alpha, otherwise 0.9.0 |
+| 180 | Run from a fresh session | Recommended A: a ⌘K command that drops the console's statements and runs the script from its first line, the cache serving unchanged statements | open; deadline 0.9.0 |
+| 179 | The last run's output shown when a project is opened | Recommended A: on opening, the last run's output from the run record and the cache, each block labelled with when it ran, the stale rules applying at once | open; deadline 0.11.0 |
+| 178 | Sections in a script | Recommended A: a comment written as a heading (`// # Data`) starts a section, reported by the language server as outline and folding, with **Run section**; the form of the comment is the owner's choice | open; deadline 0.9.0; the comment's form at the Zemp 0.2 alpha |
+| 177 | Zemp Lite is not a notebook: the statement is the cell | Recommended A: no cells; the script stays one plain text file and the statement is the unit that is run, shown, folded and marked stale | open; deadline: the Zemp 0.2 alpha |
+| 176 | Six questions the margin editor leaves open | Recommended per item: Panes kept one release (R2); the keys as the document has them (R8); ⌘↵ runs the statement with the stale statements it reads (R9); tables as cells when the engine can (R10); the HTML article until the PDF (R12); a paper's chunks in its own session (R13) | open; R2, R8 and R9 at the Zemp 0.2 alpha; R10 with C7; R12 and R13 with the documents of #141 |
+| 175 | What the margin editor asks of the engine: the contract, C1 to C27 | Recommended A: each of the 27 items placed at an engine release as a step with its tests; C5 and C6 (a result's type and dimensions, its print at a width) first, for the 0.2 alpha | open; deadline 0.9.0 for C5, C6 and C22 to C27, the rest at their releases |
+| 174 | The editor of Zemp Lite: the margin editor | The margin editor replaces the Inline layout of section 5 as the editor of Zemp Lite, from the 0.2 alpha: a note beside every statement, the full result unfolded under it at the reader's asking; places Script, Data, Plots and Paper; the quiet look | decided 18 November 2026 (option A; the owner's ruling, recorded from the Zemp Lite repository); built from the Zemp 0.2 alpha |
 | 173 | Probabilities below the smallest double: a log scale for the tails | Recommended A now and C after 1.0: the limit is stated on the page of `dist.truncated` and in the known issues; `log: true` on `pdf` and `cdf`, used inside a truncation, is an addition placed in the plan of releases after 1.0 | decided 20 November 2026 (A, on the recommendation under the standing instruction); C open, deadline: the plan of releases after 1.0 |
 | 172 | Typst inside Zemp, for the PDF of a script with its output | Recommended A: a module of its own, fetched the first time a PDF is asked for, built with the hyphenation patterns under permissive licences only; until then the `.typ` export and the Typst the user has installed | open; deadline: the Zemp release that builds **Export script with output** |
 | 171 | Six printed layouts the review found | Recommended A for each: small coefficients in `report` by significant digits, sign kept; `labels:` applied to the parts of an interaction; thousands separators in every df column; facet titles "kids = 0"; long group names wrapped in the proportion test's hypotheses; the standard error of a t-test's difference in its estimates | open; deadline 0.9.0 |
@@ -1201,6 +1227,8 @@ Raised on 1 November 2026 from the owner's request for tracebacks and step debug
 *Recommendation.* A, the traceback with the language server at 0.7.0 and the inspector and **Run to here** at the 0.2 alpha; B rejected. Deadline: 0.7.0.
 
 *Decided 6 November 2026, as recommended (option A).* The traceback through module functions is built with the engine worker at step 33; **Run to here** and the loop inspector belong to Zemp's 0.2 alpha.
+
+*A reading of this decision for the margin editor (entered 20 November 2026; R15 of the editor's document, #174).* The decision makes **Run to here** "a command and a gutter action". In the margin editor the gutter action is the words *Run to here* shown on resting over a statement's line number, beside the command in ⌘K: a word and not an icon, in keeping with the quiet look. This is how the decision is read, not a new choice; the owner may prefer ⌘K alone. **Run from here**, its partner, is proposed as #181, and what builds on the traceback and the inspector as #183 to #187. Nothing here changes what was decided: no breakpoints and no stepping.
 
 ### 77. Schema-aware completion and extract function
 
@@ -3042,6 +3070,8 @@ Raised on 13 and 14 November 2026 by the owner, while the website of decision #1
 
 **Decided (14 November 2026): the owner's rulings as above.** Deadline for the amendment: Zemp 0.2 alpha (Zeff 0.8.0).
 
+**What the amendment must also cover (found by the Zemp Lite session on 15 November 2026; entered 20 November 2026).** This entry says that its items other than 7 and 9 are look and wording, which no normative text fixes. Section 5 of the Zemp Specification does fix them: its paragraph "The look" (#115), with its table of tokens, its table of syntax colours and its sentence naming the fonts. The amendment placed at the first step of the Zemp 0.2 alpha therefore covers that paragraph too. The quiet look adopted for the margin editor on 18 November 2026 (#174) keeps everything ruled here and changes how the window is drawn; the design guide's section 9 is brought into line with it by the owner's word.
+
 ### 147. Inside a function's body, a parameter where a term of a fit is expected
 
 Raised on 14 November 2026 at step 38c of release 0.7.0, while testing #140. Where a parameter takes a term of a fit (`coef`, `std_errors`, `ci`, `p_values` and the tests on terms), a bare name is that term "whatever else bears the name" (Language Reference, section 3.7, "Resolution by parameter type"). In a script that is right. In the body of a function it means that the name of a parameter cannot stand for the term it holds:
@@ -3204,6 +3234,8 @@ The article presents Zeff as infrastructure, which a referee may question while 
 
 **Recommended: A.**
 
+**Two findings from drawing the diagrams (the Zemp Lite session, 18 November 2026; entered 20 November 2026).** Made with the shipped `wages` data and R, for the print of this function and its reference tests. First, the example graph met the data and was contradicted twice: age and union (r 0.085, with interval 0.035 to 0.135) and union and experience given sex (r 0.093, 0.042 to 0.142); the print states it and no arrow is drawn (#194, rule 1). Second, three of the graph's implications cannot be tested on `wages`, because `exper` is exactly `max(0, age − educ − 6)` in all 1,516 rows of 2019 where it is known, so a test of `exper ⊥ union | age, educ` is degenerate: the print should say so when a conditioning set determines a variable, rather than print a number.
+
 ### 159. Candidate instruments from a causal graph
 
 `iv.exclusion_check(g, instrument:)` (row 436, 0.10.0) checks an instrument the analyst names; nothing lists the instruments a graph allows. dagitty's `instrumentalVariables` lists them, with the conditioning set of each conditional instrument.
@@ -3276,6 +3308,21 @@ Two points of design go with any option that adds the term. Predictions and `des
 | C. No `poly`; the help page of `reg` shows the raw powers and how to read them | Nothing to build | The rule of decisions 98 and 99 unmet for a method both R and Stata offer |
 
 **Recommended: A.** Deadline 1.1, since release 1.2 is planned at the close of 1.1. Taken as recommended under the standing instruction of 12 November 2026 unless the owner says otherwise.
+
+**Addendum (20 November 2026; from the owner's questions of that day, written up in a Zemp Lite session and entered here).** Two points the entry does not settle, each the owner's; with them go #195 (slopes and turning points through `margins`, due at 0.9.0) and #196 (the two messages an R user meets today).
+
+*1. The names of a `poly` term's columns.* The second paragraph above names them as R does, `poly(exper, 3)1` and on. But the owner ruled on 23 October 2026 that the columns of the `poly` contrast, the same orthogonal polynomials over a category's levels, are named `var=linear`, `var=quadratic`, `var=cubic`, `var=degree4` and on; one idea would then be named two ways. And on the same rows the column of each degree is the same whatever the highest degree asked for, so a name that holds the degree puts one column on two rows of a `report` of a quadratic and a cubic fit.
+
+| Option | For | Against |
+| --- | --- | --- |
+| A. `poly(exper, 3)=linear`, `=quadratic`, `=cubic`: the written form, then the ruling's words | Keeps section 7.1's rule (a transformation keeps its written form) and the ruling's words | A quadratic and a cubic fit name the same column differently, so `report` gives it two rows |
+| B. `poly(exper, 3)1`, `2`, `3`, as this entry and R have it | R's names | Departs from the ruling of 23 October; the same two rows in `report` |
+| C. **`poly(exper)=linear`, `=quadratic`, `=cubic`**: the degree left out of the name | The ruling's words; a column keeps one name across fits of different degrees, so `report` aligns them; still plainly a `poly` term | A small exception to section 7.1's rule, needing a sentence in it when the term is built |
+| D. `exper=linear`, the contrast's form exactly | Short; aligns across fits | Reads as a level of a category called `exper`; the name no longer says the column is orthogonal rather than a power |
+
+*Recommended: C.* Under `raw: true` the columns take the names the powers would have if written by hand (`exper`, `exper^2`, `exper^3`), so that a raw term is interchangeable with the powers written out. Whatever is chosen, the pages of `category` and of `poly` show R's names beside Zeff's. Deadline: this entry's own, 1.1.
+
+*2. The rows and the weights the basis is orthogonal on.* A statistical definition, and the owner's to settle. *Rows:* recommended, the rows the fit uses (after `where`, after the listwise deletion of every model variable, after singletons are removed), so that each column is uncorrelated with the others in the estimation sample itself. R evaluates `poly(x)` on the rows of the model frame before the rows with `NA` in other variables are dropped, and refuses `NA` in `x` itself; its columns are therefore orthonormal on the estimation sample only when no row is dropped. The fitted values, the residuals, R² and the joint test are the same either way; the coefficients of the separate degrees differ from R's whenever rows are dropped, so the reference tests compare coefficients on data from which no row is dropped and fitted values otherwise, and the page says so. *Weights:* recommended, the basis is unweighted, as R's `poly` is, so that it depends on `x` and the rows alone; the fitted values are the same under either choice. Stata's `orthpoly` documents a weight option, and what it does with it is to be checked when the reference is built. *Fixed effects:* under `fe:` the basis is computed on the estimation rows before the effects are absorbed; after absorption the columns are no longer orthogonal, which changes nothing in the fit, and the page says so.
 
 ## Raised by the review against R
 
@@ -3389,3 +3436,354 @@ Raised on 20 November 2026 by the reading of the coverage report (release 0.8.0,
 | C. Tails on the log scale: `log: true` on `pdf` and `cdf`, as R's `log.p`, and the truncation computed on that scale | The far tail to full precision, as R gives it on the log scale; useful beyond truncations (likelihoods, extreme tails) | New arithmetic in every family's tails and a new option on two methods: a design, not a correction, under the freeze |
 
 **Recommended: A now, C placed in the plan of releases after 1.0.** A is done at step 24a2b of release 0.8.0. B is not recommended: it trades a visible limit of the numbers for a rule that is hard to state. Deadline for C: when the plan of releases after 1.0 is next amended. Decided for A on the recommendation, under the owner's standing instruction; his to overturn.
+
+## Raised from Zemp Lite
+
+Entered on 20 November 2026 from the notes the Zemp Lite sessions wrote between 15 and 20 November 2026 in the form of this register, which is edited from a Zeff session only. One entry records a ruling of the owner (#174); every other is a proposal that is his to decide, with the deadline its note proposed. The design document, the mockups and the screenshots they name are kept outside the repositories, in `~/dev/handbook/zemp-lite-margin-editor/`.
+
+### 174. The editor of Zemp Lite: the margin editor
+
+Raised on 17 November 2026 by the owner's plan for a margin editor, and revised in the Zemp Lite session into the design `~/dev/handbook/zemp-lite-margin-editor/zemp_lite_margin_editor_specification.md` (version 0.9, with its mockup and screenshots in the same folder, outside the repositories). Entered here on 20 November 2026 from the notes of that session, which may not edit this register.
+
+The Inline layout of the Zemp Specification, section 5, puts each result under its statement. That shows everything, but the script changes shape at every run, a long script is buried in its output, and the page can move under the reader (two mends in the 0.1 prototype). The owner's plan answered with a column of one-line notes beside the code; its weakness is the reverse, since one line is not a result.
+
+| Option | For | Against |
+| --- | --- | --- |
+| A. **One editor: a note beside every statement, the full result opened under its statement when the reader asks.** The note is narrow and is the engine's own text; opening it shows what the statement prints, as `zeff run` prints it, with its warnings and its figure; several may be open. Running never moves the code; only the reader's opening does. An edit marks what depends on it stale in place, the last value kept. No lens, no shelf, no thread rail, no second layout to keep | The plan's central gain (the code never moves; every `let` has a result; staleness in place) with the Inline layout's (the whole result, in the engine's print, several at once). One mechanism instead of two layouts. Works in a narrow window | An opened result pushes the lines under it down, at the reader's asking. The top bar of section 5 gains the places |
+| B. The plan as written: a margin with a lens, a shelf, a thread rail, spreads and six places, Inline dropped or kept beside it for a release | The fullest form of the idea; the owner's own design | The lens cannot hold the engine's print. Scope several times the plan of section 15 before 1.0. Collides with decisions taken (#146, #124, #141). Keys a browser does not give a page |
+| C. The Inline layout as section 5 has it, with what is planned for it | Built in the 0.1 prototype and tested against the engine's print byte for byte | The script's shape still changes at every run; a `let` shows nothing; long scripts stay long |
+
+*Decided 18 November 2026 (option A, on the recommendation).* The owner, asked whether the margin editor could be built before Zemp release 0.1 closed, was advised not, and was offered instead to adopt it as the editor of the 0.2 alpha; he answered: "Yes, adopt it." The ruling is recorded in the Zemp Lite repository's `docs/decisions.md` (18 November 2026). The margin editor replaces the Inline layout as the editor of Zemp Lite. Running never moves the code; a narrow note beside each statement gives what it made and how large it is (a name, a type and dimensions, a warning's code); the whole output unfolds under its statement at the reader's asking, in the engine's own print; stale results are marked in place and keep their last value; a script the check refuses runs nothing and loses nothing.
+
+*Ruled with it, the same day.* A script opens with every output folded, under three controls, **Notes · Fold all · Unfold all**, where **Notes** shows or hides the notes column, which stays at the right of the code (R3 of the document). No strip of rows is added to an unfolded output: an output holds what the engine said and printed. The places are **Script, Data, Plots and Paper**; a place for models side by side was withdrawn (R5), and its two ideas worth keeping are #188 and #189. **Paper** edits `.zmd` papers by default and also opens and edits `.typ` files, the page always set by Typst; this touches #73, #124 and #141 and changes none of them. The quiet look is adopted for the editor (R11): it keeps everything #146 rules and changes how the window is drawn; the design guide's section 9 is brought into line by the owner's word. A one-line headline for each result and a term to head each fit, asked for in earlier versions, are withdrawn (R6 and R7).
+
+*When.* The margin, the notes of type and dimensions, outputs unfolded at the width of their place, the three controls, a refused script, the run record, the list of what the run said, and Plots with its list are the editor of the Zemp 0.2 alpha, on Zeff 0.8.0; then ⌘↵ and **Run to here**, with the loop inspector of #76. Every later piece comes at the release it rests on. Zemp 0.1 closed as it stood.
+
+*What it amends, when the 0.2 alpha is planned,* each change logged in `docs/spec_changes.md` then: the Zemp Specification's sections 2 (the Lite row of what writes to the script), 5 (Inline replaced by the margin editor; the results bar, the notes, the three controls), 7 (the plot viewer's list at the left), 8 (where reports and papers are written, with #141) and 15 (the 0.2 alpha's row names the margin editor). No normative text is changed by this entry.
+
+*Two earlier proposals it meets.* Copying a result and saving a figure from its place under the statement is the header of an opened result (Copy, Open in Plots, Fold). Going from an object to the line that made it is the Data place, which lists each frame by its statement. Neither needs an entry of its own.
+
+*What it asks of the engine* is #175; what it leaves open is #176.
+
+### 175. What the margin editor asks of the engine: the contract, C1 to C27
+
+Raised on 18 November 2026 with #174; entered on 20 November 2026. The interface is only as exact as what the engine tells it. The editor's design lists what it asks as twenty-seven items (its section 12), each a question the interface asks and the form of the answer, none a rule the interface keeps for itself. They are to be agreed with the Zeff side item by item, each placed at a release, and each tested in the Zeff repository. The section numbers in the third column are the design document's.
+
+| # | The engine says | For | Where it stands |
+| --- | --- | --- | --- |
+| C1 | Where it begins and ends, and where each step of a chain and each block begins and ends | Placing notes and opened results | Statement ranges come with Zeff 0.8.0. Steps and blocks are new |
+| C2 | Its **identity**: the hash its result is kept under | Staleness; "the same as in run *n*"; knowing a result again after a reload | Exists inside the engine (section 8.3, point 4). Handing it out is new |
+| C3 | Whether its result would be **reused** for the script as it stands, and if not, which of the things of section 7.9 changed | Staleness and its reason | New as a question; the rule exists |
+| C4 | What it reads and what it makes | The thread; "where it is used"; running what a statement needs | Asked for already by "Stale output"; the names come with the language server's navigation (1.1) |
+| C5 | Its result's **type and dimensions** | The note | The engine knows both for every result. Handing them out per statement is new, and is far less than the one-line headline of version 0.2 |
+| C6 | Its **print at a width** | The opened result | Exists (`--width`). Asking per statement is new |
+| C7 | Its print's tables **as rows and cells** | A screen reader; copying a cell | New (decision R10) |
+| C8 | What it said | Tags, cards, the list of what the run said | Exists: a diagnostic is one record for every reader (section 8.3, point 1) |
+| C9 | For a fit, **the rows**: read, left out by each step, dropped for NA by variable, singletons, used; the clusters | `report()`'s note of different rows (9.1); the sample flow | In part: the engine prints the rows dropped and the singletons. By variable and by step is new |
+| C10 | For a step of a chain, the rows in and out | Step notes | Planned as an inlay hint at 1.1 (Engine Specification, section 12) |
+| C11 | For a fit, what it is | `report()`'s note and the plot of several fits (9.1, 9.2), inside the engine | In the result already; as fields, new |
+| C12 | The run record, and for a partial run which statements it ran | The run record; section 7.8, rule 6 | Run records exist; partial runs are new |
+| C13 | The difference of two runs | Comparing with an earlier run | `zeff runs diff` exists |
+| C14 | Results kept between two runs in a browser | Running less than the script; comparison | The cache; at 0.7.0 nothing is kept in a browser |
+| C15 | For rows in view, the rows a step left out and the condition that failed | Data, 8.1 | New |
+| C16 | A plot as a scene | Redrawing without a run; reading a mark's row | Known since the 0.1 prototype, where a redraw is a run of the script |
+| C17 | A paper's parts, with their lines: the settings, each chunk with its options, each inline value, citation, cross-reference and heading | The outline; the checks; finding the source | New, with the Markdown reader of #141 |
+| C18 | For each place on the page, the line of the source it came from, and back | Clicking the page; lighting the cursor's place | Typst keeps the source of what it sets; carrying it through from the Markdown is new |
+| C19 | Each inline value, table and figure with the identity (C2) of the result it shows | Stale values; Mark sources | New |
+| C20 | The paper's checks, with code, sentence and line, as diagnostics (C8), the typed-number check among them | Checks | New |
+| C21 | The page set again as the source is typed, fast enough to follow typing, with the values of the last run | The live page | Typst sets again only what changed; whether it is fast enough in a browser is part of the measurement of Zeff 0.8.0, step 21b |
+| C22 | For an error raised inside a function, each link of the chain from the script's line to the line that raised it, with what each call was given; where a link is a pass, its number and the loop variable's value | The trail (7.16.1) | The chain and the arguments are in the engine's message from 0.7.0 (`= in: …, called at …`). As fields, and the pass, new |
+| C23 | For a block, each pass: the loop variable, the rows after each step of its body, the result's type and dimensions, what it said and its time; for `iterate`, each state, each field's change from the pass before, and what `done` returned | The passes, *Find* (7.16.2) | Decided in #76: the run record keeps the pass. The fields, new |
+| C24 | The replay of one call or one pass, keeping its bindings, each with its type and dimensions (C5) and its print at a width (C6) | Opening a pass or a call (7.16.3) | New. The values must be the run's, to the last bit |
+| C25 | A statement evaluated in the names of a replayed pass or call | The console line inside it (7.16.4) | The console's evaluation exists; in a scope, new |
+| C26 | Each statement's time, and each binding's memory | Where the time went (7.16.5) | Exists: the worker's step messages carry the time, which the 0.1 prototype shows, and `zeff run -v` writes the memory |
+| C27 | A field of `iterate`'s states drawn against the pass, at the size of its place | Drawing a field (7.16.2) | The engine draws `line` from 0.7.0; from the run record's states, new |
+
+Three things are worth weighing before any is built. Staleness is defined as the engine's own answer (C3): a result is stale exactly when the engine would not reuse it (Engine Specification, section 8.3, point 4), so a statement that draws random numbers, added or removed, makes every later drawing statement stale. The opened result is what `zeff run --width n` prints (C6), the interface choosing *n* and changing no character. And the check that a number typed by hand in a paper matches a result of the run (C20) is a candidate warning code for the document reader of #141.
+
+| Option | For | Against |
+| --- | --- | --- |
+| A. Each item is placed at an engine release when the checklist of that release is written, as a step with its tests: for the Zemp 0.2 alpha C1 (built at 0.8.0, step 8b), C5, C6, C8 (built) and C12 (built); the items for finding a fault (C22 to C27) with #183 to #187; the items of a paper (C17 to C21) with the documents of #141; the plot as a scene (C16) with #197 | The interface never keeps a rule of its own; each item has a test in the engine's repository | Engine steps that no row of section 14 names, at several releases |
+| B. The interface works each out from the engine's print and its own reading of the script | No engine work | Two implementations of the engine's rules, which drift; against the editor's own principle |
+
+*Recommendation.* A. Whether the public crates of Zeff 0.8.0 already let the Zemp worker read C5 and C6 for each statement is to be found when the 0.2 alpha is planned; if not, a note falls back to the first line the engine printed for the statement, so that every character stays the engine's, and C5 and C6 are put to the checklist of Zeff 0.9.0. Deadline: the opening of Zeff 0.9.0 for C5, C6 and the items of #183 to #187; each other item at the release it rests on.
+
+### 176. Six questions the margin editor leaves open
+
+Raised on 18 November 2026 with #174; entered on 20 November 2026. Each is the owner's to decide; the letters are those of the design document's section 20.2. (R4, the comment that begins a section, is with #178; R14 to R19 are #183 to #187, with a line under #76.)
+
+| Document | Question | Recommendation | Deadline |
+| --- | --- | --- | --- |
+| R2 | The Panes layout beside the margin editor, or dropped from Lite | Kept for one release, then reviewed | Zemp 0.2 alpha |
+| R8 | The keys of the document's section 15. A browser keeps ⌘1 to ⌘6, ⌘T, ⌘R, ⌘L and ⌘P for itself | As written there, with its four rules: ⌘↵ for the statement, ⌘⇧↵ for the script and ⌘K; places and the rest through ⌘K | Zemp 0.2 alpha |
+| R9 | What ⌘↵ runs: the statement with every stale statement it reads, or the one statement alone in the live session | The first; the Engine Specification's paragraph on running code interactively (section 12) is then amended to match, since under the second the session can be out of sync | Zemp 0.2 alpha |
+| R10 | The print's tables handed over as rows and cells, for a screen reader (C7 of #175) | Yes, when the engine can hand over the cells | A Zeff release to be named when C7 is placed |
+| R12 | What Paper shows for a `.zmd` paper before the PDF of #141 is built, since #141 builds HTML first | The HTML article in the page's place until the PDF comes | The release after 1.0 that builds the documents of #141 |
+| R13 | Where a paper's chunks run: in the paper's own session, or reading the results of the project's scripts | In the paper's own session, as #141 and Quarto have it, the cache making a repeated chunk cost nothing | The same |
+
+### 177. Zemp Lite is not a notebook: the statement is the cell
+
+Raised on 16 November 2026 from the owner's review of notebook features. A notebook keeps code in cells inside a file of its own format, runs them in any order against a state that changes, and numbers each run so that the reader can reconstruct the order. The Inline layout already gives a notebook's main convenience, the result under the code that made it.
+
+| Option | For | Against |
+| --- | --- | --- |
+| A. No cells. The script stays one plain text file that `zeff run` executes from top to bottom; the statement is the unit that is run, shown, folded and marked stale. Not adopted, with the reason: cells as a file format (hard to compare in Git; not runnable by `zeff run`), Markdown cells inside a script (prose belongs to the report document), a changeable shared state (a Zeff binding never changes, Language Reference, section 3.1), execution counters (they exist to diagnose out-of-order runs, which stale marks handle), and a semicolon to hide output (Zeff has no semicolons; `let` is already quiet) | One file, the same result from the interface and the command line; nothing a reader must reconstruct | A user arriving from a notebook has to learn that structure comes from sections (#178) and prose from the report |
+| B. A cell mode beside Inline, saved in a notebook file | Familiar to notebook users | A second project format, against "Same projects" (Zemp Specification, section 2); results that depend on the order of running |
+
+*Recommendation.* A. Deadline: the Zemp 0.2 alpha, since the public preview will be asked the question. The margin editor adopted on 18 November 2026 (#174) is built on this principle; the owner has not yet ruled on it in these words.
+
+### 178. Sections in a script
+
+Raised on 16 November 2026. A long script has no visible structure: nothing to outline, fold or run as a part. Notebooks get this from Markdown cells; R from `# Title ----`.
+
+| Option | For | Against |
+| --- | --- | --- |
+| A. A comment written as a heading starts a section: `// # Data`, `// ## Cleaning` for a level below. The language server reports sections as the document's outline and folding ranges; Zemp shows the outline in the left panel, folds a section, and offers **Run section**. The engine ignores it, as any comment | No change to the language; the heading reads as the Markdown heading users know; the script stays plain text | A convention the formatter and the language server must both keep |
+| B. A marker line in R's manner, `// Data ----` | Familiar to R users | No levels; easy to write by accident in a comment that ends with dashes |
+| C. No sections; a long analysis is split into several scripts | Nothing to build | No outline or folding within a script, and no **Run section** |
+
+*Recommendation.* A, built before Zemp Lite 1.0. Deadline: Zeff 0.9.0.
+
+*The form of the comment (R4 of the margin editor's document).* The editor's design asks for one canonical comment that begins a section: `// ── Title ──`, `// # Title`, or none. It is the owner's choice, and the rules of the document's section 7.6 hold for either; it is due at the Zemp 0.2 alpha, where the outline of a script is first shown.
+
+### 179. The last run's output shown when a project is opened
+
+Raised on 16 November 2026. In the 0.1 prototype a reloaded project shows the script with no output until Run is pressed; a notebook keeps its outputs in the file.
+
+| Option | For | Against |
+| --- | --- | --- |
+| A. On opening, show the last run's output from the run record and the engine's cache, each block labelled with when it ran, the stale rules of section 5 applying at once | The reader sees results immediately; nothing stored in the script; a stale result is still marked | Needs the run record and the cache kept in the browser's storage and on the desktop alike |
+| B. Run the script automatically on opening | Always current | A long script runs unasked |
+| C. As now: nothing until Run | Nothing to build | A project looks empty each time it is opened |
+
+*Recommendation.* A, before Zemp Lite 1.0. Deadline: Zeff 0.11.0 (the desktop beta).
+
+### 180. Run from a fresh session
+
+Raised on 16 November 2026, from a notebook's "restart and run all". After console statements, a user wants proof that the script alone produces its results.
+
+| Option | For | Against |
+| --- | --- | --- |
+| A. A ⌘K command **Run from a fresh session**: the console's statements are dropped, the "out of sync" flag is cleared, and the script runs from its first line; the cache may serve unchanged statements, since results are identical by the determinism contract | One clear action; fast | A user may expect every statement to be computed again |
+| B. As A, with every statement computed again and the cache not read | The strongest proof | Slow on a long script, for a result the contract already guarantees |
+| C. No command; Run already runs the whole script | Nothing to build | The state of the console after it is not obvious |
+
+*Recommendation.* A, with B as a second command only if users ask. Deadline: Zeff 0.9.0.
+
+### 181. Run from here to the end
+
+Raised on 16 November 2026, as the partner of **Run to here** (#76). After editing a statement in the middle of a script, the user wants it and everything below it run, without the lines above.
+
+| Option | For | Against |
+| --- | --- | --- |
+| A. **Run from here** as a command and a gutter action beside **Run to here**: the statements from the cursor to the end, those above served from the session or the cache | Completes #76; the stale label already names these lines ("⌘↵ to re-run lines 5–6") | One more gutter action |
+| B. Nothing; re-running the stale lines covers the common case | Nothing to build | Lines below that are not stale cannot be run again in one action |
+
+*Recommendation.* A, as an amendment of #76, with **Run to here**. Deadline: the planning of the Zemp 0.2 alpha if it is to come with it, otherwise Zeff 0.9.0.
+
+### 182. Small conveniences, none before 1.0
+
+Raised on 16 November 2026, the "may" group of the same review; recorded so that they are not lost.
+
+1. Move the statement at the cursor up or down with the keyboard, as a whole statement.
+2. Hide the output of one statement, kept as view state in `.zemp/views.json`, beside the **Outputs** switch.
+3. A section heading (#178) shown as formatted text, with equations, in the Inline layout.
+4. Reading a point's values by hovering over it in the plot viewer (to be checked against section 7 first).
+5. The time a statement last ran, shown on hovering over its timing in the margin.
+
+*Recommendation.* Keep as roadmap, each to be weighed after Zemp Lite 1.0. Deadline: 1.1.
+
+### 183. The error's trail in the margin
+
+Raised on 18 November 2026. Since Zeff 0.7.0 an error raised inside a function names its chain: ``= in: `returns(data: a frame of 0 rows × 13 variables)`, called at scripts/by_year.zeff:8:28``. In Zemp it is text under the failing line. A failure three calls deep is then followed by hand, file by file.
+
+| Option | For | Against |
+| --- | --- | --- |
+| A. **The trail.** The failing statement's output lists each link of the chain from the script's line to the line that raised the error, each a link. Each file of the chain opens with a note on the lines the chain names and on no other: what the call was given, in the engine's words; and the error, unfolded. Nothing is run again. Where a link is a pass of a loop, the trail names the pass and the loop variable's value | Shows what the engine already prints; costs no run; the reader lands on the line that failed with what it was given | The pass is not in the engine's message at 0.7.0; it needs the engine to hand the chain over as fields with the pass (C22) |
+| B. The engine's message under the failing line, as 0.1 shows it | Nothing to build | A chain through several files is followed by hand |
+
+*Recommendation.* A, at Zemp's 0.2 alpha, beside the list of what the run said. Until the engine gives the pass, the trail shows the chain without it. Deadline: Zemp 0.2 alpha. (R14 of the margin editor's document.)
+
+### 184. Searching the passes of a block, and drawing a field across them
+
+Raised on 18 November 2026. #76's inspector gives one row per pass: for `for`, the loop variable, the rows after a `where`, the result and the time; for `iterate`, the state and what `done` compared. A debugger's conditional breakpoint answers "which pass went wrong?" without reading every row. A sampler's trace plot answers "is it still moving?" for `iterate`.
+
+| Option | For | Against |
+| --- | --- | --- |
+| A. **Find the first pass that** failed · warned · kept no rows (view state; the pass found is the lowest-numbered, as the engine reports a failing loop). For a long block, the first three passes, the last three and any found, with *Show all n*. For `iterate`, each field's change from the pass before; one field of the state drawn by the engine against the pass, as view state, in no export | Replaces conditional breakpoints with facts the run record already holds; the drawing shows a run that crawls. The mockup's EM moves its log-likelihood by 4.1e-05 a pass at pass 500, while the share of the first component keeps rising | Each field's change, and the drawing from the run record's states, are new in the engine (C23, C27) |
+| B. The inspector as #76 has it | Nothing more | A loop of 10,000 passes is read row by row |
+
+*Recommendation.* A, before Zemp 1.0. The inspector itself stays at the 0.2 alpha, as #76 decided. Deadline: Zeff 0.9.0, so that C23 and C27 can be placed in an engine release before 1.0.0. (R16 of the margin editor's document.)
+
+### 185. Opening a pass or a call, by replay
+
+Raised on 18 November 2026. #76 rejects a breakpoint-and-step debugger. What is still missing is the inside of one call of a project function: each `let` of its body, for that call. A Zeff function cannot change anything outside itself (Language Reference, section 5.3), cannot call itself, and draws random numbers by its place and pass (Engine and Project Specification, section 8.3, point 3). So the engine can run one call, or one pass of a block, again from the arguments the run gave it, and get the same values to the last bit.
+
+| Option | For | Against |
+| --- | --- | --- |
+| A. **Replay.** Opening a call shows the function's file with a note on every line for that call (each parameter, each `let` with its type and dimensions, the result), each unfolding to the engine's print. Opening a pass shows the block's body with its notes for that pass. A band names the call or pass. A replay changes no result, staleness, run number or export, and its values are those of the run. Where the arguments are no longer kept, the engine rebuilds them first and says so; a long replay shows progress and can be stopped | Everything step into shows, all at once and without stepping; no second way of running the interpreter, since the body runs as it ran with its bindings kept; testable bit for bit against the run | New engine work (C24); a replay costs what the call cost in the run |
+| B. Breakpoints and stepping | What programmers expect | Rejected in #76, for the reasons there |
+| C. Neither: the trail and the passes only | Nothing to build | The inside of a call stays unseen |
+
+*Recommendation.* A, before Zemp 1.0, at the Zeff release that gives C24. Deadline: Zeff 0.9.0, for placing C24. (R17 of the margin editor's document.)
+
+### 186. The console line inside a pass or a call
+
+Raised on 18 November 2026. R's `recover()` and `browser()`, Jupyter's `%debug` and VS Code's debug console let an expression be typed where a failure happened. In a Zeff project the console line runs after the script only.
+
+| Option | For | Against |
+| --- | --- | --- |
+| A. **While a pass or a call is open, the console line runs in its names.** For a pass: those of the script before the block, and the loop variable. For a call: the function's parameters and the bindings of its body, and nothing else, by the scope rule of section 5.3. A label says where (`in pass 13 · y = 2022`) | What `recover()` gives, without its danger: no binding can be changed, so the session cannot drift from its script. In the mockup, `waged.max(year)` typed in pass 13 answers 2021 | Evaluation in a replayed scope is new (C25) |
+| B. The console at the top level only | Nothing to build | An expression at the point of failure needs a scratch script |
+
+*Recommendation.* A, with #185. Deadline: as #185. (R18 of the margin editor's document.)
+
+### 187. Where the time and memory of a run went
+
+Raised on 18 November 2026. The run record shows the time of the whole run and the memory `zeff run -v` writes. RStudio has profvis, and Jupyter and VS Code have profilers.
+
+| Option | For | Against |
+| --- | --- | --- |
+| A. **Two lists in the run record:** the statements by the time they took, each a link to its lines, with its share of the run; and the bindings by the memory they hold. The interface computes no time: it reads the engine's | Rests on what exists. The worker's step messages carry each statement's time, which the 0.1 prototype shows; `zeff run -v` writes the memory (C26). In the mockup, the EM takes 272 ms of a 289 ms run | Small; adds to the run record's screen |
+| B. The time of the whole run, as now | Nothing to build | The slow statement is found by hand |
+
+*Recommendation.* A. Whether it comes with the run record at the 0.2 alpha or at 1.0 is the owner's choice. Deadline: Zemp 0.2 alpha. (R19 of the margin editor's document.)
+
+### 188. `report()` says when its columns cannot be compared
+
+Raised on 18 November 2026. A table of several fits invites the reader to read a coefficient across its columns. That reading is sound only when the columns explain the same outcome, with the same estimator, on the same rows. Today `report()` prints an N row, which shows a different count but not different rows of the same count, and says nothing when the outcome or the estimator differs.
+
+| Option | For | Against |
+| --- | --- | --- |
+| A. **A note in the table's footer**, for each column that differs from the column before it: `(4) note: not directly comparable with (3): (3) explains log(wage), (4) explains wage`; `(5) note: not directly comparable with (4): (4) is least squares, (5) is logistic, so their coefficients are on different scales`; `(2) note: 14,902 rows, against 15,366 in (1): 464 rows have NA in tenure, which only (2) holds`. Nothing is added when the columns agree. Fits on different frames are said to be so, by count | It reaches every export of the table (text, LaTeX, Word, a paper), as every note does; it states facts of the calls and never a cause; a table of agreeing columns is unchanged | The rows check needs each fit to keep which rows it used (a bitmap over its frame, or a hash), and the NA reason needs the variables that dropped them; each estimator family words its own outcome |
+| B. A warning at run time instead (a W code) | Seen while working | A column on other rows is often on purpose (a robustness check); a warning would nag, and a warning does not reach the table |
+| C. Nothing: the N row is enough | No work | Equal counts are not the same rows; a different outcome or estimator goes unsaid |
+
+*Recommendation.* A, each column against the one before it, since a table is read left to right as a run of specifications. Deadline: 0.10.0, when #141 moves `report()` into `publish` and its print is touched anyway.
+
+### 189. A coefficient plot of several fits
+
+Raised on 18 November 2026. `fit.coef_plot()` draws one fit. Showing a coefficient moving across specifications needs the fits on one axis, which separate plots cannot give. It is among the commonest figures of applied papers (Stata's user-written `coefplot`; R's `modelsummary::modelplot`).
+
+| Option | For | Against |
+| --- | --- | --- |
+| A. **`coef_plot([fits])`, a function in `plot`**, beside the method: one row per term, each fit's estimate and interval side by side within the row with a shape for each fit, nought dashed; the intervals are each fit's own, the layer recording their level as #118 (F11) does for one fit; `terms:` to choose and order the terms, `labels:` as in `report`; a term a fit does not hold left out of its row. Fits with different outcomes or estimators are refused with an error naming the difference, since one axis would itself compare them; fits on different rows are drawn, with the note of #188 in the caption | The comparison of fits as a figure, written in the script, exported and set in a paper; the same rules as #188, so the table and the figure never disagree | A new name, which must come before the names freeze at 1.0 |
+| B. A method on the table, `report([...]).plot()` | The figure tied to its table | A table is an odd owner for a figure; harder to find; refusing columns that cannot share an axis is less natural there |
+| C. Nothing: one `coef_plot()` per fit, side by side | No work | Separate axes cannot show a coefficient move |
+
+*Recommendation.* A. Deadline: 0.10.0 with #188, or the first release before 1.0 with room, the owner's choice; the name before 1.0 in any case. A mockup of it, drawn in the engine's style from the released engine's estimates and intervals for three fits on the shipped `wages` data, is screen 17 of `~/dev/handbook/zemp-lite-margin-editor/screenshots/`.
+
+### 190. Building the layout engine in stages
+
+Raised on 18 November 2026. #121 (D4) places Zeff's own layered layout engine at 0.10.0, for `g.plot()`, and describes it whole: network-simplex layers, median crossing reduction, Brandes–Köpf coordinates, spline or orthogonal routing, grid placement for templates. It is the largest piece of engine work in the diagram plan, and only part of it is needed at 0.10.0: causal graphs are small (rarely over 30 nodes), have no groups, and are drawn with straight or curved edges.
+
+| Option | For | Against |
+| --- | --- | --- |
+| A. **In three stages, each with the release that first needs it.** At 0.10.0, for `g.plot()`: cycle-free layered layout (network simplex, median crossing reduction with fixed sweeps, Brandes–Köpf), straight and spline edges, `layout:`, `at:`, `direction:`, `same_rank:`, `spacing:`, label boxes. At 1.2, for `diagram { }` and `sample_flow`: cycles (flowcharts loop), orthogonal routing, groups (clusters), ports on box sides, side boxes for exclusions. At 1.12, for SEM: the grid templates of the proposal's section 6.4, indicator fans, covariance arcs outside the structural paths, label placement on crowded arrows | Each stage ships with a user of it and is tested on real figures; 0.10.0 carries the least risk; nothing is pulled forward | The whole engine is not proven until 1.12; a choice made at 0.10.0 (the graph form, #191) must allow the later stages |
+| B. The whole engine at 0.10.0, as #121 reads | Built once | The largest risk on the release that also brings the causal-graph functions; orthogonal routing and templates built with no user to test them |
+
+*Recommendation.* A. Nothing in #121's releases moves; the stages are its D4 spread over the releases its other rows already name. Deadline: 0.10.0.
+
+### 191. One graph form under every diagram
+
+Raised on 18 November 2026. #121 has one layout engine, but four values reach it: a `Dag`, a `Diagram`, a `Model` or fitted `SemFit`, and a sample flow. If each is laid out from its own structure, the viewer's interactions (hover, trace a path, the table view for screen readers), the text forms and the Mermaid and DOT exports are written four times.
+
+| Option | For | Against |
+| --- | --- | --- |
+| A. **Every diagram is first lowered to one graph form**: nodes (name, shape, label lines, kind: observed, latent, constant, error, process, decision …), edges (from, to, heads, kind: path, loading, covariance, moderation onto an edge), groups, and ports; each node and edge carrying the stable element name the primitives already allow (`node:engage`, `edge:engage->perform`). Layout reads only this form; the scene of the plot keeps it beside the laid-out primitives (a section of the scene format, versioned with it), so the viewer finds what was pointed at, the table view lists it, and Mermaid and DOT are written from it | One mechanism for four kinds of figure; the viewer and the exports are written once; the margin editor's note of a diagram (`Dag · 6 nodes, 7 edges`) and the Plots list read it; a screen reader gets the same structure a sighted reader sees | A section added to the scene format, which is versioned (Language Reference, section 7.6), so it should be fixed at 0.10.0 with the first diagram |
+| B. Each value laid out from its own structure | No new form | Four of everything; exports and the table view drift apart |
+
+*Recommendation.* A, fixed at 0.10.0 with `g.plot()`, so that the later kinds add node and edge kinds and nothing else. Deadline: 0.10.0.
+
+### 192. Testing layouts against known figures
+
+Raised on 18 November 2026. The testing handbook's snapshot tests hold a diagram's bytes still, but a snapshot cannot say whether a layout is good, only that it has not changed. A layout engine written from papers needs a measure of quality from its first release.
+
+| Option | For | Against |
+| --- | --- | --- |
+| A. **A suite of reference figures, measured.** Causal graphs: dagitty's example graphs. SEM: the Holzinger–Swineford CFA and Bollen's Political Democracy model (the two that lavaan and semPlot document). Flowcharts: a CONSORT trial and a sample flow of the shipped `wages` data. Each is measured on every change: edge crossings, overlapping nodes or labels (none allowed), the smallest text at the export size (8 pt or more, as the plot rules set), and the figure's size. Graphviz's `dot` is run in the tests alone as a yardstick for crossings: the layout must cross no more often than `dot` on the same graph, or the case says why. Graphviz is an external program in the test job, never linked or shipped | A failure says what got worse; the yardstick is the tool users know; the licence rule, which concerns what is linked into the engine or the apps, is kept | A program in the test job that is not under a permissive licence (Graphviz is EPL-1.0), which the owner may prefer to keep out of the repository's tooling too |
+| B. The same suite and measures, with fixed targets written down once (the crossings `dot` gives today, recorded as numbers) and no Graphviz in the tests | Nothing EPL anywhere | Targets that do not move when a case is added or changed; recomputed by hand |
+| C. Snapshots only | Nothing to build | A worse layout passes |
+
+*Recommendation.* A, or B if the owner wants nothing EPL even in tooling; the licence question is his. Deadline: 0.10.0.
+
+### 193. Dragged positions in Zemp Lite: Copy as Zeff
+
+Raised on 18 November 2026. #121 (D2) makes dragged positions view state and lets **Add to script** write them as `layout:` or `at:`, an export using only positions the script holds. Zemp Lite has no **Add to script** (Zemp Specification, section 2). So in Lite a layout arranged by dragging can never reach an export unless the user types the grid by hand. #114 already gives Lite **Copy as Zeff** in the data, plot and variable viewers: the equivalent statement goes to the clipboard, and the script changes only when the user pastes it.
+
+| Option | For | Against |
+| --- | --- | --- |
+| A. **Copy as Zeff extends to dragged positions** in every diagram viewer (`g.plot()`, `d.plot()`, `path_plot`): the `layout:` grid of the positions shown, as text, on the clipboard; `at:` when the positions do not fall on a grid | The rule of #114 unchanged: nothing written into the script; the user pastes; a Lite user can publish a diagram laid out by hand | One more kind of statement Copy as Zeff produces |
+| B. Nothing: a Lite user types `layout:` by hand, reading the positions from the viewer | No change | Dragging in Lite is play; the figure exported is always the automatic one |
+
+*Recommendation.* A. On adoption, the Copy as Zeff row of the Zemp Specification's section 2 and the text of #121's D2 name it. Deadline: Zemp 0.4, with Zeff 0.10.0, when the shared canvas (D10) is built.
+
+### 194. Statistical guard rails, written into the diagram rules
+
+Raised on 18 November 2026. Several are already decided in one place or another; one is new. Collecting them where the diagrams are specified keeps the viewer from drifting.
+
+| Rule | Where it stands | Proposed |
+| --- | --- | --- |
+| 1. **No edge suggested by the data.** No viewer, option or function draws an arrow a test points to, on a causal graph or an SEM diagram. A graph states assumptions; drawing the arrows a test suggests is choosing the graph from the data | New. The owner's Margin plan of 17 November proposed "Show what the data suggest" on a causal graph | Adopt, as a rule of section 7.3 of the Language Reference and of the viewer |
+| 2. Implied independencies tested with their estimate and interval, not a p value alone | #158 recommends the estimate, interval and p, with `p_adjust` | Keep with #158 |
+| 3. The modification-index overlay (`mi:`) never on by default, and labelled as a diagnosis | #121, D6 (the proposal's section 6.3) | Keep |
+| 4. Non-significant paths shown by default (`nonsignificant: show`) | #121, D6 | Keep |
+| 5. Stars only beside an estimate: `show:` in `path_plot` refuses `stars` without `estimate` | #122 leaves out "stars without effect sizes" for plots; `path_plot` does not yet say so | Adopt for `path_plot` at 1.12 |
+
+*Recommendation.* Adopt rules 1 and 5; keep 2 to 4 where they are. Deadline: 0.10.0 for rule 1, 1.12 for rule 5.
+
+### 195. Slopes and turning points: `margins` through a transformed term
+
+Raised on 20 November 2026 from the owner's questions on polynomial regression, with the addendum to #164. `margins` arrives at 0.9.0 (#88), before `poly` at 1.2, and its questions left for that release (the effect of a 0/1 regressor, regressors fixed or sampled, what `at:` holds the others at) do not yet include this one.
+
+Under the orthogonal form the coefficients are not the polynomial's coefficients on `x`. So the turning point cannot be had from `derive` as it can today for the raw powers (`` m.derive(peak = -exper / (2 * `exper^2`)) ``): the basis constants live with the fit, not among its terms. With orthogonal terms, the slope at a value and the turning point must come from somewhere else. The natural place is `margins`, which arrives at 0.9.0, before `poly` at 1.2. Its questions left for that release (the effect of a 0/1 regressor, regressors fixed or sampled, what `at:` holds the others at) do not yet include this one.
+
+| Option | For | Against |
+| --- | --- | --- |
+| A. **`margins` differentiates through every term that is a function of the variable asked for**: `exper` and `exper^2` today, giving the slope β₁ + 2β₂·exper at the values of `at:`; the interactions it enters; `poly(exper, k)` and `spline(exper, df:)` when they arrive | The slope of a curve, which is what an applied reader wants from a polynomial; the same as Stata's `margins` after `c.exper##c.exper` and R's `marginaleffects` after `I(exper^2)` or `poly()`; possible because Zeff's formula keeps `exper^2` as a function of `exper` | The derivative is taken through the formula's terms, which the model matrix must record for each column; a power computed beforehand into its own column (`exper2`) stays a separate regressor, as in Stata, and the page must say so |
+| B. `margins` treats each column of the model matrix as a separate regressor | Simpler | A wrong slope for a quadratic, silently; this is the trap of a generated `exper2` in Stata |
+| C. `margins` refuses a variable that appears inside a transformed term | Never wrong | Refuses the commonest use of marginal effects after a linear model |
+
+*Recommendation.* A, settled when 0.9.0 opens with the other questions on `margins`. Deadline: 0.9.0. When #164 is built, `poly`'s page gives the slope at a value from `margins`. It gives the turning point from the raw form (`raw: true`, the same fit) through `derive`, or from `margins` by the value where the slope is nought.
+
+### 196. Two messages R users meet: `I()` and `poly` in a formula, and a function of a later release
+
+Raised on 20 November 2026 from the owner's questions on polynomial regression. No new function is proposed.
+
+Seen with the engine as built on the morning of 20 November 2026, and the same on the release of 0.8.0, inside a project, on `dataset(wages).where(year == 2019)`:
+
+```
+w.reg(log(wage) ~ educ + exper + I(exper^2))
+error[Z0103]: no function is called `I`
+  = help: did you mean `PI`?
+
+w.reg(log(wage) ~ educ + poly(exper, 2))
+error[Z0103]: no function is called `poly`
+  = help: `zeff help` lists the functions of this release
+```
+
+The first is the commonest line an R user types for a quadratic, and the suggestion misleads. The second gives no route to what Zeff offers.
+
+| Option | For | Against |
+| --- | --- | --- |
+| A. **Inside a formula, Z0103's help for `I(...)` says that Zeff works out arithmetic in a formula, so no `I()` is needed, and shows the term without it (`exper^2`). For `poly(x, k)` it writes the powers out (`exper + exper^2`), names `category(x, contrast: poly)` for an ordered category, and names `poly`'s release once #164 is decided** | An R user is shown the Zeff form at once; two help texts with their snapshots and explained pages; no name added, so within the owner's instruction of 11 November 2026 that nothing is added before 1.0 unless it is necessary | Two special cases in the message of Z0103 |
+| B. Only the "did you mean" corrected (no suggestion for a one-letter name) | Smaller | The R user still learns nothing about `I()` or `poly` |
+| C. As now | No work | The first message an R user meets misleads |
+
+*Recommendation.* A, at 0.9.0. Deadline: 0.9.0. The suggestion of `PI` for `I` also suggests that "did you mean" should not offer a name for a single letter; that is for the Zeff session to judge.
+
+*Seen on the way.* `w.logistic(union ~ educ)` gives the same generic help ("`zeff help` lists the functions of this release"). Yet `zeff help logistic` already answers "`logistic` arrives with release 0.9.0, in the `glm` package". Z0103 inside a script could give the same answer for any catalogued name of a later release. It is listed here because the alpha's users, who come from R and Stata, will meet it first.
+
+### 197. The plots of a run handed to an interface
+
+Raised on 15 November 2026 by the Zemp Lite session at the start of its release 0.1, and entered on 20 November 2026. The browser build of the engine (`zeff-web`) returns what a run printed and said and the frames it kept; it keeps no plot, and nothing draws one at a size. This was so at 0.7.0 and is still so at 0.8.0. Zemp 0.1 works round it: it adds an `export` of each plot to the text it sends and reads the file back from its own file system, so that a redraw at another size is a new run of the script. No step of the checklist of 0.8.0 named the proper hand-over, and no row of section 14 names it.
+
+What an interface needs: the browser build keeping the plots of a run as it keeps frames; a call that lays one out at a size (in points) and a theme and returns SVG, without a new run; the scene as data, for inspecting a mark, focusing and comparing on shared axes (Zemp Specification, section 7, with its target of 16 ms in section 14). This is item C16 of #175. Also useful to an interface and absent: the language services through `zeff-web`, a file of the project read back, and which bindings hold a plot.
+
+| Option | For | Against |
+| --- | --- | --- |
+| A. An engine step at 0.9.0, beside the launcher: the plots of a run kept, a plot laid out at a size and theme without a run, the scene handed over; the smaller items with it where they are small | The plot viewer of the Zemp alpha rests on it; the pieces (the layout and the SVG writer) exist since 0.7.0 and need only a door | A step that the row of 0.9.0 does not name, in a release that already holds the launcher |
+| B. With the release of Zeff that Zemp's plot viewer is planned on, named when the Zemp 0.2 alpha is planned | Placed by the release that uses it | The alpha's Plots place redraws by running the script again until then |
+| C. The work-round stays | No engine work | Every redraw and every resize is a run; no inspecting of a mark |
+
+*Recommendation.* A, since the alpha is the first thing outside readers see and its Plots place is part of the adopted editor (#174). The placing is a priority and the owner's. Deadline: the opening of Zeff 0.9.0.
