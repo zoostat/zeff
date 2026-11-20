@@ -2943,7 +2943,7 @@ dependencies = [
 
 [[package]]
 name = "zeff-hash"
-version = "0.8.0-dev"
+version = "0.8.0"
 dependencies = [
  "blake3",
 ]

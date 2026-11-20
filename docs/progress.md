@@ -163,3 +163,15 @@ Step 24a split in two, and 24a2 in four. 24a1: the weekly run of 16 November sho
 **Next.** The checklist of 0.8.0 is complete but for 23a and 23b, which the owner's answer to question 7 puts after 1.0. The release waits for the owner's "Release 0.8.0": on 20 November, after this step, he chose to skip the reader test at this release (`docs/decisions.md`, that date); the notes are to say that it was not run, and it is owed again at 0.9.0.
 
 **For the owner to decide or do.** "Release 0.8.0", when he is ready. The Stata run, if a colleague has Stata. The copy of the Zemp Specification in the Zemp Lite repository still has the older counts, and the Zemp Lite notes of the shared folder are to be entered in the register before "Start release 0.2".
+
+## 20 November 2026, release 0.8.0 closed
+
+**Done.** At the owner's "Release 0.8.0": the pre-release routine reported item by item (`docs/decisions.md`, this date); the notes written (`docs/releases/0.8.0-notes.md`); the known-issues list given its tenth entry of 0.8.0 (no reader outside the project has read the scripts) and the weekly job's entry brought up to date; the risk register reviewed (no rating changed; R10 still untested) and the open-decisions register given its status of the close; the version set to 0.8.0 in the workspace, the lock files, the nine sample pins, fourteen stored outputs and three conformance digests that depend on it. The catalogue's status column needed no change: 259 of the 278 functions of 1.0 are implemented.
+
+**Green.** Format, clippy with warnings denied, the tier, message and grammar checks and every test of the workspace on the release version; `zeff selftest` 551 of 551 on the release build; CI on the four targets read on the release commit before the tag.
+
+**Figures.** 2,470 tests in 314 programs on a push; 551 conformance cases; a clean release build in 105 s for a 17.6 MB binary; the bundle 2,782 kB with a cold start of 143 ms.
+
+**Next.** "Start release 0.9.0" is the owner's word. At its opening: the conformance cases of `tools/report_bug` are to mask the engine's version, so that no digest changes with the version alone; the decisions due at 0.9.0 are put to him; the reader test is owed.
+
+**For the owner to decide or do.** The reader test, owed at 0.9.0. The Stata run, if a colleague has Stata. `ivmodel` and `ivDiag` for the reference library. #18, due and unsettled (difference-in-differences stays first unless he says otherwise). The notes of the scheduled weekly run of Monday 23 November, the first to read the corrections of step 24a2d together. The copy of the Zemp Specification in the Zemp Lite repository, and the Zemp Lite notes for the register before "Start release 0.2".

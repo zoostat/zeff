@@ -266,9 +266,9 @@ functions/builtin_fixture/stderr cbf29ce484222325
 export/sample.docx c1fd0481a8a88c3f
 export/sample.tex 79622a8e73235482
 export/sample.typ 8da25a9a58b3ffc1
-tools/report_bug/name 7894280efc8aa841
-tools/report_bug/report bf543d9ed157ffcb
-tools/report_bug/shrunk/report 06f1e0d790953271
+tools/report_bug/name f5827080366e8632
+tools/report_bug/report bcf7f96cadad0121
+tools/report_bug/shrunk/report 40fa7ec164afc647
 tools/report_bug/shrunk/data/cases.csv b6bd3f928a180133
 tools/report_bug/shrunk/trials 5bb26eaa977ae0a8
 regressions/values_above_1e150/stdout a8c54f9fe814bbc1

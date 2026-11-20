@@ -26,7 +26,7 @@ The script stopped with an error:
 
 ## Zeff
 
-- version: 0.8.0-dev
+- version: 0.8.0
 - edition: preview
 - platform: the test's machine
 

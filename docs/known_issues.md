@@ -62,6 +62,12 @@ is never listed here as accepted: it is fixed or the function is withdrawn.
   driving three fits made in one statement is one warning with a count (W1006, since 0.8.0);
   three fits on three lines are three warnings, and so are the passes of a loop (#149, due at
   0.9.0). (Since 0.8.0 for the count; before it, every repetition.)
+- **No reader outside the project has read Zeff's scripts yet.** The testing handbook asks, from
+  0.8.0, that short scripts be given to students and referees who have not written Zeff and that
+  what they misread be corrected (section 2.4, item 4). The test was not run at this release, by the
+  owner's decision of 20 November 2026; a sheet of eight scripts with its key is ready, and the test
+  is owed at 0.9.0. Until it is run, that a script reads as it computes is the project's own
+  judgement. (Since 0.8.0.)
 
 ## As of 0.7.0
 
@@ -196,9 +202,12 @@ is never listed here as accepted: it is fixed or the function is withdrawn.
   The second pass as first built (step 3) counted every mutant as caught, by a failure of
   memory and not of a test; it was repaired and proven at step 24a1, and the run of 19
   November 2026 is the first whose second pass can be trusted. The accepted survivors are a
-  list, `tools/mutants/recorded.txt`, and each shard's note prints what is not on it. A whole
-  run takes about fifteen hours at fourteen shards at a time. (Since 0.7.0; the job repaired
-  twice at 0.8.0.)
+  list, `tools/mutants/recorded.txt`, and each shard's note prints what is not on it. A whole run
+  takes about fourteen hours at fourteen shards at a time. A mutant that an early test catches and
+  under which a slower test then runs on is reported as a timeout; seventeen such are recorded under
+  the key `late`. The corrections made after the run of 20 November 2026 were each tried by hand,
+  and the scheduled run of 23 November is the first whole run to read them. (Since 0.7.0; the job
+  repaired twice at 0.8.0.)
 - **A one-sided interval of `wilcoxon_test` at a level of exactly 50 per cent is not unique under
   the normal approximation.** The standardised statistic can equal the quantile, which is 0
   there, along a whole step of the shift, and any point of the step is a bound. Zeff gives the

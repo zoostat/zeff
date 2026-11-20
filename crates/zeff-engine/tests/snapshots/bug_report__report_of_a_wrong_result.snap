@@ -34,7 +34,7 @@ The reference it should agree with, as given in `r_output.txt`:
 
 ## Zeff
 
-- version: 0.8.0-dev
+- version: 0.8.0
 - edition: preview
 - platform: the test's machine
 
