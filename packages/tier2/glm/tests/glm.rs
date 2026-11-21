@@ -939,3 +939,203 @@ fn the_stops_of_the_optimiser_say_what_they_are() {
         )
     );
 }
+
+/// A method of the result interface called on a value, as the interpreter calls it: the
+/// receiver first, then the method's arguments in the order its parameters are declared.
+fn method(
+    body: fn(&mut CallContext<'_>, Args) -> Result<Value, Fail>,
+    values: Vec<Option<Value>>,
+) -> Value {
+    let mut output = String::new();
+    let mut messages: Vec<Diagnostic> = Vec::new();
+    let mut random = Randomness::default();
+    let script = "m.method()\n";
+    let mut sources = Sources::new();
+    sources.add(Source::new("t.zeff", script));
+    let mut ctx = CallContext {
+        files: &NoFiles,
+        script: "t.zeff",
+        text: script,
+        columns_used: Vec::new(),
+        frame: None,
+        group_rows: None,
+        callee_span: Span::new(2, 8),
+        arg_spans: vec![Some(Span::new(0, 1))],
+        rest_spans: Vec::new(),
+        definition_spans: Vec::new(),
+        output: &mut output,
+        messages: &mut messages,
+        random: &mut random,
+        statement: 1,
+    };
+    let args = Args {
+        values,
+        rest: Vec::new(),
+        definitions: Vec::new(),
+    };
+    match body(&mut ctx, args) {
+        Ok(value) => value,
+        Err(e) => panic!("{}", e.render(&sources)),
+    }
+}
+
+/// The values of a column a method gave, the `NA` of the rows the fit dropped left out.
+fn present(value: Value) -> Vec<f64> {
+    match value {
+        Value::Column(column) => column.as_floats().unwrap().flatten().collect(),
+        other => panic!("not a column: {other:?}"),
+    }
+}
+
+/// The fit's own quantities (step 8a) against R (`binary.json`, `interface`), with each link,
+/// unweighted and with `hours` as sampling weights: `fit_measures` against `logLik`, `AIC`,
+/// `BIC`, the deviances and McFadden's R²; the four kinds of `residuals` at chosen rows and in
+/// their sums of squares over every row, against `residuals.glm`; `fitted` as the outcome less
+/// the response residual; and `predict` on new rows on both scales, against `predict.glm`.
+#[test]
+fn the_measures_the_residuals_and_the_predictions_agree_with_r() {
+    use std::rc::Rc;
+    use zeff_results::interface;
+    let path = root().join("tests/reference/r/binary.json");
+    let json: Json = serde_json::from_str(&std::fs::read_to_string(path).unwrap()).unwrap();
+    let wages = zeff_datasets::table("wages").expect("the shipped wages");
+    let floats = |values: &[f64]| zeff_columns::Column::floats(values.iter().map(|v| Some(*v))).0;
+    let new = Table::new(vec![
+        ("educ".to_string(), floats(&[12.0, 16.0, 9.0])),
+        ("exper".to_string(), floats(&[5.0, 20.0, 40.0])),
+        ("female".to_string(), floats(&[0.0, 1.0, 1.0])),
+    ])
+    .unwrap();
+    for case in json["interface"].as_array().unwrap() {
+        let name = case["name"].as_str().unwrap();
+        let link = case["link"].as_str().unwrap();
+        let weighted = case["weighted"].as_bool().unwrap();
+        let with = With {
+            weights: weighted.then_some("hours"),
+            ..With::default()
+        };
+        let fit = fit_under(
+            &wages,
+            "union ~ educ + exper + female",
+            link,
+            with,
+            &Control::default(),
+        )
+        .unwrap_or_else(|e| panic!("{name}: {e}"));
+        assert_eq!(fit.n as i64, case["n"].as_i64().unwrap(), "{name}");
+        let outcome = fit.likelihood.as_ref().unwrap().outcome.clone();
+        let fit = Value::Fit(Rc::new(fit));
+        let rows: Vec<usize> = case["rows"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .map(|r| r.as_u64().unwrap() as usize)
+            .collect();
+        for kind in ["response", "pearson", "deviance", "working"] {
+            let ours = present(method(
+                interface::residuals,
+                vec![Some(fit.clone()), Some(Value::Word(kind.to_string()))],
+            ));
+            for (row, theirs) in rows.iter().zip(case["residuals"][kind].as_array().unwrap()) {
+                close(
+                    ours[*row],
+                    number(theirs),
+                    1e-9,
+                    &format!("{name} {kind} residual of row {row}"),
+                );
+            }
+            let squares: f64 = zeff_kernels::sum(&ours.iter().map(|v| v * v).collect::<Vec<_>>());
+            close(
+                squares,
+                number(&case["sums_of_squares"][kind]),
+                1e-9,
+                &format!("{name}: the sum of the squares of the {kind} residuals"),
+            );
+        }
+        // Left to itself, `residuals` is the response residual, and with `fitted` gives back the
+        // outcome.
+        let response = present(method(interface::residuals, vec![Some(fit.clone()), None]));
+        let fitted = present(method(interface::fitted, vec![Some(fit.clone())]));
+        for ((r, f), y) in response.iter().zip(&fitted).zip(&outcome) {
+            assert!((r + f - y).abs() <= 1e-15, "{name}: {r} + {f} is not {y}");
+        }
+        let frame = Value::Frame(Frame::new(new.clone()));
+        for (scale, key) in [
+            (None, "predict_response"),
+            (Some("response"), "predict_response"),
+            (Some("link"), "predict_link"),
+        ] {
+            let ours = present(method(
+                interface::predict,
+                vec![
+                    Some(fit.clone()),
+                    Some(frame.clone()),
+                    scale.map(|word| Value::Word(word.to_string())),
+                ],
+            ));
+            for (ours, theirs) in ours.iter().zip(case[key].as_array().unwrap()) {
+                close(
+                    *ours,
+                    number(theirs),
+                    1e-9,
+                    &format!("{name} {key} ({scale:?})"),
+                );
+            }
+        }
+        if weighted {
+            continue;
+        }
+        let Value::Record(fields) = method(interface::fit_measures, vec![Some(fit.clone())]) else {
+            panic!("{name}: not a record");
+        };
+        let field = |wanted: &str| match fields.iter().find(|(key, _)| key == wanted) {
+            Some((_, Value::Float(v))) => Some(*v),
+            Some((_, Value::Na)) => None,
+            other => panic!("{name}: {wanted} is {other:?}"),
+        };
+        for (ours, theirs, tolerance) in [
+            ("log_likelihood", "log_likelihood", 1e-12),
+            ("aic", "aic", 1e-12),
+            ("bic", "bic", 1e-12),
+            ("deviance", "deviance", 1e-12),
+            ("null_deviance", "null_deviance", 1e-12),
+            ("r_squared_mcfadden", "mcfadden", 1e-9),
+        ] {
+            close(
+                field(ours).unwrap(),
+                number(&case[theirs]),
+                tolerance,
+                &format!("{name} {ours}"),
+            );
+        }
+        // The measures are the model's own: a `glm` fit has no R² of least squares.
+        assert!(
+            fields
+                .iter()
+                .all(|(key, _)| key != "r_squared" && key != "adjusted"),
+            "{name}"
+        );
+    }
+}
+
+/// The printed forms of the fit's own quantities on a `glm` fit, and of what they give a
+/// regression: `fit_measures` with the measures each model has (a field of the other's is
+/// refused when the script is checked), `predict` on both scales, and `type:` of `residuals`
+/// refused on a least-squares fit.
+#[test]
+fn the_measures_the_residuals_and_the_predictions_printed() {
+    let scripts = [
+        "let m = dataset(wages).glm(union ~ educ + exper + female, family: binomial)\nm.fit_measures()\nm.fit_measures().r_squared_mcfadden\n",
+        "let m = dataset(wages).glm(union ~ educ + exper + female, family: binomial)\nm.fit_measures().r_squared\n",
+        "let m = dataset(wages).reg(log(wage) ~ educ + exper)\nm.fit_measures().deviance\n",
+        "let wages = dataset(wages)\nlet m = wages.glm(union ~ educ + exper + female, family: binomial)\nwages.add(response = m.residuals(), pearson = m.residuals(type: pearson), deviance = m.residuals(type: deviance), working = m.residuals(type: working), fitted = m.fitted()).summary([response, pearson, deviance, working, fitted])\n",
+        "let m = dataset(wages).glm(union ~ educ + exper + female, family: binomial, link: probit)\nlet new = frame(educ = [12, 16], exper = [5, 20], female = [0, 1])\nnew.add(p = m.predict(newdata: new), score = m.predict(newdata: new, type: link))\n",
+        "let m = dataset(wages).reg(log(wage) ~ educ + exper)\nm.fit_measures()\nm.predict(newdata: frame(educ = [12], exper = [5]), type: link)\nm.residuals(type: deviance)\n",
+    ];
+    let all = scripts
+        .iter()
+        .map(|s| format!("{s}---\n{}", printed(s)))
+        .collect::<Vec<_>>()
+        .join("\n====\n");
+    insta::assert_snapshot!("glm_own_quantities", all);
+}

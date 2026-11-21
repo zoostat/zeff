@@ -1,0 +1,82 @@
+---
+source: packages/tier2/glm/tests/glm.rs
+expression: all
+---
+let m = dataset(wages).glm(union ~ educ + exper + female, family: binomial)
+m.fit_measures()
+m.fit_measures().r_squared_mcfadden
+---
+log_likelihood: -11415.1
+aic: 22838.1
+bic: 22869.4
+deviance: 22830.1
+null_deviance: 23002
+r_squared_mcfadden: 0.00747066
+0.00747066
+
+====
+let m = dataset(wages).glm(union ~ educ + exper + female, family: binomial)
+m.fit_measures().r_squared
+---
+error[Z0209]: the record has no field `r_squared`
+ --> scripts/main.zeff:2:18
+  |
+2 | m.fit_measures().r_squared
+  |                  ^^^^^^^^^ its fields are log_likelihood, aic, bic, deviance, null_deviance, r_squared_mcfadden
+
+====
+let m = dataset(wages).reg(log(wage) ~ educ + exper)
+m.fit_measures().deviance
+---
+error[Z0209]: the record has no field `deviance`
+ --> scripts/main.zeff:2:18
+  |
+2 | m.fit_measures().deviance
+  |                  ^^^^^^^^ its fields are log_likelihood, aic, bic, r_squared, adjusted
+
+====
+let wages = dataset(wages)
+let m = wages.glm(union ~ educ + exper + female, family: binomial)
+wages.add(response = m.residuals(), pearson = m.residuals(type: pearson), deviance = m.residuals(type: deviance), working = m.residuals(type: working), fitted = m.fitted()).summary([response, pearson, deviance, working, fitted])
+---
+summary · frame
+
+  variable        N   missing     mean      sd      min     max
+  response   18,390        22    0.000   0.464   -0.458   0.771
+  pearson    18,390        22    0.000   1.000   -0.920   1.836
+  deviance   18,390        22   -0.114   1.108   -1.108   1.718
+  working    18,390        22    0.001   2.165   -1.847   4.372
+  fitted     18,390        22    0.318   0.045    0.229   0.458
+warning[W0201]: 22 rows with NA in response, 22 with NA in pearson, 22 with NA in deviance, 22 with NA in working and 22 with NA in fitted were skipped (line 3)
+
+====
+let m = dataset(wages).glm(union ~ educ + exper + female, family: binomial, link: probit)
+let new = frame(educ = [12, 16], exper = [5, 20], female = [0, 1])
+new.add(p = m.predict(newdata: new), score = m.predict(newdata: new, type: link))
+---
+frame · 2 rows × 5 variables
+
+      educ   exper   female          p       score
+  1     12       5        0   0.253697   -0.662901
+  2     16      20        1   0.353725   -0.375284
+
+====
+let m = dataset(wages).reg(log(wage) ~ educ + exper)
+m.fit_measures()
+m.predict(newdata: frame(educ = [12], exper = [5]), type: link)
+m.residuals(type: deviance)
+---
+log_likelihood: -10775.4
+aic: 21558.8
+bic: 21590.1
+r_squared: 0.18401
+adjusted: 0.18392
+Column<Float> · 1 value
+2.85508
+error[Z0401]: `type:` chooses among the residuals of a model fitted by maximum likelihood, and this fit is least squares
+ --> scripts/main.zeff:4:19
+  |
+4 | m.residuals(type: deviance)
+  |                   ^^^^^^^^ one kind of residual here
+  |
+  = help: leave `type:` out: the residuals of a regression are the outcome less the fitted value

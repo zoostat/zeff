@@ -9,6 +9,7 @@
 //! end the file: `statistic`, `df`, `effect_size`, `h0`, `h1` and `alternative`.
 
 use crate::design::Design;
+use crate::likelihood::{Binomial, Link, ResidualKind};
 use crate::summary::rows;
 use std::rc::Rc;
 use zeff_columns::{Column, Table as Columns};
@@ -483,7 +484,10 @@ pub fn standardized(fit: &Fit) -> Vec<Option<f64>> {
 /// do: −2ℓ + 2(k + 1) and −2ℓ + ln(N)(k + 1), with k the terms with an estimate and, with
 /// fixed effects, the effects' parameters, as fixest counts them.
 pub fn information_criteria(fit: &Fit) -> (f64, f64) {
-    let parameters = (fit.terms.len() + fit.absorbed_parameters) as f64 + 1.0;
+    // A least-squares fit estimates its error variance beside its coefficients; a fit by
+    // maximum likelihood of a family without one (the binomial) has its coefficients alone.
+    let variance = if fit.likelihood.is_some() { 0.0 } else { 1.0 };
+    let parameters = (fit.terms.len() + fit.absorbed_parameters) as f64 + variance;
     let aic = -2.0 * fit.log_likelihood + 2.0 * parameters;
     let bic = -2.0 * fit.log_likelihood + zeff_numeric::maths::log(fit.n as f64) * parameters;
     (aic, bic)
@@ -609,24 +613,43 @@ pub fn vcov(ctx: &mut CallContext<'_>, args: Args) -> Result<Value, Fail> {
     }
 }
 
-/// `fit.fit_measures()`: the log-likelihood, AIC, BIC, R² and adjusted R² as a record (question
-/// 4); R² is `NA` when the outcome has no variation. A test's result has none.
+/// `fit.fit_measures()`: the fit's measures as a record. A least-squares fit has its Gaussian
+/// log-likelihood, AIC, BIC, R² and adjusted R² (question 4; R² is `NA` when the outcome has no
+/// variation); a fit by maximum likelihood has its log-likelihood, AIC, BIC, deviance, null
+/// deviance and McFadden's R² (release 0.9.0, step 8a). The measures are the model's own, so
+/// the record's fields depend on the kind of fit (the catalogue: "R squared where defined").
+/// A test's result has none.
 pub fn fit_measures(ctx: &mut CallContext<'_>, args: Args) -> Result<Value, Fail> {
     match receiver(ctx, &args, "fit_measures")? {
         Receiver::Fit(fit) => {
-            refuse_likelihood(ctx, &fit, "fit_measures")?;
             let (aic, bic) = information_criteria(&fit);
-            let measure = |x: Option<f64>| x.map_or(Value::Na, Value::Float);
-            Ok(Value::Record(vec![
+            let measure =
+                |x: Option<f64>| x.filter(|v| !v.is_nan()).map_or(Value::Na, Value::Float);
+            let mut fields = vec![
                 (
                     "log_likelihood".to_string(),
                     Value::Float(fit.log_likelihood),
                 ),
                 ("aic".to_string(), Value::Float(aic)),
                 ("bic".to_string(), Value::Float(bic)),
-                ("r_squared".to_string(), measure(fit.r_squared)),
-                ("adjusted".to_string(), measure(fit.adjusted_r_squared)),
-            ]))
+            ];
+            match fit.likelihood.as_deref() {
+                None => {
+                    fields.push(("r_squared".to_string(), measure(fit.r_squared)));
+                    fields.push(("adjusted".to_string(), measure(fit.adjusted_r_squared)));
+                }
+                Some(likelihood) => {
+                    let mcfadden = (likelihood.null_log_likelihood < 0.0)
+                        .then(|| 1.0 - fit.log_likelihood / likelihood.null_log_likelihood);
+                    fields.push(("deviance".to_string(), Value::Float(likelihood.deviance)));
+                    fields.push((
+                        "null_deviance".to_string(),
+                        Value::Float(likelihood.null_deviance),
+                    ));
+                    fields.push(("r_squared_mcfadden".to_string(), measure(mcfadden)));
+                }
+            }
+            Ok(Value::Record(fields))
         }
         Receiver::Test(_) => Ok(Value::Na),
     }
@@ -642,12 +665,55 @@ fn full_length(fit: &Fit, values: &[f64]) -> Value {
     Value::Column(Column::floats(all).0)
 }
 
-/// `fit.residuals()`: the residuals, one per row of the fitted frame.
+/// `fit.residuals(type:)`: the residuals, one per row of the fitted frame. A fit by maximum
+/// likelihood has four kinds (release 0.9.0, step 8a): `response`, the outcome less the fitted
+/// mean, which every model has and which is the default (open decision #200); `pearson`,
+/// `deviance` and `working`. A least-squares fit has the first alone.
 pub fn residuals(ctx: &mut CallContext<'_>, args: Args) -> Result<Value, Fail> {
+    let kind = match args.get(1) {
+        Some(Value::Word(word)) => ResidualKind::named(word).unwrap_or(ResidualKind::Response),
+        _ => ResidualKind::Response,
+    };
     match receiver(ctx, &args, "residuals")? {
         Receiver::Fit(fit) => {
-            refuse_likelihood(ctx, &fit, "residuals")?;
-            Ok(full_length(&fit, &fit.residuals))
+            let Some(likelihood) = fit.likelihood.as_deref() else {
+                if kind != ResidualKind::Response {
+                    return Err(fail(
+                        Diagnostic::error(
+                            "Z0401",
+                            "`type:` chooses among the residuals of a model fitted by maximum likelihood, and this fit is least squares",
+                        )
+                        .in_file(ctx.script)
+                        .primary(ctx.span_of(1), "one kind of residual here")
+                        .help("leave `type:` out: the residuals of a regression are the outcome less the fitted value"),
+                    ));
+                }
+                return Ok(full_length(&fit, &fit.residuals));
+            };
+            if kind == ResidualKind::Response {
+                return Ok(full_length(&fit, &fit.residuals));
+            }
+            let Some(link) = Link::named(&likelihood.link) else {
+                return Err(fail(
+                    Diagnostic::error(
+                        "Z9001",
+                        "internal error: this is a bug in Zeff, not in your script (a likelihood fit with a link this release does not have)",
+                    )
+                    .in_file(ctx.script)
+                    .primary(ctx.callee_span, "the call that failed"),
+                ));
+            };
+            let model = match &likelihood.weights {
+                Some(w) => Binomial::weighted(likelihood.outcome.clone(), w.clone(), link),
+                None => Binomial::new(likelihood.outcome.clone(), link),
+            };
+            let values: Vec<f64> = likelihood
+                .eta
+                .iter()
+                .enumerate()
+                .map(|(row, &eta)| model.residual(row, eta, kind))
+                .collect();
+            Ok(full_length(&fit, &values))
         }
         Receiver::Test(_) => Ok(Value::Na),
     }
@@ -696,11 +762,16 @@ pub fn predict(ctx: &mut CallContext<'_>, args: Args) -> Result<Value, Fail> {
         }
     };
     let fit = match receiver(ctx, &args, "predict")? {
-        Receiver::Fit(fit) => {
-            refuse_likelihood(ctx, &fit, "predict")?;
-            fit
-        }
+        Receiver::Fit(fit) => fit,
         Receiver::Test(_) => return Ok(Value::Na),
+    };
+    // The scale of the prediction (release 0.9.0, step 8a): `response`, the mean of the outcome
+    // (a probability, for a binary model), which is the default (open decision #200), or `link`,
+    // the linear predictor. A least-squares fit has one scale, so both words give the same.
+    let on_link = matches!(args.get(2), Some(Value::Word(word)) if word == "link");
+    let mean_of: Option<Link> = match fit.likelihood.as_deref() {
+        Some(likelihood) if !on_link => Link::named(&likelihood.link),
+        _ => None,
     };
     let mut model = fit.model.clone();
     model.outcome = None;
@@ -840,6 +911,13 @@ pub fn predict(ctx: &mut CallContext<'_>, args: Args) -> Result<Value, Fail> {
                     effect.name
                 )),
             );
+        }
+    }
+    // On the scale of the response, a likelihood fit's prediction is the mean at the linear
+    // predictor.
+    if let Some(link) = mean_of {
+        for value in values.iter_mut().flatten() {
+            *value = link.mean(*value);
         }
     }
     Ok(Value::Column(Column::floats(values).0))

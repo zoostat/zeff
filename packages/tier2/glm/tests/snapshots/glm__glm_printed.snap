@@ -117,13 +117,28 @@ error[Z0401]: `test` of a `glm` fit arrives with release 0.9.0
 let m = dataset(wages).glm(union ~ educ + exper, family: binomial)
 m.residuals()
 ---
-error[Z0401]: `residuals` of a `glm` fit arrives with release 0.9.0
- --> scripts/main.zeff:2:3
-  |
-2 | m.residuals()
-  |   ^^^^^^^^^ not yet for a likelihood fit
-  |
-  = help: the fit's table, `coef`, `vcov`, `std_errors`, `p_values`, `ci`, `estimates` and `n_obs` are there now
+Column<Float> · 18,412 values
+-0.281947
+-0.287568
+-0.293255
+-0.299008
+-0.304824
+-0.310704
+-0.316646
+0.695561
+0.689686
+0.683748
+0.67775
+-0.327705
+-0.333814
+-0.327906
+-0.334017
+-0.234965
+-0.234965
+-0.234965
+-0.234965
+-0.239962
+… and 18,392 more values
 
 ====
 let m = dataset(wages).glm(union ~ educ + exper, family: binomial)

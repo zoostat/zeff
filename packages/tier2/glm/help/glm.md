@@ -40,7 +40,9 @@ A `GlmFit`: the table of estimates with their standard errors, z values, p-value
 confidence intervals, and under it the log-likelihood, AIC, McFadden's R², the deviance and the
 null deviance, and the iterations the fit took. It is read as any fit is: `coef`, `std_errors`,
 `p_values`, `ci` and `estimates` by term, `vcov` for the variance of the estimates, `summary`
-for the table.
+for the table; `fit_measures` for the log-likelihood, AIC, BIC and the deviances as numbers;
+`fitted` for the fitted probabilities, `residuals` for the residuals of each kind, and `predict`
+for the probabilities on new data.
 
 ## Missing values
 A row with `NA` in the outcome, a regressor, the weight or the cluster variable is left out, and
@@ -148,6 +150,7 @@ differ slightly; under the logit link they are one.
 - To fit a linear probability model of the same outcome, use `reg`.
 - To read one coefficient or its interval from the fit, use `coef` and `ci`.
 - To allow for observations of one worker being alike, add `cluster: worker`.
+- To get each row's fitted probability, use `fitted`; for new rows, `predict`.
 - To see every estimate with its statistic as a frame, use `estimates`.
 
 ## References
@@ -157,7 +160,7 @@ Hall, chapters 2 and 4.
 Agresti, A. (2013), Categorical Data Analysis, 3rd edition, Wiley, chapter 5.
 
 ## See also
-reg, coef, ci, estimates, vcov
+reg, coef, ci, estimates, vcov, fit_measures, predict, residuals
 
 ## Examples
 // A logistic regression of union membership on schooling, experience and sex.

@@ -120,6 +120,8 @@ Date: 17 October 2026 · Source: Zeff Specification section 15, Zemp Specificati
 
 **Status (21 November 2026, release 0.9.0, step 7c).** #199 is new: what `weight_type: analytic` means on a binary model. Taken as recommended (A, refused) under the owner's standing instruction, his to overturn before 1.0.
 
+**Status (21 November 2026, release 0.9.0, step 8a).** #200 is new: what `predict` and `residuals` give a `glm` fit when `type:` is left out, where R and Stata differ. Taken as recommended (A, the scale of the outcome) under the owner's standing instruction, his to overturn before 1.0.
+
 ## Summary
 
 | # | Decision | Recommendation | Decide by |
@@ -211,6 +213,7 @@ Date: 17 October 2026 · Source: Zeff Specification section 15, Zemp Specificati
 | 85 | The Games–Howell comparison in `posthoc` | Add `games_howell` to `method:` in the first release after 0.7.0 with room; until then Tukey's HSD after Welch's ANOVA prints a note | decided 21 November 2026 (option A, on the recommendation); built at 0.9.0, step 29 |
 | 86 | Folding, snippets and the statement ranges behind **Run** in the language server | At 0.8.0, with Zemp's alpha; formatting through the server is built at 0.7.0 | decided 15 November 2026 (option A); built at 0.8.0, step 8b |
 | 87 | A variable name in an option record | Accept a `Vars` of exactly one variable where a parameter takes a `Var`, so that `{ se: robust, cluster: vars(firm) }` can be named once and spread | decided 15 November 2026 (option A); built at 0.8.0, step 4 |
+| 200 | What `predict` and `residuals` give a `glm` fit unless told | Recommended A: the scale of the outcome for both, `type: response`: a probability from `predict`, the outcome less the fitted probability from `residuals`; R's defaults (`link`, `deviance`) one word away | decided at 0.9.0, step 8a, under the standing instruction (A); the owner's to overturn before 1.0 |
 | 199 | Analytic weights on a binary model | Recommended A: `weight_type: analytic` is refused on `glm` with `family: binomial` (Z0410), as Stata refuses `aweight` on `logit`; frequency and sampling weights are taken | decided at 0.9.0, step 7c, under the standing instruction (A); the owner's to overturn before 1.0 |
 | 198 | The small-sample factor of robust and clustered errors on a likelihood fit | Recommended A: the factors of the variance layer for every model, HC1 N/(N − k) and CR1 G/(G − 1) · (N − 1)/(N − k), as section 8.3, point 2, of the Engine Specification says | decided at 0.9.0, step 7b, under the standing instruction (A); the owner's to overturn before 1.0 |
 | 197 | The plots of a run handed to an interface | Recommended A: an engine step at 0.9.0 by which the browser build keeps the plots of a run, lays one out at a size and theme without a new run, and hands over the scene (C16 of #175) | decided 21 November 2026 (option A, the owner's priority as recommended); built at 0.9.0, step 25 |
@@ -3912,3 +3915,24 @@ Raised on 21 November 2026 at release 0.9.0, step 7c, when `glm` took `weights:`
 *Recommendation.* A. A family with a dispersion to estimate (the gamma, the quasi-families of release 1.7) takes analytic weights when it arrives; the refusal names the family. Deadline: 1.0.
 
 **Decided (21 November 2026, release 0.9.0, step 7c).** A, taken as recommended under the owner's standing instruction of 12 November 2026, and announced to him with the step; his to overturn before 1.0.
+
+### 200. What `predict` and `residuals` give a `glm` fit unless told
+
+Raised on 21 November 2026 at release 0.9.0, step 8a. A model fitted by maximum likelihood has two scales of prediction, the linear predictor and the mean of the outcome, and four kinds of residual. Both methods take `type:` (one function with an option, #97; every kind R gives, #98 and #99): `predict(newdata:, type: response | link)` and `residuals(type: response | pearson | deviance | working)`. The question is the default.
+
+| | `predict` unless told | `residuals` unless told |
+| --- | --- | --- |
+| R (`predict.glm`, `residuals.glm`) | the linear predictor | the deviance residuals |
+| Stata (`predict` after `logit`) | the probability | none: the kind is always named |
+| Python `statsmodels` | the mean | none: one attribute for each kind |
+| R `marginaleffects::predictions` | the response | not applicable |
+
+| Option | For | Against |
+| --- | --- | --- |
+| A. The scale of the outcome for both: `response` | `fitted()`, `predict()` and `residuals()` agree on every model: a prediction is what `fitted` would give that row, and the outcome is the fitted value plus the residual, for `reg` and `glm` alike; a probability is what a reader of `predict` expects, and R's default is a known trap; `margins` works on this scale too | An R user's `residuals(m)` gives deviance residuals, and here gives the response's; `predict(m)` in R gives log-odds |
+| B. R's defaults: `link` and `deviance` | What an R script prints | `predict` and `fitted` on different scales; the identity outcome = fitted + residual lost for `glm` |
+| C. No default for `residuals` on a `glm` fit: the kind must be named | Nothing silent | A required option on one kind of fit and not another |
+
+*Recommendation.* A, with the page of each method saying what R gives and which word gives it here. Deadline: 1.0.
+
+**Decided (21 November 2026, release 0.9.0, step 8a).** A, taken as recommended under the owner's standing instruction of 12 November 2026, and announced to him with the step; his to overturn before 1.0. On a least-squares fit `predict` takes either word (it has one scale) and `residuals` takes `response` alone, another word being refused (Z0401): the weighted kinds of a regression's residuals are not built.

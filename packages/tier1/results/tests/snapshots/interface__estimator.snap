@@ -142,7 +142,7 @@ error[Z0401]: `newdata` of `predict` must be a Frame, but this is an Int
 2 | m.predict(newdata: 5)
   |                    ^ an Int
   |
-  = help: usage: `fit.predict(newdata: Frame)`
+  = help: usage: `fit.predict(newdata: Frame, type: response | link = response)`
 [exit 1]
 
 > let m = dataset(wages).reg(log(wage) ~ educ + exper + female)

@@ -1130,6 +1130,13 @@ pub struct Fit {
 /// optimiser reached the maximum.
 #[derive(Debug, Clone, PartialEq)]
 pub struct LikelihoodFit {
+    /// The outcome, the linear predictor at the maximum and the weight of each row used (`None`
+    /// without weights): what the kinds of residual of a likelihood fit are computed from.
+    pub outcome: Vec<f64>,
+    pub eta: Vec<f64>,
+    pub weights: Option<Vec<f64>>,
+    /// The log-likelihood of the null model (the intercept alone), for McFadden's R².
+    pub null_log_likelihood: f64,
     /// Whether the likelihood is a pseudo-likelihood: rows weighted by sampling weights, so
     /// that its value is no likelihood of the sample and compares no models.
     pub pseudo: bool,

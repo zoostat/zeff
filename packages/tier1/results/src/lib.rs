@@ -195,14 +195,17 @@ pub fn functions() -> Vec<Function> {
         result_method(
             "fit_measures",
             vec![],
-            "{log_likelihood: Float, aic: Float, bic: Float, r_squared: Float, adjusted: Float}",
+            "ByFit<{log_likelihood: Float, aic: Float, bic: Float, r_squared: Float, adjusted: Float}, {log_likelihood: Float, aic: Float, bic: Float, deviance: Float, null_deviance: Float, r_squared_mcfadden: Float}>",
             vec![],
             include_str!("../help/fit_measures.md"),
             interface::fit_measures,
         ),
         result_method(
             "predict",
-            vec![ParamSpec::option("newdata", "Frame")],
+            vec![
+                ParamSpec::option("newdata", "Frame"),
+                ParamSpec::option_with_default("type", "response | link", "response"),
+            ],
             "Column<Float>",
             vec![
                 DiagnosticDecl::new(
@@ -221,9 +224,16 @@ pub fn functions() -> Vec<Function> {
         ),
         result_method(
             "residuals",
-            vec![],
+            vec![ParamSpec::option_with_default(
+                "type",
+                "response | pearson | deviance | working",
+                "response",
+            )],
             "Column<Float>",
-            vec![],
+            vec![DiagnosticDecl::new(
+                "Z0401",
+                "`type:` other than `response` on a fit that is not by maximum likelihood",
+            )],
             include_str!("../help/residuals.md"),
             interface::residuals,
         ),

@@ -74,8 +74,10 @@ Step 7c `[engine]`: `weights:` on `glm`, frequency and sampling, each against R 
 
 Step 7d `[engine]`: the optimiser stops at the precision a nearly singular design allows (the step measured in the linear predictor; an exhausted halving with finite values is the maximum), where it had refused such a fit as divergent; W1001 on `glm`; the other stops named for what they are. Well-conditioned fits keep their bits. Step 7 is done.
 
-**Next.** Step 8 `[function]`: the estimator interface on a `GlmFit`. Step 3, the weekly run of 23 November, when it has ended.
+Step 8 split into 8a, 8b and 8c. Step 8a `[function]`: `fit_measures`, `fitted`, `residuals(type:)` and `predict(newdata:, type:)` on a `GlmFit`, each against R; #200 raised and taken as recommended (the scale of the outcome unless told).
 
-**For the owner.** #198 and #199 (taken as recommended, yours to overturn before 1.0): on a `glm` fit, clustered errors carry the factor (N − 1)/(N − k) that Stata's `logit` and R's `vcovCL` left to itself omit; analytic weights are refused on a binary model, as in Stata.
+**Next.** Step 8b `[function]`: `test`, `compare` and `derive` on a `GlmFit`. Step 3, the weekly run of 23 November, when it has ended.
+
+**For the owner.** #198, #199 and #200 (taken as recommended, yours to overturn before 1.0; #200: `predict` gives a probability and `residuals` the outcome less it unless `type:` says otherwise, where R gives log-odds and deviance residuals): on a `glm` fit, clustered errors carry the factor (N − 1)/(N − k) that Stata's `logit` and R's `vcovCL` left to itself omit; analytic weights are refused on a binary model, as in Stata.
 
 **For the owner to decide or do.** Nothing blocks. The R packages `marginaleffects`, `rstatix` and `pROC` for the reference library (and `ivmodel`, `ivDiag`), if he wants the references held to them; the signing key at step 23; the archive link of #161; the reader test at step 45.

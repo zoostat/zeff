@@ -198,6 +198,88 @@ impl IndexModel for Binomial {
     }
 }
 
+/// The kinds of residual of a model fitted by maximum likelihood (`residuals(type:)`; McCullagh
+/// and Nelder 1989, section 2.4).
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum ResidualKind {
+    /// y − μ, on the scale of the outcome.
+    Response,
+    /// (y − μ) √w / √V(μ), whose squares sum to Pearson's chi-squared.
+    Pearson,
+    /// The signed square root of the row's contribution to the deviance.
+    Deviance,
+    /// (y − μ) / (dμ/dη), the residual of the last weighted least-squares step.
+    Working,
+}
+
+impl ResidualKind {
+    pub fn named(word: &str) -> Option<ResidualKind> {
+        match word {
+            "response" => Some(ResidualKind::Response),
+            "pearson" => Some(ResidualKind::Pearson),
+            "deviance" => Some(ResidualKind::Deviance),
+            "working" => Some(ResidualKind::Working),
+            _ => None,
+        }
+    }
+}
+
+impl Link {
+    /// The link of a name, as a fit records it.
+    pub fn named(word: &str) -> Option<Link> {
+        match word {
+            "logit" => Some(Link::Logit),
+            "probit" => Some(Link::Probit),
+            _ => None,
+        }
+    }
+}
+
+impl Binomial {
+    /// The fitted probability at `eta` and its complement, each with its relative accuracy far
+    /// into its tail.
+    fn both(&self, eta: f64) -> (f64, f64) {
+        match self.link {
+            Link::Logit => logistic(eta),
+            Link::Probit => {
+                let tails = normal_tails(eta);
+                (tails.lower, tails.upper)
+            }
+        }
+    }
+
+    /// The derivative of the mean in the linear predictor, dμ/dη, at `eta`.
+    fn slope(&self, eta: f64) -> f64 {
+        match self.link {
+            Link::Logit => {
+                let (p, q) = logistic(eta);
+                p * q
+            }
+            Link::Probit => normal_density(eta),
+        }
+    }
+
+    /// The residual of `row` at its linear predictor `eta`, of the kind asked for. The outcome
+    /// less the mean is taken from the complement where the outcome is 1, so that a probability
+    /// near 1 leaves its residual its digits.
+    pub fn residual(&self, row: usize, eta: f64, kind: ResidualKind) -> f64 {
+        let y = self.y[row];
+        let m = self.prior[row];
+        let (p, q) = self.both(eta);
+        // y − μ = y q − (1 − y) p.
+        let response = y * q - (1.0 - y) * p;
+        match kind {
+            ResidualKind::Response => response,
+            ResidualKind::Pearson => response * m.sqrt() / (p * q).sqrt(),
+            ResidualKind::Working => response / self.slope(eta),
+            ResidualKind::Deviance => {
+                let d = self.deviance(row, eta).max(0.0).sqrt();
+                if response < 0.0 { -d } else { d }
+            }
+        }
+    }
+}
+
 impl Likelihood for Binomial {
     fn mean(&self, eta: f64) -> f64 {
         self.link.mean(eta)

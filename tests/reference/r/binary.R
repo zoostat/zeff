@@ -234,6 +234,52 @@ near_case <- function(link) {
 }
 near_singular <- list(near_case("logit"), near_case("probit"))
 
+# The fit's own quantities (release 0.9.0, step 8a), on `union ~ educ + exper + female`, each
+# link: `logLik`, `AIC`, `BIC`, the deviance, the null deviance and McFadden's R² (one less the
+# ratio of the log-likelihood to that of the model with the intercept alone); the four kinds of
+# residual of `residuals.glm` at chosen rows (counted from 0 among the rows used) with the sum of
+# the squares of each kind over every row; and `predict.glm` on three new rows, on the scale of
+# the link and of the response. Once more with `hours` as weights, scaled to a mean of one, for
+# the residuals and the predictions (the Pearson and the deviance residuals carry the square
+# root of the weight; R's `logLik` rounds weights that are not whole numbers, so it is left out).
+new_rows <- data.frame(educ = c(12, 16, 9), exper = c(5, 20, 40), female = c(0, 1, 1))
+interface_case <- function(link, weighted) {
+  if (weighted) {
+    d <- raw[complete.cases(raw[, c("union", "educ", "exper", "female", "hours")]), ]
+    d <- d[d$hours > 0, ]
+    w <- d$hours / mean(d$hours)
+  } else {
+    d <- raw[complete.cases(raw[, c("union", "educ", "exper", "female")]), ]
+    w <- NULL
+  }
+  m <- iterated(union ~ educ + exper + female, d, link, w)
+  at <- c(0, 1, 2, 3, 4, 5, 99, 999, nrow(d) - 1)
+  kinds <- c("response", "pearson", "deviance", "working")
+  result <- list(
+    name = paste0(if (weighted) "weighted_" else "plain_", link),
+    link = link,
+    weighted = weighted,
+    n = nrow(d),
+    rows = as.list(as.integer(at)),
+    residuals = setNames(lapply(kinds, function(k) as.list(num17(unname(residuals(m, type = k))[at + 1]))), kinds),
+    sums_of_squares = setNames(lapply(kinds, function(k) num17(sum(residuals(m, type = k)^2))), kinds),
+    predict_link = as.list(num17(unname(predict(m, new_rows)))),
+    predict_response = as.list(num17(unname(predict(m, new_rows, type = "response"))))
+  )
+  if (!weighted) {
+    null <- glm(union ~ 1, family = binomial(link = link), data = d, control = control)
+    result$log_likelihood <- num17(as.numeric(logLik(m)))
+    result$aic <- num17(AIC(m))
+    result$bic <- num17(BIC(m))
+    result$deviance <- num17(deviance(m))
+    result$null_deviance <- num17(m$null.deviance)
+    result$mcfadden <- num17(1 - as.numeric(logLik(m)) / as.numeric(logLik(null)))
+  }
+  result
+}
+interface <- list(interface_case("logit", FALSE), interface_case("probit", FALSE),
+                  interface_case("logit", TRUE), interface_case("probit", TRUE))
+
 out <- list(
   software = paste("R", getRversion()),
   generated_rows = nrow(g),
@@ -242,6 +288,7 @@ out <- list(
   extremes = extremes,
   robust = robust,
   weighted = weighted,
-  near_singular = near_singular
+  near_singular = near_singular,
+  interface = interface
 )
 writeLines(to_json(out), file.path(here(), "binary.json"))

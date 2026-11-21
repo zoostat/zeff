@@ -658,6 +658,10 @@ pub fn glm_with(ctx: &mut CallContext<'_>, args: Args, control: &Control) -> Res
         singletons: 0,
     };
     let likelihood = LikelihoodFit {
+        outcome: y.clone(),
+        eta: solution.eta.clone(),
+        weights: design.weights.clone(),
+        null_log_likelihood,
         pseudo: weights.is_some() && weight_kind == WeightKind::Sampling,
         family,
         link: link.name().to_string(),

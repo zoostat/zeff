@@ -6991,6 +6991,22 @@ impl Checker<'_> {
                 (false, Some(Ty::Result(None))) => Ty::Unknown,
                 _ => Ty::parse(all).unwrap_or(Ty::Unknown),
             }
+        // `ByFit<A, B>` (`fit_measures`; release 0.9.0, step 8a): A for a least-squares fit, B
+        // for a fit by maximum likelihood, whose measures are not the same ones; unknown for a
+        // receiver of the interface type, whose kind is not known.
+        } else if let Some(inner) = spec
+            .returns
+            .strip_prefix("ByFit<")
+            .and_then(|r| r.strip_suffix('>'))
+        {
+            let (least_squares, likelihood) = split_top_level(inner);
+            match slots.first().and_then(|s| s.as_ref()).map(|e| e.ty.clone()) {
+                Some(Ty::Result(Some(ResultKind::GlmFit))) => {
+                    Ty::parse(likelihood).unwrap_or(Ty::Unknown)
+                }
+                Some(Ty::Result(None)) | None => Ty::Unknown,
+                _ => Ty::parse(least_squares).unwrap_or(Ty::Unknown),
+            }
         // `Number` (section 3.7): Int when every number given is an Int, Float otherwise.
         // `Element` (`first`, `last`): the type of the first argument's items; `Same`
         // (`reversed`): the first argument's type; `Appended` (`append`): a list of the join of the
@@ -8655,8 +8671,8 @@ fn split_top_level(text: &str) -> (&str, &str) {
     let mut depth = 0usize;
     for (i, c) in text.char_indices() {
         match c {
-            '<' => depth += 1,
-            '>' => depth = depth.saturating_sub(1),
+            '<' | '{' => depth += 1,
+            '>' | '}' => depth = depth.saturating_sub(1),
             ',' if depth == 0 => return (text[..i].trim(), text[i + 1..].trim()),
             _ => {}
         }
