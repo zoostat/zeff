@@ -210,7 +210,10 @@ weighted <- list(sampling_case("logit"), sampling_case("probit"),
 # holds them beyond some four digits, and R says that it did not converge at this tolerance.
 # The three regressors span what educ, exper and female span, so the exact answer is known from
 # the well-conditioned fit above (`cases`), and the test compares with that; R's fit of this
-# design is written here to show what the design allows, and for its standard errors.
+# design is written here to show what the design allows, and for its standard errors. It is
+# written to three significant digits, which is what R holds of it on every machine: on Linux
+# and on macOS its fourth digit differs (55567270 and 55578983 for the estimate of `educ`,
+# where the exact answer is 55567322), so no more can be compared with a committed copy.
 near <- raw[complete.cases(raw[, c("union", "educ", "exper", "female")]), ]
 near$e2 <- near$educ + 1e-5 * near$exper
 near$x2 <- near$exper + 1e-4 * near$female
@@ -225,11 +228,8 @@ near_case <- function(link) {
     name = paste0("near_singular_", link),
     link = link,
     n = nrow(near),
-    coefficients = as.list(num17(unname(coef(m)))),
-    std_errors = as.list(num17(unname(sqrt(diag(vcov(m)))))),
-    log_likelihood = num17(as.numeric(logLik(m))),
-    deviance = num17(deviance(m)),
-    r_converged = m$converged
+    coefficients = as.list(sprintf("%.3g", unname(coef(m)))),
+    std_errors = as.list(sprintf("%.3g", unname(sqrt(diag(vcov(m))))))
   )
 }
 near_singular <- list(near_case("logit"), near_case("probit"))
@@ -242,7 +242,6 @@ out <- list(
   extremes = extremes,
   robust = robust,
   weighted = weighted,
-  near_singular = near_singular,
-  sandwich = as.character(packageVersion("sandwich"))
+  near_singular = near_singular
 )
 writeLines(to_json(out), file.path(here(), "binary.json"))

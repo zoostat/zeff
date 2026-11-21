@@ -5,8 +5,9 @@
 # is max Σ zᵢᵀβ subject to zᵢᵀβ ≥ 0 in every row and −1 ≤ β ≤ 1: a positive maximum is
 # separation, and the coefficients not zero at the maximum diverge. The names follow the rule of
 # `glm`: the regressors that separate the outcome alone (with the intercept), or else those
-# not zero in the program's solution for the whole model. Beside each case, whether R's own
-# `glm` says that it converged (it does on every quasi-complete case, with estimates near 20).
+# not zero in the program's solution for the whole model. (R's own `glm` says that it converged
+# on every quasi-complete case here, with estimates near 20; that is not written to the file,
+# since where its iterations stop on separated data is not the same on every machine.)
 # Input: tests/datasets/separation.csv (made by whole-number arithmetic) and the shipped wages
 # with `union` set to 1 wherever `female` is 1. Run with `Rscript tests/reference/r/separation.R`.
 source(file.path(dirname(sub("^--file=", "", commandArgs(FALSE)[grepl("^--file=", commandArgs(FALSE))])), "common.R"))
@@ -73,13 +74,11 @@ case <- function(name, formula, data) {
       others[abs(whole$beta[others]) > 1e-6 * max(abs(whole$beta))]
     names_out <- colnames(X)[chosen]
   }
-  fit <- suppressWarnings(glm(formula, family = binomial, data = data))
   list(
     name = name,
     formula = deparse(formula),
     separated = whole$separated,
-    diverging = as.list(names_out),
-    r_glm_converged = fit$converged
+    diverging = as.list(names_out)
   )
 }
 

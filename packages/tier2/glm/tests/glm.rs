@@ -818,8 +818,8 @@ fn wages_nearly_singular() -> Table {
 /// `cases`): the same log-likelihood and deviance, the same intercept, and the estimates
 /// c3 = 1e4 b3, c2 = 1e5 (b2 − c3) and c1 = b1 − c2, two of them near 5e7 and cancelling. With
 /// a condition number of 7e10 the fit holds the log-likelihood within 1e-8 and those estimates
-/// within 1e-3; so does R's own fit of this design (`near_singular`), no nearer the answer,
-/// which says of itself that it did not converge at its tolerance.
+/// within 1e-3; R's own fit of this design (`near_singular`) holds them to three digits, and
+/// not the same fourth digit on Linux as on macOS.
 #[test]
 fn a_nearly_singular_design_is_fitted_and_warned_of() {
     let path = root().join("tests/reference/r/binary.json");
@@ -871,33 +871,26 @@ fn a_nearly_singular_design_is_fitted_and_warned_of() {
             1e-4,
             &format!("{name} intercept"),
         );
-        let theirs: Vec<f64> = case["coefficients"]
-            .as_array()
-            .unwrap()
-            .iter()
-            .map(number)
-            .collect();
-        for j in 1..4 {
+        // R's fit of the same design, written to the three digits R holds of it on every
+        // machine, is held to the same answer, to say what the design allows a fit in double
+        // precision; and the standard errors of the estimates that cancel are R's, to those
+        // three digits.
+        let theirs = case["coefficients"].as_array().unwrap().iter().map(number);
+        let errors = case["std_errors"].as_array().unwrap().iter().map(number);
+        for (j, (theirs, error)) in theirs.zip(errors).enumerate().skip(1) {
             close(
                 fit.estimates[j],
                 exact[j],
                 1e-3,
                 &format!("{name} estimate {j}"),
             );
-            // R's fit of the same design is held to the same answer, to say what the design
-            // allows any double-precision fit.
+            close(theirs, exact[j], 5e-3, &format!("{name}, R's estimate {j}"));
             close(
-                theirs[j],
-                exact[j],
-                1e-3,
-                &format!("{name}, R's estimate {j}"),
+                fit.std_errors[j],
+                error,
+                5e-3,
+                &format!("{name} std error {j}"),
             );
-        }
-        assert!(!case["r_converged"].as_bool().unwrap(), "{name}");
-        // The standard errors of the two estimates that cancel are those of R's fit.
-        let errors = case["std_errors"].as_array().unwrap().iter().map(number);
-        for (j, (ours, theirs)) in fit.std_errors.iter().zip(errors).enumerate().skip(1) {
-            close(*ours, theirs, 1e-3, &format!("{name} std error {j}"));
         }
         assert_eq!(fit.warnings.len(), 1, "{name}: {:?}", fit.warnings);
         assert!(

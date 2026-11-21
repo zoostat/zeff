@@ -7,8 +7,7 @@
    "separated": true,
    "diverging": [
     "a"
-   ],
-   "r_glm_converged": false
+   ]
   },
   {
    "name": "combination",
@@ -17,8 +16,7 @@
    "diverging": [
     "x1",
     "x2"
-   ],
-   "r_glm_converged": false
+   ]
   },
   {
    "name": "quasi",
@@ -26,8 +24,7 @@
    "separated": true,
    "diverging": [
     "b"
-   ],
-   "r_glm_converged": true
+   ]
   },
   {
    "name": "level",
@@ -35,22 +32,19 @@
    "separated": true,
    "diverging": [
     "group=g3"
-   ],
-   "r_glm_converged": true
+   ]
   },
   {
    "name": "rare",
    "formula": "y_rare ~ x2",
    "separated": false,
-   "diverging": [],
-   "r_glm_converged": true
+   "diverging": []
   },
   {
    "name": "overlap",
    "formula": "y_quasi ~ x1 + x2",
    "separated": false,
-   "diverging": [],
-   "r_glm_converged": true
+   "diverging": []
   },
   {
    "name": "wages_female",
@@ -58,8 +52,7 @@
    "separated": true,
    "diverging": [
     "female"
-   ],
-   "r_glm_converged": true
+   ]
   }
  ]
 }
