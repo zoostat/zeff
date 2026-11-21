@@ -86,6 +86,8 @@ Step 10 `[engine]`: each column of the model matrix records the variables it dep
 
 Step 11 split into 11a and 11b. Step 11a `[engine]`: `fit.margins(vars)` after `reg`, the average marginal effects: a slope through every term a number enters (`exper` and `exper^2`), a difference for a Bool, a 0/1 variable and each level of a category, delta-method standard errors from the fit's own variance, the average weighted under weights; seven cases against R within 1e-8, and against `marginaleffects` 1.0.0 on the owner's machine; #202 raised and taken as recommended (weights in the average, the adjusted prediction with no variable, Student's t, the printed table, a category under `mem`).
 
+22 November: the owner's ruling on Zemp Lite 0.2.1 entered from the shared notes on his word: register #203 (three panes on every place), the 0.2.1 row of the Zemp Specification, and step 45's reader test moved to the hosted 0.2.1. No engine change.
+
 **Next.** Step 11b `[engine]`: `at:` and `type: mem` for `reg`, and the adjusted prediction. Step 3, the weekly run of 23 November, when it has ended.
 
 **For the owner.** The printed table of `margins` (#202 (d)), shown at step 11a, is yours to change; #202 (a) to (e) are taken as recommended. #198, #199 and #200 and #201 (a) (taken as recommended, yours to overturn before 1.0; #201 (b) is open and yours: which standardized coefficients a `glm` fit has, refused until you choose; #200: `predict` gives a probability and `residuals` the outcome less it unless `type:` says otherwise, where R gives log-odds and deviance residuals): on a `glm` fit, clustered errors carry the factor (N − 1)/(N − k) that Stata's `logit` and R's `vcovCL` left to itself omit; analytic weights are refused on a binary model, as in Stata.

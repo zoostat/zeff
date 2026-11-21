@@ -6954,3 +6954,9 @@ Of the 10,360 mutants 359 did not compile. The 815 are 540 that no test failed u
 
 **Held by.** `packages/tier1/results/tests/margins.rs`: seven cases against R within 1e-8 (estimate, standard error, t, interval; p-value at 1e-6); a property over 48 generated frames, that without transformed terms each effect is the coefficient with its standard error, classical and robust; a snapshot of sixteen scripts, the printed forms under each kind of error, weights, fixed effects (equal to the same model with the effect as a category), a Bool, a 0/1 number, a power computed beforehand, a hinge, an omitted term, and every refusal.
 
+## 22 November 2026 — the owner's ruling on Zemp Lite 0.2.1, entered from the shared notes
+
+- *What was entered.* Register entry #203 (one layout of three panes on every place of Zemp Lite, at 0.2.1 on Zeff 0.8.0), with dated paragraphs in #174, #176 and #178 saying what it revises; the row of 0.2.1 in section 15 of the Zemp Specification and a sentence each in sections 5, 7 and 8; step 45 of the 0.9.0 checklist, whose reader test runs on the hosted 0.2.1. Logged in `docs/spec_changes.md`.
+- *On whose word.* The Zemp Lite session, which may not edit this repository, wrote the ruling up in the shared notes and asked for it to be entered. A normative change is not made on another session's report alone: the owner was asked in this session and answered "Yes, enter it". The register says both.
+- *Nothing in the engine changes.* Zemp Lite 0.2.1 is on Zeff 0.8.0; the outline it shows is its own reading of the comments until the language server's sections of step 28.
+
