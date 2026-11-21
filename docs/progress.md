@@ -66,6 +66,8 @@ Step 6 split into 6a and 6b. Step 6a `[engine]`: separation found before the fit
 
 Step 6b `[engine]`: a fit that converges with fitted probabilities numerically 0 or 1 is warned (W1008, a new code, R's rule and R's count on the reference file); the self-checks of a likelihood fit (a log-likelihood that never fell, a zero score, a sound variance) as Z9001. Step 6 is done.
 
-**Next.** Step 7 `[engine]`: robust and clustered errors, and weights, on `glm` (with W1001 and W1002). Step 3, the weekly run of 23 November, when it has ended.
+Step 7 split into 7a, 7b and 7c. Step 7a `[engine]`: the options a model shares with `reg` (`se:`, `cluster:`, `weights:`, their checks, lines and warnings) moved from `regress` to `zeff_results::options`, no output changed.
+
+**Next.** Step 7b `[engine]`: robust and clustered errors on `glm`, against R's `sandwich`. Step 3, the weekly run of 23 November, when it has ended.
 
 **For the owner to decide or do.** Nothing blocks. The R packages `marginaleffects`, `rstatix` and `pROC` for the reference library (and `ivmodel`, `ivDiag`), if he wants the references held to them; the signing key at step 23; the archive link of #161; the reader test at step 45.

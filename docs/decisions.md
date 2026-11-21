@@ -6836,3 +6836,10 @@ Of the 10,360 mutants 359 did not compile. The 815 are 540 that no test failed u
 
 **Held by.** The unit tests of `likelihood.rs` (a sound fit passes; a fall, a score that is not zero, an asymmetric variance, a negative and a missing variance each fail with their own words); `packages/tier2/glm/tests/glm.rs`: on `tests/datasets/extreme_regressor.csv` the estimates within 1e-9, the variance within 1e-8 and the log-likelihood within 1e-12 of R's with each link, the warning with R's count of rows where R warns, no warning on the wages, and a snapshot of the printed result.
 
+## 21 November 2026 — release 0.9.0, step 7a: the shared model options move to `results`
+
+- *Why.* `glm` takes `se:`, `cluster:`, `weights:`, `weight_type:` and `level:` as `reg` does (section 6 of the Language Reference: "Regression-type models"), and a model package may not call another (section 8.1, rule 5). What `reg` and `ivreg` shared inside `regress` therefore moves to tier 1: `zeff_results::options` holds `At`, `Choices`, `choices`, `checked_variance`, `se_line`, `observations`, `weights_line`, `cluster_and_weight_warnings` and the thresholds of W1001, W1002 and W1003. Step 7 is split in three (7a this move, 7b the errors on `glm`, 7c the weights).
+- *No behaviour changes.* The code is moved as written, with its messages; `reg` keeps what is its own (the fixed-effect work, the clusters reused from an effect, W1004 and W1006).
+
+**Held by.** Every snapshot and reference test of `reg` and `ivreg`, unchanged.
+

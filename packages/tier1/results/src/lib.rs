@@ -11,6 +11,7 @@ pub mod export;
 pub mod inference;
 pub mod interface;
 pub mod likelihood;
+pub mod options;
 pub mod report;
 pub mod summary;
 pub mod variance;
