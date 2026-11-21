@@ -3967,6 +3967,13 @@ impl<'a> Interpreter<'a> {
             Some(Some(Value::Frame(frame))) => Some(frame.clone()),
             // A method of a plot names the variables of the frame the plot draws.
             Some(Some(Value::Plot(plot))) => Some(plot.frame.clone()),
+            // A method of a fit names the variables of the frame the fit was computed on
+            // (`margins`; release 0.9.0, step 11a).
+            Some(Some(Value::Fit(fit))) => fit
+                .source
+                .as_ref()
+                .map(|source| source.frame.clone())
+                .or_else(|| enclosing.clone()),
             _ => enclosing.clone(),
         };
         if let Some(frame) = works_on {

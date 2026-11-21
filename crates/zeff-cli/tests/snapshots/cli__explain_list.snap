@@ -87,7 +87,7 @@ Z04xx  Arguments
     Z0414  a term that the result does not have
     Z0415  a restriction test cannot use
     Z0416  two regressions that cannot be compared
-    Z0417  a definition derive cannot differentiate
+    Z0417  a definition derive cannot differentiate, or an effect margins cannot take
     Z0418  a seq that cannot be built
     Z0419  a regular expression that cannot be read
     Z0420  a direction given to Fisher's exact test on a table larger than 2 × 2

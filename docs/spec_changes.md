@@ -818,3 +818,7 @@ The usage of `glm` gains the weights that section 6 of the Language Reference gi
 
 The usages `fit.predict(newdata: Frame)` and `fit.residuals()` had no way to say which of a likelihood fit's two scales of prediction and four kinds of residual is meant, though the 0.9.0 row of section 14 brings `glm` under the estimator interface. They now read `fit.predict(newdata: Frame, type: response | link = response)` and `fit.residuals(type: response | pearson | deviance | working = response)`. The defaults are the new #200, decided as recommended under the owner's standing instruction. The record of `fit_measures` (row 243, whose text already says "for any model ... R squared where defined") is, for a `glm` fit, the log-likelihood, AIC, BIC, deviance, null deviance and McFadden's R²; a regression's record is unchanged.
 
+## 21 November 2026 — zeff_language_reference.md, section 11.1, rows Z0414 and Z0417 (release 0.9.0, step 11a)
+
+The two rows named the result methods that existed when they were written. `margins`, which the 0.9.0 row of section 14 brings into the estimator interface, takes variables of the model, not terms, and has two refusals of its own; the rows now say so. Z0414 gains "`margins` raises it for a variable that no term of the model is a function of, and lists the model's variables". Z0417 gains "a variable whose effect `margins` cannot take (one that enters the model both as a number and as a category, or whose slope is not finite in some row)". No new code. The usage of row 260 is unchanged; `at:` and `type:` are registered at step 11b.
+

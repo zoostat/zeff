@@ -12,6 +12,7 @@ pub mod export;
 pub mod inference;
 pub mod interface;
 pub mod likelihood;
+pub mod margins;
 pub mod options;
 pub mod report;
 pub mod summary;
@@ -324,6 +325,37 @@ pub fn functions() -> Vec<Function> {
                 accuracy: None,
             },
             body: inference::derive,
+        },
+        Function {
+            spec: FunctionSpec {
+                name: "margins",
+                package: "results",
+                method: true,
+                params: vec![
+                    ParamSpec::required("fit", "RegFit | GlmFit"),
+                    ParamSpec::required("vars", "Vars"),
+                ],
+                rest: None,
+                returns: "TestResult",
+                diagnostics: vec![
+                    DiagnosticDecl::new(
+                        "Z0401",
+                        "a receiver that is not a `reg` or a `glm` fit, or `vars` that does not name variables",
+                    ),
+                    DiagnosticDecl::new("Z0406", "no variable named"),
+                    DiagnosticDecl::new(
+                        "Z0414",
+                        "a variable that no term of the model is a function of",
+                    ),
+                    DiagnosticDecl::new(
+                        "Z0417",
+                        "a variable whose effect cannot be computed: one that enters the model both as a number and as a category, or whose slope is not finite in some row",
+                    ),
+                ],
+                help: include_str!("../help/margins.md"),
+                accuracy: None,
+            },
+            body: margins::margins,
         },
         Function {
             spec: FunctionSpec {

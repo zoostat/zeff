@@ -13,7 +13,7 @@
 //! variable through anything else (a category made of it, a function that is not smooth) has no
 //! derivative, and says why.
 
-use crate::design::{Design, Part};
+use crate::design::{Design, Part, Source};
 use zeff_columns::{Column, ColumnType, Table};
 use zeff_core::operators::Op;
 use zeff_core::value::ColumnExpr;
@@ -119,7 +119,113 @@ pub enum NoDerivative {
     Transformed,
 }
 
+/// How a variable enters a model (release 0.9.0, step 11a): what its effect is, a slope or a
+/// difference between levels (open decision #88, definition (a)).
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum Role {
+    /// No column of the model is a function of it.
+    Absent,
+    /// Through numbers alone: the variable itself, or expressions over it.
+    Number,
+    /// As one category: the source that holds its codes, and its levels in the fit's order, the
+    /// first of them the base.
+    Category { source: usize, levels: Vec<String> },
+    /// In a way that gives no single effect: as a number in one term and a category in
+    /// another, in two categories, or in a category made of several variables. `through` is
+    /// the written form of the category.
+    Mixed { through: String },
+}
+
+/// The levels categories are held at, by source, in place of each row's own (release 0.9.0,
+/// step 11a): for a source held, one share for each of its levels, in their order. A share of
+/// one for a level and nought for the others sets every row to that level; the shares the
+/// levels have in the sample hold each indicator at its mean. A source with `None`, or beyond
+/// the end, keeps each row's own level.
+pub type Held = [Option<Vec<f64>>];
+
 impl Design {
+    /// How `variable` enters the model's columns.
+    pub fn role(&self, variable: &str) -> Role {
+        if self.dense.is_some() {
+            return Role::Absent;
+        }
+        let mut used: Vec<usize> = Vec::new();
+        for column in &self.columns {
+            for part in column.parts() {
+                let source = Design::source_of(part);
+                if !used.contains(&source) {
+                    used.push(source);
+                }
+            }
+        }
+        used.sort_unstable();
+        let mut number = false;
+        let mut categories: Vec<usize> = Vec::new();
+        for source in used {
+            let variables = self.origins[source].variables();
+            if !variables.iter().any(|v| v == variable) {
+                continue;
+            }
+            match &self.sources[source] {
+                Source::Numeric { .. } => number = true,
+                Source::Coded { .. } => categories.push(source),
+            }
+        }
+        match (number, categories.as_slice()) {
+            (false, []) => Role::Absent,
+            (true, []) => Role::Number,
+            (false, [source]) if self.origins[*source].variables().len() == 1 => {
+                match &self.sources[*source] {
+                    Source::Coded { levels, .. } => Role::Category {
+                        source: *source,
+                        levels: levels.clone(),
+                    },
+                    Source::Numeric { .. } => Role::Absent,
+                }
+            }
+            (_, [first, ..]) => Role::Mixed {
+                through: self.keys[*first].clone(),
+            },
+        }
+    }
+
+    /// The value of a part at the frame row `row`, a category held as `held` says.
+    fn part_value_held(&self, part: &Part, row: usize, held: &Held) -> f64 {
+        if let Part::Weighted { source, weights } = part
+            && let Some(Some(shares)) = held.get(*source)
+        {
+            // Σ over the levels of the level's share times its weight in this column, in the
+            // order of the levels.
+            let mut total = 0.0;
+            for (share, weight) in shares.iter().zip(weights) {
+                if *share != 0.0 {
+                    total += share * weight;
+                }
+            }
+            return total;
+        }
+        self.part_value(part, row)
+    }
+
+    /// The values of column `column` of `names` over the rows used, unweighted, the categories
+    /// of `held` held as it says.
+    pub fn column_held(&self, column: usize, held: &Held) -> Vec<f64> {
+        if self.dense.is_some() {
+            return self.column_values(column);
+        }
+        let parts = self.parts_of(column);
+        self.rows
+            .iter()
+            .map(|&row| {
+                let mut product = 1.0;
+                for part in parts {
+                    product *= self.part_value_held(part, row, held);
+                }
+                product
+            })
+            .collect()
+    }
+
     /// The parts of column `column` of `names`: none for the intercept.
     fn parts_of(&self, column: usize) -> &[Part] {
         let offset = usize::from(self.intercept);
@@ -208,6 +314,17 @@ impl Design {
         column: usize,
         variable: &str,
     ) -> Result<Option<Vec<f64>>, NoDerivative> {
+        self.derivative_held(column, variable, &[])
+    }
+
+    /// [`Design::derivative`] with the categories of `held` held as it says: the slope at a
+    /// level, or at the levels' shares, in place of each row's own level.
+    pub fn derivative_held(
+        &self,
+        column: usize,
+        variable: &str,
+        held: &Held,
+    ) -> Result<Option<Vec<f64>>, NoDerivative> {
         if self.dense.is_some() {
             return Err(NoDerivative::Transformed);
         }
@@ -235,7 +352,7 @@ impl Design {
             values.push(
                 self.rows
                     .iter()
-                    .map(|&row| self.part_value(part, row))
+                    .map(|&row| self.part_value_held(part, row, held))
                     .collect(),
             );
             if !dependent {

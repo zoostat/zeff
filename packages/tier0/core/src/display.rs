@@ -299,7 +299,11 @@ pub fn test_result_text(result: &TestResult, width: usize) -> String {
                 width,
             ));
         }
-        text.push('\n');
+        // A blank line sets the table apart from the lines under it; a result with none (the
+        // effects of `margins` with nothing to say of them) ends with its table.
+        if !test_result_after(result).is_empty() {
+            text.push('\n');
+        }
     }
     for line in test_result_after(result) {
         text.push_str(&line);

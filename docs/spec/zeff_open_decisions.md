@@ -124,6 +124,8 @@ Date: 17 October 2026 · Source: Zeff Specification section 15, Zemp Specificati
 
 **Status (21 November 2026, release 0.9.0, step 8c).** #201 is new, in two parts: what the `R²` row of `report` shows for a `glm` fit (McFadden's, marked; taken as recommended under the standing instruction), and which standardization `summary(standardized: true)` gives a `glm` fit (refused until the owner chooses; open, deadline 1.0).
 
+**Status (21 November 2026, release 0.9.0, step 11a).** #202 is new: five things the three definitions of `margins` in #88 leave unsaid, met when it was built for `reg`. Each is taken as recommended under the owner's standing instruction of 12 November 2026 and is his to overturn before 1.0: the average over the rows is weighted by the fit's weights; with no variable named `margins` gives the adjusted prediction (built at step 11b); after `reg` the p-values and intervals are from Student's t on the fit's degrees of freedom; the printed table, shown to him at this step; under `type: mem` a category is held at the shares of its levels (built at step 11b). Rows Z0414 and Z0417 of section 11.1 of the Language Reference are extended to `margins` (`docs/spec_changes.md`).
+
 ## Summary
 
 | # | Decision | Recommendation | Decide by |
@@ -215,6 +217,7 @@ Date: 17 October 2026 · Source: Zeff Specification section 15, Zemp Specificati
 | 85 | The Games–Howell comparison in `posthoc` | Add `games_howell` to `method:` in the first release after 0.7.0 with room; until then Tukey's HSD after Welch's ANOVA prints a note | decided 21 November 2026 (option A, on the recommendation); built at 0.9.0, step 29 |
 | 86 | Folding, snippets and the statement ranges behind **Run** in the language server | At 0.8.0, with Zemp's alpha; formatting through the server is built at 0.7.0 | decided 15 November 2026 (option A); built at 0.8.0, step 8b |
 | 87 | A variable name in an option record | Accept a `Vars` of exactly one variable where a parameter takes a `Var`, so that `{ se: robust, cluster: vars(firm) }` can be named once and spread | decided 15 November 2026 (option A); built at 0.8.0, step 4 |
+| 202 | `margins`: the average under weights, the call with no variable, the reference distribution, the printed table, a category under `type: mem` | Recommended A for each: the average weighted by the fit's weights; with no variable named, the adjusted prediction; Student's t on the fit's degrees of freedom after `reg`; the table of step 11a; a category held at the shares of its levels | (a), (c) and (d) decided at 0.9.0, step 11a, under the standing instruction (A), (d) shown to the owner; (b) and (e) built at step 11b; the owner's to overturn before 1.0 |
 | 201 | A `glm` fit in `report` and under `summary(standardized:)` | Recommended A for each: the `R²` row of `report` shows McFadden's R² marked `(McFadden)`; `standardized: true` is refused on a `glm` fit until a standardization is chosen | the first decided at 0.9.0, step 8c, under the standing instruction (A); the second open, deadline 1.0 |
 | 200 | What `predict` and `residuals` give a `glm` fit unless told | Recommended A: the scale of the outcome for both, `type: response`: a probability from `predict`, the outcome less the fitted probability from `residuals`; R's defaults (`link`, `deviance`) one word away | decided at 0.9.0, step 8a, under the standing instruction (A); the owner's to overturn before 1.0 |
 | 199 | Analytic weights on a binary model | Recommended A: `weight_type: analytic` is refused on `glm` with `family: binomial` (Z0410), as Stata refuses `aweight` on `logit`; frequency and sampling weights are taken | decided at 0.9.0, step 7c, under the standing instruction (A); the owner's to overturn before 1.0 |
@@ -3965,3 +3968,48 @@ Raised on 21 November 2026 at release 0.9.0, step 8c, when the tables of the res
 *Recommendation.* A, with the heading `beta (x)`, when the catalogue next opens; until the owner chooses, C is what the engine does (a refusal settles nothing). Deadline: 1.0.
 
 **Status (21 November 2026).** (b) is open: `standardized: true` is refused on a `glm` fit (Z0401).
+
+### 202. `margins`: what the definitions of #88 leave unsaid
+
+Raised on 21 November 2026 at release 0.9.0, step 11a, when `margins` was built for `reg`. The definitions decided at the opening of the release (#88, (a) to (d)) say what an effect is, that the regressors are held fixed, and what `type:` and `at:` mean. Five further points had to be settled to print a table.
+
+**(a) The average under weights.** A weighted fit stands for a population, or for more rows than the frame holds.
+
+| Option | For | Against |
+| --- | --- | --- |
+| A. The average over the rows is weighted by the fit's weights, of whatever kind | The average effect in the population the weights describe; with frequency weights, the average over the observations the rows stand for; what Stata's `margins` does | `marginaleffects` weights only when `wts = TRUE` is given, so its default differs |
+| B. Unweighted always | `marginaleffects`' default | After frequency weights the average is over the rows of the file, not over the observations; after sampling weights it describes the sample, not the population the fit describes |
+
+*Recommendation.* A. **Decided (21 November 2026, step 11a):** A, under the standing instruction.
+
+**(b) `margins` with no variable named.** The catalogue's row 260 says "marginal effects and adjusted predictions", and its usage has only `vars`, `at:` and `type:`.
+
+| Option | For | Against |
+| --- | --- | --- |
+| A. The adjusted prediction: the average of the predictions (`type: ame`) or the prediction at the means (`type: mem`), the variables of `at:` set to its values | Gives the catalogue's adjusted predictions a home without a new argument; Stata's reading (`margins` alone, `margins, at(...)`), where `dydx()` asks for effects | The effects of every variable need the variables listed |
+| B. The effects of every variable of the model | `marginaleffects::avg_slopes(m)`; one call for the whole table | Adjusted predictions then need an argument the catalogue does not have |
+| C. Refused: `vars` is required | Nothing to explain | The row's description promises adjusted predictions, and nothing gives them |
+
+*Recommendation.* A, built at step 11b with `at:`. Until then `vars` is required. **Decided (21 November 2026, step 11a):** A, under the standing instruction; built at step 11b.
+
+**(c) The reference distribution after `reg`.**
+
+| Option | For | Against |
+| --- | --- | --- |
+| A. Student's t on the fit's degrees of freedom (N − k, or G − 1 when clustered), as the fit's own table and `derive` | An effect that is one coefficient has the coefficient's own p-value and interval; Stata's `margins` after `regress` | `marginaleffects` uses the normal distribution unless `df =` is given |
+| B. The normal distribution | `marginaleffects`' default | The effect of `educ` in `y ~ educ` would have another interval than the coefficient of `educ` |
+
+*Recommendation.* A. After `glm` the reference is the normal distribution, as the fit's own table has it (step 12). **Decided (21 November 2026, step 11a):** A, under the standing instruction.
+
+**(d) The printed table.** One row for each effect: the variable; what is compared (`dy/dx` for a slope, `female − male` for a 0/1 variable with value labels, `true − false` for a Bool, `1 − 0` otherwise, `Mining − Agriculture` for a level against the first); then the columns of a fit's own table. Above it, the model, what the average is over, and the kind of standard error; under it, a line for each slope taken through more than the variable's own term (`the slope of exper is taken through exper and exper^2`). The result is a `TestResult`, read by `estimates`, `ci` and `p_values`; a row is named as the fit names the term (`exper`, `industry=Mining`), so that the names of a level's coefficient and of its effect are one. Alternatives: the term's name in the first column (wider by the length of the longest level, which wraps the table of a category of twelve levels); `effect` for the heading `contrast`. *Recommendation.* As built. **Shown to the owner at step 11a**, his to change.
+
+**(e) A category under `type: mem`.** Definition (c) of #88 says "at the means of the regressors"; a category has no mean.
+
+| Option | For | Against |
+| --- | --- | --- |
+| A. Each level's indicator at its mean, the share of the rows at that level; a 0/1 variable and a Bool at their means | "At the means" taken as written; Stata's `atmeans`; no row of the data need look like the point | The point is no observable case: 46 per cent female |
+| B. A category at its commonest level, numbers at their means | `marginaleffects`' `newdata = "mean"`; an observable case | Not the means; changes with a tie between levels; a 0/1 number is treated otherwise than a Bool |
+
+*Recommendation.* A, built at step 11b. **Decided (21 November 2026, step 11a):** A, under the standing instruction; built at step 11b.
+
+**Status (21 November 2026).** (a), (c) and (d) are built; (b) and (e) are built at step 11b. Deadline for the owner to overturn any: 1.0.

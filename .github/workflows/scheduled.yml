@@ -116,7 +116,7 @@ jobs:
             echo
             echo "## Nightly: truth recovery"
             echo
-            echo "Fifty seeds of 400 rows were drawn with the engine's generator under three designs with known coefficients (homoskedastic, heteroskedastic and clustered errors) and fitted by \`reg\` with classical, HC1 to HC3 and CR1 errors. Each coefficient's bias is within four standard errors of its Monte Carlo mean, and the 95 per cent intervals of the standard errors that suit each design cover between 89 and 99.5 per cent of the time (testing handbook, section 1)."
+            echo "Fifty seeds of 400 rows were drawn with the engine's generator under three designs with known coefficients (homoskedastic, heteroskedastic and clustered errors) and fitted by \`reg\` with classical, HC1 to HC3 and CR1 errors. Each coefficient's bias is within four standard errors of its Monte Carlo mean, and the 95 per cent intervals of the standard errors that suit each design cover between 89 and 99.5 per cent of the time (testing handbook, section 1). Then fifty seeds of 1,000 binary outcomes were drawn under each link, logit and probit, with independent rows and with rows alike within a hundred clusters, and fitted by \`glm\` with classical, HC1 to HC3 and clustered errors, under the same two bounds."
             echo
             echo '```'
             grep -vE "^(running|test |$)" truth.log || true

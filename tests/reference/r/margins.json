@@ -1,0 +1,519 @@
+{
+ "reference": {
+  "software": "R version 4.6.0 (2026-04-24)",
+  "note": "base R and sandwich; numbers written with 17 significant digits"
+ },
+ "cases": {
+  "quadratic": {
+   "formula": "log(wage) ~ educ + exper + exper^2 + female",
+   "se": "classical",
+   "cluster": "",
+   "weights": "",
+   "weight_type": "sampling",
+   "vars": [
+    "educ",
+    "exper",
+    "female"
+   ],
+   "nobs": 18179,
+   "df": 18174,
+   "rows": [
+    {
+     "term": "educ",
+     "contrast": "dy/dx",
+     "estimate": "0.075811196023382155",
+     "std_error": "0.0013585061284885759",
+     "t_value": "55.804824456498338",
+     "p_value": "0",
+     "ci_lower": "0.073148395599932067",
+     "ci_upper": "0.078473996446832242"
+    },
+    {
+     "term": "exper",
+     "contrast": "dy/dx",
+     "estimate": "0.022160286495268366",
+     "std_error": "0.00044941130055822765",
+     "t_value": "49.309588939446762",
+     "p_value": "0",
+     "ci_lower": "0.021279397865961187",
+     "ci_upper": "0.023041175124575545"
+    },
+    {
+     "term": "female",
+     "contrast": "1 − 0",
+     "estimate": "-0.13193582720535141",
+     "std_error": "0.0063942150745688814",
+     "t_value": "-20.63362362177768",
+     "p_value": "1.6142110207297957e-93",
+     "ci_lower": "-0.14446909315913553",
+     "ci_upper": "-0.11940256125156729"
+    }
+   ]
+  },
+  "interaction": {
+   "formula": "log(wage) ~ educ * female + exper + log(hours)",
+   "se": "HC1",
+   "cluster": "",
+   "weights": "",
+   "weight_type": "sampling",
+   "vars": [
+    "educ",
+    "female",
+    "hours",
+    "exper"
+   ],
+   "nobs": 18145,
+   "df": 18139,
+   "rows": [
+    {
+     "term": "educ",
+     "contrast": "dy/dx",
+     "estimate": "0.076031684300763305",
+     "std_error": "0.0013563928662596704",
+     "t_value": "56.054323339538747",
+     "p_value": "0",
+     "ci_lower": "0.07337302572936294",
+     "ci_upper": "0.078690342872163671"
+    },
+    {
+     "term": "female",
+     "contrast": "1 − 0",
+     "estimate": "-0.13273669880807848",
+     "std_error": "0.0065437419515298545",
+     "t_value": "-20.284525244313173",
+     "p_value": "1.7744641948621022e-90",
+     "ci_lower": "-0.14556305322296259",
+     "ci_upper": "-0.11991034439319437"
+    },
+    {
+     "term": "hours",
+     "contrast": "dy/dx",
+     "estimate": "2.9144448960632954e-05",
+     "std_error": "0.00038704235459888572",
+     "t_value": "0.075300412511279349",
+     "p_value": "0.93997652367577977",
+     "ci_lower": "-0.00072949524839111761",
+     "ci_upper": "0.00078778414631238346"
+    },
+    {
+     "term": "exper",
+     "contrast": "dy/dx",
+     "estimate": "0.021984633794880266",
+     "std_error": "0.00045219749081800873",
+     "t_value": "48.617328139328826",
+     "p_value": "0",
+     "ci_lower": "0.021098283855393869",
+     "ci_upper": "0.022870983734366662"
+    }
+   ]
+  },
+  "category": {
+   "formula": "log(wage) ~ industry * female + industry:educ + educ + exper",
+   "se": "cluster",
+   "cluster": "worker",
+   "weights": "",
+   "weight_type": "sampling",
+   "vars": [
+    "industry",
+    "female",
+    "educ"
+   ],
+   "nobs": 18179,
+   "df": 3910,
+   "rows": [
+    {
+     "term": "industry=Mining",
+     "contrast": "Mining − Agriculture",
+     "estimate": "0.15414367393029071",
+     "std_error": "0.057079726769603129",
+     "t_value": "2.7004977538255734",
+     "p_value": "0.0069534119174976886",
+     "ci_lower": "0.042234823320071516",
+     "ci_upper": "0.26605252454050993"
+    },
+    {
+     "term": "industry=Utilities",
+     "contrast": "Utilities − Agriculture",
+     "estimate": "0.18121334247911322",
+     "std_error": "0.049861014016009238",
+     "t_value": "3.6343693776650778",
+     "p_value": "0.00028224478838512565",
+     "ci_lower": "0.083457289943782903",
+     "ci_upper": "0.27896939501444351"
+    },
+    {
+     "term": "industry=Construction",
+     "contrast": "Construction − Agriculture",
+     "estimate": "0.20979699147574377",
+     "std_error": "0.039105620524892679",
+     "t_value": "5.3648807680266195",
+     "p_value": "8.5696163628837112e-08",
+     "ci_lower": "0.13312765031010515",
+     "ci_upper": "0.28646633264138238"
+    },
+    {
+     "term": "industry=Manufacturing",
+     "contrast": "Manufacturing − Agriculture",
+     "estimate": "0.19014932621286518",
+     "std_error": "0.037380959289436806",
+     "t_value": "5.0867963216395573",
+     "p_value": "3.8125608393366567e-07",
+     "ci_lower": "0.11686130565744801",
+     "ci_upper": "0.26343734676828234"
+    },
+    {
+     "term": "industry=Retail",
+     "contrast": "Retail − Agriculture",
+     "estimate": "0.11910277505220983",
+     "std_error": "0.037091549884008548",
+     "t_value": "3.2110487543568289",
+     "p_value": "0.0013332275142467049",
+     "ci_lower": "0.046382162151843154",
+     "ci_upper": "0.1918233879525765"
+    },
+    {
+     "term": "industry=Transport",
+     "contrast": "Transport − Agriculture",
+     "estimate": "0.11391912277296513",
+     "std_error": "0.041381296155411293",
+     "t_value": "2.7529133535385482",
+     "p_value": "0.0059340246833744668",
+     "ci_lower": "0.032788158215172475",
+     "ci_upper": "0.19505008733075779"
+    },
+    {
+     "term": "industry=Finance",
+     "contrast": "Finance − Agriculture",
+     "estimate": "0.24088968958898427",
+     "std_error": "0.040546052393299468",
+     "t_value": "5.9411379251508354",
+     "p_value": "3.0773844684618054e-09",
+     "ci_lower": "0.16139627963572883",
+     "ci_upper": "0.3203830995422397"
+    },
+    {
+     "term": "industry=Services",
+     "contrast": "Services − Agriculture",
+     "estimate": "0.059505223701352819",
+     "std_error": "0.037663239579462077",
+     "t_value": "1.579928449219256",
+     "p_value": "0.11420414045633313",
+     "ci_lower": "-0.014336227372997196",
+     "ci_upper": "0.13334667477570283"
+    },
+    {
+     "term": "industry=Education",
+     "contrast": "Education − Agriculture",
+     "estimate": "0.17285598395930035",
+     "std_error": "0.039732088326638645",
+     "t_value": "4.3505386008972478",
+     "p_value": "1.3926949413136821e-05",
+     "ci_lower": "0.094958408259171373",
+     "ci_upper": "0.25075355965942936"
+    },
+    {
+     "term": "industry=Health",
+     "contrast": "Health − Agriculture",
+     "estimate": "0.17443788006577116",
+     "std_error": "0.038452394348020939",
+     "t_value": "4.5364634120566567",
+     "p_value": "5.8921840185989043e-06",
+     "ci_lower": "0.099049235125909754",
+     "ci_upper": "0.24982652500563257"
+    },
+    {
+     "term": "industry=Public administration",
+     "contrast": "Public administration − Agriculture",
+     "estimate": "0.24565549906759726",
+     "std_error": "0.0392330405609825",
+     "t_value": "6.2614443223119229",
+     "p_value": "4.2262476496522684e-10",
+     "ci_lower": "0.16873634188862907",
+     "ci_upper": "0.32257465624656545"
+    },
+    {
+     "term": "female",
+     "contrast": "1 − 0",
+     "estimate": "-0.13253102561945104",
+     "std_error": "0.012033379612788275",
+     "t_value": "-11.013616281049249",
+     "p_value": "8.385265345800019e-28",
+     "ci_lower": "-0.15612331937480084",
+     "ci_upper": "-0.10893873186410125"
+    },
+    {
+     "term": "educ",
+     "contrast": "dy/dx",
+     "estimate": "0.07564389836182428",
+     "std_error": "0.0025204035334367549",
+     "t_value": "30.012613995457418",
+     "p_value": "2.8020130102184946e-178",
+     "ci_lower": "0.070702468567681559",
+     "ci_upper": "0.080585328155967001"
+    }
+   ]
+  },
+  "functions": {
+   "formula": "log(wage) ~ log(hours) + sqrt(exper + 1) + educ:exper + (educ / (exper + 1)^0.5)",
+   "se": "HC3",
+   "cluster": "",
+   "weights": "",
+   "weight_type": "sampling",
+   "vars": [
+    "hours",
+    "exper",
+    "educ"
+   ],
+   "nobs": 18145,
+   "df": 18140,
+   "rows": [
+    {
+     "term": "hours",
+     "contrast": "dy/dx",
+     "estimate": "0.0013621836288666947",
+     "std_error": "0.00038852500258523359",
+     "t_value": "3.5060385298314554",
+     "p_value": "0.00045592775620835403",
+     "ci_lower": "0.00060063780374370571",
+     "ci_upper": "0.0021237294539896839"
+    },
+    {
+     "term": "exper",
+     "contrast": "dy/dx",
+     "estimate": "0.019479636606997662",
+     "std_error": "0.00055507985463328763",
+     "t_value": "35.093395021274631",
+     "p_value": "4.2722747631709202e-261",
+     "ci_lower": "0.018391627487653738",
+     "ci_upper": "0.020567645726341587"
+    },
+    {
+     "term": "educ",
+     "contrast": "dy/dx",
+     "estimate": "0.059761330647554047",
+     "std_error": "0.0012194741137552094",
+     "t_value": "49.005821422093931",
+     "p_value": "0",
+     "ci_lower": "0.057371045816471386",
+     "ci_upper": "0.062151615478636707"
+    }
+   ]
+  },
+  "sum_contrast": {
+   "formula": "log(wage) ~ category(industry, contrast: sum) * female + educ",
+   "se": "classical",
+   "cluster": "",
+   "weights": "",
+   "weight_type": "sampling",
+   "vars": [
+    "industry",
+    "female"
+   ],
+   "nobs": 18201,
+   "df": 18176,
+   "rows": [
+    {
+     "term": "industry=Mining",
+     "contrast": "Mining − Agriculture",
+     "estimate": "0.21682702666071912",
+     "std_error": "0.037984249424197189",
+     "t_value": "5.7083404291936155",
+     "p_value": "1.1586181747126243e-08",
+     "ci_lower": "0.14237430790672953",
+     "ci_upper": "0.29127974541470869"
+    },
+    {
+     "term": "industry=Utilities",
+     "contrast": "Utilities − Agriculture",
+     "estimate": "0.23428258778605054",
+     "std_error": "0.03125406197155927",
+     "t_value": "7.4960684470147978",
+     "p_value": "6.8778375666149572e-14",
+     "ci_lower": "0.17302167250767936",
+     "ci_upper": "0.29554350306442173"
+    },
+    {
+     "term": "industry=Construction",
+     "contrast": "Construction − Agriculture",
+     "estimate": "0.24153379883548221",
+     "std_error": "0.023159057489843558",
+     "t_value": "10.429344930872391",
+     "p_value": "2.1482601917736727e-25",
+     "ci_lower": "0.19613985739826131",
+     "ci_upper": "0.28692774027270307"
+    },
+    {
+     "term": "industry=Manufacturing",
+     "contrast": "Manufacturing − Agriculture",
+     "estimate": "0.2155889782525674",
+     "std_error": "0.021799656725484215",
+     "t_value": "9.8895583984375204",
+     "p_value": "5.2819547720480364e-23",
+     "ci_lower": "0.17285959079014032",
+     "ci_upper": "0.25831836571499445"
+    },
+    {
+     "term": "industry=Retail",
+     "contrast": "Retail − Agriculture",
+     "estimate": "0.14337071552674691",
+     "std_error": "0.021597613629052752",
+     "t_value": "6.6382665228294941",
+     "p_value": "3.2636219975061447e-11",
+     "ci_lower": "0.10103735162837146",
+     "ci_upper": "0.18570407942512235"
+    },
+    {
+     "term": "industry=Transport",
+     "contrast": "Transport − Agriculture",
+     "estimate": "0.17235642931295841",
+     "std_error": "0.024693605388139021",
+     "t_value": "6.9798000981965025",
+     "p_value": "3.0579701701888795e-12",
+     "ci_lower": "0.12395462896531409",
+     "ci_upper": "0.22075822966060274"
+    },
+    {
+     "term": "industry=Finance",
+     "contrast": "Finance − Agriculture",
+     "estimate": "0.28237073414433639",
+     "std_error": "0.022968400262165775",
+     "t_value": "12.293879021668992",
+     "p_value": "1.3409111705191827e-34",
+     "ci_lower": "0.23735049889233412",
+     "ci_upper": "0.32739096939633866"
+    },
+    {
+     "term": "industry=Services",
+     "contrast": "Services − Agriculture",
+     "estimate": "0.095435440420058082",
+     "std_error": "0.021743545488956885",
+     "t_value": "4.3891388581741575",
+     "p_value": "1.1444186281288701e-05",
+     "ci_lower": "0.052816036284284468",
+     "ci_upper": "0.1380548445558317"
+    },
+    {
+     "term": "industry=Education",
+     "contrast": "Education − Agriculture",
+     "estimate": "0.20813924160404385",
+     "std_error": "0.022770384297695193",
+     "t_value": "9.140787387813722",
+     "p_value": "6.8383590860797031e-20",
+     "ci_lower": "0.16350713635684658",
+     "ci_upper": "0.25277134685124109"
+    },
+    {
+     "term": "industry=Health",
+     "contrast": "Health − Agriculture",
+     "estimate": "0.20454044991094755",
+     "std_error": "0.022213861349636228",
+     "t_value": "9.2077845761064445",
+     "p_value": "3.6826203728328469e-20",
+     "ci_lower": "0.16099918223880003",
+     "ci_upper": "0.24808171758309508"
+    },
+    {
+     "term": "industry=Public administration",
+     "contrast": "Public administration − Agriculture",
+     "estimate": "0.26924815772460919",
+     "std_error": "0.023250231984596369",
+     "t_value": "11.58045037584959",
+     "p_value": "6.6466345001792234e-31",
+     "ci_lower": "0.22367550566079253",
+     "ci_upper": "0.31482080978842586"
+    },
+    {
+     "term": "female",
+     "contrast": "1 − 0",
+     "estimate": "-0.14000043819804089",
+     "std_error": "0.0067701218236585169",
+     "t_value": "-20.679160854802142",
+     "p_value": "6.4234840009900647e-94",
+     "ci_lower": "-0.15327051681504777",
+     "ci_upper": "-0.12673035958103401"
+    }
+   ]
+  },
+  "sampling": {
+   "formula": "log(wage) ~ educ * female + exper + exper^2",
+   "se": "HC1",
+   "cluster": "",
+   "weights": "hours",
+   "weight_type": "sampling",
+   "vars": [
+    "educ",
+    "female",
+    "exper"
+   ],
+   "nobs": 18145,
+   "df": 18139,
+   "rows": [
+    {
+     "term": "educ",
+     "contrast": "dy/dx",
+     "estimate": "0.075695046045420239",
+     "std_error": "0.0013801147006019946",
+     "t_value": "54.84692396393045",
+     "p_value": "0",
+     "ci_lower": "0.072989890430447624",
+     "ci_upper": "0.078400201660392854"
+    },
+    {
+     "term": "female",
+     "contrast": "1 − 0",
+     "estimate": "-0.13068923320997111",
+     "std_error": "0.0065395249565110228",
+     "t_value": "-19.984514789541628",
+     "p_value": "6.6282269772178712e-88",
+     "ci_lower": "-0.14350732191494828",
+     "ci_upper": "-0.11787114450499395"
+    },
+    {
+     "term": "exper",
+     "contrast": "dy/dx",
+     "estimate": "0.021949250566086025",
+     "std_error": "0.00045826809570532042",
+     "t_value": "47.896091331219409",
+     "p_value": "0",
+     "ci_lower": "0.021051001665672663",
+     "ci_upper": "0.022847499466499388"
+    }
+   ]
+  },
+  "frequency": {
+   "formula": "log(wage) ~ exper + exper^2 + female + female:exper",
+   "se": "classical",
+   "cluster": "",
+   "weights": "educ",
+   "weight_type": "frequency",
+   "vars": [
+    "exper",
+    "female"
+   ],
+   "nobs": 245191,
+   "df": 245186,
+   "rows": [
+    {
+     "term": "exper",
+     "contrast": "dy/dx",
+     "estimate": "0.01485760346529178",
+     "std_error": "0.0001254400897035214",
+     "t_value": "118.44382047563771",
+     "p_value": "0",
+     "ci_lower": "0.014611744193567184",
+     "ci_upper": "0.015103462737016375"
+    },
+    {
+     "term": "female",
+     "contrast": "1 − 0",
+     "estimate": "-0.13234979976050176",
+     "std_error": "0.0018786184474692002",
+     "t_value": "-70.450601578408921",
+     "p_value": "0",
+     "ci_lower": "-0.1360318424346964",
+     "ci_upper": "-0.12866775708630712"
+    }
+   ]
+  }
+ }
+}

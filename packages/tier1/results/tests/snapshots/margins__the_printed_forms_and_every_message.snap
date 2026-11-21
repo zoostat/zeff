@@ -1,0 +1,356 @@
+---
+source: packages/tier1/results/tests/margins.rs
+expression: out
+---
+=== let wages = dataset(wages)
+let m = wages.reg(log(wage) ~ educ + exper + exper^2 + female + industry, se: robust)
+m.margins([educ, exper, female, industry])
+m.margins(exper)
+let e = m.margins([exper, industry])
+e.estimates()
+e.ci()
+e.p_values("industry=Mining")
+e.p_values(exper)
+e.n_obs()
+type_of(e) ===
+margins · m · average marginal effects
+reg · log(wage) ~ educ + exper + exper^2 + female + industry
+averaged over the 18,179 observations the fit used
+standard errors: robust (HC1), by the delta method
+
+  variable   contrast                              estimate   std.error   t value   p value   95% CI
+  educ       dy/dx                                   0.0757      0.0013     56.45    <0.001   [0.0730, 0.0783]
+  exper      dy/dx                                   0.0221      0.0004     49.98    <0.001   [0.0212, 0.0230]
+  female     female − male                          -0.1319      0.0063    -20.79    <0.001   [-0.1443, -0.1194]
+  industry   Mining − Agriculture                    0.1504      0.0322      4.67    <0.001   [0.0873, 0.2136]
+  industry   Utilities − Agriculture                 0.1875      0.0278      6.74    <0.001   [0.1330, 0.2420]
+  industry   Construction − Agriculture              0.1963      0.0213      9.24    <0.001   [0.1547, 0.2380]
+  industry   Manufacturing − Agriculture             0.1795      0.0201      8.93    <0.001   [0.1401, 0.2188]
+  industry   Retail − Agriculture                    0.1111      0.0199      5.59    <0.001   [0.0721, 0.1501]
+  industry   Transport − Agriculture                 0.1020      0.0225      4.53    <0.001   [0.0579, 0.1461]
+  industry   Finance − Agriculture                   0.2363      0.0214     11.06    <0.001   [0.1944, 0.2781]
+  industry   Services − Agriculture                  0.0505      0.0201      2.52     0.012   [0.0112, 0.0899]
+  industry   Education − Agriculture                 0.1666      0.0210      7.92    <0.001   [0.1254, 0.2079]
+  industry   Health − Agriculture                    0.1686      0.0206      8.19    <0.001   [0.1283, 0.2090]
+  industry   Public administration − Agriculture     0.2381      0.0212     11.21    <0.001   [0.1964, 0.2797]
+
+the slope of `exper` is taken through `exper` and `exper^2`
+margins · m · average marginal effects
+reg · log(wage) ~ educ + exper + exper^2 + female + industry
+averaged over the 18,179 observations the fit used
+standard errors: robust (HC1), by the delta method
+
+  variable   contrast   estimate   std.error   t value   p value   95% CI
+  exper      dy/dx        0.0221      0.0004     49.98    <0.001   [0.0212, 0.0230]
+
+the slope of `exper` is taken through `exper` and `exper^2`
+frame · 12 rows × 9 variables
+
+       term                      estimate     std_error   statistic      df   df2       p_value    ci_lower
+   1   exper                    0.0220963   0.000442105     49.9796   18163    NA             0   0.0212297
+   2   industry=Mining           0.150438     0.0322086     4.67073   18163    NA    3.0228e-06   0.0873059
+   3   industry=Utilities        0.187486     0.0278083     6.74209   18163    NA   1.60817e-11    0.132979
+   4   industry=Construction     0.196328     0.0212576     9.23565   18163    NA   2.84324e-20    0.154661
+   5   industry=Manufacturing    0.179454     0.0200853      8.9346   18163    NA   4.46962e-19    0.140085
+   6   industry=Retail           0.111107     0.0198795     5.58903   18163    NA   2.31627e-08   0.0721412
+   7   industry=Transport        0.101977      0.022496      4.5331   18163    NA   5.84948e-06   0.0578823
+   8   industry=Finance          0.236252     0.0213687      11.056   18163    NA   2.52451e-28    0.194368
+   9   industry=Services        0.0505403     0.0200786     2.51713   18163    NA     0.0118402   0.0111844
+  10   industry=Education        0.166638      0.021041     7.91966   18163    NA   2.51819e-15    0.125395
+
+        ci_upper
+   1   0.0229628
+   2     0.21357
+   3    0.241993
+   4    0.237995
+   5    0.218823
+   6    0.150072
+   7    0.146071
+   8    0.278137
+   9   0.0898962
+  10     0.20788
+  … and 2 more rows
+ci · 95%
+
+  term                              lower    upper
+  exper                            0.0212   0.0230
+  industry=Mining                  0.0873   0.2136
+  industry=Utilities               0.1330   0.2420
+  industry=Construction            0.1547   0.2380
+  industry=Manufacturing           0.1401   0.2188
+  industry=Retail                  0.0721   0.1501
+  industry=Transport               0.0579   0.1461
+  industry=Finance                 0.1944   0.2781
+  industry=Services                0.0112   0.0899
+  industry=Education               0.1254   0.2079
+  industry=Health                  0.1283   0.2090
+  industry=Public administration   0.1964   0.2797
+3.0228e-06
+0
+18179
+TestResult
+--- messages ---
+[exit 0]
+
+=== let wages = dataset(wages)
+let c = wages.reg(log(wage) ~ educ * female + exper, cluster: worker, level: 0.9)
+c.margins([educ, female])
+wages.reg(log(wage) ~ educ * female + exper).margins([female, educ, female]) ===
+margins · c · average marginal effects
+reg · log(wage) ~ educ * female + exper
+averaged over the 18,179 observations the fit used
+standard errors: clustered by worker (3,911 clusters, CR1), by the delta method
+
+  variable   contrast        estimate   std.error   t value   p value   90% CI
+  educ       dy/dx             0.0760      0.0026     29.75    <0.001   [0.0718, 0.0802]
+  female     female − male    -0.1329      0.0122    -10.86    <0.001   [-0.1531, -0.1128]
+
+the slope of `educ` is taken through `educ` and `educ:female`
+margins · log(wage) ~ educ * female + exper · average marginal effects
+averaged over the 18,179 observations the fit used
+standard errors: classical, by the delta method
+
+  variable   contrast        estimate   std.error   t value   p value   95% CI
+  female     female − male    -0.1329      0.0064    -20.69    <0.001   [-0.1455, -0.1203]
+  educ       dy/dx             0.0760      0.0014     55.70    <0.001   [0.0734, 0.0787]
+
+the slope of `educ` is taken through `educ` and `educ:female`
+--- messages ---
+note: 33 of the 3,911 clusters hold one observation (line 2)
+[exit 0]
+
+=== let wages = dataset(wages)
+wages.reg(log(wage) ~ educ * female + exper, weights: hours).margins([educ, female])
+wages.reg(log(wage) ~ exper + exper^2 + female, weights: educ, weight_type: frequency).margins(exper)
+wages.reg(log(wage) ~ educ + exper + exper^2 + female, fe: firm).margins([exper, female])
+wages.reg(log(wage) ~ educ + exper + exper^2 + female + category(firm)).margins([exper, female]) ===
+margins · log(wage) ~ educ * female + exper · average marginal effects
+averaged over the 18,145 observations the fit used, weighted by `hours`
+standard errors: robust (HC1), by the delta method
+
+  variable   contrast        estimate   std.error   t value   p value   95% CI
+  educ       dy/dx             0.0759      0.0014     54.88    <0.001   [0.0732, 0.0786]
+  female     female − male    -0.1316      0.0066    -20.03    <0.001   [-0.1445, -0.1187]
+
+the slope of `educ` is taken through `educ` and `educ:female`
+margins · log(wage) ~ exper + exper^2 + female · average marginal effects
+averaged over the 245,191 observations the fit used, the rows counted by `educ`
+standard errors: classical, by the delta method
+
+  variable   contrast   estimate   std.error   t value   p value   95% CI
+  exper      dy/dx        0.0149      0.0001    118.50    <0.001   [0.0146, 0.0151]
+
+the slope of `exper` is taken through `exper` and `exper^2`
+margins · log(wage) ~ educ + exper + exper^2 + female · average marginal effects
+averaged over the 18,179 observations the fit used
+standard errors: classical, by the delta method
+
+  variable   contrast        estimate   std.error   t value   p value   95% CI
+  exper      dy/dx             0.0222      0.0005     48.50    <0.001   [0.0213, 0.0230]
+  female     female − male    -0.1294      0.0066    -19.64    <0.001   [-0.1423, -0.1165]
+
+the slope of `exper` is taken through `exper` and `exper^2`
+margins · log(wage) ~ educ + exper + exper^2 + female + category(firm) · average marginal effects
+averaged over the 18,179 observations the fit used
+standard errors: classical, by the delta method
+
+  variable   contrast        estimate   std.error   t value   p value   95% CI
+  exper      dy/dx             0.0222      0.0005     48.50    <0.001   [0.0213, 0.0230]
+  female     female − male    -0.1294      0.0066    -19.64    <0.001   [-0.1423, -0.1165]
+
+the slope of `exper` is taken through `exper` and `exper^2`
+--- messages ---
+[exit 0]
+
+=== let wages = dataset(wages)
+let w = wages.add(long = hours > 40, f = to(female, Int) * 1, exper2 = exper^2)
+w.reg(log(wage) ~ educ + long + f).margins([long, f])
+w.reg(log(wage) ~ educ + exper + exper2).margins(exper)
+w.reg(log(wage) ~ educ + hours + max(hours - 40, 0)).margins(hours) ===
+margins · log(wage) ~ educ + long + f · average marginal effects
+averaged over the 18,167 observations the fit used
+standard errors: classical, by the delta method
+
+  variable   contrast       estimate   std.error   t value   p value   95% CI
+  long       true − false     0.0033      0.0070      0.46     0.643   [-0.0105, 0.0170]
+  f          1 − 0           -0.1396      0.0069    -20.23    <0.001   [-0.1531, -0.1260]
+margins · log(wage) ~ educ + exper + exper2 · average marginal effects
+averaged over the 18,179 observations the fit used
+standard errors: classical, by the delta method
+
+  variable   contrast   estimate   std.error   t value   p value   95% CI
+  exper      dy/dx        0.0427      0.0016     26.45    <0.001   [0.0395, 0.0458]
+margins · log(wage) ~ educ + hours + max(hours - 40, 0) · average marginal effects
+averaged over the 18,167 observations the fit used
+standard errors: classical, by the delta method
+
+  variable   contrast   estimate   std.error   t value   p value   95% CI
+  hours      dy/dx        0.0015      0.0004      3.63    <0.001   [0.0007, 0.0024]
+
+the slope of `hours` is taken through `hours` and `max(hours - 40, 0)`
+the slope of `hours` through `max(hours - 40, 0)` is a central difference with a step of 0.00042, right where the term is smooth
+--- messages ---
+[exit 0]
+
+=== let wages = dataset(wages)
+let w = wages.add(twice = educ * 2)
+let m = w.reg(log(wage) ~ educ + twice + female)
+m.margins([educ, twice, female]) ===
+margins · m · average marginal effects
+reg · log(wage) ~ educ + twice + female
+averaged over the 18,201 observations the fit used
+standard errors: classical, by the delta method
+
+  variable   contrast        estimate   std.error   t value   p value   95% CI
+  educ       dy/dx             0.0545      0.0014     39.71    <0.001   [0.0518, 0.0572]
+  twice      dy/dx                 NA          NA        NA        NA   NA
+  female     female − male    -0.1402      0.0068    -20.52    <0.001   [-0.1535, -0.1268]
+
+`twice` rests on a term the fit omitted as collinear, so it is not estimable
+--- messages ---
+note: `twice` is collinear with the columns before it and was dropped (line 3)
+[exit 0]
+
+=== let wages = dataset(wages)
+let m = wages.reg(log(wage) ~ educ + exper + female)
+m.margins(hours) ===
+--- messages ---
+error[Z0414]: `hours` is not a variable of this model
+ --> scripts/main.zeff:3:11
+  |
+3 | m.margins(hours)
+  |           ^^^^^ no term of the model is a function of it
+  |
+  = help: the variables of the model are `educ`, `exper`, `female`
+[exit 1]
+
+=== let wages = dataset(wages)
+let m = wages.reg(log(wage) ~ educ + exper + female)
+m.margins(expr) ===
+--- messages ---
+error[Z0414]: `expr` is not a variable of this model
+ --> scripts/main.zeff:3:11
+  |
+3 | m.margins(expr)
+  |           ^^^^ no term of the model is a function of it
+  |
+  = help: did you mean `exper`? the variables of the model are `educ`, `exper`, `female`
+[exit 1]
+
+=== let wages = dataset(wages)
+let m = wages.reg(log(wage) ~ educ + exper + female)
+m.margins() ===
+--- messages ---
+error[Z0406]: `margins` needs `vars`
+ --> scripts/main.zeff:3:3
+  |
+3 | m.margins()
+  |   ^^^^^^^ `vars` is missing
+  |
+  = help: usage: `fit.margins(vars)`
+[exit 1]
+
+=== let wages = dataset(wages)
+let m = wages.reg(log(wage) ~ educ + exper + female)
+m.margins("educ") ===
+--- messages ---
+error[Z0401]: `vars` of `margins` must be a Vars, but this is a Str
+ --> scripts/main.zeff:3:11
+  |
+3 | m.margins("educ")
+  |           ^^^^^^ a Str
+  |
+  = help: name the variables in a list, as in `[lwage, educ]`
+[exit 1]
+
+=== let wages = dataset(wages)
+let m = wages.reg(log(wage) ~ educ + exper + female)
+m.margins([]) ===
+--- messages ---
+error[Z0219]: `[]` alone has no type
+ --> scripts/main.zeff:3:11
+  |
+3 | m.margins([])
+  |           ^^ an empty list of what?
+  |
+  = help: where a parameter takes the list, its type is known; elsewhere give one value
+[exit 1]
+
+=== let wages = dataset(wages)
+let m = wages.reg(log(wage) ~ educ + category(educ) + female)
+m.margins(educ) ===
+--- messages ---
+note: `educ=20` is collinear with the columns before it and was dropped (line 2)
+error[Z0417]: `margins` cannot take the effect of `educ`: it enters the model through the category `category(educ)` and through another term, so no one difference or slope is its effect
+ --> scripts/main.zeff:3:11
+  |
+3 | m.margins(educ)
+  |           ^^^^ no effect of this variable
+  |
+  = help: `margins` takes the slope of a number through arithmetic and the functions of `core`, and the difference between the levels of a category
+[exit 1]
+
+=== let wages = dataset(wages)
+let m = wages.reg(log(wage) ~ educ + sqrt(exper) + female)
+m.margins(exper) ===
+--- messages ---
+error[Z0417]: `margins` cannot take the effect of `exper`: the slope of `sqrt(exper)` is not finite in some row the fit used
+ --> scripts/main.zeff:3:11
+  |
+3 | m.margins(exper)
+  |           ^^^^^ no effect of this variable
+  |
+  = help: `margins` takes the slope of a number through arithmetic and the functions of `core`, and the difference between the levels of a category
+[exit 1]
+
+=== let wages = dataset(wages)
+let m = wages.reg(log(wage) ~ educ + exper + female)
+m.test(educ == 0).margins(educ) ===
+--- messages ---
+error[Z0401]: `margins` cannot be called on a TestResult
+ --> scripts/main.zeff:3:1
+  |
+3 | m.test(educ == 0).margins(educ)
+  | ^^^^^^^^^^^^^^^^^ this is a TestResult
+  |
+  = help: `margins` takes a RegFit or GlmFit first; `x.margins(...)` is `margins(x, ...)`
+[exit 1]
+
+=== let wages = dataset(wages)
+let g = wages.glm(union ~ educ + exper, family: binomial)
+g.margins(educ) ===
+--- messages ---
+error[Z0401]: `margins` does not yet read a `glm` fit
+ --> scripts/main.zeff:3:1
+  |
+3 | g.margins(educ)
+  | ^ a `glm` fit
+  |
+  = help: the effects of a binary model, on the scale of the probability, arrive with the next step of this release
+[exit 1]
+
+=== let wages = dataset(wages)
+let v = wages.ivreg(log(wage) ~ educ + exper, instruments: educ ~ age)
+v.margins(exper) ===
+--- messages ---
+error[Z0401]: `margins` cannot be called on an IvFit
+ --> scripts/main.zeff:3:1
+  |
+3 | v.margins(exper)
+  | ^ this is an IvFit
+  |
+  = help: `margins` takes a RegFit or GlmFit first; `x.margins(...)` is `margins(x, ...)`
+[exit 1]
+
+=== let wages = dataset(wages)
+let m = wages.reg(log(wage) ~ educ + exper + female)
+m.margins(educ).p_values(exper) ===
+--- messages ---
+error[Z0414]: `exper` is not a row of this table
+ --> scripts/main.zeff:3:26
+  |
+3 | m.margins(educ).p_values(exper)
+  |                          ^^^^^ unknown row
+  |
+  = help: the rows are `educ`; without a name the method gives the figure of the whole test
+[exit 1]
