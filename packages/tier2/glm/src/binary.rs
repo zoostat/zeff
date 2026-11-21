@@ -17,13 +17,31 @@ use zeff_kernels::triangular::{inverse_upper, solve_upper_transposed};
 use zeff_kernels::{LaneSum, Matrix, sum};
 use zeff_results::design::Design;
 use zeff_results::estimator::Fitted;
-use zeff_results::likelihood::{Binomial, Likelihood, Link, self_check};
+use zeff_results::likelihood::{AtMaximum, Binomial, Likelihood, Link, self_check};
+use zeff_results::options::{
+    At, Choices, checked_variance, choices, cluster_and_weight_warnings, clusters_of, se_line,
+};
 use zeff_results::summary::{self, Setting, dropped_notes, n_note};
+use zeff_results::variance::{Kind, variance};
 
 /// The places of the arguments, as `functions()` declares them.
 const FAMILY: usize = 2;
 const LINK: usize = 3;
-const LEVEL: usize = 4;
+const SE: usize = 4;
+const CLUSTER: usize = 5;
+const LEVEL: usize = 6;
+/// The place of an option `glm` does not take yet: no argument is there.
+const NOT_YET: usize = usize::MAX;
+
+/// The options `glm` shares with `reg`, among its arguments; `weights:` and `weight_type:`
+/// arrive with step 7c.
+const GLM_AT: At = At {
+    se: SE,
+    cluster: CLUSTER,
+    weights: NOT_YET,
+    weight_type: NOT_YET,
+    level: LEVEL,
+};
 
 /// The pivot tolerance of section 7.2, the one `reg` uses: a column whose remaining norm is below
 /// this share of its own norm is collinear with the columns before it.
@@ -158,22 +176,13 @@ pub fn glm_with(ctx: &mut CallContext<'_>, args: Args, control: &Control) -> Res
         Some(Value::Word(word)) if word == "probit" => Link::Probit,
         _ => Link::Logit,
     };
-    let level = match args.get(LEVEL) {
-        Some(Value::Float(level)) => *level,
-        Some(Value::Int(level)) => *level as f64,
-        _ => 0.95,
-    };
-    if !(level > 0.0 && level < 1.0) {
-        return Err(fail(
-            Diagnostic::error(
-                "Z0401",
-                format!("`level:` is a probability strictly between 0 and 1, but this is {level}"),
-            )
-            .in_file(ctx.script)
-            .primary(ctx.span_of(LEVEL), "not a confidence level")
-            .help("the usual levels are 0.9, 0.95 and 0.99"),
-        ));
-    }
+    // The options shared with `reg`, read and checked as `reg` checks them.
+    let Choices {
+        cluster,
+        kind,
+        level,
+        ..
+    } = choices(ctx, &args, &GLM_AT, 0)?;
 
     // A category on the left of `~` is refused here rather than by the design, so that the
     // help writes the 0/1 outcome `glm` takes.
@@ -198,7 +207,9 @@ pub fn glm_with(ctx: &mut CallContext<'_>, args: Args, control: &Control) -> Res
         ));
     }
 
-    let design = Design::build(ctx, &frame, &formula, &[])?;
+    // The cluster variable is given to the design, so that a row where it is `NA` is left out.
+    let extra: Vec<&str> = cluster.iter().map(String::as_str).collect();
+    let design = Design::build(ctx, &frame, &formula, &extra)?;
     let n = design.n();
     if n == 0 {
         let message = if design.dropped == 0 {
@@ -460,17 +471,53 @@ pub fn glm_with(ctx: &mut CallContext<'_>, args: Args, control: &Control) -> Res
 
     // The classical variance: the inverse of the expected information, S R⁻¹ R⁻ᵀ S.
     let inverse = inverse_upper(&solution.r).map_err(|_| internal(ctx, "a zero pivot"))?;
-    let vcov = Matrix::from_fn(k, k, |i, j| {
+    let classical = Matrix::from_fn(k, k, |i, j| {
         let products: Vec<f64> = (0..k)
             .map(|l| inverse.get(i, l) * inverse.get(j, l))
             .collect();
         sum(&products) * solution.scales[i] * solution.scales[j]
     });
     // The self-checks of section 11.1: a failure is a bug in the engine, not a result.
-    self_check(&x, &model, &solution, &vcov).map_err(|what| internal(ctx, &what))?;
-    // The statistical warning, printed here and kept on the fit for the footer of a `report`
-    // table: the maximum exists, but in these rows a regressor all but decides the outcome.
+    self_check(&x, &model, &solution, &classical).map_err(|what| internal(ctx, &what))?;
+    // The robust and the clustered variance, from the variance layer's one computation: the
+    // sandwich of the likelihood's scores between the inverse information, with the factors
+    // every model has (HC1 N/(N − k); HC2 and HC3 by the leverage of the weighted fit; CR1 over
+    // the clusters).
+    let clusters = match &cluster {
+        Some(name) => Some(clusters_of(ctx, &frame, name, &design)?),
+        None => None,
+    };
+    let vcov = if kind == Kind::Classical {
+        classical
+    } else {
+        let at_maximum = AtMaximum {
+            model: &model,
+            eta: &solution.eta,
+            bread: &classical,
+        };
+        checked_variance(
+            ctx,
+            variance(
+                kind,
+                &at_maximum,
+                &design,
+                &fitted,
+                &classical,
+                clusters.as_ref(),
+                0,
+            ),
+            kind,
+            cluster.as_deref(),
+            CLUSTER,
+        )?
+        .0
+    };
+    // The statistical warnings, printed here and kept on the fit for the footer of a `report`
+    // table: few clusters (W1002), and probabilities at 0 or 1, where the maximum exists but a
+    // regressor all but decides the outcome (W1008). W1001 waits for step 7d, which lets the
+    // optimiser fit a near-singular design.
     let mut warnings: Vec<String> = Vec::new();
+    cluster_and_weight_warnings(ctx, &mut notes, &mut warnings, clusters.as_ref(), &design);
     if at_the_edge > 0 {
         let (text, rows) = if at_the_edge == 1 {
             (
@@ -492,10 +539,11 @@ pub fn glm_with(ctx: &mut CallContext<'_>, args: Args, control: &Control) -> Res
         )));
     }
     let formula_text = formula.to_string();
+    let line = se_line(kind, clusters.as_ref(), cluster.as_deref());
     let setting = Setting {
         method: "glm",
         formula: &formula_text,
-        se_line: "classical",
+        se_line: &line,
         df: n.saturating_sub(k),
         level,
         n,
@@ -535,7 +583,7 @@ pub fn glm_with(ctx: &mut CallContext<'_>, args: Args, control: &Control) -> Res
     fit.source = Some(FitSource {
         frame: frame.clone(),
         weights: None,
-        cluster: None,
+        cluster: cluster.clone(),
     });
     fit.notes.extend(notes);
     fit.warnings.extend(warnings);

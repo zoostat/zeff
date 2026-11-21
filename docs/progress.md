@@ -68,6 +68,10 @@ Step 6b `[engine]`: a fit that converges with fitted probabilities numerically 0
 
 Step 7 split into 7a, 7b and 7c. Step 7a `[engine]`: the options a model shares with `reg` (`se:`, `cluster:`, `weights:`, their checks, lines and warnings) moved from `regress` to `zeff_results::options`, no output changed.
 
-**Next.** Step 7b `[engine]`: robust and clustered errors on `glm`, against R's `sandwich`. Step 3, the weekly run of 23 November, when it has ended.
+Step 7b `[engine]`: `se: robust | hc2 | hc3` and `cluster:` on `glm` through the variance layer, each variance within 1e-8 of R's `sandwich` on four models, the sample script's `cluster: worker` fit among them; #198 raised and taken as recommended (the layer's factors, HC1 and CR1, for every model; R's `vcovCL` left to itself and Stata omit (N − 1)/(N − k)). Found: a nearly collinear design is refused as divergent, wrongly; made step 7d.
+
+**Next.** Step 7c `[engine]`: weights on `glm`. Then 7d `[engine]`: the optimiser on a near-singular design, with W1001. Step 3, the weekly run of 23 November, when it has ended.
+
+**For the owner.** #198 (taken as recommended, yours to overturn before 1.0): on a `glm` fit, clustered errors carry the factor (N − 1)/(N − k) that Stata's `logit` and R's `vcovCL` left to itself omit.
 
 **For the owner to decide or do.** Nothing blocks. The R packages `marginaleffects`, `rstatix` and `pROC` for the reference library (and `ivmodel`, `ivDiag`), if he wants the references held to them; the signing key at step 23; the archive link of #161; the reader test at step 45.

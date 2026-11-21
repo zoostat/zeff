@@ -116,6 +116,8 @@ Date: 17 October 2026 · Source: Zeff Specification section 15, Zemp Specificati
 
 **Status (21 November 2026, the owner's answers from Zemp Lite 0.2).** At step 1 of Zemp Lite's release 0.2 the owner answered the seventeen questions of its checklist, "Go, as recommended"; the Zemp Lite session, which may not edit this repository, wrote them up in the shared notes, and they are entered here from the Zeff session: #27 (its server part closed until the paid tiers), #37 (open until the trademark applications are filed), #74 and #75 (option A, in the margin editor's form), #76 (the reading of 20 November confirmed), #164 (the addendum's two points), #176 (R2, R8, R9), #177, #178 (the form of the comment), #181, #183, #184 to #186 (option A each, placed at 0.11.0 by the opening of Zeff 0.9.0), #187, #195 and #196 (confirmed). Each entry carries a dated paragraph. Also recorded from the same answer: the reader test is one test for Zemp 0.2 and Zeff 0.9.0, run on the hosted alpha with five to eight readers the owner chooses (step 45 of Zeff 0.9.0); and the alpha's example is the margin editor's `wages` script with Zeff's sample `instruments` on `staff`. The amendments of the Zemp Specification that follow from #146, #174 and these answers (sections 2, 5, 7, 8, 15 and 17) and of section 12 of the Engine Specification (R9) are made with them and logged in `docs/spec_changes.md`.
 
+**Status (21 November 2026, release 0.9.0, step 7b).** #198 is new: the small-sample factor of robust and clustered errors on a `glm` fit, where R's `sandwich` left to itself, Stata, and the variance layer differ. Taken as recommended (A, the variance layer's factors for every model) under the owner's standing instruction of 12 November 2026, his to overturn before 1.0.
+
 ## Summary
 
 | # | Decision | Recommendation | Decide by |
@@ -207,6 +209,7 @@ Date: 17 October 2026 · Source: Zeff Specification section 15, Zemp Specificati
 | 85 | The Games–Howell comparison in `posthoc` | Add `games_howell` to `method:` in the first release after 0.7.0 with room; until then Tukey's HSD after Welch's ANOVA prints a note | decided 21 November 2026 (option A, on the recommendation); built at 0.9.0, step 29 |
 | 86 | Folding, snippets and the statement ranges behind **Run** in the language server | At 0.8.0, with Zemp's alpha; formatting through the server is built at 0.7.0 | decided 15 November 2026 (option A); built at 0.8.0, step 8b |
 | 87 | A variable name in an option record | Accept a `Vars` of exactly one variable where a parameter takes a `Var`, so that `{ se: robust, cluster: vars(firm) }` can be named once and spread | decided 15 November 2026 (option A); built at 0.8.0, step 4 |
+| 198 | The small-sample factor of robust and clustered errors on a likelihood fit | Recommended A: the factors of the variance layer for every model, HC1 N/(N − k) and CR1 G/(G − 1) · (N − 1)/(N − k), as section 8.3, point 2, of the Engine Specification says | decided at 0.9.0, step 7b, under the standing instruction (A); the owner's to overturn before 1.0 |
 | 197 | The plots of a run handed to an interface | Recommended A: an engine step at 0.9.0 by which the browser build keeps the plots of a run, lays one out at a size and theme without a new run, and hands over the scene (C16 of #175) | decided 21 November 2026 (option A, the owner's priority as recommended); built at 0.9.0, step 25 |
 | 196 | Two messages R users meet: `I()` and `poly` in a formula, and a function of a later release | Recommended A: inside a formula, the help of Z0103 for `I(...)` shows the term without it and for `poly(x, k)` writes the powers out; a catalogued name of a later release says its release | decided 21 November 2026 (option A, on the recommendation); built at 0.9.0, step 35 |
 | 195 | Slopes and turning points: `margins` through a transformed term | Recommended A: `margins` differentiates through every term that is a function of the variable asked for (`exper` and `exper^2` today; `poly` and `spline` when they arrive) | decided 21 November 2026 (option A, on the recommendation); built at 0.9.0, steps 10 to 12 |
@@ -3870,3 +3873,25 @@ What an interface needs: the browser build keeping the plots of a run as it keep
 
 **The owner's decision (21 November 2026, at the opening of release 0.9.0).** The owner said "go" to the checklist of `docs/releases/0.9.0.md` without changing its answers, so its recommendation is taken under his standing instruction of 12 November 2026, his to overturn. Option A: an engine step at 0.9.0 (step 25) by which the browser build keeps the plots of a run, lays one out at a size and theme without a new run, and hands over the scene (C16 of #175); the owner's priority, as recommended.
 
+### 198. The small-sample factor of robust and clustered errors on a likelihood fit
+
+Raised on 21 November 2026 at release 0.9.0, step 7b, when `glm` took `se:` and `cluster:`. The sandwich itself is not in question: the scores summed, or summed within clusters, between the inverse of the information. What multiplies it differs between the packages on a model fitted by maximum likelihood. With N observations, k estimates and G clusters:
+
+| | Robust | Clustered |
+| --- | --- | --- |
+| The variance layer, as for `reg` (HC1, CR1) | N/(N − k) | G/(G − 1) · (N − 1)/(N − k) |
+| R `sandwich`, `type = "HC1"`; `fixest::feglm`; Python `statsmodels` | N/(N − k) | G/(G − 1) · (N − 1)/(N − k) |
+| R `sandwich::vcovCL` left to itself on a `glm` fit (`type = "HC0"`) | none (`sandwich()`) | G/(G − 1) |
+| Stata `logit` and `probit`, `vce(robust)` and `vce(cluster id)` | N/(N − 1) | G/(G − 1) |
+
+On the wages (N = 18,390, k = 4) the standard errors differ in their fifth digit; in a sample of 100 with 10 estimates, by five per cent.
+
+| Option | For | Against |
+| --- | --- | --- |
+| A. The variance layer's factors for every model: `se: robust` is HC1 and `cluster:` is CR1 on a `glm` fit as on a `reg` fit | What section 8.3, point 2, of the Engine Specification says: "`se:`, `cluster:` and `weights:` work identically for every model"; the labels the summary prints, HC1 and CR1, mean these factors; the larger, more cautious errors; `fixest` and `statsmodels` do the same | A user who copies `logit y x, vce(cluster id)` from Stata, or `vcovCL(m, ~id)` from R, sees standard errors larger by √((N − 1)/(N − k)) |
+| B. Stata's factors on a likelihood fit, N/(N − 1) and G/(G − 1) | Equal to Stata's `logit`, and to R's `vcovCL` left to itself when clustered | Two rules in the variance layer, by the kind of model; "HC1" and "CR1" would not mean on a `glm` fit what they mean on a `reg` fit; no degrees-of-freedom correction where the sample is small, which is where it matters |
+| C. A, with Stata's factors offered as a word of an option after 1.0 | Every package's number can be had (the owner's rule of #98 and #99) | A new option, not in the catalogue; after the freeze |
+
+*Recommendation.* A now, as the specification says, with the difference and its size written in the help page of `glm` under "Coming from R or Stata" and held by a test (the clustered variance times (N − k)/(N − 1) equals R's `vcovCL` left to itself, within 1e-8). C can be raised when the catalogue next opens. Deadline: 1.0, since changing a default after 1.0 would change published numbers.
+
+**Decided (21 November 2026, release 0.9.0, step 7b).** A, taken as recommended under the owner's standing instruction of 12 November 2026 ("decisions can be taken as per your recommendations"), and announced to him with the step; his to overturn before 1.0.

@@ -89,11 +89,61 @@ extreme_case <- function(name, link) {
 }
 extremes <- list(extreme_case("extreme_logit", "logit"), extreme_case("extreme_probit", "probit"))
 
+# The robust and clustered variances of a binary fit (release 0.9.0, step 7b): `sandwich::vcovHC`
+# with HC1, HC2 and HC3 and `sandwich::vcovCL` clustered by worker with `type = "HC1"`, which is
+# CR1, G/(G − 1) · (N − 1)/(N − k), the factor the variance layer gives every model, on the fit
+# iterated to its maximum. For a fit that is not least squares `vcovCL` takes `type = "HC0"`
+# unless told, G/(G − 1) alone, which is Stata's factor for `logit` and `probit` too: that
+# matrix is written beside it as `cluster_default`, and differs by (N − 1)/(N − k). The rows
+# are those complete in the model's variables and in the cluster variable, as `glm` with
+# `cluster:` uses them. Two models: the one of the classical reference, and the sample script's
+# (section 10 of zeff_samples.zeff), with the industry.
+library(sandwich)
+matrix_rows <- function(v) lapply(seq_len(nrow(v)), function(r) as.list(num17(unname(v[r, ]))))
+robust_case <- function(name, formula, data, link) {
+  m <- glm(formula, family = binomial(link = link), data = data, control = control)
+  for (again in 1:10) {
+    m <- glm(formula, family = binomial(link = link), data = data, control = control,
+             start = coef(m))
+  }
+  if (!m$converged) stop(sprintf("%s did not converge", name))
+  list(
+    name = name,
+    link = link,
+    formula = paste(deparse(formula), collapse = " "),
+    n = nrow(model.frame(m)),
+    clusters = length(unique(data$worker)),
+    terms = as.list(names(coef(m))),
+    coefficients = as.list(num17(unname(coef(m)))),
+    hc1 = matrix_rows(vcovHC(m, type = "HC1")),
+    hc2 = matrix_rows(vcovHC(m, type = "HC2")),
+    hc3 = matrix_rows(vcovHC(m, type = "HC3")),
+    cluster = matrix_rows(vcovCL(m, cluster = data$worker, type = "HC1")),
+    cluster_default = matrix_rows(vcovCL(m, cluster = data$worker))
+  )
+}
+by_worker <- read_dataset(file.path(root, "packages", "tier1", "datasets", "data", "wages.csv"))
+by_worker <- by_worker[complete.cases(by_worker[, c("union", "educ", "exper", "female", "industry", "worker")]), ]
+# The levels of the industry in the order of the shipped dataset's category, so that the base
+# level, and with it every coefficient, is the one `glm` has.
+by_worker$industry <- factor(by_worker$industry, levels = c(
+  "Agriculture", "Mining", "Utilities", "Construction", "Manufacturing", "Retail", "Transport",
+  "Finance", "Services", "Education", "Health", "Public administration"))
+if (anyNA(by_worker$industry)) stop("an industry outside the dataset's levels")
+robust <- list(
+  robust_case("wages_logit", union ~ educ + exper + female, by_worker, "logit"),
+  robust_case("wages_probit", union ~ educ + exper + female, by_worker, "probit"),
+  robust_case("sample_logit", union ~ educ + exper + female + industry, by_worker, "logit"),
+  robust_case("sample_probit", union ~ educ + exper + female + industry, by_worker, "probit")
+)
+
 out <- list(
   software = paste("R", getRversion()),
   generated_rows = nrow(g),
   generated_ones = as.integer(sum(g$y)),
   cases = cases,
-  extremes = extremes
+  extremes = extremes,
+  robust = robust,
+  sandwich = as.character(packageVersion("sandwich"))
 )
 writeLines(to_json(out), file.path(here(), "binary.json"))

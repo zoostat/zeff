@@ -806,3 +806,7 @@ The row described Z0803 only as an outcome too large or too small for least squa
 
 The row lists the statistical warnings by code, W1001 to W1007. The 0.9.0 row of section 14 of the Engine Specification requires the separation checks of a binary model, and a fit that converges with fitted probabilities numerically 0 or 1 is the fragile result the W1xxx area is for; it had no code. The row gains "fitted probabilities numerically 0 or 1 in a binary model, with their count (W1008)", numbered while the engine was built as the codes before it were.
 
+## 21 November 2026 — zeff_functions.csv, row 262 (`glm`), usage; zeff_open_decisions.md, a new entry #198 (release 0.9.0, step 7b)
+
+The usage of `glm` listed `family:` and `link:` only, although section 6 of the Language Reference gives `se:` and `cluster:` to every regression-type model, the sample script and sections 10 and 11 write `glm(..., cluster: worker)`, and the 0.9.0 row of section 14 requires "robust and clustered SEs from the variance layer"; `level:`, built at step 5a, was missing too. The usage now reads `data.glm(y ~ x, family: binomial, link: logit | probit = logit, se: classical | robust | hc2 | hc3, cluster: Var, level: Float = 0.95)`; `weights:` and `weight_type:` join it at step 7c. The register gains #198, the small-sample factor of robust and clustered errors on a likelihood fit, decided as recommended (A) under the owner's standing instruction; no normative text of the two volumes changes for it, since A is what section 8.3, point 2, says.
+

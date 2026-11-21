@@ -6,11 +6,12 @@
 //! weights, and the notes and statistical warnings that clusters and weights raise (W1002,
 //! W1003). Moved here from `regress` at release 0.9.0, step 7a, when `glm` came to share them.
 
+use crate::absorb::EffectGroups;
 use crate::design::Design;
 use crate::summary::{n_note, rows};
 use crate::variance::{Clusters, Kind, VarianceError, effective_sample_size};
 use zeff_core::runtime::{Args, CallContext, Fail, fail};
-use zeff_core::value::Value;
+use zeff_core::value::{Frame, Value};
 use zeff_diagnostics::{Diagnostic, count};
 use zeff_kernels::Matrix;
 use zeff_numeric::order::WeightKind;
@@ -348,6 +349,28 @@ pub fn choices(
         kind,
         level,
     })
+}
+
+/// The clusters of the rows a design uses, from the cluster variable of the frame, by identity
+/// of its values (the variable was given among `extra` when the design was built, so its `NA`
+/// rows are already dropped).
+pub fn clusters_of(
+    ctx: &CallContext<'_>,
+    frame: &Frame,
+    name: &str,
+    design: &Design,
+) -> Result<Clusters, Fail> {
+    let column = frame
+        .table
+        .column(name)
+        .ok_or_else(|| internal(ctx, "the cluster variable vanished"))?;
+    let groups = EffectGroups::over(
+        name,
+        std::slice::from_ref(&name.to_string()),
+        &[column],
+        &design.rows,
+    );
+    Ok(Clusters::from_groups(&groups.group_of_row, groups.levels()))
 }
 
 fn internal(ctx: &CallContext<'_>, what: &str) -> Fail {

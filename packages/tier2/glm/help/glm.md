@@ -6,6 +6,7 @@ A generalized linear model: logistic and probit regression of a binary outcome
 ## In brief
 - `wages.glm(union ~ educ + exper, family: binomial)`: a logistic regression of union membership.
 - `family:` is required; `link: probit` gives a probit regression in the place of the logit.
+- `se: robust` gives robust standard errors and `cluster: worker` errors clustered by worker.
 - The table gives z values, as maximum likelihood does; under it, the log-likelihood and the deviance.
 
 ## Description
@@ -26,6 +27,8 @@ the log of the odds for one unit of its regressor, and its exponential the ratio
 - formula: The model: the outcome, 0 and 1 or a Bool, on the left of `~`, the regressors on the right, written as for `reg`.
 - family: The family of the outcome's distribution: `binomial`, for an outcome of 0 and 1. Required.
 - link: The link: `logit` (logistic regression) or `probit` (probit regression); `logit` unless given.
+- se: The kind of standard error: `classical`, `robust` (HC1), `hc2` or `hc3`; `classical` unless given.
+- cluster: The variable whose values group the observations for clustered errors (CR1): a number, text, a category, a date or a time, each cluster the rows that share a value.
 - level: The confidence level of the intervals; 0.95 unless given.
 
 ## Value
@@ -49,7 +52,15 @@ stopped changing, at a relative 1e-13 and 1e-11; the count is printed under the 
 ### Standard errors
 The classical variance is the inverse of the expected information at the maximum. The table is
 a z table: the statistic is the estimate over its standard error, and the p-value and the
-interval are those of the standard normal distribution.
+interval are those of the standard normal distribution, whatever the kind of error.
+
+`se: robust` is the sandwich of the observations' scores between the inverse information, times
+N/(N − k), HC1; `hc2` and `hc3` scale each observation's score by 1/(1 − h) and 1/(1 − h)², with
+h its leverage in the weighted fit. `cluster:` sums the scores within each cluster first, times
+G/(G − 1) · (N − 1)/(N − k) for G clusters, CR1: the factors `reg` uses, since every model takes
+its errors from one computation. `hc2` or `hc3` with `cluster:` is refused (Z0410), and so is
+one cluster (Z0802); fewer than 30 clusters are warned of (W1002). A row with `NA` in the
+cluster variable is left out.
 
 ### Collinearity
 A regressor that is a combination of the regressors before it is dropped with a note, as in
@@ -93,14 +104,22 @@ error[Z0406]: `glm` needs `family:`
 | d.glm(y ~ x, family: binomial) | glm(y ~ x, family = binomial, data = d) | logit y x |
 | d.glm(y ~ x, family: binomial, link: probit) | glm(y ~ x, family = binomial(link = "probit"), data = d) | probit y x |
 
+| d.glm(y ~ x, family: binomial, se: robust) | sandwich::vcovHC(m, type = "HC1") | logit y x, vce(robust) |
+| d.glm(y ~ x, family: binomial, cluster: id) | sandwich::vcovCL(m, cluster = ~id, type = "HC1") | logit y x, vce(cluster id) |
+
 R writes the family as a function, `binomial(link = "probit")`; here the family and the link are
-two words. Stata's `logit` and `probit` give the same estimates; its `probit` takes its standard
+two words. In R the robust and clustered errors come from the package sandwich, and are these
+when its `type` is "HC1"; left to itself, `vcovCL` gives a `glm` fit G/(G − 1) alone, which is
+also Stata's factor after `vce(cluster id)`, so those errors are smaller by the factor
+√((N − k)/(N − 1)), a hair in any sample of size. Stata's `vce(robust)` uses N/(N − 1) where
+HC1 has N/(N − k). Stata's `logit` and `probit` give the same estimates; its `probit` takes its standard
 errors from the observed information, where R and this function take the expected, so the two
 differ slightly; under the logit link they are one.
 
 ## Related tasks
 - To fit a linear probability model of the same outcome, use `reg`.
 - To read one coefficient or its interval from the fit, use `coef` and `ci`.
+- To allow for observations of one worker being alike, add `cluster: worker`.
 - To see every estimate with its statistic as a frame, use `estimates`.
 
 ## References
@@ -145,3 +164,36 @@ standard errors: classical
 log-likelihood -11,415.43 · AIC 22,838.86 · McFadden R² 0.007
 deviance 22,830.86 on 18,386 df · null deviance 23,001.97 on 18,389 df
 converged in 8 iterations of Fisher scoring
+
+// Robust standard errors (HC1).
+> wages.glm(union ~ educ + exper + female, family: binomial, se: robust)
+glm · union ~ educ + exper + female · binomial, logit
+N = 18,390 (22 rows dropped for NA in model variables)
+standard errors: robust (HC1)
+
+  term          estimate   std.error   z value   p value   95% CI
+  (intercept)    -1.2274      0.1092    -11.24    <0.001   [-1.4415, -1.0133]
+  educ            0.0009      0.0067      0.14     0.891   [-0.0122, 0.0141]
+  exper           0.0277      0.0023     12.17    <0.001   [0.0232, 0.0322]
+  female          0.0556      0.0318      1.75     0.081   [-0.0068, 0.1180]
+
+log-likelihood -11,415.06 · AIC 22,838.13 · McFadden R² 0.007
+deviance 22,830.13 on 18,386 df · null deviance 23,001.97 on 18,389 df
+converged in 5 iterations of Fisher scoring
+
+// Errors clustered by worker: the same estimates, standard errors more than twice as large.
+> wages.glm(union ~ educ + exper + female, family: binomial, cluster: worker)
+glm · union ~ educ + exper + female · binomial, logit
+N = 18,390 (22 rows dropped for NA in model variables)
+standard errors: clustered by worker (3,911 clusters, CR1)
+
+  term          estimate   std.error   z value   p value   95% CI
+  (intercept)    -1.2274      0.2654     -4.63    <0.001   [-1.7475, -0.7073]
+  educ            0.0009      0.0165      0.06     0.956   [-0.0315, 0.0333]
+  exper           0.0277      0.0054      5.13    <0.001   [0.0171, 0.0383]
+  female          0.0556      0.0796      0.70     0.485   [-0.1005, 0.2116]
+
+log-likelihood -11,415.06 · AIC 22,838.13 · McFadden R² 0.007
+deviance 22,830.13 on 18,386 df · null deviance 23,001.97 on 18,389 df
+converged in 5 iterations of Fisher scoring
+note: 3 of the 3,911 clusters hold one observation (line 5)

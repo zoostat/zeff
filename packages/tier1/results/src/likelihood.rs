@@ -13,6 +13,10 @@
 //! a probability near 0 or near 1 loses no digit of its log and no row's information vanishes
 //! before it must.
 
+use crate::design::{Block, Design};
+use crate::estimator::{Estimator, Fitted};
+use zeff_core::runtime::{CallContext, Fail, fail};
+use zeff_diagnostics::Diagnostic;
 use zeff_kernels::irls::{IndexModel, RowTerms, Solution};
 use zeff_kernels::{Matrix, sum};
 use zeff_numeric::maths::{exp, log, log1p};
@@ -210,6 +214,49 @@ impl Likelihood for Binomial {
         let m = self.prior[row];
         let mean = (m * self.y[row] + 0.5) / (m + 1.0);
         self.link.link(mean)
+    }
+}
+
+/// A model fitted by maximum likelihood, as the variance layer reads it (section 8.3, point 2):
+/// each observation's score is its row of X times the derivative of its log-likelihood with
+/// respect to its linear predictor, at the maximum, and the bread is the inverse of the
+/// information, which the caller holds. The robust and clustered variances of every likelihood
+/// model come from the one computation of `variance::variance` through this.
+pub struct AtMaximum<'a> {
+    pub model: &'a dyn IndexModel,
+    /// The linear predictor of each row used, at the maximum.
+    pub eta: &'a [f64],
+    /// The inverse of the information at the maximum, in the units of the data.
+    pub bread: &'a Matrix,
+}
+
+impl Estimator for AtMaximum<'_> {
+    fn fit(&self, ctx: &mut CallContext<'_>, _design: &Design) -> Result<Fitted, Fail> {
+        // The shared optimiser fits a likelihood model; this is its result, read afterwards.
+        Err(fail(
+            Diagnostic::error(
+                "Z9001",
+                "internal error: this is a bug in Zeff, not in your script (a likelihood fit asked to refit through the variance layer)",
+            )
+            .in_file(ctx.script)
+            .primary(ctx.callee_span, "the call that failed"),
+        ))
+    }
+
+    fn scores(&self, fitted: &Fitted, block: &Block, first_row: usize) -> Matrix {
+        let scores: Vec<f64> = (0..block.x.rows())
+            .map(|r| {
+                let row = first_row + r;
+                self.model.at(row, self.eta[row], false).score
+            })
+            .collect();
+        Matrix::from_fn(block.x.rows(), fitted.kept.len(), |r, p| {
+            block.x.get(r, fitted.kept[p]) * scores[r]
+        })
+    }
+
+    fn bread(&self, _fitted: &Fitted) -> Matrix {
+        self.bread.clone()
     }
 }
 

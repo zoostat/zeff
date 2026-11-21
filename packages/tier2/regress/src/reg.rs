@@ -27,7 +27,7 @@ use zeff_results::design::Design;
 use zeff_results::estimator::{Estimator, Fitted};
 use zeff_results::options::{
     At, CONDITION_WARNING, Choices, checked_variance, choices, cluster_and_weight_warnings,
-    observations, se_line, weights_line,
+    clusters_of, observations, se_line, weights_line,
 };
 use zeff_results::summary::{self, Setting, dropped_notes, rows};
 use zeff_results::variance::{self, Clusters};
@@ -392,19 +392,7 @@ pub fn reg(ctx: &mut CallContext<'_>, args: Args) -> Result<Value, Fail> {
             });
             Some(match reused {
                 Some(clusters) => clusters,
-                None => {
-                    let column = frame
-                        .table
-                        .column(name)
-                        .ok_or_else(|| internal(ctx, "the cluster variable vanished"))?;
-                    let groups = EffectGroups::over(
-                        name,
-                        std::slice::from_ref(name),
-                        &[column],
-                        &design.rows,
-                    );
-                    Clusters::from_groups(&groups.group_of_row, groups.levels())
-                }
+                None => clusters_of(ctx, &frame, name, &design)?,
             })
         }
         None => None,

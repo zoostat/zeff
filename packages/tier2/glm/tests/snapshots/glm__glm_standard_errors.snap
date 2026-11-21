@@ -1,0 +1,149 @@
+---
+source: packages/tier2/glm/tests/glm.rs
+expression: all
+---
+dataset(wages).glm(union ~ educ + exper + female, family: binomial, se: robust)
+---
+glm · union ~ educ + exper + female · binomial, logit
+N = 18,390 (22 rows dropped for NA in model variables)
+standard errors: robust (HC1)
+
+  term          estimate   std.error   z value   p value   95% CI
+  (intercept)    -1.2274      0.1092    -11.24    <0.001   [-1.4415, -1.0133]
+  educ            0.0009      0.0067      0.14     0.891   [-0.0122, 0.0141]
+  exper           0.0277      0.0023     12.17    <0.001   [0.0232, 0.0322]
+  female          0.0556      0.0318      1.75     0.081   [-0.0068, 0.1180]
+
+log-likelihood -11,415.06 · AIC 22,838.13 · McFadden R² 0.007
+deviance 22,830.13 on 18,386 df · null deviance 23,001.97 on 18,389 df
+converged in 5 iterations of Fisher scoring
+
+====
+dataset(wages).glm(union ~ educ + exper + female, family: binomial, link: probit, se: hc3)
+---
+glm · union ~ educ + exper + female · binomial, probit
+N = 18,390 (22 rows dropped for NA in model variables)
+standard errors: hc3
+
+  term          estimate   std.error   z value   p value   95% CI
+  (intercept)    -0.7532      0.0662    -11.38    <0.001   [-0.8829, -0.6235]
+  educ            0.0005      0.0041      0.13     0.893   [-0.0074, 0.0085]
+  exper           0.0167      0.0014     12.14    <0.001   [0.0140, 0.0194]
+  female          0.0342      0.0193      1.77     0.077   [-0.0036, 0.0721]
+
+log-likelihood -11,415.43 · AIC 22,838.86 · McFadden R² 0.007
+deviance 22,830.86 on 18,386 df · null deviance 23,001.97 on 18,389 df
+converged in 8 iterations of Fisher scoring
+
+====
+dataset(wages).glm(union ~ educ + exper + female, family: binomial, se: hc2, level: 0.9)
+---
+glm · union ~ educ + exper + female · binomial, logit
+N = 18,390 (22 rows dropped for NA in model variables)
+standard errors: hc2
+
+  term          estimate   std.error   z value   p value   90% CI
+  (intercept)    -1.2274      0.1092    -11.24    <0.001   [-1.4071, -1.0477]
+  educ            0.0009      0.0067      0.14     0.891   [-0.0101, 0.0120]
+  exper           0.0277      0.0023     12.17    <0.001   [0.0240, 0.0314]
+  female          0.0556      0.0318      1.75     0.081   [0.0032, 0.1079]
+
+log-likelihood -11,415.06 · AIC 22,838.13 · McFadden R² 0.007
+deviance 22,830.13 on 18,386 df · null deviance 23,001.97 on 18,389 df
+converged in 5 iterations of Fisher scoring
+
+====
+let wages = dataset(wages)
+let lg = wages.glm(union ~ educ + exper + female + industry, family: binomial, cluster: worker)
+lg
+lg.std_errors(female)
+lg.ci(female)
+---
+glm · union ~ educ + exper + female + industry · binomial, logit
+N = 18,390 (22 rows dropped for NA in model variables)
+standard errors: clustered by worker (3,911 clusters, CR1)
+
+  term                             estimate   std.error   z value   p value   95% CI
+  (intercept)                       -1.0117      0.3461     -2.92     0.003   [-1.6900, -0.3333]
+  educ                              -0.0012      0.0171     -0.07     0.945   [-0.0346, 0.0323]
+  exper                              0.0302      0.0056      5.42    <0.001   [0.0193, 0.0411]
+  female                             0.0767      0.0818      0.94     0.348   [-0.0836, 0.2369]
+  industry=Mining                    0.2695      0.4464      0.60     0.546   [-0.6054, 1.1443]
+  industry=Utilities                 0.5816      0.3320      1.75     0.080   [-0.0692, 1.2324]
+  industry=Construction             -0.0925      0.2582     -0.36     0.720   [-0.5986, 0.4137]
+  industry=Manufacturing             0.3097      0.2401      1.29     0.197   [-0.1609, 0.7803]
+  industry=Retail                   -0.8381      0.2484     -3.37     0.001   [-1.3250, -0.3512]
+  industry=Transport                -0.1364      0.2742     -0.50     0.619   [-0.6739, 0.4011]
+  industry=Finance                  -1.1158      0.2789     -4.00    <0.001   [-1.6625, -0.5691]
+  industry=Services                 -0.6928      0.2487     -2.79     0.005   [-1.1804, -0.2053]
+  industry=Education                 0.1152      0.2532      0.45     0.649   [-0.3811, 0.6115]
+  industry=Health                   -0.4032      0.2511     -1.61     0.108   [-0.8955, 0.0890]
+  industry=Public administration     0.4412      0.2556      1.73     0.084   [-0.0597, 0.9421]
+
+log-likelihood -10,930.42 · AIC 21,890.84 · McFadden R² 0.050
+deviance 21,860.84 on 18,375 df · null deviance 23,001.97 on 18,389 df
+converged in 5 iterations of Fisher scoring
+0.081758
+-0.0835924
+0.236893
+note: 3 of the 3,911 clusters hold one observation (line 2)
+
+====
+dataset(wages).glm(union ~ educ + exper, family: binomial, se: hc2, cluster: worker)
+---
+error[Z0410]: `se: hc2` and `cluster:` exclude each other
+ --> scripts/main.zeff:1:64
+  |
+1 | dataset(wages).glm(union ~ educ + exper, family: binomial, se: hc2, cluster: worker)
+  |                                                                ^^^ two kinds of standard error
+  |
+  = help: clustered errors are CR1; leave `se:` out with `cluster:`
+
+====
+dataset(wages).glm(union ~ educ + exper, family: binomial, se: bootstrap)
+---
+error[Z0402]: `bootstrap` is not one of the allowed words
+ --> scripts/main.zeff:1:64
+  |
+1 | dataset(wages).glm(union ~ educ + exper, family: binomial, se: bootstrap)
+  |                                                                ^^^^^^^^^ expected one of classical, robust, hc2, hc3
+
+====
+dataset(wages).glm(union ~ educ + exper, family: binomial, cluster: nobody)
+---
+error[Z0101]: no variable `nobody` in `wages`
+ --> scripts/main.zeff:1:69
+  |
+1 | dataset(wages).glm(union ~ educ + exper, family: binomial, cluster: nobody)
+  |                                                                     ^^^^^^ not a variable of wages
+  |
+  = help: the variables of `wages` are: worker, year, wage, educ, exper, age, hours, union and 3 more
+
+====
+dataset(wages).add(one = 1).glm(union ~ educ + exper, family: binomial, cluster: one)
+---
+error[Z0802]: clustered errors need at least two clusters, and `one` has one
+ --> scripts/main.zeff:1:82
+  |
+1 | dataset(wages).add(one = 1).glm(union ~ educ + exper, family: binomial, cluster: one)
+  |                                                                                  ^^^ one cluster
+  |
+  = help: cluster by a variable with several values, or leave `cluster:` out
+
+====
+dataset(wages).glm(union ~ educ + exper, family: binomial, cluster: industry)
+---
+glm · union ~ educ + exper · binomial, logit
+N = 18,390 (22 rows dropped for NA in model variables)
+standard errors: clustered by industry (12 clusters, CR1)
+
+  term          estimate   std.error   z value   p value   95% CI
+  (intercept)    -1.1987      0.1448     -8.28    <0.001   [-1.4826, -0.9148]
+  educ            0.0009      0.0152      0.06     0.952   [-0.0289, 0.0307]
+  exper           0.0276      0.0056      4.95    <0.001   [0.0167, 0.0385]
+
+log-likelihood -11,416.59 · AIC 22,839.17 · McFadden R² 0.007
+deviance 22,833.17 on 18,387 df · null deviance 23,001.97 on 18,389 df
+converged in 5 iterations of Fisher scoring
+warning[W1002]: few clusters: 12 clusters give clustered errors little to rest on (line 1)
+  = help: the wild cluster bootstrap (`se: bootstrap`, release 1.1) is the usual remedy below 30 clusters

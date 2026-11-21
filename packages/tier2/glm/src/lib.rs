@@ -21,6 +21,8 @@ pub fn functions() -> Vec<Function> {
                 ParamSpec::required("formula", "Formula"),
                 ParamSpec::option("family", "binomial"),
                 ParamSpec::option_with_default("link", "logit | probit", "logit"),
+                ParamSpec::option("se", "classical | robust | hc2 | hc3"),
+                ParamSpec::option("cluster", "Var"),
                 ParamSpec::option_with_default("level", "Float", "0.95"),
             ],
             rest: None,
@@ -29,14 +31,20 @@ pub fn functions() -> Vec<Function> {
                 DiagnosticDecl::note(
                     "a term written twice kept once; a collinear column, a level with no observations, a zero column or one too small or too large to scale dropped",
                 ),
+                DiagnosticDecl::new("W1002", "fewer than 30 clusters"),
                 DiagnosticDecl::new(
                     "W1008",
                     "fitted probabilities numerically 0 or 1, with their count",
                 ),
                 DiagnosticDecl::new("Z0406", "`family:` left out"),
+                DiagnosticDecl::new("Z0410", "`se: hc2` or `hc3` with `cluster:`"),
                 DiagnosticDecl::new(
                     "Z0401",
                     "an outcome that is not 0 and 1, or true and false, or that is a category; a level outside (0, 1)",
+                ),
+                DiagnosticDecl::new(
+                    "Z0101",
+                    "a variable of the formula or of `cluster:` is not in the frame",
                 ),
                 DiagnosticDecl::new(
                     "Z0801",
@@ -44,7 +52,7 @@ pub fn functions() -> Vec<Function> {
                 ),
                 DiagnosticDecl::new(
                     "Z0802",
-                    "as many regressors as rows, or more, or no regressor at all",
+                    "as many regressors as rows, or more; no regressor at all; one cluster; an observation with leverage one under `se: hc2` or `hc3`",
                 ),
                 DiagnosticDecl::new(
                     "Z0803",

@@ -6,10 +6,6 @@ error[Z0103]: no module is called `robustness`: there is no `functions/robustnes
  --> zeff_samples.zeff:17:1
 error[Z0103]: no function is called `robustness`
  --> zeff_samples.zeff:135:14
-error[Z0404]: `glm` has no argument called `cluster`
- --> zeff_samples.zeff:176:80
-error[Z0404]: `glm` has no argument called `cluster`
- --> zeff_samples.zeff:180:20
 error[Z0103]: no function is called `reliability`
  --> zeff_samples.zeff:208:8
 error[Z0304]: a `dag { }` block is not available in this release

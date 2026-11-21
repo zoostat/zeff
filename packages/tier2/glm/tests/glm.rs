@@ -28,6 +28,18 @@ fn fit_of(table: &Table, text: &str, link: &str) -> Result<Fit, String> {
 
 /// `glm` through its body on `table` under the optimiser's settings `control`.
 fn fit_with(table: &Table, text: &str, link: &str, control: &Control) -> Result<Fit, String> {
+    fit_under(table, text, link, None, None, control)
+}
+
+/// `glm` through its body with `se:` and `cluster:` as given.
+fn fit_under(
+    table: &Table,
+    text: &str,
+    link: &str,
+    se: Option<&str>,
+    cluster: Option<&str>,
+    control: &Control,
+) -> Result<Fit, String> {
     let mut output = String::new();
     let mut messages: Vec<Diagnostic> = Vec::new();
     let mut random = Randomness::default();
@@ -56,6 +68,8 @@ fn fit_with(table: &Table, text: &str, link: &str, control: &Control) -> Result<
             Some(Value::Formula(formula(text))),
             Some(Value::Word("binomial".to_string())),
             Some(Value::Word(link.to_string())),
+            se.map(|word| Value::Word(word.to_string())),
+            cluster.map(|name| Value::Var(name.to_string())),
             None,
         ],
         rest: Vec::new(),
@@ -77,6 +91,30 @@ fn close(ours: f64, theirs: f64, tolerance: f64, what: &str) {
         (ours - theirs).abs() <= tolerance * theirs.abs().max(1e-3),
         "{what}: {ours} against R's {theirs}"
     );
+}
+
+/// A variance matrix against R's, each entry within `tolerance` of the product of the two
+/// standard errors: the scale of a covariance, which an entry near zero by cancellation has too.
+fn variance_close(ours: &[f64], theirs: &Json, tolerance: f64, what: &str) {
+    let theirs: Vec<Vec<f64>> = theirs
+        .as_array()
+        .unwrap()
+        .iter()
+        .map(|row| row.as_array().unwrap().iter().map(number).collect())
+        .collect();
+    let k = theirs.len();
+    assert_eq!(ours.len(), k * k, "{what}");
+    for i in 0..k {
+        for j in 0..k {
+            let scale = (theirs[i][i] * theirs[j][j]).sqrt();
+            assert!(
+                (ours[i * k + j] - theirs[i][j]).abs() <= tolerance * scale,
+                "{what} [{i},{j}]: {} against R's {}",
+                ours[i * k + j],
+                theirs[i][j]
+            );
+        }
+    }
 }
 
 #[test]
@@ -120,16 +158,7 @@ fn the_fits_agree_with_r() {
                 &format!("{name} estimate {j}"),
             );
         }
-        for (i, row) in case["vcov"].as_array().unwrap().iter().enumerate() {
-            for (j, theirs) in row.as_array().unwrap().iter().enumerate() {
-                close(
-                    fit.vcov[i * k + j],
-                    number(theirs),
-                    1e-8,
-                    &format!("{name} vcov {i},{j}"),
-                );
-            }
-        }
+        variance_close(&fit.vcov, &case["vcov"], 1e-8, &format!("{name} vcov"));
         close(
             fit.log_likelihood,
             number(&case["log_likelihood"]),
@@ -401,7 +430,6 @@ fn probabilities_at_0_or_1_are_warned_as_r_warns() {
         let name = case["name"].as_str().unwrap();
         let link = case["link"].as_str().unwrap();
         let fit = fit_of(&table, "y ~ x + z", link).unwrap_or_else(|e| panic!("{name}: {e}"));
-        let k = fit.estimates.len();
         for (j, theirs) in case["coefficients"].as_array().unwrap().iter().enumerate() {
             close(
                 fit.estimates[j],
@@ -410,16 +438,7 @@ fn probabilities_at_0_or_1_are_warned_as_r_warns() {
                 &format!("{name} estimate {j}"),
             );
         }
-        for (i, row) in case["vcov"].as_array().unwrap().iter().enumerate() {
-            for (j, theirs) in row.as_array().unwrap().iter().enumerate() {
-                close(
-                    fit.vcov[i * k + j],
-                    number(theirs),
-                    1e-8,
-                    &format!("{name} vcov {i},{j}"),
-                );
-            }
-        }
+        variance_close(&fit.vcov, &case["vcov"], 1e-8, &format!("{name} vcov"));
         close(
             fit.log_likelihood,
             number(&case["log_likelihood"]),
@@ -454,4 +473,94 @@ fn probabilities_at_0_or_1_are_warned_as_r_warns() {
         .collect::<Vec<_>>()
         .join("\n====\n");
     insta::assert_snapshot!("glm_probabilities_at_the_edge", all);
+}
+
+/// The robust and the clustered variances (step 7b) against R's `sandwich` on the fit iterated
+/// to its maximum (`binary.json`, `robust`): `se: robust` is `vcovHC(type = "HC1")`, `hc2` and
+/// `hc3` its HC2 and HC3, and `cluster: worker` is `vcovCL(type = "HC1")`, CR1; on the
+/// model of the classical reference and on the sample script's, with the industry, under each
+/// link. The estimates do not depend on the kind of error.
+#[test]
+fn the_robust_and_clustered_variances_agree_with_r() {
+    let path = root().join("tests/reference/r/binary.json");
+    let json: Json = serde_json::from_str(&std::fs::read_to_string(path).unwrap()).unwrap();
+    let wages = zeff_datasets::table("wages").expect("the shipped wages");
+    for case in json["robust"].as_array().unwrap() {
+        let name = case["name"].as_str().unwrap();
+        let link = case["link"].as_str().unwrap();
+        let formula = case["formula"].as_str().unwrap();
+        // R writes a level beside its variable, `industryMining`; `glm` writes `industry=Mining`.
+        let terms: Vec<String> = case["terms"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .map(|t| match t.as_str().unwrap() {
+                "(Intercept)" => "(intercept)".to_string(),
+                t if t.starts_with("industry") => t.replacen("industry", "industry=", 1),
+                t => t.to_string(),
+            })
+            .collect();
+        for (kind, se, cluster) in [
+            ("hc1", Some("robust"), None),
+            ("hc2", Some("hc2"), None),
+            ("hc3", Some("hc3"), None),
+            ("cluster", None, Some("worker")),
+        ] {
+            let what = format!("{name} {kind}");
+            // The rows of the reference are those complete in the cluster variable too.
+            let fit = fit_under(&wages, formula, link, se, cluster, &Control::default())
+                .unwrap_or_else(|e| panic!("{what}: {e}"));
+            if cluster.is_none() {
+                // `worker` has no missing value in the shipped wages, so the rows are the same.
+                assert_eq!(fit.n as i64, case["n"].as_i64().unwrap(), "{what}");
+            }
+            assert_eq!(fit.terms, terms, "{what}");
+            for (j, theirs) in case["coefficients"].as_array().unwrap().iter().enumerate() {
+                close(
+                    fit.estimates[j],
+                    number(theirs),
+                    1e-9,
+                    &format!("{what} estimate {j}"),
+                );
+            }
+            variance_close(&fit.vcov, &case[kind], 1e-8, &what);
+            if kind == "cluster" {
+                // What R's `vcovCL` gives a `glm` fit unless told, and Stata its `logit` and
+                // `probit`, is the same matrix without the factor (N − 1)/(N − k).
+                let (n, k) = (fit.n as f64, fit.estimates.len() as f64);
+                let without: Vec<f64> = fit.vcov.iter().map(|v| v * (n - k) / (n - 1.0)).collect();
+                variance_close(
+                    &without,
+                    &case["cluster_default"],
+                    1e-8,
+                    &format!("{what}, R's default"),
+                );
+            }
+        }
+    }
+}
+
+/// The printed result under each kind of error, the sample script's clustered fit (section 10 of
+/// `zeff_samples.zeff`), and what `se:` and `cluster:` refuse or warn of on a `glm` fit: `hc2`
+/// with `cluster:`, `se: bootstrap`, a cluster variable that is not there, one cluster, and few
+/// clusters (W1002).
+#[test]
+fn the_kinds_of_standard_error_printed() {
+    let scripts = [
+        "dataset(wages).glm(union ~ educ + exper + female, family: binomial, se: robust)\n",
+        "dataset(wages).glm(union ~ educ + exper + female, family: binomial, link: probit, se: hc3)\n",
+        "dataset(wages).glm(union ~ educ + exper + female, family: binomial, se: hc2, level: 0.9)\n",
+        "let wages = dataset(wages)\nlet lg = wages.glm(union ~ educ + exper + female + industry, family: binomial, cluster: worker)\nlg\nlg.std_errors(female)\nlg.ci(female)\n",
+        "dataset(wages).glm(union ~ educ + exper, family: binomial, se: hc2, cluster: worker)\n",
+        "dataset(wages).glm(union ~ educ + exper, family: binomial, se: bootstrap)\n",
+        "dataset(wages).glm(union ~ educ + exper, family: binomial, cluster: nobody)\n",
+        "dataset(wages).add(one = 1).glm(union ~ educ + exper, family: binomial, cluster: one)\n",
+        "dataset(wages).glm(union ~ educ + exper, family: binomial, cluster: industry)\n",
+    ];
+    let all = scripts
+        .iter()
+        .map(|s| format!("{s}---\n{}", printed(s)))
+        .collect::<Vec<_>>()
+        .join("\n====\n");
+    insta::assert_snapshot!("glm_standard_errors", all);
 }
