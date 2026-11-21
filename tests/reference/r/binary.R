@@ -280,6 +280,57 @@ interface_case <- function(link, weighted) {
 interface <- list(interface_case("logit", FALSE), interface_case("probit", FALSE),
                   interface_case("logit", TRUE), interface_case("probit", TRUE))
 
+# Inference on a fit (release 0.9.0, step 8b), on the sample script's model with the industry
+# and on its smaller model, each link. The Wald tests are `car::linearHypothesis` with its
+# chi-squared statistic, under the classical variance and under the variance clustered by worker
+# (`vcovCL(type = "HC1")`); the likelihood-ratio test is `anova(test = "LRT")` of the two
+# classical fits; the nonlinear combinations are `car::deltaMethod` with the classical variance,
+# whose intervals are the normal ones.
+inference_case <- function(link) {
+  big <- iterated(union ~ educ + exper + female + industry, by_worker, link)
+  small <- iterated(union ~ educ + exper, by_worker, link)
+  clustered <- vcovCL(big, cluster = by_worker$worker, type = "HC1")
+  wald <- function(name, hypotheses, v) {
+    h <- car::linearHypothesis(big, hypotheses, vcov. = v, test = "Chisq")
+    list(name = name, chi2 = num17(h$Chisq[2]), df = as.integer(h$Df[2]),
+         p = num17(h[["Pr(>Chisq)"]][2]))
+  }
+  lrt <- anova(small, big, test = "LRT")
+  delta <- function(name, expression) {
+    d <- car::deltaMethod(big, expression, vcov. = vcov(big))
+    list(name = name, estimate = num17(d$Estimate), std_error = num17(d$SE),
+         lower = num17(d[["2.5 %"]]), upper = num17(d[["97.5 %"]]))
+  }
+  list(
+    name = paste0("inference_", link),
+    link = link,
+    n = nrow(by_worker),
+    wald = list(
+      wald("female", "female = 0", vcov(big)),
+      wald("educ_exper", "educ = exper", vcov(big)),
+      wald("joint", c("educ = exper", "female = 0"), vcov(big)),
+      wald("constant", "educ + exper = 0.03", vcov(big))
+    ),
+    wald_clustered = list(
+      wald("female", "female = 0", clustered),
+      wald("joint", c("educ = exper", "female = 0"), clustered)
+    ),
+    likelihood_ratio = list(
+      chi2 = num17(lrt$Deviance[2]),
+      df = as.integer(lrt$Df[2]),
+      p = num17(lrt[["Pr(>Chi)"]][2]),
+      log_likelihood_small = num17(as.numeric(logLik(small))),
+      log_likelihood_big = num17(as.numeric(logLik(big)))
+    ),
+    delta = list(
+      delta("ratio", "educ / exper"),
+      delta("odds", "exp(female)"),
+      delta("turn", "log(exper^2 + 1) - educ * female")
+    )
+  )
+}
+inference <- list(inference_case("logit"), inference_case("probit"))
+
 out <- list(
   software = paste("R", getRversion()),
   generated_rows = nrow(g),
@@ -289,6 +340,7 @@ out <- list(
   robust = robust,
   weighted = weighted,
   near_singular = near_singular,
-  interface = interface
+  interface = interface,
+  inference = inference
 )
 writeLines(to_json(out), file.path(here(), "binary.json"))

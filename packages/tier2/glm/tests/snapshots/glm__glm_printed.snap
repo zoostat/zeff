@@ -105,13 +105,8 @@ false
 let m = dataset(wages).glm(union ~ educ + exper, family: binomial)
 m.test(exper == 0)
 ---
-error[Z0401]: `test` of a `glm` fit arrives with release 0.9.0
- --> scripts/main.zeff:2:3
-  |
-2 | m.test(exper == 0)
-  |   ^^^^ not yet for a likelihood fit
-  |
-  = help: the fit's table, `coef`, `vcov`, `std_errors`, `p_values`, `ci`, `estimates` and `n_obs` are there now
+test · m · exper == 0
+chi2(1) = 150.72   p < 0.001
 
 ====
 let m = dataset(wages).glm(union ~ educ + exper, family: binomial)

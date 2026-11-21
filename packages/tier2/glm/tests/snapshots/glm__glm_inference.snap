@@ -1,0 +1,128 @@
+---
+source: packages/tier2/glm/tests/glm.rs
+expression: all
+---
+lg.test(female == 0)
+---
+test · lg · female == 0
+chi2(1) = 0.88   p = 0.348
+note: 3 of the 3,911 clusters hold one observation (line 2)
+
+====
+lr1.compare(lr0)
+---
+compare · lr1 against lr0
+
+  model        N   log-likelihood    deviance
+  lr1     18,390       -10,930.42   21,860.84
+  lr0     18,390       -11,416.59   22,833.17
+
+chi2(12) = 972.33   p < 0.001
+note: 3 of the 3,911 clusters hold one observation (line 2)
+
+====
+lr0.compare(lr1).p_values()
+---
+1.66092e-200
+note: 3 of the 3,911 clusters hold one observation (line 2)
+
+====
+lr1.test(educ == exper, female == 0)
+---
+test · lr1 · educ == exper, female == 0
+chi2(2) = 27.49   p < 0.001
+note: 3 of the 3,911 clusters hold one observation (line 2)
+
+====
+lr1.derive(ratio = educ / exper, odds = exp(female))
+---
+derive · lr1
+
+  term    estimate   std.error   z value   p value   95% CI
+  ratio    -0.0387      0.2326     -0.17     0.868   [-0.4946, 0.4172]
+  odds      1.0797      0.0354     30.51    <0.001   [1.0103, 1.1490]
+note: 3 of the 3,911 clusters hold one observation (line 2)
+
+====
+lg.compare(lr0)
+---
+note: 3 of the 3,911 clusters hold one observation (line 2)
+error[Z0416]: the likelihood-ratio test needs model-based standard errors, but `lg` has standard errors that are clustered by worker (3,911 clusters, CR1)
+ --> scripts/main.zeff:5:12
+  |
+5 | lg.compare(lr0)
+  |            ^^^ no likelihood-ratio test here
+  |
+  = help: `test` gives the Wald test of the extra terms under these errors: `m.test(a == 0, b == 0)`
+
+====
+wages.glm(union ~ educ + exper + female, family: binomial, weights: hours).compare(wages.glm(union ~ educ + exper, family: binomial, weights: hours))
+---
+note: 3 of the 3,911 clusters hold one observation (line 2)
+error[Z0416]: the likelihood-ratio test needs model-based standard errors, but `union ~ educ + exper + female` has sampling weights, under which the likelihood is a pseudo-likelihood
+ --> scripts/main.zeff:5:84
+  |
+5 | wages.glm(union ~ educ + exper + female, family: binomial, weights: hours).compare(wages.glm(union ~ educ + exper, family: binomial, weights: hours))
+  |                                                                                    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ no likelihood-ratio test here
+  |
+  = help: `test` gives the Wald test of the extra terms under these errors: `m.test(a == 0, b == 0)`
+
+====
+wages.glm(union ~ educ + exper + female, family: binomial, link: probit).compare(lr0)
+---
+note: 3 of the 3,911 clusters hold one observation (line 2)
+error[Z0416]: the two fits are not nested: one is binomial, probit and the other binomial, logit
+ --> scripts/main.zeff:5:82
+  |
+5 | wages.glm(union ~ educ + exper + female, family: binomial, link: probit).compare(lr0)
+  |                                                                                  ^^^ another family or link
+  |
+  = help: the likelihood-ratio test compares two models of one family and link; `fit_measures().aic` compares any two on the same rows
+
+====
+wages.where(year > 2016).glm(union ~ educ + exper + female, family: binomial).compare(lr0)
+---
+note: 3 of the 3,911 clusters hold one observation (line 2)
+error[Z0416]: `compare` needs two fits on the same rows with the same weights, but these used 7,014 and 18,390 rows
+ --> scripts/main.zeff:5:87
+  |
+5 | wages.where(year > 2016).glm(union ~ educ + exper + female, family: binomial).compare(lr0)
+  |                                                                                       ^^^ fitted on other rows
+  |
+  = help: fit both models on one frame with the same rows; `where(!is_missing(x))` first keeps the rows a variable of one model would drop
+
+====
+lr0.compare(wages.glm(union ~ exper + educ, family: binomial))
+---
+note: 3 of the 3,911 clusters hold one observation (line 2)
+error[Z0416]: the two fits have the same terms, so neither is nested in the other
+ --> scripts/main.zeff:5:13
+  |
+5 | lr0.compare(wages.glm(union ~ exper + educ, family: binomial))
+  |             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ the same terms
+  |
+  = help: `compare` tests the terms the larger model adds to the smaller
+
+====
+lr0.compare(wages.reg(union ~ educ + exper + female))
+---
+note: 3 of the 3,911 clusters hold one observation (line 2)
+error[Z0416]: `compare` needs two models of one kind, but one is a regression and the other a fit by maximum likelihood
+ --> scripts/main.zeff:5:13
+  |
+5 | lr0.compare(wages.reg(union ~ educ + exper + female))
+  |             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ another kind of model
+  |
+  = help: compare two `reg` fits, or two `glm` fits
+
+====
+lr1.test(educ == 0, 2 * educ == 0)
+---
+note: 3 of the 3,911 clusters hold one observation (line 2)
+error[Z0415]: the restrictions repeat one another, so their covariance is singular
+ --> scripts/main.zeff:5:5
+  |
+5 | lr1.test(educ == 0, 2 * educ == 0)
+  |     ^^^^ redundant restrictions
+  |
+  = help: drop a restriction the others imply

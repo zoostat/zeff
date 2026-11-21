@@ -7,8 +7,9 @@
 use proptest::prelude::*;
 use serde_json::Value as Json;
 use zeff_columns::Table;
+use zeff_core::operators::Op;
 use zeff_core::runtime::{Args, CallContext, Fail, Files, Randomness};
-use zeff_core::value::{Fit, Frame, Value};
+use zeff_core::value::{ColumnExpr, Fit, Frame, Value};
 use zeff_diagnostics::{Diagnostic, Source, Sources, Span};
 use zeff_kernels::irls::Control;
 use zeff_testkit::{formula, root, run};
@@ -946,6 +947,17 @@ fn method(
     body: fn(&mut CallContext<'_>, Args) -> Result<Value, Fail>,
     values: Vec<Option<Value>>,
 ) -> Value {
+    method_with(body, values, Vec::new(), Vec::new()).unwrap_or_else(|e| panic!("{e}"))
+}
+
+/// A method called with the values after its named arguments (`test`'s restrictions) and its
+/// definitions (`derive`'s), its refusal rendered as the user reads it.
+fn method_with(
+    body: fn(&mut CallContext<'_>, Args) -> Result<Value, Fail>,
+    values: Vec<Option<Value>>,
+    rest: Vec<Value>,
+    definitions: Vec<(String, Value)>,
+) -> Result<Value, String> {
     let mut output = String::new();
     let mut messages: Vec<Diagnostic> = Vec::new();
     let mut random = Randomness::default();
@@ -960,9 +972,9 @@ fn method(
         frame: None,
         group_rows: None,
         callee_span: Span::new(2, 8),
-        arg_spans: vec![Some(Span::new(0, 1))],
-        rest_spans: Vec::new(),
-        definition_spans: Vec::new(),
+        arg_spans: vec![Some(Span::new(0, 1)), Some(Span::new(9, 9))],
+        rest_spans: vec![Span::new(9, 9); rest.len()],
+        definition_spans: vec![Span::new(9, 9); definitions.len()],
         output: &mut output,
         messages: &mut messages,
         random: &mut random,
@@ -970,13 +982,10 @@ fn method(
     };
     let args = Args {
         values,
-        rest: Vec::new(),
-        definitions: Vec::new(),
+        rest,
+        definitions,
     };
-    match body(&mut ctx, args) {
-        Ok(value) => value,
-        Err(e) => panic!("{}", e.render(&sources)),
-    }
+    body(&mut ctx, args).map_err(|e| e.render(&sources))
 }
 
 /// The values of a column a method gave, the `NA` of the rows the fit dropped left out.
@@ -1138,4 +1147,239 @@ fn the_measures_the_residuals_and_the_predictions_printed() {
         .collect::<Vec<_>>()
         .join("\n====\n");
     insta::assert_snapshot!("glm_own_quantities", all);
+}
+
+/// A term of the fit, a number, and an operation on two expressions over the terms, as the
+/// checker lowers a restriction or a definition.
+fn term(name: &str) -> ColumnExpr {
+    ColumnExpr::Var(name.to_string())
+}
+
+fn constant(x: f64) -> ColumnExpr {
+    ColumnExpr::Float(x)
+}
+
+fn op(op: Op, lhs: ColumnExpr, rhs: ColumnExpr) -> ColumnExpr {
+    ColumnExpr::Binary {
+        op,
+        lhs: Box::new(lhs),
+        rhs: Box::new(rhs),
+    }
+}
+
+fn function(name: &str, arg: ColumnExpr) -> ColumnExpr {
+    ColumnExpr::Call {
+        package: "core".to_string(),
+        name: name.to_string(),
+        args: vec![Some(arg)],
+        rest: Vec::new(),
+        lifted: false,
+        returns: "Float".to_string(),
+    }
+}
+
+fn expression(expr: ColumnExpr, text: &str) -> Value {
+    Value::TermExpr {
+        expr,
+        text: text.to_string(),
+    }
+}
+
+/// The restrictions of the reference by name.
+fn restrictions(name: &str) -> Vec<Value> {
+    let female = || expression(op(Op::Eq, term("female"), constant(0.0)), "female == 0");
+    let educ_exper = || expression(op(Op::Eq, term("educ"), term("exper")), "educ == exper");
+    match name {
+        "female" => vec![female()],
+        "educ_exper" => vec![educ_exper()],
+        "joint" => vec![educ_exper(), female()],
+        "constant" => vec![expression(
+            op(
+                Op::Eq,
+                op(Op::Add, term("educ"), term("exper")),
+                constant(0.03),
+            ),
+            "educ + exper == 0.03",
+        )],
+        other => panic!("no restriction `{other}` in the test"),
+    }
+}
+
+/// The definitions of the reference by name.
+fn definition(name: &str) -> ColumnExpr {
+    match name {
+        "ratio" => op(Op::Div, term("educ"), term("exper")),
+        "odds" => function("exp", term("female")),
+        "turn" => op(
+            Op::Sub,
+            function(
+                "log",
+                op(
+                    Op::Add,
+                    op(Op::Pow, term("exper"), constant(2.0)),
+                    constant(1.0),
+                ),
+            ),
+            op(Op::Mul, term("educ"), term("female")),
+        ),
+        other => panic!("no definition `{other}` in the test"),
+    }
+}
+
+/// Inference on a `glm` fit (step 8b) against R (`binary.json`, `inference`), on the sample
+/// script's model with each link: `test` is the Wald chi-squared of `car::linearHypothesis`,
+/// under the classical variance and under the one clustered by worker; `compare` is the
+/// likelihood-ratio test of `anova(test = "LRT")`, either fit the receiver; `derive` is the
+/// delta method of `car::deltaMethod`, with intervals of the normal distribution.
+#[test]
+fn the_tests_the_comparison_and_the_combinations_agree_with_r() {
+    use std::rc::Rc;
+    use zeff_results::inference;
+    let path = root().join("tests/reference/r/binary.json");
+    let json: Json = serde_json::from_str(&std::fs::read_to_string(path).unwrap()).unwrap();
+    let wages = zeff_datasets::table("wages").expect("the shipped wages");
+    let result = |value: Value| match value {
+        Value::TestResult(t) => t,
+        other => panic!("not a test's result: {other:?}"),
+    };
+    for case in json["inference"].as_array().unwrap() {
+        let name = case["name"].as_str().unwrap();
+        let link = case["link"].as_str().unwrap();
+        let big_text = "union ~ educ + exper + female + industry";
+        let fit_big = |with: With<'_>| {
+            Rc::new(
+                fit_under(&wages, big_text, link, with, &Control::default())
+                    .unwrap_or_else(|e| panic!("{name}: {e}")),
+            )
+        };
+        let big = fit_big(With::default());
+        let clustered = fit_big(With {
+            cluster: Some("worker"),
+            ..With::default()
+        });
+        let small = Rc::new(fit_of(&wages, "union ~ educ + exper", link).unwrap());
+        for (key, fit) in [("wald", &big), ("wald_clustered", &clustered)] {
+            for wald in case[key].as_array().unwrap() {
+                let which = wald["name"].as_str().unwrap();
+                let what = format!("{name} {key} {which}");
+                let t = result(
+                    method_with(
+                        inference::test,
+                        vec![Some(Value::Fit(Rc::clone(fit)))],
+                        restrictions(which),
+                        Vec::new(),
+                    )
+                    .unwrap_or_else(|e| panic!("{what}: {e}")),
+                );
+                assert_eq!(t.statistic.name, "chi2", "{what}");
+                assert_eq!(t.statistic.df, vec![wald["df"].as_f64().unwrap()], "{what}");
+                close(
+                    t.statistic.value,
+                    number(&wald["chi2"]),
+                    1e-8,
+                    &format!("{what} chi2"),
+                );
+                close(t.p_value, number(&wald["p"]), 1e-7, &format!("{what} p"));
+            }
+        }
+        let lrt = &case["likelihood_ratio"];
+        for (receiver, other) in [(&big, &small), (&small, &big)] {
+            let t = result(method(
+                inference::compare,
+                vec![
+                    Some(Value::Fit(Rc::clone(receiver))),
+                    Some(Value::Fit(Rc::clone(other))),
+                ],
+            ));
+            assert_eq!(t.statistic.name, "chi2", "{name}");
+            assert_eq!(t.statistic.df, vec![lrt["df"].as_f64().unwrap()], "{name}");
+            close(
+                t.statistic.value,
+                number(&lrt["chi2"]),
+                1e-9,
+                &format!("{name} LR chi2"),
+            );
+            // A p-value of 1e-200 keeps its relative accuracy in the far tail.
+            close(t.p_value, number(&lrt["p"]), 1e-6, &format!("{name} LR p"));
+        }
+        for delta in case["delta"].as_array().unwrap() {
+            let which = delta["name"].as_str().unwrap();
+            let what = format!("{name} derive {which}");
+            let (value, se) = inference::delta(&big, &definition(which))
+                .unwrap_or_else(|_| panic!("{what}: not differentiated"));
+            close(
+                value,
+                number(&delta["estimate"]),
+                1e-9,
+                &format!("{what} estimate"),
+            );
+            close(
+                se,
+                number(&delta["std_error"]),
+                1e-8,
+                &format!("{what} std error"),
+            );
+            // The interval `derive` prints is the normal one, as car's is.
+            let half = 1.959_963_984_540_054 * se;
+            close(
+                value - half,
+                number(&delta["lower"]),
+                1e-7,
+                &format!("{what} lower"),
+            );
+            close(
+                value + half,
+                number(&delta["upper"]),
+                1e-7,
+                &format!("{what} upper"),
+            );
+        }
+        // What the likelihood-ratio test refuses: a clustered fit, and a regression beside a
+        // `glm` fit.
+        let refused = method_with(
+            inference::compare,
+            vec![
+                Some(Value::Fit(Rc::clone(&clustered))),
+                Some(Value::Fit(Rc::clone(&small))),
+            ],
+            Vec::new(),
+            Vec::new(),
+        )
+        .expect_err("a clustered fit has no likelihood-ratio test");
+        assert!(
+            refused.contains(
+                "error[Z0416]: the likelihood-ratio test needs model-based standard errors"
+            ),
+            "{refused}"
+        );
+    }
+}
+
+/// The printed forms of inference on a `glm` fit: the lines of section 10 of the sample script
+/// (the Wald test with clustered errors, the likelihood-ratio test on the same rows), a joint
+/// test, `derive`'s z table, and what `compare` refuses: a clustered fit, sampling weights,
+/// another link, other rows, the same terms, a regression beside a `glm` fit.
+#[test]
+fn the_tests_the_comparison_and_the_combinations_printed() {
+    let fits = "let wages = dataset(wages)\nlet lg = wages.glm(union ~ educ + exper + female + industry, family: binomial, cluster: worker)\nlet lr1 = wages.glm(union ~ educ + exper + female + industry, family: binomial)\nlet lr0 = wages.glm(union ~ educ + exper, family: binomial)\n";
+    let lines = [
+        "lg.test(female == 0)\n",
+        "lr1.compare(lr0)\n",
+        "lr0.compare(lr1).p_values()\n",
+        "lr1.test(educ == exper, female == 0)\n",
+        "lr1.derive(ratio = educ / exper, odds = exp(female))\n",
+        "lg.compare(lr0)\n",
+        "wages.glm(union ~ educ + exper + female, family: binomial, weights: hours).compare(wages.glm(union ~ educ + exper, family: binomial, weights: hours))\n",
+        "wages.glm(union ~ educ + exper + female, family: binomial, link: probit).compare(lr0)\n",
+        "wages.where(year > 2016).glm(union ~ educ + exper + female, family: binomial).compare(lr0)\n",
+        "lr0.compare(wages.glm(union ~ exper + educ, family: binomial))\n",
+        "lr0.compare(wages.reg(union ~ educ + exper + female))\n",
+        "lr1.test(educ == 0, 2 * educ == 0)\n",
+    ];
+    let all = lines
+        .iter()
+        .map(|line| format!("{line}---\n{}", printed(&format!("{fits}{line}"))))
+        .collect::<Vec<_>>()
+        .join("\n====\n");
+    insta::assert_snapshot!("glm_inference", all);
 }

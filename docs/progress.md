@@ -76,7 +76,9 @@ Step 7d `[engine]`: the optimiser stops at the precision a nearly singular desig
 
 Step 8 split into 8a, 8b and 8c. Step 8a `[function]`: `fit_measures`, `fitted`, `residuals(type:)` and `predict(newdata:, type:)` on a `GlmFit`, each against R; #200 raised and taken as recommended (the scale of the outcome unless told).
 
-**Next.** Step 8b `[function]`: `test`, `compare` and `derive` on a `GlmFit`. Step 3, the weekly run of 23 November, when it has ended.
+Step 8b `[function]`: `test` (the Wald chi-squared), `compare` (the likelihood-ratio test, refused for robust, clustered and pseudo-likelihood fits) and `derive` (the normal distribution) on a `GlmFit`, each against R's `car` and `anova`; the sample script's two lines of section 10 run.
+
+**Next.** Step 8c `[function]`: `report`, `export`, `coef_plot` and `design` on a `GlmFit`, and the catalogue row marked implemented. Step 3, the weekly run of 23 November, when it has ended.
 
 **For the owner.** #198, #199 and #200 (taken as recommended, yours to overturn before 1.0; #200: `predict` gives a probability and `residuals` the outcome less it unless `type:` says otherwise, where R gives log-odds and deviance residuals): on a `glm` fit, clustered errors carry the factor (N − 1)/(N − k) that Stata's `logit` and R's `vcovCL` left to itself omit; analytic weights are refused on a binary model, as in Stata.
 

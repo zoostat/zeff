@@ -256,7 +256,7 @@ pub fn functions() -> Vec<Function> {
                 diagnostics: vec![
                     DiagnosticDecl::new(
                         "Z0401",
-                        "a receiver that is not a regression fit, or a restriction that is not an equality over the terms",
+                        "a receiver that is not a fit, or a restriction that is not an equality over the terms",
                     ),
                     DiagnosticDecl::new("Z0406", "no restriction given"),
                     DiagnosticDecl::new(
@@ -291,7 +291,7 @@ pub fn functions() -> Vec<Function> {
                     ),
                     DiagnosticDecl::new(
                         "Z0416",
-                        "two regressions on different rows, with the same terms, or not nested",
+                        "two fits on different rows, with the same terms, or not nested; a regression beside a `glm` fit; two `glm` fits of another link, or with robust or clustered errors or sampling weights",
                     ),
                 ],
                 help: include_str!("../help/compare.md"),

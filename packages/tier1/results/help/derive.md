@@ -10,7 +10,9 @@ definition is written as `name = expression` over the model's terms, `m.derive(r
 exper)`, and inside the call a bare name is a term of the model, never a column or a binding.
 The expression may use `+`, `-`, `*`, `/`, `^` and `log`, `exp`, `sqrt`, `log1p`, `expm1`,
 `log10`, `log2` and `abs`; anything else is refused. Like Stata's `nlcom` after `regress` and
-`car::deltaMethod` in R.
+`car::deltaMethod` in R. On a `glm` fit the table is a z table, with the p-value and the
+interval of the standard normal distribution, as the fit's own is: `m.derive(odds =
+exp(female))` gives an odds ratio with its standard error.
 
 ## Arguments
 - fit: The regression fit.
@@ -18,8 +20,8 @@ The expression may use `+`, `-`, `*`, `/`, `^` and `log`, `exp`, `sqrt`, `log1p`
 
 ## Value
 A `Table` with one row per definition in the coefficient table's columns: the estimate, its
-standard error, the t value on the fit's degrees of freedom, the p-value and the interval at the
-fit's level.
+standard error, the t value on the fit's degrees of freedom (the z value, for a `glm` fit), the
+p-value and the interval at the fit's level.
 
 ## Details
 Each definition is evaluated at the estimates with its gradient over the coefficients by
@@ -43,3 +45,9 @@ derive · m
   term    estimate   std.error   t value   p value   95% CI
   ratio     3.4518      0.0775     44.55    <0.001   [3.2999, 3.6037]
   gain      0.3553      0.0074     48.02    <0.001   [0.3408, 0.3698]
+> let g = dataset(wages).glm(union ~ educ + exper + female, family: binomial)
+> g.derive(odds = exp(female))
+derive · g
+
+  term   estimate   std.error   z value   p value   95% CI
+  odds     1.0571      0.0337     31.41    <0.001   [0.9912, 1.1231]

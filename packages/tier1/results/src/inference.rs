@@ -6,7 +6,7 @@
 
 use std::collections::BTreeSet;
 use std::rc::Rc;
-use zeff_core::display::{fixed, p_value_text};
+use zeff_core::display::{fixed, fixed_grouped, p_value_text};
 use zeff_core::operators::Op;
 use zeff_core::runtime::{Args, CallContext, Fail, fail};
 use zeff_core::value::{
@@ -21,10 +21,7 @@ use zeff_numeric::maths;
 /// The regression fit at argument `at`; a test's result has no coefficients.
 fn regression(ctx: &CallContext<'_>, args: &Args, at: usize, name: &str) -> Result<Rc<Fit>, Fail> {
     match args.get(at) {
-        Some(Value::Fit(fit)) => {
-            crate::interface::refuse_likelihood(ctx, fit, name)?;
-            Ok(Rc::clone(fit))
-        }
+        Some(Value::Fit(fit)) => Ok(Rc::clone(fit)),
         other => Err(fail(
             Diagnostic::error(
                 "Z0401",
@@ -242,6 +239,43 @@ fn wald_f(fit: &Fit, rows: &[Linear]) -> Option<(f64, usize)> {
     Some((w / q as f64, q))
 }
 
+/// The upper tail of chi-squared on `df` at `x`.
+fn chi2_p_value(x: f64, df: f64) -> f64 {
+    let dist = Distribution::Family {
+        name: "chi2",
+        params: vec![("df", df)],
+    };
+    families::cdf(&dist, x).upper
+}
+
+/// The statistic of a Wald test of q restrictions with its p-value: F on (q, the fit's residual
+/// degrees of freedom) for a least-squares fit; for a fit by maximum likelihood the Wald
+/// chi-squared on q, q times that F, whose reference distribution is the large-sample one, as
+/// the fit's own table is a z table (release 0.9.0, step 8b).
+fn wald_statistic(fit: &Fit, f: f64, q: usize) -> (Statistic, f64) {
+    if fit.likelihood.is_some() {
+        let w = f * q as f64;
+        (
+            Statistic {
+                name: "chi2".to_string(),
+                value: w,
+                df: vec![q as f64],
+            },
+            chi2_p_value(w, q as f64),
+        )
+    } else {
+        let df = fit.df_residual as f64;
+        (
+            Statistic {
+                name: "F".to_string(),
+                value: f,
+                df: vec![q as f64, df],
+            },
+            f_p_value(f, q as f64, df),
+        )
+    }
+}
+
 /// The upper tail of F on (df1, df2) at `f`.
 fn f_p_value(f: f64, df1: f64, df2: f64) -> f64 {
     let dist = Distribution::Family {
@@ -252,7 +286,8 @@ fn f_p_value(f: f64, df1: f64, df2: f64) -> f64 {
 }
 
 /// `fit.test(cond, ...)`: the Wald test that every restriction holds, each an equality linear
-/// in the coefficients, under the fit's variance matrix: F on (q, the fit's degrees of freedom).
+/// in the coefficients, under the fit's variance matrix: F on (q, the fit's degrees of freedom)
+/// for a regression, chi-squared on q for a fit by maximum likelihood.
 pub fn test(ctx: &mut CallContext<'_>, args: Args) -> Result<Value, Fail> {
     let fit = regression(ctx, &args, 0, "test")?;
     if args.rest.is_empty() {
@@ -331,8 +366,7 @@ pub fn test(ctx: &mut CallContext<'_>, args: Args) -> Result<Value, Fail> {
             .help("drop a restriction the others imply"),
         ));
     };
-    let df = fit.df_residual;
-    let p = f_p_value(f, q as f64, df as f64);
+    let (statistic, p) = wald_statistic(&fit, f, q);
     Ok(Value::TestResult(Rc::new(TestResult {
         follow_up: None,
         terms: Vec::new(),
@@ -343,11 +377,7 @@ pub fn test(ctx: &mut CallContext<'_>, args: Args) -> Result<Value, Fail> {
         header: Vec::new(),
         table: None,
         estimate: None,
-        statistic: Statistic {
-            name: "F".to_string(),
-            value: f,
-            df: vec![q as f64, df as f64],
-        },
+        statistic,
         p_value: p,
         effect: None,
         level: fit.level,
@@ -370,6 +400,154 @@ fn not_comparable(ctx: &CallContext<'_>, message: String, label: &str, help: &st
     )
 }
 
+/// The smaller and the larger of two fits by their terms, the first nested in the second;
+/// Z0416 when the terms are the same or neither set holds the other. `noun` is what the message
+/// calls the two: regressions, or fits.
+fn nested<'a>(
+    ctx: &CallContext<'_>,
+    a: &'a Rc<Fit>,
+    b: &'a Rc<Fit>,
+    noun: &str,
+) -> Result<(&'a Rc<Fit>, &'a Rc<Fit>), Fail> {
+    let terms_a: BTreeSet<&str> = a.terms.iter().map(String::as_str).collect();
+    let terms_b: BTreeSet<&str> = b.terms.iter().map(String::as_str).collect();
+    if terms_a == terms_b {
+        Err(not_comparable(
+            ctx,
+            format!("the two {noun} have the same terms, so neither is nested in the other"),
+            "the same terms",
+            "`compare` tests the terms the larger model adds to the smaller",
+        ))
+    } else if terms_a.is_subset(&terms_b) {
+        Ok((a, b))
+    } else if terms_b.is_subset(&terms_a) {
+        Ok((b, a))
+    } else {
+        let only_a = terms_a.difference(&terms_b).next().unwrap_or(&"");
+        let only_b = terms_b.difference(&terms_a).next().unwrap_or(&"");
+        Err(not_comparable(
+            ctx,
+            format!(
+                "the two {noun} are not nested: `{only_a}` is in one alone and `{only_b}` in the other"
+            ),
+            "not nested",
+            "every term of the smaller model must be a term of the larger",
+        ))
+    }
+}
+
+/// `fit.compare(other)` of two fits by maximum likelihood (release 0.9.0, step 8b): the
+/// likelihood-ratio test of the terms the larger adds, 2(ℓ of the larger − ℓ of the smaller) on
+/// chi-squared with as many degrees of freedom as terms added. It needs what makes the two
+/// log-likelihoods comparable: the same family and link, the same rows and weights, and
+/// model-based standard errors on both, since under robust or clustered errors, or sampling
+/// weights, the likelihood is not taken to be the data's, and `test` gives the Wald test.
+fn compare_likelihood(ctx: &CallContext<'_>, a: &Rc<Fit>, b: &Rc<Fit>) -> Result<Value, Fail> {
+    let (Some(la), Some(lb)) = (a.likelihood.as_deref(), b.likelihood.as_deref()) else {
+        return Err(not_comparable(
+            ctx,
+            "`compare` needs two models of one kind, but one is a regression and the other a fit by maximum likelihood".to_string(),
+            "another kind of model",
+            "compare two `reg` fits, or two `glm` fits",
+        ));
+    };
+    if la.family != lb.family || la.link != lb.link {
+        return Err(not_comparable(
+            ctx,
+            format!(
+                "the two fits are not nested: one is {}, {} and the other {}, {}",
+                la.family, la.link, lb.family, lb.link
+            ),
+            "another family or link",
+            "the likelihood-ratio test compares two models of one family and link; `fit_measures().aic` compares any two on the same rows",
+        ));
+    }
+    let weights = |fit: &Fit| fit.source.as_ref().and_then(|s| s.weights.clone());
+    if a.frame_rows != b.frame_rows || a.rows != b.rows || weights(a) != weights(b) {
+        return Err(not_comparable(
+            ctx,
+            format!(
+                "`compare` needs two fits on the same rows with the same weights, but these used {} and {} rows",
+                count(a.rows.len() as u64),
+                count(b.rows.len() as u64)
+            ),
+            "fitted on other rows",
+            "fit both models on one frame with the same rows; `where(!is_missing(x))` first keeps the rows a variable of one model would drop",
+        ));
+    }
+    for (fit, likelihood) in [(a, la), (b, lb)] {
+        let why = if likelihood.pseudo {
+            Some("sampling weights, under which the likelihood is a pseudo-likelihood".to_string())
+        } else if fit.se_kind != "classical" {
+            Some(format!("standard errors that are {}", fit.se_kind))
+        } else {
+            None
+        };
+        if let Some(why) = why {
+            return Err(not_comparable(
+                ctx,
+                format!(
+                    "the likelihood-ratio test needs model-based standard errors, but `{}` has {why}",
+                    fit_name(fit)
+                ),
+                "no likelihood-ratio test here",
+                "`test` gives the Wald test of the extra terms under these errors: `m.test(a == 0, b == 0)`",
+            ));
+        }
+    }
+    let (small, big) = nested(ctx, a, b, "fits")?;
+    let q = big.terms.len() - small.terms.len();
+    // Twice the gap of the log-likelihoods; a gap that rounding makes negative is none.
+    let chi2 = (2.0 * (big.log_likelihood - small.log_likelihood)).max(0.0);
+    let p = chi2_p_value(chi2, q as f64);
+    let row = |fit: &Fit, likelihood: &zeff_core::value::LikelihoodFit| -> Vec<String> {
+        vec![
+            fit_name(fit),
+            count(fit.n as u64),
+            fixed_grouped(fit.log_likelihood, 2),
+            fixed_grouped(likelihood.deviance, 2),
+        ]
+    };
+    let table = Table {
+        title: String::new(),
+        before: Vec::new(),
+        columns: vec![
+            ("model".to_string(), Align::Left),
+            ("N".to_string(), Align::Right),
+            ("log-likelihood".to_string(), Align::Right),
+            ("deviance".to_string(), Align::Right),
+        ],
+        rows: vec![row(a, la), row(b, lb)],
+        after: Vec::new(),
+        more: Vec::new(),
+        rules: Vec::new(),
+    };
+    Ok(Value::TestResult(Rc::new(TestResult {
+        follow_up: None,
+        terms: Vec::new(),
+        method: "compare".to_string(),
+        title: format!("compare · {} against {}", fit_name(a), fit_name(b)),
+        hypotheses: None,
+        alternative: Alternative::TwoSided,
+        header: Vec::new(),
+        table: Some(table),
+        estimate: None,
+        statistic: Statistic {
+            name: "chi2".to_string(),
+            value: chi2,
+            df: vec![q as f64],
+        },
+        p_value: p,
+        effect: None,
+        level: a.level,
+        alpha: None,
+        after: Vec::new(),
+        notes: Vec::new(),
+        n: a.n,
+        dropped: 0,
+    })))
+}
+
 /// `fit.compare(other)`: the two regressions on the same rows, the smaller nested in the larger
 /// by its terms; the F test of the larger's extra terms under classical errors, the Wald F
 /// under robust or clustered ones, on (q, the larger fit's degrees of freedom), with a table of
@@ -377,6 +555,9 @@ fn not_comparable(ctx: &CallContext<'_>, message: String, label: &str, help: &st
 pub fn compare(ctx: &mut CallContext<'_>, args: Args) -> Result<Value, Fail> {
     let a = regression(ctx, &args, 0, "compare")?;
     let b = regression(ctx, &args, 1, "compare")?;
+    if a.likelihood.is_some() || b.likelihood.is_some() {
+        return compare_likelihood(ctx, &a, &b);
+    }
     if a.frame_rows != b.frame_rows || a.rows != b.rows {
         return Err(not_comparable(
             ctx,
@@ -389,32 +570,7 @@ pub fn compare(ctx: &mut CallContext<'_>, args: Args) -> Result<Value, Fail> {
             "fit both models on one frame with the same rows; `where(!is_missing(x))` first keeps the rows a variable of one model would drop",
         ));
     }
-    let terms_a: BTreeSet<&str> = a.terms.iter().map(String::as_str).collect();
-    let terms_b: BTreeSet<&str> = b.terms.iter().map(String::as_str).collect();
-    let (small, big) = if terms_a == terms_b {
-        return Err(not_comparable(
-            ctx,
-            "the two regressions have the same terms, so neither is nested in the other"
-                .to_string(),
-            "the same terms",
-            "`compare` tests the terms the larger model adds to the smaller",
-        ));
-    } else if terms_a.is_subset(&terms_b) {
-        (&a, &b)
-    } else if terms_b.is_subset(&terms_a) {
-        (&b, &a)
-    } else {
-        let only_a = terms_a.difference(&terms_b).next().unwrap_or(&"");
-        let only_b = terms_b.difference(&terms_a).next().unwrap_or(&"");
-        return Err(not_comparable(
-            ctx,
-            format!(
-                "the two regressions are not nested: `{only_a}` is in one alone and `{only_b}` in the other"
-            ),
-            "not nested",
-            "every term of the smaller model must be a term of the larger",
-        ));
-    };
+    let (small, big) = nested(ctx, &a, &b, "regressions")?;
     let extra: Vec<usize> = big
         .terms
         .iter()
@@ -680,12 +836,21 @@ pub fn derive(ctx: &mut CallContext<'_>, args: Args) -> Result<Value, Fail> {
                 .help("write each quantity as `name = expression` over the terms: `m.derive(ratio = educ / exper)`"),
         ));
     }
-    let df = fit.df_residual as f64;
-    let student = Distribution::Family {
-        name: "t",
-        params: vec![("df", df)],
+    // The reference distribution: Student's t on the fit's degrees of freedom for a regression,
+    // the standard normal for a fit by maximum likelihood, as each fit's own table has it.
+    let by_likelihood = fit.likelihood.is_some();
+    let reference = if by_likelihood {
+        Distribution::Family {
+            name: "normal",
+            params: vec![("mean", 0.0), ("sd", 1.0)],
+        }
+    } else {
+        Distribution::Family {
+            name: "t",
+            params: vec![("df", fit.df_residual as f64)],
+        }
     };
-    let quantile = families::quantile(&student, 1.0 - (1.0 - fit.level) / 2.0);
+    let quantile = families::quantile(&reference, 1.0 - (1.0 - fit.level) / 2.0);
     let mut rows = Vec::new();
     for (i, (name, value)) in args.definitions.iter().enumerate() {
         let span = ctx
@@ -740,7 +905,7 @@ pub fn derive(ctx: &mut CallContext<'_>, args: Args) -> Result<Value, Fail> {
             continue;
         }
         let t = value / se;
-        let p = 2.0 * families::cdf(&student, t.abs()).upper;
+        let p = 2.0 * families::cdf(&reference, t.abs()).upper;
         rows.push(vec![
             name.clone(),
             fixed(value, 4),
@@ -761,7 +926,10 @@ pub fn derive(ctx: &mut CallContext<'_>, args: Args) -> Result<Value, Fail> {
             ("term".to_string(), Align::Left),
             ("estimate".to_string(), Align::Right),
             ("std.error".to_string(), Align::Right),
-            ("t value".to_string(), Align::Right),
+            (
+                if by_likelihood { "z value" } else { "t value" }.to_string(),
+                Align::Right,
+            ),
             ("p value".to_string(), Align::Right),
             (level_heading(fit.level), Align::Left),
         ],
