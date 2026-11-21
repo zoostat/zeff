@@ -254,7 +254,7 @@ error[Z0401]: the outcome `industry` is a category, and this model needs a numbe
 1 | dataset(wages).reg(industry ~ educ)
   |                ^^^ a category on the left of `~`
   |
-  = help: `to(y, Int)` gives a category's codes; a model for a categorical outcome arrives with `glm` (release 0.9.0)
+  = help: `to(y, Int)` gives a category's codes; `glm` fits a yes-or-no outcome, `add(y_1 = y == "level")`; a model of several levels arrives with `multinomial` (release 1.7)
 [exit 1]
 
 > let f = log(wage) ~ educ

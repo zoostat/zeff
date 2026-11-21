@@ -1,0 +1,179 @@
+---
+source: packages/tier2/glm/tests/glm.rs
+expression: all
+---
+dataset(wages).glm(union ~ educ)
+---
+error[Z0406]: `glm` needs `family:`
+ --> scripts/main.zeff:1:16
+  |
+1 | dataset(wages).glm(union ~ educ)
+  |                ^^^ `family:` is missing
+  |
+  = help: a binary outcome is `family: binomial`; a linear model is `reg`
+
+====
+frame(y = [0, 1, 2, 1], x = [1, 2, 3, 4]).glm(y ~ x, family: binomial)
+---
+error[Z0401]: `glm` with `family: binomial` needs an outcome of 0 and 1, or true and false, but `y` holds 2
+ --> scripts/main.zeff:1:47
+  |
+1 | frame(y = [0, 1, 2, 1], x = [1, 2, 3, 4]).glm(y ~ x, family: binomial)
+  |                                               ^^^^^ not a binary outcome
+  |
+  = help: a yes-or-no outcome is coded 0 and 1 or as a Bool: `add(y_yes = y == ...)`; a numeric outcome is a linear model, `reg`
+
+====
+dataset(wages).glm(educ ~ exper, family: binomial)
+---
+error[Z0401]: `glm` with `family: binomial` needs an outcome of 0 and 1, or true and false, but `educ` holds 17
+ --> scripts/main.zeff:1:20
+  |
+1 | dataset(wages).glm(educ ~ exper, family: binomial)
+  |                    ^^^^^^^^^^^^ not a binary outcome
+  |
+  = help: a yes-or-no outcome is coded 0 and 1 or as a Bool: `add(educ_yes = educ == ...)`; a numeric outcome is a linear model, `reg`
+
+====
+dataset(wages).glm(industry ~ educ, family: binomial)
+---
+error[Z0401]: the outcome `industry` is a category, and `glm` with `family: binomial` needs 0 and 1, or true and false
+ --> scripts/main.zeff:1:20
+  |
+1 | dataset(wages).glm(industry ~ educ, family: binomial)
+  |                    ^^^^^^^^^^^^^^^ a category on the left of `~`
+  |
+  = help: say which level is the 1: `add(industry_1 = industry == "Public administration")` and fit `industry_1`
+
+====
+dataset(wages).add(u = to(NA, Float)).glm(u ~ educ, family: binomial)
+---
+error[Z0801]: no row remains to fit the model: every row has NA in a model variable
+ --> scripts/main.zeff:1:39
+  |
+1 | dataset(wages).add(u = to(NA, Float)).glm(u ~ educ, family: binomial)
+  |                                       ^^^ nothing to estimate
+  |
+  = help: `describe` shows each variable's missing count
+
+====
+dataset(wages).where(wage > 1e9).glm(union ~ educ, family: binomial)
+---
+note: 211 rows dropped where `wage > 1e9` was NA; `wages.where(is_missing(wage))` lists them (line 1)
+note: no row kept: the result is empty (line 1)
+error[Z0801]: no row remains to fit the model: the frame has no rows
+ --> scripts/main.zeff:1:34
+  |
+1 | dataset(wages).where(wage > 1e9).glm(union ~ educ, family: binomial)
+  |                                  ^^^ nothing to estimate
+  |
+  = help: `describe` shows each variable's missing count
+
+====
+dataset(wages).head(1).glm(union ~ educ, family: binomial)
+---
+error[Z0802]: no residual degrees of freedom: 1 row and 1 regressor
+ --> scripts/main.zeff:1:24
+  |
+1 | dataset(wages).head(1).glm(union ~ educ, family: binomial)
+  |                        ^^^ as many regressors as rows, or more
+  |
+  = help: a model needs more rows than regressors; drop terms or use more data
+
+====
+frame(y = [0, 1, 0], a = [1, 2, 4], b = [3, 1, 2]).glm(y ~ a + b, family: binomial)
+---
+error[Z0802]: no residual degrees of freedom: 3 rows and 3 regressors
+ --> scripts/main.zeff:1:52
+  |
+1 | frame(y = [0, 1, 0], a = [1, 2, 4], b = [3, 1, 2]).glm(y ~ a + b, family: binomial)
+  |                                                    ^^^ as many regressors as rows, or more
+  |
+  = help: a model needs more rows than regressors; drop terms or use more data
+
+====
+frame(y = [0, 1, 0, 1], z = [0, 0, 0, 0]).glm(y ~ z - 1, family: binomial)
+---
+error[Z0802]: no regressor remains: every column of the design is zero
+ --> scripts/main.zeff:1:43
+  |
+1 | frame(y = [0, 1, 0, 1], z = [0, 0, 0, 0]).glm(y ~ z - 1, family: binomial)
+  |                                           ^^^ nothing to estimate
+  |
+  = help: a model needs at least one regressor that varies, or an intercept
+
+====
+dataset(wages).add(none = 0 * union).glm(none ~ educ, family: binomial)
+---
+error[Z0803]: glm: `none` is 0 in every row used, so maximum likelihood does not exist
+ --> scripts/main.zeff:1:38
+  |
+1 | dataset(wages).add(none = 0 * union).glm(none ~ educ, family: binomial)
+  |                                      ^^^ an outcome that does not vary
+  |
+  = help: the probability of a 1 would be 0 whatever the regressors; check how `none` was coded and which rows were dropped for NA
+
+====
+dataset(wages).add(all = 1 + 0 * union).glm(all ~ educ + female, family: binomial, link: probit)
+---
+error[Z0803]: glm: `all` is 1 in every row used, so maximum likelihood does not exist
+ --> scripts/main.zeff:1:41
+  |
+1 | dataset(wages).add(all = 1 + 0 * union).glm(all ~ educ + female, family: binomial, link: probit)
+  |                                         ^^^ an outcome that does not vary
+  |
+  = help: the probability of a 1 would be 1 whatever the regressors; check how `all` was coded and which rows were dropped for NA
+
+====
+dataset(wages).head(3).glm(union ~ educ + exper + female, family: binomial)
+---
+error[Z0803]: glm: `union` is 0 in every row used, so maximum likelihood does not exist
+ --> scripts/main.zeff:1:24
+  |
+1 | dataset(wages).head(3).glm(union ~ educ + exper + female, family: binomial)
+  |                        ^^^ an outcome that does not vary
+  |
+  = help: the probability of a 1 would be 0 whatever the regressors; check how `union` was coded and which rows were dropped for NA
+
+====
+dataset(wages).add(one = 1).glm(union ~ educ + one, family: binomial)
+---
+glm · union ~ educ + one · binomial, logit
+N = 18,412
+standard errors: classical
+
+  term           estimate   std.error   z value   p value   95% CI
+  (intercept)     -0.4097      0.0872     -4.70    <0.001   [-0.5806, -0.2389]
+  educ            -0.0262      0.0064     -4.11    <0.001   [-0.0387, -0.0137]
+  one           (omitted)
+
+log-likelihood -11,506.29 · AIC 23,016.58 · McFadden R² 0.001
+deviance 23,012.58 on 18,410 df · null deviance 23,029.49 on 18,411 df
+converged in 5 iterations of Fisher scoring
+note: `one` is collinear with the columns before it and was dropped (line 1)
+
+====
+dataset(wages).add(member = union == 1).glm(member ~ educ, family: binomial)
+---
+glm · member ~ educ · binomial, logit
+N = 18,412
+standard errors: classical
+
+  term          estimate   std.error   z value   p value   95% CI
+  (intercept)    -0.4097      0.0872     -4.70    <0.001   [-0.5806, -0.2389]
+  educ           -0.0262      0.0064     -4.11    <0.001   [-0.0387, -0.0137]
+
+log-likelihood -11,506.29 · AIC 23,016.58 · McFadden R² 0.001
+deviance 23,012.58 on 18,410 df · null deviance 23,029.49 on 18,411 df
+converged in 5 iterations of Fisher scoring
+
+====
+dataset(wages).glm(union ~ educ, family: binomial, level: 1.5)
+---
+error[Z0401]: `level:` is a probability strictly between 0 and 1, but this is 1.5
+ --> scripts/main.zeff:1:59
+  |
+1 | dataset(wages).glm(union ~ educ, family: binomial, level: 1.5)
+  |                                                           ^^^ not a confidence level
+  |
+  = help: the usual levels are 0.9, 0.95 and 0.99

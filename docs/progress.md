@@ -60,6 +60,8 @@ Step 4 `[engine]`: the likelihood trait and the shared optimiser. The kernels fi
 
 Beside the checklist: the owner's answers to the seventeen questions of Zemp Lite 0.2 entered in the register and both specifications (c6d55e7). Step 5 split in two; step 5a `[engine]`: the package `glm`, `data.glm(formula, family: binomial, link: logit | probit, level:)` and the result type `GlmFit`; the printed table with z values and, under it, the log-likelihood, AIC, McFadden's R², the deviance and the iterations, every figure equal to R's `glm` on the wages; the methods not yet right for a likelihood fit (`test`, `compare`, `derive`, `residuals`, `fit_measures`, `predict`, `report`) refuse it until step 8, in words the close's check will not let stand.
 
-**Next.** Step 5b `[engine]`: the refusals and the edge cases of `glm`. Step 3, the weekly run of 23 November, when it has ended.
+Step 5b `[engine]`: every refusal of `glm`'s page raised and snapshotted: `family:` left out (Z0406), an outcome not 0/1 or a category (Z0401, the help writing the 0/1 variable), no row (Z0801), as many regressors as rows or none (Z0802), an outcome with one value and a fit not converged in 100 iterations (Z0803, an error as section 5.6 says, where the checklist had said a warning); a constant or collinear regressor dropped with `reg`'s note; the fit unchanged by the order of the rows.
+
+**Next.** Step 6 `[engine]`: separation and the self-checks (a linear-programming check before the fit, Z0803 naming the variable). Step 3, the weekly run of 23 November, when it has ended.
 
 **For the owner to decide or do.** Nothing blocks. The R packages `marginaleffects`, `rstatix` and `pROC` for the reference library (and `ivmodel`, `ivDiag`), if he wants the references held to them; the signing key at step 23; the archive link of #161; the reader test at step 45.

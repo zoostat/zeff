@@ -130,7 +130,7 @@ Z07xx  Projects, paths, data roots, versions, resources and reproducibility
 Z08xx  Estimation: convergence, identification
     Z0801  no row remains to fit the model
     Z0802  no residual degrees of freedom
-    Z0803  an outcome too large or too small to compute with
+    Z0803  estimates that cannot be computed
     Z0804  an under-identified model
 
 Z9xxx  Internal errors: a bug in Zeff, not in the script

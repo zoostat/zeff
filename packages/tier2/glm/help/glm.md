@@ -55,6 +55,15 @@ interval are those of the standard normal distribution.
 A regressor that is a combination of the regressors before it is dropped with a note, as in
 `reg`, and so is a column that is zero in every row used.
 
+### When there is no estimate
+The maximum of the likelihood does not always exist, and the fit then stops with an error
+rather than print estimates that mean nothing. An outcome that is 0 in every row used, or 1 in
+every row, has its probability estimated at 0 or 1 whatever the regressors (Z0803); so does a
+regressor that separates the 0s from the 1s, whose estimate runs off to infinity (Z0803). A
+model with as many regressors as rows, or more, is refused as `reg` refuses it (Z0802). A fit
+that has not converged in 100 iterations is refused with the change of the log-likelihood at the
+last (Z0803).
+
 ### Exactness
 Iterative: the estimates, the standard errors and the log-likelihood agree with R's `glm`,
 iterated to its maximum, to a relative 1e-9 on the reference models. R's own rule stops its

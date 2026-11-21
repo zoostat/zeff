@@ -27,20 +27,24 @@ pub fn functions() -> Vec<Function> {
             returns: "GlmFit",
             diagnostics: vec![
                 DiagnosticDecl::note(
-                    "a term written twice kept once; a collinear column, a level with no observations, a zero column or one too small or too large to scale dropped; a fit that did not converge",
+                    "a term written twice kept once; a collinear column, a level with no observations, a zero column or one too small or too large to scale dropped",
                 ),
                 DiagnosticDecl::new("Z0406", "`family:` left out"),
                 DiagnosticDecl::new(
                     "Z0401",
-                    "an outcome that is not 0 and 1, or true and false; a level outside (0, 1)",
+                    "an outcome that is not 0 and 1, or true and false, or that is a category; a level outside (0, 1)",
                 ),
                 DiagnosticDecl::new(
                     "Z0801",
                     "no row remains to fit the model",
                 ),
                 DiagnosticDecl::new(
+                    "Z0802",
+                    "as many regressors as rows, or more, or no regressor at all",
+                ),
+                DiagnosticDecl::new(
                     "Z0803",
-                    "the estimates diverge, so that maximum likelihood does not exist",
+                    "an outcome with one value in every row used, estimates that diverge, or a fit that has not converged in 100 iterations: maximum likelihood is not found",
                 ),
             ],
             help: include_str!("../help/glm.md"),

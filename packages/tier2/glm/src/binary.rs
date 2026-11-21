@@ -7,8 +7,8 @@
 
 use std::rc::Rc;
 use zeff_core::runtime::{Args, CallContext, Fail, fail};
-use zeff_core::value::{FitSource, LikelihoodFit, Value};
-use zeff_diagnostics::Diagnostic;
+use zeff_core::value::{FitSource, LikelihoodFit, TermKind, Value};
+use zeff_diagnostics::{Diagnostic, count};
 use zeff_kernels::irls::{Control, IndexModel, Method, Stop, irls};
 use zeff_kernels::qr::{TallSkinnyQr, pivoted_qr};
 use zeff_kernels::svd::condition_number;
@@ -107,8 +107,32 @@ fn columns(design: &Design) -> Columns {
     }
 }
 
+fn rows_text(n: usize) -> String {
+    format!(
+        "{} {}",
+        count(n as u64),
+        if n == 1 { "row" } else { "rows" }
+    )
+}
+
+/// A change of the log-likelihood as the message prints it: two decimals, or two significant
+/// digits in the exponent form for a change below one hundredth.
+fn change_text(change: f64) -> String {
+    if change.abs() >= 0.01 {
+        format!("{change:.2}")
+    } else {
+        format!("{change:.1e}")
+    }
+}
+
 /// `data.glm(formula, family:, link:, level:)`.
 pub fn glm(ctx: &mut CallContext<'_>, args: Args) -> Result<Value, Fail> {
+    glm_with(ctx, args, &Control::default())
+}
+
+/// `glm` under the optimiser's settings `control`: the function's are the defaults; a test
+/// lowers the iteration cap to reach the refusal of a fit that has not converged.
+pub fn glm_with(ctx: &mut CallContext<'_>, args: Args, control: &Control) -> Result<Value, Fail> {
     let Some(Value::Frame(frame)) = args.get(0) else {
         return Err(internal(ctx, "called without a frame"));
     };
@@ -147,6 +171,29 @@ pub fn glm(ctx: &mut CallContext<'_>, args: Args) -> Result<Value, Fail> {
             .in_file(ctx.script)
             .primary(ctx.span_of(LEVEL), "not a confidence level")
             .help("the usual levels are 0.9, 0.95 and 0.99"),
+        ));
+    }
+
+    // A category on the left of `~` is refused here rather than by the design, so that the
+    // help writes the 0/1 outcome `glm` takes.
+    if let Some(term) = &formula.outcome
+        && let TermKind::Var(name) = &term.kind
+        && let Some(column) = frame.table.column(name)
+        && let Some(levels) = column.levels()
+    {
+        let level = levels.last().copied().unwrap_or("level").to_string();
+        return Err(fail(
+            Diagnostic::error(
+                "Z0401",
+                format!(
+                    "the outcome `{name}` is a category, and `glm` with `family: {family}` needs 0 and 1, or true and false"
+                ),
+            )
+            .in_file(ctx.script)
+            .primary(ctx.span_of(1), "a category on the left of `~`")
+            .help(format!(
+                "say which level is the 1: `add({name}_1 = {name} == \"{level}\")` and fit `{name}_1`"
+            )),
         ));
     }
 
@@ -190,11 +237,57 @@ pub fn glm(ctx: &mut CallContext<'_>, args: Args) -> Result<Value, Fail> {
 
     // The columns kept, and the design restricted to them.
     let chosen = columns(&design);
+    if chosen.kept.is_empty() {
+        return Err(fail(
+            Diagnostic::error(
+                "Z0802",
+                "no regressor remains: every column of the design is zero",
+            )
+            .in_file(ctx.script)
+            .primary(ctx.callee_span, "nothing to estimate")
+            .help("a model needs at least one regressor that varies, or an intercept"),
+        ));
+    }
+    if n <= chosen.kept.len() {
+        let rank = chosen.kept.len();
+        return Err(fail(
+            Diagnostic::error(
+                "Z0802",
+                format!(
+                    "no residual degrees of freedom: {} and {} {}",
+                    rows_text(n),
+                    count(rank as u64),
+                    if rank == 1 { "regressor" } else { "regressors" }
+                ),
+            )
+            .in_file(ctx.script)
+            .primary(ctx.callee_span, "as many regressors as rows, or more")
+            .help("a model needs more rows than regressors; drop terms or use more data"),
+        ));
+    }
+    // An outcome with one value in every row used has its probability estimated at 0 or 1
+    // whatever the regressors: the intercept runs off to infinity and no maximum exists.
+    if y.iter().all(|v| *v == y[0]) {
+        let (value, probability) = if y[0] == 1.0 { (1, 1) } else { (0, 0) };
+        return Err(fail(
+            Diagnostic::error(
+                "Z0803",
+                format!(
+                    "glm: `{outcome}` is {value} in every row used, so maximum likelihood does not exist"
+                ),
+            )
+            .in_file(ctx.script)
+            .primary(ctx.callee_span, "an outcome that does not vary")
+            .help(format!(
+                "the probability of a 1 would be {probability} whatever the regressors; check how `{outcome}` was coded and which rows were dropped for NA"
+            )),
+        ));
+    }
     let full = design.matrix();
     let x = Matrix::from_fn(n, chosen.kept.len(), |i, j| full.get(i, chosen.kept[j]));
     let model = Binomial::new(y.clone(), link);
     let start: Vec<f64> = (0..n).map(|row| model.start(row)).collect();
-    let solution = irls(&x, &model, &start, &Control::default()).map_err(|stop| {
+    let solution = irls(&x, &model, &start, control).map_err(|stop| {
         let at = match stop {
             Stop::NotFinite { iteration } | Stop::RankLost { iteration, .. } => iteration,
         };
@@ -271,13 +364,31 @@ pub fn glm(ctx: &mut CallContext<'_>, args: Args) -> Result<Value, Fail> {
         .collect();
     let null_log_likelihood = sum(&null_terms.iter().map(|t| t.0).collect::<Vec<_>>());
     let null_deviance = sum(&null_terms.iter().map(|t| t.1).collect::<Vec<_>>());
+    // A fit that has not converged has no estimates to report (section 5.6 of the Language
+    // Reference: non-convergence is an error with the diagnosis); the message gives the change
+    // of the log-likelihood at the last iteration.
     if !solution.converged {
-        let text = format!(
-            "the fit did not converge in {} iterations; the estimates are those of the last",
-            solution.iterations
-        );
-        notes.push(text.clone());
-        ctx.message(Diagnostic::plain_note(text));
+        let last = solution.history.len();
+        let change = if last >= 2 {
+            solution.history[last - 1] - solution.history[last - 2]
+        } else {
+            0.0
+        };
+        return Err(fail(
+            Diagnostic::error(
+                "Z0803",
+                format!(
+                    "glm: the fit did not converge in {} iterations; the log-likelihood still changed by {} at the last",
+                    solution.iterations,
+                    change_text(change)
+                ),
+            )
+            .in_file(ctx.script)
+            .primary(ctx.callee_span, "no maximum found")
+            .help(format!(
+                "a regressor may nearly separate the outcomes; look at `{outcome}` against each regressor, or drop or combine terms"
+            )),
+        ));
     }
 
     // The classical variance: the inverse of the expected information, S R⁻¹ R⁻ᵀ S.
@@ -314,7 +425,7 @@ pub fn glm(ctx: &mut CallContext<'_>, args: Args) -> Result<Value, Fail> {
         df_null: n.saturating_sub(usize::from(design.intercept)),
         iterations: solution.iterations,
         converged: solution.converged,
-        method: match Control::default().method {
+        method: match control.method {
             Method::Scoring => "Fisher scoring",
             Method::Newton => "Newton",
         }

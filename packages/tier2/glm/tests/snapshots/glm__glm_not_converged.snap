@@ -1,0 +1,11 @@
+---
+source: packages/tier2/glm/tests/glm.rs
+expression: message
+---
+error[Z0803]: glm: the fit did not converge in 2 iterations; the log-likelihood still changed by 25.31 at the last
+ --> t.zeff:1:11
+  |
+1 | let m = d.glm(union ~ educ + exper + female, family: binomial)
+  |           ^^^ no maximum found
+  |
+  = help: a regressor may nearly separate the outcomes; look at `union` against each regressor, or drop or combine terms
