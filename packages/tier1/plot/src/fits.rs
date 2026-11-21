@@ -15,7 +15,7 @@ use crate::{marks, scales};
 use std::rc::Rc;
 use zeff_columns::{Column, Table};
 use zeff_core::runtime::{Args, CallContext, Fail, fail};
-use zeff_core::value::{Fit, Frame, Plot, Stat, Value};
+use zeff_core::value::{Fit, FollowUp, Frame, Plot, Stat, TestResult, Value};
 use zeff_diagnostics::Diagnostic;
 
 /// The variables of the frame a coefficient plot draws: the term, its estimate and the two
@@ -293,10 +293,120 @@ fn event_study(
     )
 }
 
+/// The variables of the frame an ROC curve draws.
+pub const ROC_X: &str = "false_positive_rate";
+pub const ROC_Y: &str = "sensitivity";
+
+/// The ROC curve of a classifier: the sensitivity against one less the specificity, from
+/// (0, 0) through the point of every threshold to (1, 1), over the diagonal of a score that
+/// tells nothing, on axes of one scale.
+fn roc_curve(
+    ctx: &mut CallContext<'_>,
+    test: &TestResult,
+    sensitivity: &[f64],
+    specificity: &[f64],
+) -> Result<Value, Fail> {
+    let unbuilt =
+        |ctx: &CallContext<'_>| internal(ctx, "the frame of the curve could not be built");
+    let frame_of = |x: Vec<f64>, y: Vec<f64>| -> Option<Frame> {
+        let table = Table::new(vec![
+            (ROC_X.to_string(), Column::floats(x.into_iter().map(Some)).0),
+            (ROC_Y.to_string(), Column::floats(y.into_iter().map(Some)).0),
+        ])
+        .ok()?;
+        Some(Frame {
+            table: Rc::new(table),
+            name: None,
+        })
+    };
+    let mut x = vec![0.0];
+    let mut y = vec![0.0];
+    x.extend(specificity.iter().map(|s| 1.0 - s));
+    y.extend(sensitivity.iter().copied());
+    let Some(points) = frame_of(x, y) else {
+        return Err(unbuilt(ctx));
+    };
+    let Some(diagonal) = frame_of(vec![0.0, 1.0], vec![0.0, 1.0]) else {
+        return Err(unbuilt(ctx));
+    };
+    let var = |name: &str| (Some(Value::Var(name.to_string())), None);
+    let text = |text: &str| (Some(Value::Str(text.to_string())), None);
+    let mut drawn = call(
+        ctx,
+        plot,
+        vec![
+            (
+                Some(Value::Frame(points)),
+                ctx.arg_spans.first().copied().flatten(),
+            ),
+            var(ROC_X),
+            var(ROC_Y),
+        ],
+    )?;
+    // The diagonal, under the curve: p, data, x, y, color, group, linetype, width.
+    drawn = call(
+        ctx,
+        marks::lines,
+        vec![
+            (Some(drawn), None),
+            (Some(Value::Frame(diagonal)), None),
+            var(ROC_X),
+            var(ROC_Y),
+            text("grey"),
+            NONE,
+            text("dashed"),
+            (Some(Value::Float(0.5)), None),
+        ],
+    )?;
+    drawn = call(ctx, marks::lines, vec![(Some(drawn), None)])?;
+    // One scale on both axes: the diagonal is at 45 degrees.
+    drawn = call(
+        ctx,
+        scales::coord,
+        vec![
+            (Some(drawn), None),
+            (Some(Value::Word("fixed".to_string())), None),
+            (Some(Value::Float(1.0)), None),
+        ],
+    )?;
+    let area = test.estimate.as_ref().map_or(String::new(), |e| {
+        format!(
+            "area under the curve {}",
+            zeff_core::display::fixed(e.value, e.decimals)
+        )
+    });
+    // p, title, subtitle, x, y, color, caption.
+    call(
+        ctx,
+        scales::labels,
+        vec![
+            (Some(drawn), None),
+            NONE,
+            NONE,
+            text("1 \u{2212} specificity"),
+            text("sensitivity"),
+            NONE,
+            (Some(Value::Str(area)), None),
+        ],
+    )
+}
+
 /// `fit.plot()`: the default view of a fitted model. Of a fit with the terms of an event
 /// study, the estimates of the periods relative to the event, in their order, with their
 /// confidence intervals; of any other, its coefficient plot, as `coef_plot` draws it.
 pub fn plot_of_a_fit(ctx: &mut CallContext<'_>, args: Args) -> Result<Value, Fail> {
+    // The default view of a curve is the curve (open decision #120: `fit.curve(type:
+    // roc).plot()`, and no `roc_plot`).
+    if let Some(Value::TestResult(test)) = args.get(0)
+        && let Some(FollowUp::Curve {
+            sensitivity,
+            specificity,
+            ..
+        }) = test.follow_up.as_deref()
+    {
+        let test = Rc::clone(test);
+        return roc_curve(ctx, &test, sensitivity, specificity);
+    }
     let fit = fitted(ctx, &args, "plot")?;
     let mut periods: Vec<(usize, f64)> = fit
         .terms

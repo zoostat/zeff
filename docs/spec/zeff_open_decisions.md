@@ -126,6 +126,8 @@ Date: 17 October 2026 · Source: Zeff Specification section 15, Zemp Specificati
 
 **Status (21 November 2026, release 0.9.0, step 11a).** #202 is new: five things the three definitions of `margins` in #88 leave unsaid, met when it was built for `reg`. Each is taken as recommended under the owner's standing instruction of 12 November 2026 and is his to overturn before 1.0: the average over the rows is weighted by the fit's weights; with no variable named `margins` gives the adjusted prediction (built at step 11b); after `reg` the p-values and intervals are from Student's t on the fit's degrees of freedom; the printed table, shown to him at this step; under `type: mem` a category is held at the shares of its levels (built at step 11b). Rows Z0414 and Z0417 of section 11.1 of the Language Reference are extended to `margins` (`docs/spec_changes.md`).
 
+**Status (22 November 2026, release 0.9.0, step 14).** #204 is new: three things #112 leaves unsaid of `curve`, met when it was built, each taken as recommended under the owner's instruction of 22 November 2026 ("immediately start next step when a step is completed. I am approving and also take your recommended decision if necessary") and his to overturn before 1.0: `type:` is required; the result is read by `statistic()` (the area), `estimates()` (the points) and `plot()` (the figure); under weights a row counts as its weight.
+
 **Status (22 November 2026, a ruling of the owner's from Zemp Lite).** #203 is new and decided: on 21 November 2026, trying the hosted alpha, the owner proposed one layout of three panes for every place of Zemp Lite in the place of the margin editor's two layouts, approved a mockup drawn twice to his corrections ("looks fine") and placed it in a release of its own: "Yes, record it as 0.2.1 and reader test, your checks by hand etc will move to 0.2.1". The Zemp Lite session, which may not edit this repository, wrote it up in the shared notes; asked in the Zeff session on 22 November 2026 whether to enter it, the owner answered "Yes, enter it", and it is entered here, his words of the 21st as that note gives them. It revises #174 (the margin becomes the Notes pane; a run unfolds every output) and #176, R2 (Panes is removed as a layout), and brings #178's outline and **Run section** to Zemp Lite 0.2.1 in the interface's own reading of the comment. With it the reader test (one test for Zemp and Zeff 0.9.0; step 45 of Zeff 0.9.0) and the acceptance checks left for the hand at Zemp Lite 0.2 move to the hosted 0.2.1; the test's scripts are unchanged. Section 15 of the Zemp Specification gains the row of 0.2.1, and sections 5, 7 and 8 a sentence each (`docs/spec_changes.md`).
 
 ## Summary
@@ -219,6 +221,7 @@ Date: 17 October 2026 · Source: Zeff Specification section 15, Zemp Specificati
 | 85 | The Games–Howell comparison in `posthoc` | Add `games_howell` to `method:` in the first release after 0.7.0 with room; until then Tukey's HSD after Welch's ANOVA prints a note | decided 21 November 2026 (option A, on the recommendation); built at 0.9.0, step 29 |
 | 86 | Folding, snippets and the statement ranges behind **Run** in the language server | At 0.8.0, with Zemp's alpha; formatting through the server is built at 0.7.0 | decided 15 November 2026 (option A); built at 0.8.0, step 8b |
 | 87 | A variable name in an option record | Accept a `Vars` of exactly one variable where a parameter takes a `Var`, so that `{ se: robust, cluster: vars(firm) }` can be named once and spread | decided 15 November 2026 (option A); built at 0.8.0, step 4 |
+| 204 | `curve`: `type:` required, how the result is read, weights | Recommended A for each: `type:` has no default; the area by `statistic()`, the points by `estimates()`, the figure by `plot()`; rows counted by their weights, frequency or sampling | decided at 0.9.0, step 14, under the standing instruction (A); the owner's to overturn before 1.0 |
 | 203 | One layout of three panes on every page (Zemp Lite) | Every place (Script, Data, Plots, Help) has a left pane, the place in the middle and a right pane, each pane opened and closed by its own link; the Panes layout, the Margin link and the Objects panel are removed; Run unfolds every output; revises #174 and #176 (R2) | decided 21 November 2026 (the owner's ruling, given in the Zemp Lite session, passed on in the shared notes and confirmed by him in the Zeff session on 22 November 2026); Zemp Lite 0.2.1, on Zeff 0.8.0 |
 | 202 | `margins`: the average under weights, the call with no variable, the reference distribution, the printed table, a category under `type: mem` | Recommended A for each: the average weighted by the fit's weights; with no variable named, the adjusted prediction; Student's t on the fit's degrees of freedom after `reg`; the table of step 11a; a category held at the shares of its levels | (a), (c) and (d) decided at 0.9.0, step 11a, under the standing instruction (A), (d) shown to the owner; (b) and (e) built at step 11b (22 November 2026); the owner's to overturn before 1.0 |
 | 201 | A `glm` fit in `report` and under `summary(standardized:)` | Recommended A for each: the `R²` row of `report` shows McFadden's R² marked `(McFadden)`; `standardized: true` is refused on a `glm` fit until a standardization is chosen | the first decided at 0.9.0, step 8c, under the standing instruction (A); the second open, deadline 1.0 |
@@ -4049,3 +4052,36 @@ Raised and decided by the owner on 21 November 2026, in the Zemp Lite session, w
 *Also moved to 0.2.1 by the same ruling.* The reader test (one test for Zemp and Zeff 0.9.0, run on the hosted alpha with five to eight readers the owner chooses; step 45 of Zeff 0.9.0) is run on the hosted 0.2.1, not 0.2; the test still serves Zeff 0.9.0 and its scripts are unchanged. So are the acceptance tests left for the hand at Zemp Lite 0.2 (the keyboard alone, VoiceOver, the print at every size and in the dark theme) and the check by hand of the timing of ⌘↵ in Safari.
 
 **Status (22 November 2026).** Decided; nothing in Zeff waits on it. The Zemp Specification is amended with this entry (section 15, the rows of 0.2 and 0.2.1; sections 5, 7 and 8), logged in `docs/spec_changes.md`.
+
+### 204. `curve`: what #112 leaves unsaid
+
+Raised on 22 November 2026 at release 0.9.0, step 14, when `fit.curve(newdata:, type: roc)` was built. #112 fixes the name and the usage, and #120 that the figure is `fit.curve(type: roc).plot()`.
+
+**(a) Is `type:` required?** The usage writes `type: roc` with no default, as it writes `family: binomial` for `glm`.
+
+| Option | For | Against |
+| --- | --- | --- |
+| A. Required: `g.curve()` is refused (Z0406), the help naming `type: roc` | A function of several curves says which it draws; when the precision–recall curve arrives no script changes its meaning and none has a default chosen by which curve came first; as `family:` of `glm` | Four more characters while there is one curve |
+| B. `roc` unless given | Shorter today | The first curve built becomes the default for good |
+
+*Recommendation.* A. **Decided (22 November 2026, step 14):** A, under the standing instruction.
+
+**(b) How the result is read.** The result prints the rows, the counts of ones and noughts, and the area. A script needs the area as a number and the points as a frame, and the catalogue gives no new method for either.
+
+| Option | For | Against |
+| --- | --- | --- |
+| A. `statistic()` gives the area; `estimates()` gives the points, a frame of `threshold`, `sensitivity` and `specificity` from the highest threshold to the lowest; `plot()` draws the curve; no p-value and no interval | The area is a statistic, the Mann–Whitney statistic of the fitted probabilities over the number of pairs; the points are what the curve estimates; nothing new to learn | `estimates()` of other results has a row for each estimate with its standard error |
+| B. The area by `estimates()`, a frame of one row; the points only through the plot | `estimates()` as elsewhere | No way to the points, which a custom figure or a choice of threshold needs |
+
+*Recommendation.* A. **Decided (22 November 2026, step 14):** A, under the standing instruction.
+
+**(c) Weights.**
+
+| Option | For | Against |
+| --- | --- | --- |
+| A. Each row counts as its weight, frequency or sampling; the rows of `newdata` once each | After frequency weights it is the curve of the rows written out, exactly; after sampling weights it describes the population the fit describes | pROC does not weight; Stata's `lroc` takes frequency weights alone |
+| B. Frequency weights counted, sampling weights refused | Stata's reading | A fit with survey weights has no curve |
+
+*Recommendation.* A. **Decided (22 November 2026, step 14):** A, under the standing instruction.
+
+**Status (22 November 2026).** Built as decided. An interval for the area and a test between two curves wait until after 1.0 (question 3 of #99). Deadline for the owner to overturn any: 1.0.

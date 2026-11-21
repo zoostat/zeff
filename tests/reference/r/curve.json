@@ -1,0 +1,374 @@
+{
+ "reference": {
+  "software": "R version 4.6.0 (2026-04-24)",
+  "note": "base R; numbers written with 17 significant digits"
+ },
+ "cases": {
+  "logit": {
+   "formula": "union ~ educ + exper + female",
+   "link": "logit",
+   "weights": "",
+   "weight_type": "",
+   "new_rows": false,
+   "n": 18390,
+   "ones": "5849",
+   "noughts": "12541",
+   "area": "0.56002233004008062",
+   "thresholds": 769,
+   "points": [
+    {
+     "at": 1,
+     "threshold": "0.45849866462800298",
+     "sensitivity": "0",
+     "specificity": "0.99992026154214175"
+    },
+    {
+     "at": 2,
+     "threshold": "0.45827001762917979",
+     "sensitivity": "0.00017096939647803043",
+     "specificity": "0.99992026154214175"
+    },
+    {
+     "at": 3,
+     "threshold": "0.4518580710654525",
+     "sensitivity": "0.00017096939647803043",
+     "specificity": "0.99984052308428351"
+    },
+    {
+     "at": 192,
+     "threshold": "0.36703369127551733",
+     "sensitivity": "0.18105659087023424",
+     "specificity": "0.87297663663184755"
+    },
+    {
+     "at": 384,
+     "threshold": "0.32144375253962626",
+     "sensitivity": "0.53923747649170795",
+     "specificity": "0.55226855912606654"
+    },
+    {
+     "at": 576,
+     "threshold": "0.27656981665534347",
+     "sensitivity": "0.81210463327064453",
+     "specificity": "0.23227812774100953"
+    },
+    {
+     "at": 767,
+     "threshold": "0.22890314341442436",
+     "sensitivity": "0.99965806120704392",
+     "specificity": "0.00079738457858224976"
+    },
+    {
+     "at": 768,
+     "threshold": "0.22874062717318652",
+     "sensitivity": "1",
+     "specificity": "7.973845785824718e-05"
+    },
+    {
+     "at": 769,
+     "threshold": "0.22857819211166561",
+     "sensitivity": "1",
+     "specificity": "0"
+    }
+   ]
+  },
+  "probit": {
+   "formula": "union ~ educ + exper + exper^2 + female + industry",
+   "link": "probit",
+   "weights": "",
+   "weight_type": "",
+   "new_rows": false,
+   "n": 18390,
+   "ones": "5849",
+   "noughts": "12541",
+   "area": "0.65220394766305101",
+   "thresholds": 5721,
+   "points": [
+    {
+     "at": 1,
+     "threshold": "0.73333676274247894",
+     "sensitivity": "0.00017096939647803043",
+     "specificity": "1"
+    },
+    {
+     "at": 2,
+     "threshold": "0.71930213133726795",
+     "sensitivity": "0.00034193879295606086",
+     "specificity": "1"
+    },
+    {
+     "at": 3,
+     "threshold": "0.71819308829479256",
+     "sensitivity": "0.00034193879295606086",
+     "specificity": "0.99992026154214175"
+    },
+    {
+     "at": 1430,
+     "threshold": "0.42585580654476118",
+     "sensitivity": "0.31304496495127371",
+     "specificity": "0.84777928394864843"
+    },
+    {
+     "at": 2860,
+     "threshold": "0.3360041587948433",
+     "sensitivity": "0.59702513250128231",
+     "specificity": "0.63144884777928389"
+    },
+    {
+     "at": 4290,
+     "threshold": "0.23710245964952767",
+     "sensitivity": "0.8165498375790734",
+     "specificity": "0.37038513675145524"
+    },
+    {
+     "at": 5719,
+     "threshold": "0.11971582985093071",
+     "sensitivity": "0.99982903060352202",
+     "specificity": "0.00015947691571649436"
+    },
+    {
+     "at": 5720,
+     "threshold": "0.119625568933136",
+     "sensitivity": "1",
+     "specificity": "7.973845785824718e-05"
+    },
+    {
+     "at": 5721,
+     "threshold": "0.11954441474072348",
+     "sensitivity": "1",
+     "specificity": "0"
+    }
+   ]
+  },
+  "few": {
+   "formula": "union ~ female",
+   "link": "logit",
+   "weights": "",
+   "weight_type": "",
+   "new_rows": false,
+   "n": 18412,
+   "ones": "5856",
+   "noughts": "12556",
+   "area": "0.50546456247595473",
+   "thresholds": 2,
+   "points": [
+    {
+     "at": 1,
+     "threshold": "0.32294585808760673",
+     "sensitivity": "0.49197404371584702",
+     "specificity": "0.51895508123606238"
+    },
+    {
+     "at": 2,
+     "threshold": "0.31345485196496209",
+     "sensitivity": "1",
+     "specificity": "0"
+    }
+   ]
+  },
+  "sampling": {
+   "formula": "union ~ educ + exper + female",
+   "link": "logit",
+   "weights": "hours",
+   "weight_type": "sampling",
+   "new_rows": false,
+   "n": 18355,
+   "ones": "225799.40000000063",
+   "noughts": "470720.50000000081",
+   "area": "0.55938495910584607",
+   "thresholds": 769,
+   "points": [
+    {
+     "at": 1,
+     "threshold": "0.46404779975714544",
+     "sensitivity": "0",
+     "specificity": "0.99993796743502783"
+    },
+    {
+     "at": 2,
+     "threshold": "0.46380064859674147",
+     "sensitivity": "0.0001567763244720752",
+     "specificity": "0.99993796743502783"
+    },
+    {
+     "at": 3,
+     "threshold": "0.45751702743864947",
+     "sensitivity": "0.0001567763244720752",
+     "specificity": "0.99987317314627255"
+    },
+    {
+     "at": 192,
+     "threshold": "0.3737821771715098",
+     "sensitivity": "0.17940304535795884",
+     "specificity": "0.87269919198335333"
+    },
+    {
+     "at": 384,
+     "threshold": "0.32781795531127794",
+     "sensitivity": "0.53359442053433037",
+     "specificity": "0.56011561000636356"
+    },
+    {
+     "at": 576,
+     "threshold": "0.28309018074366099",
+     "sensitivity": "0.81477320134597331",
+     "specificity": "0.22836077884859418"
+    },
+    {
+     "at": 767,
+     "threshold": "0.23490491861286397",
+     "sensitivity": "0.99965146054418219",
+     "specificity": "0.00082830469461181444"
+    },
+    {
+     "at": 768,
+     "threshold": "0.23472635929556454",
+     "sensitivity": "1",
+     "specificity": "9.9846936770342509e-05"
+    },
+    {
+     "at": 769,
+     "threshold": "0.23454789409818083",
+     "sensitivity": "1",
+     "specificity": "0"
+    }
+   ]
+  },
+  "frequency": {
+   "formula": "union ~ exper + female",
+   "link": "logit",
+   "weights": "educ",
+   "weight_type": "frequency",
+   "new_rows": false,
+   "n": 248108,
+   "ones": "78272",
+   "noughts": "169836",
+   "area": "0.55869199244864087",
+   "thresholds": 74,
+   "points": [
+    {
+     "at": 1,
+     "threshold": "0.45444111211527044",
+     "sensitivity": "0.00010220768601798856",
+     "specificity": "0.99994700770154743"
+    },
+    {
+     "at": 2,
+     "threshold": "0.44772317656909905",
+     "sensitivity": "0.00030662305805396567",
+     "specificity": "0.9997880308061895"
+    },
+    {
+     "at": 3,
+     "threshold": "0.44506993933895855",
+     "sensitivity": "0.00040883074407195422",
+     "specificity": "0.9997880308061895"
+    },
+    {
+     "at": 18,
+     "threshold": "0.39485984300514348",
+     "sensitivity": "0.051985384300899426",
+     "specificity": "0.96521938811559382"
+    },
+    {
+     "at": 37,
+     "threshold": "0.33584799108421975",
+     "sensitivity": "0.41230580539656581",
+     "specificity": "0.67448008667184811"
+    },
+    {
+     "at": 54,
+     "threshold": "0.28591593910317531",
+     "sensitivity": "0.75669460343417827",
+     "specificity": "0.29851150521679737"
+    },
+    {
+     "at": 72,
+     "threshold": "0.23876003109532479",
+     "sensitivity": "0.98391506541291907",
+     "specificity": "0.02049624343484302"
+    },
+    {
+     "at": 73,
+     "threshold": "0.23681413251418978",
+     "sensitivity": "0.98822056418642679",
+     "specificity": "0.0135424762712264"
+    },
+    {
+     "at": 74,
+     "threshold": "0.2319455670145702",
+     "sensitivity": "1",
+     "specificity": "0"
+    }
+   ]
+  },
+  "new_rows": {
+   "formula": "union ~ educ + exper + female + industry",
+   "link": "logit",
+   "weights": "",
+   "weight_type": "",
+   "new_rows": true,
+   "n": 4995,
+   "ones": "1562",
+   "noughts": "3433",
+   "area": "0.65907990644393055",
+   "thresholds": 3046,
+   "points": [
+    {
+     "at": 1,
+     "threshold": "0.69624823885618581",
+     "sensitivity": "0",
+     "specificity": "0.9997087095834547"
+    },
+    {
+     "at": 2,
+     "threshold": "0.69043352476563158",
+     "sensitivity": "0",
+     "specificity": "0.9994174191669094"
+    },
+    {
+     "at": 3,
+     "threshold": "0.68894450925991058",
+     "sensitivity": "0",
+     "specificity": "0.99912612875036411"
+    },
+    {
+     "at": 761,
+     "threshold": "0.45447238689387293",
+     "sensitivity": "0.35531370038412291",
+     "specificity": "0.81590445674337309"
+    },
+    {
+     "at": 1523,
+     "threshold": "0.35496965472546466",
+     "sensitivity": "0.63252240717029451",
+     "specificity": "0.59860180600058266"
+    },
+    {
+     "at": 2283,
+     "threshold": "0.26318031409630455",
+     "sensitivity": "0.84763124199743922",
+     "specificity": "0.3326536556947276"
+    },
+    {
+     "at": 3044,
+     "threshold": "0.12847569763129188",
+     "sensitivity": "1",
+     "specificity": "0.00058258083309059572"
+    },
+    {
+     "at": 3045,
+     "threshold": "0.12697901756423419",
+     "sensitivity": "1",
+     "specificity": "0.00029129041654529786"
+    },
+    {
+     "at": 3046,
+     "threshold": "0.12642329608814099",
+     "sensitivity": "1",
+     "specificity": "0"
+    }
+   ]
+  }
+ }
+}

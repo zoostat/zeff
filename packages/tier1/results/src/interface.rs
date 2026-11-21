@@ -17,7 +17,7 @@ use zeff_core::display::{
     fixed, fixed_grouped, format_float, list_levels, test_result_after, test_result_before,
 };
 use zeff_core::runtime::{Args, CallContext, Fail, fail};
-use zeff_core::value::{Align, Distribution, Fit, Frame, Table, TestResult, Value};
+use zeff_core::value::{Align, Distribution, Fit, FollowUp, Frame, Table, TestResult, Value};
 use zeff_diagnostics::messages::no_variable;
 use zeff_diagnostics::{Diagnostic, count};
 use zeff_dist::families;
@@ -360,6 +360,26 @@ pub fn estimates(ctx: &mut CallContext<'_>, args: Args) -> Result<Value, Fail> {
         // p-value (a factorial `anova`), and with its estimate, standard error and interval
         // where the row rests on one (a comparison of `posthoc`); then a row per term for its
         // effect size.
+        // A curve: its points, one row for each distinct threshold, in falling order.
+        Receiver::Test(test)
+            if matches!(test.follow_up.as_deref(), Some(FollowUp::Curve { .. })) =>
+        {
+            let Some(FollowUp::Curve {
+                thresholds,
+                sensitivity,
+                specificity,
+                ..
+            }) = test.follow_up.as_deref()
+            else {
+                unreachable!("matched above");
+            };
+            let column = |values: &[f64]| floats(values.iter().map(|v| Some(*v)).collect());
+            vec![
+                ("threshold".to_string(), column(thresholds)),
+                ("sensitivity".to_string(), column(sensitivity)),
+                ("specificity".to_string(), column(specificity)),
+            ]
+        }
         Receiver::Test(test) if !test.terms.is_empty() => {
             let mut terms: Vec<Option<String>> = Vec::new();
             let mut values = Vec::new();

@@ -513,7 +513,7 @@ pub fn posthoc(ctx: &mut CallContext<'_>, args: Args) -> Result<Value, Fail> {
         Some(FollowUp::Factorial(fit)) => {
             factorial(ctx, &test, (method, level), fit, term.as_deref())
         }
-        Some(FollowUp::Margins { .. }) | None => Err(testing::internal(
+        Some(FollowUp::Margins { .. } | FollowUp::Curve { .. }) | None => Err(testing::internal(
             ctx,
             "an `anova` that left nothing for `posthoc`",
         )),

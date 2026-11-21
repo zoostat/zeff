@@ -1176,7 +1176,8 @@ fn regress_cases() -> Vec<Line> {
     // through the whole engine, each link, every kind of standard error, frequency and sampling
     // weights, and the fit read by every method of the result interface (the measures, the
     // kinds of residual, a prediction on both scales, the Wald and the likelihood-ratio tests,
-    // a nonlinear combination, the design, a report beside least squares). `models/glm_checked`:
+    // a nonlinear combination, the design, a report beside least squares), and its ROC curve
+    // (step 14). `models/glm_checked`:
     // what `glm` refuses, each script stopping at its refusal: no family, an outcome that is
     // not 0 and 1, separation naming its regressor, an outcome that does not vary, analytic
     // weights, a likelihood-ratio test of a clustered fit. The iterations are the engine's own
@@ -1194,6 +1195,9 @@ fn regress_cases() -> Vec<Line> {
                 "wages.glm(union ~ educ + exper + female, family: binomial, weights: hours)\n",
                 "wages.add(copies = 1 + female).glm(union ~ educ + exper, family: binomial, weights: copies, weight_type: frequency)\n",
                 "let lr1 = wages.glm(union ~ educ + exper + female + industry, family: binomial)\nlet lr0 = wages.glm(union ~ educ + exper, family: binomial)\nlr1.fit_measures()\nlr1.coef()\nlr1.ci(female)\nlr1.compare(lr0)\nlr1.test(educ == exper, female == 0)\nlr1.derive(ratio = educ / exper, odds = exp(female))\nlr1.predict(newdata: wages.head(3))\nlr1.predict(newdata: wages.head(3), type: link)\nlr1.design().head(3)\nwages.add(response = lr0.residuals(), pearson = lr0.residuals(type: pearson), deviance = lr0.residuals(type: deviance), working = lr0.residuals(type: working), fitted = lr0.fitted()).summary([response, pearson, deviance, working, fitted])\nreport([lr0, lr1, wages.reg(union ~ educ + exper)], stats: [n_obs, r_squared, aic, bic])\n",
+                // The ROC curve (step 14): the area and the points, on the fit's rows, on new
+                // rows and under weights; then a curve with no type, refused.
+                "let g = wages.glm(union ~ educ + exper + female + industry, family: binomial)\nlet c = g.curve(type: roc)\nc\nc.statistic()\nc.estimates().head(5)\nc.estimates().tail(3)\nc.plot()\nwages.where(year <= 2017).glm(union ~ educ + exper + female, family: binomial, link: probit).curve(newdata: wages.where(year > 2017), type: roc)\nwages.glm(union ~ educ + exper + female, family: binomial, weights: hours).curve(type: roc)\ng.curve()\n",
             ],
         ),
         (

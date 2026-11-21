@@ -1,0 +1,192 @@
+---
+source: packages/tier2/glm/tests/curve.rs
+expression: out
+---
+=== let wages = dataset(wages)
+let g = wages.glm(union ~ educ + exper + female, family: binomial)
+let c = g.curve(type: roc)
+c
+c.statistic()
+c.estimates()
+c.n_obs()
+c.p_values()
+c.ci()
+type_of(c)
+c.plot()
+c.export("output/curve.tex")
+export(c.plot(), "output/roc.svg") ===
+curve · g · ROC
+glm · union ~ educ + exper + female · binomial, logit
+N = 18,390: 5,849 with `union` 1 and 12,541 with 0
+area under the curve = 0.5600
+the curve has 769 points, one for each distinct fitted probability; `estimates()` gives them and `plot()` draws the curve
+0.560022
+frame · 769 rows × 3 variables
+
+       threshold   sensitivity   specificity
+   1    0.458499             0       0.99992
+   2     0.45827   0.000170969       0.99992
+   3    0.451858   0.000170969      0.999841
+   4     0.45163   0.000170969      0.999761
+   5    0.451402   0.000512908      0.999681
+   6    0.445235   0.000512908      0.999601
+   7    0.445007   0.000512908      0.999362
+   8     0.44478   0.000512908      0.999282
+   9    0.444552   0.000854847      0.999203
+  10     0.44451    0.00102582      0.999203
+  … and 759 more rows
+18390
+NA
+NA
+TestResult
+plot · sensitivity against false_positive_rate
+
+  axis   title             scale    limits          breaks
+  x      1 − specificity   linear   -0.05 to 1.05   0, 0.2, 0.4, 0.6, 0.8, 1
+  y      sensitivity       linear   -0.05 to 1.05   0, 0.2, 0.4, 0.6, 0.8, 1
+
+  layer   mark    data            marks
+      1   lines   its own frame       2
+      2   lines   the frame         770
+
+  settings
+  x false_positive_rate, y sensitivity, color grey, width 0.5, linetype dashed, 1 line
+  width 1, 1 line
+
+caption: area under the curve 0.5600
+coordinates: fixed, one unit of `y` as long as one of `x`
+--- messages ---
+[exit 0]
+
+=== let wages = dataset(wages)
+wages.glm(union ~ educ + exper + exper^2 + female + industry, family: binomial, link: probit).curve(type: roc)
+let later = wages.where(year > 2017)
+wages.where(year <= 2017).glm(union ~ educ + exper + female + industry, family: binomial).curve(newdata: later, type: roc)
+wages.glm(union ~ educ + exper + female, family: binomial, weights: hours).curve(type: roc)
+wages.glm(union ~ exper + female, family: binomial, weights: educ, weight_type: frequency).curve(type: roc)
+let f = wages.glm(union ~ female, family: binomial).curve(type: roc)
+f
+f.estimates() ===
+curve · union ~ educ + exper + exper^2 + female + industry · ROC
+N = 18,390: 5,849 with `union` 1 and 12,541 with 0
+area under the curve = 0.6522
+the curve has 5,721 points, one for each distinct fitted probability; `estimates()` gives them and `plot()` draws the curve
+curve · union ~ educ + exper + female + industry · ROC
+N = 4,995: 1,562 with `union` 1 and 3,433 with 0 among the rows of `newdata` (5 left out for NA in a variable of the model)
+area under the curve = 0.6591
+the curve has 3,046 points, one for each distinct fitted probability; `estimates()` gives them and `plot()` draws the curve
+curve · union ~ educ + exper + female · ROC
+N = 18,355, weighted by `hours`
+area under the curve = 0.5594
+the curve has 769 points, one for each distinct fitted probability; `estimates()` gives them and `plot()` draws the curve
+curve · union ~ exper + female · ROC
+N = 248,108: 78,272 with `union` 1 and 169,836 with 0
+area under the curve = 0.5587
+the curve has 74 points, one for each distinct fitted probability; `estimates()` gives them and `plot()` draws the curve
+curve · union ~ female · ROC
+N = 18,412: 5,856 with `union` 1 and 12,556 with 0
+area under the curve = 0.5055
+the curve has 2 points, one for each distinct fitted probability; `estimates()` gives them and `plot()` draws the curve
+frame · 2 rows × 3 variables
+
+      threshold   sensitivity   specificity
+  1    0.322946      0.491974      0.518955
+  2    0.313455             1             0
+--- messages ---
+[exit 0]
+
+=== let wages = dataset(wages)
+wages.glm(union ~ educ, family: binomial).curve() ===
+--- messages ---
+error[Z0406]: `curve` needs `type:`
+ --> scripts/main.zeff:2:43
+  |
+2 | wages.glm(union ~ educ, family: binomial).curve()
+  |                                           ^^^^^ `type:` is missing
+  |
+  = help: the ROC curve is `type: roc`
+[exit 1]
+
+=== let wages = dataset(wages)
+wages.glm(union ~ educ, family: binomial).curve(type: pr) ===
+--- messages ---
+error[Z0402]: `pr` is not one of the allowed words
+ --> scripts/main.zeff:2:55
+  |
+2 | wages.glm(union ~ educ, family: binomial).curve(type: pr)
+  |                                                       ^^ expected one of roc
+[exit 1]
+
+=== let wages = dataset(wages)
+wages.reg(union ~ educ).curve(type: roc) ===
+--- messages ---
+error[Z0401]: `curve` cannot be called on a RegFit
+ --> scripts/main.zeff:2:1
+  |
+2 | wages.reg(union ~ educ).curve(type: roc)
+  | ^^^^^^^^^^^^^^^^^^^^^^^ this is a RegFit
+  |
+  = help: `curve` takes a GlmFit first; `x.curve(...)` is `curve(x, ...)`
+[exit 1]
+
+=== let wages = dataset(wages)
+wages.glm(union ~ educ, family: binomial).curve(newdata: 3, type: roc) ===
+--- messages ---
+error[Z0401]: `newdata` of `curve` must be a Frame, but this is an Int
+ --> scripts/main.zeff:2:58
+  |
+2 | wages.glm(union ~ educ, family: binomial).curve(newdata: 3, type: roc)
+  |                                                          ^ an Int
+  |
+  = help: usage: `fit.curve(newdata: Frame, type: roc)`
+[exit 1]
+
+=== let wages = dataset(wages)
+wages.glm(union ~ educ, family: binomial).curve(newdata: wages.select([educ, exper]), type: roc) ===
+--- messages ---
+note: the panel declaration `worker × year` dropped: `select` left out `worker` (line 2)
+error[Z0101]: no variable `union` in `the frame`
+ --> scripts/main.zeff:2:43
+  |
+2 | wages.glm(union ~ educ, family: binomial).curve(newdata: wages.select([educ, exper]), type: roc)
+  |                                           ^^^^^ not a variable of the frame
+  |
+  = help: the variables of `the frame` are: educ, exper
+[exit 1]
+
+=== let wages = dataset(wages)
+wages.glm(union ~ educ, family: binomial).curve(newdata: wages.where(union == 1), type: roc) ===
+--- messages ---
+error[Z0401]: the rows hold only one value of `union`, so there is no curve
+ --> scripts/main.zeff:2:58
+  |
+2 | wages.glm(union ~ educ, family: binomial).curve(newdata: wages.where(union == 1), type: roc)
+  |                                                          ^^^^^^^^^^^^^^^^^^^^^^^ no row with the other outcome
+  |
+  = help: an ROC curve sets the rows with a 1 against the rows with a 0, and needs both
+[exit 1]
+
+=== let wages = dataset(wages)
+wages.glm(union ~ educ, family: binomial).curve(newdata: wages.add(union = union * 2), type: roc) ===
+--- messages ---
+note: `union` replaced the variable of that name (line 2)
+error[Z0401]: `union` is 2 in a row of `newdata`, and the curve needs an outcome of 0 and 1
+ --> scripts/main.zeff:2:58
+  |
+2 | wages.glm(union ~ educ, family: binomial).curve(newdata: wages.add(union = union * 2), type: roc)
+  |                                                          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^ an outcome that is not 0 or 1
+  |
+  = help: the outcome of `newdata` is coded as the outcome the model was fitted to
+[exit 1]
+
+=== let wages = dataset(wages)
+wages.glm(union ~ educ, family: binomial).curve(type: roc).coef_plot() ===
+--- messages ---
+error[Z0401]: `coef_plot` draws the coefficients of a fitted model, and a test has none
+ --> scripts/main.zeff:2:1
+  |
+2 | wages.glm(union ~ educ, family: binomial).curve(type: roc).coef_plot()
+  | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ the result of a test
+  |
+  = help: a test prints its statistic and its p-value; fit a model with `reg` to plot its coefficients
+[exit 1]

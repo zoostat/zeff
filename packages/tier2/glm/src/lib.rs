@@ -5,6 +5,7 @@
 //! are words added to `family:` and `link:` from release 1.7.
 
 pub mod binary;
+pub mod curve;
 
 use zeff_core::runtime::Function;
 use zeff_registry::{AccuracyRecord, DiagnosticDecl, FunctionSpec, ParamSpec};
@@ -83,5 +84,31 @@ pub fn functions() -> Vec<Function> {
             }),
         },
         body: binary::glm,
+    },
+    Function {
+        spec: FunctionSpec {
+            name: "curve",
+            package: "glm",
+            method: true,
+            params: vec![
+                ParamSpec::required("fit", "GlmFit"),
+                ParamSpec::option("newdata", "Frame"),
+                // Required: a function of several curves names the one it draws.
+                ParamSpec::option("type", "roc"),
+            ],
+            rest: None,
+            returns: "TestResult",
+            diagnostics: vec![
+                DiagnosticDecl::new("Z0406", "`type:` left out"),
+                DiagnosticDecl::new(
+                    "Z0401",
+                    "a receiver that is not a binary fit; `newdata:` that is not a frame, whose outcome is not 0 and 1, or a variable of it of a type the model cannot take; rows that hold only one value of the outcome",
+                ),
+                DiagnosticDecl::new("Z0101", "a variable of the model that `newdata` lacks"),
+            ],
+            help: include_str!("../help/curve.md"),
+            accuracy: None,
+        },
+        body: curve::curve,
     }]
 }

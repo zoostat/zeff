@@ -1285,6 +1285,15 @@ pub enum FollowUp {
     /// `margins` (release 0.9.0, step 13): the kind of standard error of the fit the effects
     /// were taken from, which `report` prints in its `SEs` row.
     Margins { se_kind: String },
+    /// `curve` (release 0.9.0, step 14): the points of a classifier's curve, one for each
+    /// distinct threshold in falling order, which `estimates` gives as a frame and `plot`
+    /// draws. `kind` is the word of `type:`, `roc`.
+    Curve {
+        kind: String,
+        thresholds: Vec<f64>,
+        sensitivity: Vec<f64>,
+        specificity: Vec<f64>,
+    },
 }
 
 impl TestResult {
