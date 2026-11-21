@@ -384,6 +384,8 @@ impl Design {
             columns: Vec::new(),
             sources: Vec::new(),
             keys: Vec::new(),
+            origins: Vec::new(),
+            table: None,
             terms: Vec::new(),
             term_columns: Vec::new(),
             outcome: self.outcome,

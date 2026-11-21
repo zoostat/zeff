@@ -5,6 +5,7 @@
 //! the estimator interface (steps 16 and 18) and `report` (step 19).
 
 pub mod absorb;
+pub mod dependence;
 pub mod design;
 pub mod estimator;
 pub mod export;

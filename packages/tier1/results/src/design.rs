@@ -11,6 +11,7 @@
 //! names, `industry=Retail`, `educ:female`, `exper^2`, `(intercept)`, with the names of question 5
 //! of release 0.4.0 under the `sum`, `helmert` and `poly` contrasts.
 
+use crate::dependence::Origin;
 use std::collections::BTreeSet;
 use std::rc::Rc;
 use zeff_columns::{Column, ColumnType, Contrast, Table};
@@ -56,7 +57,7 @@ impl Source {
 }
 
 /// A part of a design column: a number, or the weight of the row's level.
-enum Part {
+pub(crate) enum Part {
     Numeric(usize),
     Weighted { source: usize, weights: Vec<f64> },
 }
@@ -66,6 +67,12 @@ enum Part {
 pub(crate) struct DesignColumn {
     name: String,
     parts: Vec<Part>,
+}
+
+impl DesignColumn {
+    pub(crate) fn parts(&self) -> &[Part] {
+        &self.parts
+    }
 }
 
 /// A term after expansion: the sources of its parts, in order.
@@ -130,6 +137,13 @@ pub struct Design {
     pub(crate) sources: Vec<Source>,
     /// The written form each source stands for, by source index.
     pub(crate) keys: Vec<String>,
+    /// What each source was made from, by source index: a variable of the frame or an
+    /// expression over its variables, kept so that a derivative can be taken through the
+    /// columns (release 0.9.0, step 10; `dependence`). Empty for a transformed design.
+    pub(crate) origins: Vec<Origin>,
+    /// The frame the design was built on, which the derivative of an expression reads the
+    /// values of its variables from; `None` for a transformed design.
+    pub(crate) table: Option<Rc<Table>>,
     /// The terms after expansion, in the order of the columns, and how many columns each has;
     /// empty for a transformed design.
     pub(crate) terms: Vec<ExpandedTerm>,
@@ -241,6 +255,7 @@ impl Design {
             shown: frame.shown_name(),
             sources: Vec::new(),
             keys: Vec::new(),
+            origins: Vec::new(),
             notes: Vec::new(),
             plan,
             unseen: Vec::new(),
@@ -309,6 +324,8 @@ impl Design {
             columns,
             sources: builder.sources,
             keys: builder.keys,
+            origins: builder.origins,
+            table: Some(Rc::clone(&frame.table)),
             terms,
             term_columns,
             outcome,
@@ -801,6 +818,20 @@ impl Design {
         product
     }
 
+    /// The value of one part of a column at the frame row `row`, from its source.
+    pub(crate) fn part_value(&self, part: &Part, row: usize) -> f64 {
+        match part {
+            Part::Numeric(source) => match &self.sources[*source] {
+                Source::Numeric { values, .. } => values[row],
+                Source::Coded { .. } => 0.0,
+            },
+            Part::Weighted { source, weights } => match &self.sources[*source] {
+                Source::Coded { codes, .. } => codes[row].map_or(0.0, |c| weights[c as usize]),
+                Source::Numeric { .. } => 0.0,
+            },
+        }
+    }
+
     /// The outcome at the frame row `row`, or 0 without one, from the sources.
     pub(crate) fn outcome_at(&self, row: usize) -> f64 {
         match self.outcome.map(|s| &self.sources[s]) {
@@ -931,6 +962,8 @@ impl Design {
             columns: Vec::new(),
             sources: Vec::new(),
             keys: Vec::new(),
+            origins: Vec::new(),
+            table: None,
             terms: Vec::new(),
             term_columns: Vec::new(),
             outcome: self.outcome,
@@ -975,6 +1008,8 @@ impl Design {
             columns: Vec::new(),
             sources: Vec::new(),
             keys: Vec::new(),
+            origins: Vec::new(),
+            table: None,
             terms: Vec::new(),
             term_columns: Vec::new(),
             // The outcome is held as values; the index stands for "there is one".
@@ -1024,6 +1059,8 @@ struct Builder<'a, 'b> {
     sources: Vec<Source>,
     /// The written form each source stands for, by source index.
     keys: Vec<String>,
+    /// What each source was made from, by source index.
+    origins: Vec<Origin>,
     notes: Vec<String>,
     /// The levels to code each category variable against, when predicting on new data.
     plan: &'a [(String, Vec<String>)],
@@ -1103,6 +1140,7 @@ impl Builder<'_, '_> {
         };
         let source = self.source_of_column(name, column.clone(), name)?;
         self.keys.push(name.to_string());
+        self.origins.push(Origin::Variable(name.to_string()));
         self.sources.push(source);
         Ok(self.sources.len() - 1)
     }
@@ -1269,6 +1307,7 @@ impl Builder<'_, '_> {
         };
         let source = self.source_of_column(text, column, &var)?;
         self.keys.push(text.to_string());
+        self.origins.push(Origin::Expression(expr.clone()));
         self.sources.push(source);
         Ok(self.sources.len() - 1)
     }
@@ -1738,6 +1777,7 @@ impl Builder<'_, '_> {
                 })
                 .collect();
             self.keys.push(key);
+            self.origins.push(Origin::Made);
             self.sources.push(numeric(values));
             sources.push(self.sources.len() - 1);
         }

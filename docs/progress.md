@@ -82,7 +82,9 @@ Step 8c `[function]`: `report` (McFadden's R² in its `R²` row, the fit's warni
 
 Step 9 `[function]`: the truth-recovery Monte Carlo of `glm` (both links, an independent and a clustered design) in the nightly job; the formula fuzz target fits `glm` too; the conformance cases `models/glm` and `models/glm_checked`; the Wooldridge `mroz` example as a reference, against R and the book. Block B (`glm`) is done.
 
-**Next.** Step 10 `[engine]`: what each column of the model matrix is a function of (the first step of `margins`). Step 3, the weekly run of 23 November, when it has ended.
+Step 10 `[engine]`: each column of the model matrix records the variables it depends on and its form, and gives its analytic derivative in a variable (the product rule over its parts, the chain rule through an expression), so that `margins` can differentiate through `exper` and `exper^2` alike (#195).
+
+**Next.** Step 11 `[engine]`: `margins` for `reg`. Step 3, the weekly run of 23 November, when it has ended.
 
 **For the owner.** #198, #199 and #200 and #201 (a) (taken as recommended, yours to overturn before 1.0; #201 (b) is open and yours: which standardized coefficients a `glm` fit has, refused until you choose; #200: `predict` gives a probability and `residuals` the outcome less it unless `type:` says otherwise, where R gives log-odds and deviance residuals): on a `glm` fit, clustered errors carry the factor (N − 1)/(N − k) that Stata's `logit` and R's `vcovCL` left to itself omit; analytic weights are refused on a binary model, as in Stata.
 
