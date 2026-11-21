@@ -239,19 +239,6 @@ error[Z0414]: `expr` is not a variable of this model
 
 === let wages = dataset(wages)
 let m = wages.reg(log(wage) ~ educ + exper + female)
-m.margins() ===
---- messages ---
-error[Z0406]: `margins` needs `vars`
- --> scripts/main.zeff:3:3
-  |
-3 | m.margins()
-  |   ^^^^^^^ `vars` is missing
-  |
-  = help: usage: `fit.margins(vars)`
-[exit 1]
-
-=== let wages = dataset(wages)
-let m = wages.reg(log(wage) ~ educ + exper + female)
 m.margins("educ") ===
 --- messages ---
 error[Z0401]: `vars` of `margins` must be a Vars, but this is a Str
@@ -294,7 +281,7 @@ error[Z0417]: `margins` cannot take the effect of `educ`: it enters the model th
 let m = wages.reg(log(wage) ~ educ + sqrt(exper) + female)
 m.margins(exper) ===
 --- messages ---
-error[Z0417]: `margins` cannot take the effect of `exper`: the slope of `sqrt(exper)` is not finite in some row the fit used
+error[Z0417]: `margins` cannot take the effect of `exper`: the slope of `sqrt(exper)` is not finite where it is asked for
  --> scripts/main.zeff:3:11
   |
 3 | m.margins(exper)

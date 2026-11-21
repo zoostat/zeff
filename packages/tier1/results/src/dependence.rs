@@ -189,6 +189,36 @@ impl Design {
         }
     }
 
+    /// How many sources the design has: the length a [`Held`] may have.
+    pub fn source_count(&self) -> usize {
+        self.sources.len()
+    }
+
+    /// The written forms of the sources, by source: two designs of one formula have the same.
+    pub fn source_keys(&self) -> &[String] {
+        &self.keys
+    }
+
+    /// For a source that is a category, the share of the rows used at each of its levels, by
+    /// `weights` (one for each row used) when given: the mean of each level's indicator, which
+    /// holds the category "at its means" (release 0.9.0, step 11b; open decision #202 (e)).
+    /// `None` for a source that is a number.
+    pub fn level_shares(&self, source: usize, weights: Option<&[f64]>) -> Option<Vec<f64>> {
+        let Some(Source::Coded { codes, levels, .. }) = self.sources.get(source) else {
+            return None;
+        };
+        // The weight of the rows at each level, summed in the order of the rows.
+        let mut by_level: Vec<Vec<f64>> = vec![Vec::new(); levels.len()];
+        for (index, &row) in self.rows.iter().enumerate() {
+            if let Some(code) = codes[row] {
+                by_level[code as usize].push(weights.map_or(1.0, |w| w[index]));
+            }
+        }
+        let totals: Vec<f64> = by_level.iter().map(|w| zeff_kernels::sum(w)).collect();
+        let total = zeff_kernels::sum(&totals);
+        Some(totals.iter().map(|t| t / total).collect())
+    }
+
     /// The value of a part at the frame row `row`, a category held as `held` says.
     fn part_value_held(&self, part: &Part, row: usize, held: &Held) -> f64 {
         if let Part::Weighted { source, weights } = part

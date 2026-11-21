@@ -88,7 +88,9 @@ Step 11 split into 11a and 11b. Step 11a `[engine]`: `fit.margins(vars)` after `
 
 22 November: the owner's ruling on Zemp Lite 0.2.1 entered from the shared notes on his word: register #203 (three panes on every place), the 0.2.1 row of the Zemp Specification, and step 45's reader test moved to the hosted 0.2.1. No engine change.
 
-**Next.** Step 11b `[engine]`: `at:` and `type: mem` for `reg`, and the adjusted prediction. Step 3, the weekly run of 23 November, when it has ended.
+Step 11b `[engine]`: `at:` (a variable held at a value, the others as observed), `type: mem` (every number at its mean, a category at the shares of its levels) and, with no variable named, the adjusted prediction, for `reg`; ten further cases against R within 1e-8. Step 11 is done.
+
+**Next.** Step 12 `[engine]`: `margins` for `glm`. Step 3, the weekly run of 23 November, when it has ended.
 
 **For the owner.** The printed table of `margins` (#202 (d)), shown at step 11a, is yours to change; #202 (a) to (e) are taken as recommended. #198, #199 and #200 and #201 (a) (taken as recommended, yours to overturn before 1.0; #201 (b) is open and yours: which standardized coefficients a `glm` fit has, refused until you choose; #200: `predict` gives a probability and `residuals` the outcome less it unless `type:` says otherwise, where R gives log-odds and deviance residuals): on a `glm` fit, clustered errors carry the factor (N − 1)/(N − k) that Stata's `logit` and R's `vcovCL` left to itself omit; analytic weights are refused on a binary model, as in Stata.
 

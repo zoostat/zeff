@@ -11,6 +11,13 @@
 # on n - k degrees of freedom, or G - 1 when clustered. Under sampling weights the average is
 # weighted by them; frequency weights replicate the rows. Values to 17 significant digits. Run
 # with `Rscript tests/reference/r/margins.R`.
+#
+# Step 11b: `at:` sets a variable to a value in every row, the others as observed; `type: mem`
+# takes each effect at the means of the regressors, a number at its mean and each level of a
+# category at its share of the rows (Stata's `atmeans`), which is the weighted sum over the grid
+# of the categories' levels, each cell weighted by the product of its levels' shares, since
+# every column of the model matrix is a product of its parts; with no variable named, the
+# adjusted prediction, J the averaged row of the model matrix itself.
 source(file.path(dirname(sub("^--file=", "", commandArgs(FALSE)[grepl("^--file=", commandArgs(FALSE))])), "common.R"))
 Sys.setlocale("LC_COLLATE", "C")
 root <- normalizePath(file.path(here(), "..", "..", ".."))
@@ -59,7 +66,8 @@ matrix_at <- function(fit, data, var, value) {
 # One case: the fit as `regression.R` makes it, then one row for each effect asked for. `vars`
 # names the variables in order; a factor gives a row for each level after the first.
 case <- function(zeff, r_formula, vars, se = "classical", cluster = NULL, weights = NULL,
-                 weight_type = "sampling", contrasts = NULL, binary = c("female", "union")) {
+                 weight_type = "sampling", contrasts = NULL, binary = c("female", "union"),
+                 type = "ame", at = list()) {
   data <- wages
   w <- NULL
   if (!is.null(weights) && weight_type == "frequency") {
@@ -88,6 +96,38 @@ case <- function(zeff, r_formula, vars, se = "classical", cluster = NULL, weight
   }
   beta <- coef(fit)
   stopifnot(!anyNA(beta))
+  # Which variables are 0/1 and which categories is read from the rows as they are.
+  is_category <- function(var) is.factor(wages[[var]])
+  # The rows the effects are taken at, and their weights. At the means: one row for each cell
+  # of the categories' levels, the numbers at their (weighted) means, the cell weighted by the
+  # product of the (weighted) shares of its levels.
+  if (type == "mem") {
+    model_vars <- all.vars(delete.response(terms(fit)))
+    ww <- if (is.null(w)) rep(1, nrow(used)) else w
+    factors_in <- model_vars[vapply(model_vars, is_category, TRUE)]
+    one <- used[1, , drop = FALSE]
+    for (v in setdiff(model_vars, factors_in)) one[[v]] <- sum(used[[v]] * ww) / sum(ww)
+    if (length(factors_in) == 0) {
+      used <- one
+      w <- NULL
+    } else {
+      grid <- expand.grid(lapply(setNames(factors_in, factors_in), function(v) levels(used[[v]])),
+                          stringsAsFactors = FALSE)
+      cell <- rep(1, nrow(grid))
+      rows_at <- one[rep(1, nrow(grid)), , drop = FALSE]
+      for (v in factors_in) {
+        share <- tapply(ww, used[[v]], sum) / sum(ww)
+        share[is.na(share)] <- 0
+        cell <- cell * share[grid[[v]]]
+        rows_at[[v]] <- factor(grid[[v]], levels = levels(used[[v]]))
+      }
+      used <- rows_at
+      w <- as.numeric(cell)
+    }
+  }
+  for (v in names(at)) {
+    used[[v]] <- if (is_category(v)) factor(at[[v]], levels = levels(wages[[v]])) else at[[v]]
+  }
   average <- function(M) if (is.null(w)) colMeans(M) else colSums(M * w) / sum(w)
   rows <- list()
   add <- function(term, contrast, J) {
@@ -101,6 +141,11 @@ case <- function(zeff, r_formula, vars, se = "classical", cluster = NULL, weight
       p_value = num17(2 * pt(abs(t_value), df, lower.tail = FALSE)),
       ci_lower = num17(estimate - q * std_error), ci_upper = num17(estimate + q * std_error)
     )
+  }
+  if (length(vars) == 0) {
+    tt <- delete.response(terms(fit))
+    add("prediction", "", average(model.matrix(tt, model.frame(tt, used, xlev = fit$xlevels),
+                                              contrasts.arg = fit$contrasts)))
   }
   for (var in vars) {
     if (is.factor(used[[var]])) {
@@ -118,6 +163,7 @@ case <- function(zeff, r_formula, vars, se = "classical", cluster = NULL, weight
   }
   list(formula = zeff, se = se, cluster = if (is.null(cluster)) "" else cluster,
        weights = if (is.null(weights)) "" else weights, weight_type = weight_type,
+       type = type, at = lapply(at, function(v) if (is.character(v)) v else num17(v)),
        vars = as.list(vars), nobs = nobs(fit), df = as.integer(df), rows = rows)
 }
 
@@ -148,6 +194,41 @@ cases$sampling <- case("log(wage) ~ educ * female + exper + exper^2",
 cases$frequency <- case("log(wage) ~ exper + exper^2 + female + female:exper",
   log(wage) ~ exper + I(exper^2) + female + female:exper, c("exper", "female"),
   weights = "educ", weight_type = "frequency")
+
+
+# ----- step 11b: `at:`, `type: mem` and the adjusted prediction -----
+wide <- log(wage) ~ educ * female + exper + I(exper^2) + industry + industry:exper
+wide_zeff <- "log(wage) ~ educ * female + exper + exper^2 + industry + industry:exper"
+# A variable set to a value, the others as observed: the slope of exper at 10 years, the effect
+# of female at 12 years of schooling.
+cases$at_numbers <- case(wide_zeff, wide, c("exper", "female", "educ"), se = "HC1",
+  at = list(exper = 10, educ = 12))
+# A category set to a level: the effects in one industry.
+cases$at_level <- case("log(wage) ~ industry * female + industry:educ + educ + exper",
+  log(wage) ~ industry * female + industry:educ + educ + exper, c("female", "educ"),
+  se = "cluster", cluster = "worker", at = list(industry = "Mining"))
+# At the means: numbers at their means, each level of the category at its share.
+cases$mem <- case(wide_zeff, wide, c("educ", "exper", "female", "industry"), type = "mem")
+cases$mem_at <- case(wide_zeff, wide, c("exper", "female"), type = "mem", se = "HC3",
+  at = list(exper = 10.5, industry = "Finance"))
+# At the means of a model with smooth functions, where the effect at the means is not the
+# average effect: the slope of log(hours) is b / mean(hours), not b times the mean of 1 / hours.
+cases$mem_functions <- case("log(wage) ~ log(hours) + sqrt(exper + 1) + educ:exper + (educ / (exper + 1)^0.5)",
+  log(wage) ~ log(hours) + sqrt(exper + 1) + educ:exper + I(educ / (exper + 1)^0.5), c("hours", "exper", "educ"),
+  se = "HC3", type = "mem")
+# At the weighted means under sampling weights.
+cases$mem_sampling <- case("log(wage) ~ educ * female + exper + exper^2",
+  log(wage) ~ educ * female + exper + I(exper^2), c("educ", "female", "exper"),
+  se = "HC1", weights = "hours", weight_type = "sampling", type = "mem")
+# The adjusted prediction: the average of the predictions, at values, and at the means.
+cases$prediction <- case(wide_zeff, wide, character(0))
+cases$prediction_at <- case(wide_zeff, wide, character(0), se = "HC1",
+  at = list(exper = 10, industry = "Mining", female = 1))
+cases$prediction_mem <- case(wide_zeff, wide, character(0), type = "mem",
+  at = list(educ = 16))
+cases$prediction_frequency <- case("log(wage) ~ exper + exper^2 + female + female:exper",
+  log(wage) ~ exper + I(exper^2) + female + female:exper, character(0),
+  weights = "educ", weight_type = "frequency", at = list(female = 0))
 
 reference <- reference_block()
 reference$note <- "base R and sandwich; numbers written with 17 significant digits"

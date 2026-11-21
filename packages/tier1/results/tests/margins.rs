@@ -18,10 +18,22 @@ use zeff_testkit::run;
 
 /// `fit.margins(vars)` through the function's body.
 fn effects(fit: &Rc<Fit>, vars: &[&str]) -> Rc<TestResult> {
-    let vars = Value::Vars(vars.iter().map(|v| (*v).to_string()).collect());
+    effects_at(fit, vars, None, "ame")
+}
+
+/// `fit.margins(vars, at:, type:)` through the function's body; no variable asks for the
+/// adjusted prediction.
+fn effects_at(fit: &Rc<Fit>, vars: &[&str], at: Option<Value>, kind: &str) -> Rc<TestResult> {
+    let vars =
+        (!vars.is_empty()).then(|| Value::Vars(vars.iter().map(|v| (*v).to_string()).collect()));
     match call(
         margins,
-        vec![Some(Value::Fit(Rc::clone(fit))), Some(vars)],
+        vec![
+            Some(Value::Fit(Rc::clone(fit))),
+            vars,
+            at,
+            Some(Value::Word(kind.to_string())),
+        ],
         Vec::new(),
         Vec::new(),
     ) {
@@ -35,7 +47,7 @@ fn the_average_effects_agree_with_r() {
     let reference = json("r/margins.json");
     let wages = table_of("wages");
     let cases = reference["cases"].as_object().unwrap();
-    assert_eq!(cases.len(), 7);
+    assert_eq!(cases.len(), 17);
     for (key, case) in cases {
         let cluster = text(&case["cluster"]);
         let weights = text(&case["weights"]);
@@ -59,7 +71,30 @@ fn the_average_effects_agree_with_r() {
             "{key}: the degrees of freedom"
         );
         let vars: Vec<&str> = case["vars"].as_array().unwrap().iter().map(text).collect();
-        let result = effects(&fit, &vars);
+        // The values of `at:`: a level as text, a number as R wrote it.
+        let at: Vec<(String, Value)> = case["at"]
+            .as_object()
+            .map(|fields| {
+                fields
+                    .iter()
+                    .map(|(name, value)| {
+                        let written = text(value);
+                        let value = match written.parse::<f64>() {
+                            Ok(x) if x == x.trunc() => Value::Int(x as i64),
+                            Ok(x) => Value::Float(x),
+                            Err(_) => Value::Str(written.to_string()),
+                        };
+                        (name.clone(), value)
+                    })
+                    .collect()
+            })
+            .unwrap_or_default();
+        let result = effects_at(
+            &fit,
+            &vars,
+            (!at.is_empty()).then_some(Value::Record(at)),
+            text(&case["type"]),
+        );
         let rows = case["rows"].as_array().unwrap();
         assert_eq!(result.terms.len(), rows.len(), "{key}: the rows");
         let table = result.table.as_ref().expect("a table");
@@ -68,7 +103,11 @@ fn the_average_effects_agree_with_r() {
             assert_eq!(row.term, term, "{key}: the name of row {i}");
             // R's file writes the two values of a 0/1 variable as numbers; the shipped wages
             // carry value labels for them.
-            let contrast = &table.rows[i][1];
+            let contrast = if vars.is_empty() {
+                ""
+            } else {
+                &table.rows[i][1]
+            };
             match text(&expected["contrast"]) {
                 "1 \u{2212} 0" => assert!(
                     contrast == "female \u{2212} male" || contrast == "yes \u{2212} no",
@@ -182,6 +221,46 @@ proptest! {
     }
 }
 
+proptest! {
+    #![proptest_config(ProptestConfig::with_cases(32))]
+
+    /// Where every effect is linear in each of the other variables (interactions of two
+    /// variables, a square), the effect at the means is the average effect: the mean of a
+    /// linear function is the function of the means, a category's share being the mean of its
+    /// indicator. This holds the shares of `type: mem` without R.
+    #[test]
+    fn at_the_means_is_the_average_where_effects_are_linear(
+        rows in prop::collection::vec(
+            (-5.0..5.0f64, 0.0..10.0f64, any::<bool>(), 0u8..3, -3.0..3.0f64),
+            40..70,
+        ),
+    ) {
+        prop_assume!((0..3).all(|l| rows.iter().filter(|r| r.3 == l).count() >= 6));
+        prop_assume!(rows.iter().filter(|r| r.2).count() >= 6);
+        prop_assume!(rows.iter().filter(|r| !r.2).count() >= 6);
+        let table = generated(&rows);
+        let options = Options { se: Some("robust"), level: Some(0.95), ..Default::default() };
+        let fit = fit_with(&table, "y ~ x1 * d + x2 + x2^2 + g + g:x1", &options);
+        prop_assume!(fit.omitted.is_empty());
+        let vars = ["x1", "x2", "d", "g"];
+        let average = effects_at(&fit, &vars, None, "ame");
+        let at_means = effects_at(&fit, &vars, None, "mem");
+        prop_assert_eq!(average.terms.len(), at_means.terms.len());
+        for (a, m) in average.terms.iter().zip(&at_means.terms) {
+            prop_assert_eq!(&a.term, &m.term);
+            let (ea, em) = (a.estimate.as_ref().unwrap().value, m.estimate.as_ref().unwrap().value);
+            prop_assert!(close(ea, em, 1e-9, 1e-11), "{}: average {ea:e}, at the means {em:e}", a.term);
+            let (sa, sm) = (a.std_error.unwrap(), m.std_error.unwrap());
+            prop_assert!(close(sa, sm, 1e-9, 1e-11), "{}: std errors {sa:e} and {sm:e}", a.term);
+        }
+        // The average prediction is the mean of the fitted values.
+        let prediction = effects_at(&fit, &[], None, "ame");
+        let mean = fit.fitted.iter().sum::<f64>() / fit.fitted.len() as f64;
+        let ours = prediction.terms[0].estimate.as_ref().unwrap().value;
+        prop_assert!(close(ours, mean, 1e-10, 1e-11), "prediction {ours:e}, mean fitted {mean:e}");
+    }
+}
+
 // ----- the printed forms and every message, through the engine -----
 
 fn printed(script: &str) -> String {
@@ -221,7 +300,6 @@ fn the_printed_forms_and_every_message() {
         // The refusals.
         format!("{W}let m = wages.reg(log(wage) ~ educ + exper + female)\nm.margins(hours)\n"),
         format!("{W}let m = wages.reg(log(wage) ~ educ + exper + female)\nm.margins(expr)\n"),
-        format!("{W}let m = wages.reg(log(wage) ~ educ + exper + female)\nm.margins()\n"),
         format!("{W}let m = wages.reg(log(wage) ~ educ + exper + female)\nm.margins(\"educ\")\n"),
         format!("{W}let m = wages.reg(log(wage) ~ educ + exper + female)\nm.margins([])\n"),
         format!(
@@ -239,6 +317,61 @@ fn the_printed_forms_and_every_message() {
         ),
         format!(
             "{W}let m = wages.reg(log(wage) ~ educ + exper + female)\nm.margins(educ).p_values(exper)\n"
+        ),
+    ];
+    let mut out = String::new();
+    for script in &scripts {
+        out.push_str(&format!(
+            "=== {} ===\n{}\n",
+            script.trim_end(),
+            printed(script)
+        ));
+    }
+    insta::assert_snapshot!(out);
+}
+
+/// `at:`, `type: mem` and the adjusted prediction (step 11b).
+#[test]
+fn held_values_the_means_and_predictions() {
+    const M: &str = "let wages = dataset(wages)\nlet m = wages.reg(log(wage) ~ educ * female + exper + exper^2 + industry + industry:exper, se: robust)\n";
+    let scripts = [
+        // The forms: variables held, the others as observed; at the means; both.
+        format!(
+            "{M}m.margins([exper, female, educ], at: {{exper: 10, educ: 12}})\nm.margins([educ, female], at: {{industry: \"Mining\"}})\nm.margins([educ, exper, female, industry], type: mem)\nm.margins([exper, female], type: mem, at: {{exper: 10.5, industry: \"Finance\"}})\n"
+        ),
+        // The adjusted prediction: the average, at values, at the means; read as a result.
+        format!(
+            "{M}m.margins()\nm.margins(at: {{exper: 10, industry: \"Mining\", female: 1}})\nm.margins(type: mem)\nm.margins(type: mem, at: {{educ: 16}})\nlet p = m.margins(at: {{educ: 16}})\np.estimates()\np.ci()\np.p_values(prediction)\n"
+        ),
+        // Where the effect at the means is not the average: a logarithm; a hinge at the means;
+        // weights, which weight the means; a Bool held; a category made in the formula held.
+        format!(
+            "{W}let h = wages.reg(log(wage) ~ log(hours) + educ)\nh.margins(hours)\nh.margins(hours, type: mem)\nh.margins(hours, at: {{hours: 40}})\nwages.reg(log(wage) ~ educ + hours + max(hours - 40, 0)).margins(hours, type: mem)\nwages.reg(log(wage) ~ educ * female + exper + exper^2, weights: hours).margins([educ, exper], type: mem)\nwages.reg(log(wage) ~ exper + exper^2 + female + female:exper, weights: educ, weight_type: frequency).margins(at: {{female: 0}})\nlet w = wages.add(long = hours > 40)\nw.reg(log(wage) ~ educ * long).margins(educ, at: {{long: true}})\nw.reg(log(wage) ~ educ * long).margins(educ, type: mem)\nwages.reg(log(wage) ~ category(educ) * female).margins(female, at: {{educ: 12}})\n"
+        ),
+        // After fixed effects: effects as before, held and at the means; a term omitted as
+        // collinear counts as nought in a prediction.
+        format!(
+            "{W}let f = wages.reg(log(wage) ~ educ * female + exper + exper^2, fe: firm)\nf.margins([exper, female], at: {{educ: 12}})\nf.margins([exper, female], type: mem)\nlet c = wages.add(twice = educ * 2).reg(log(wage) ~ educ + twice + female)\nc.margins()\n"
+        ),
+        // The refusals.
+        format!("{M}m.margins(exper, at: {{hours: 40}})\n"),
+        format!("{M}m.margins(exper, at: {{expr: 10}})\n"),
+        format!("{M}m.margins(exper, at: {{exper: \"ten\"}})\n"),
+        format!("{M}m.margins(exper, at: {{industry: \"Minin\"}})\n"),
+        format!("{M}m.margins(exper, at: {{industry: 3}})\n"),
+        format!("{M}m.margins(female, at: {{exper: [5, 10]}})\n"),
+        format!("{M}m.margins(exper, at: 10)\n"),
+        format!("{M}m.margins(female, at: {{female: 1}})\n"),
+        format!("{M}m.margins(industry, at: {{industry: \"Mining\"}})\n"),
+        format!("{M}m.margins(exper, type: median)\n"),
+        format!("{W}wages.reg(log(wage) ~ educ + exper, fe: firm).margins()\n"),
+        format!("{W}wages.reg(log(wage) ~ educ + exper, fe: firm).margins(at: {{educ: 12}})\n"),
+        format!("{W}wages.reg(log(wage) ~ log(hours) + educ).margins(educ, at: {{hours: 0}})\n"),
+        format!(
+            "{W}wages.reg(log(wage) ~ educ + category(educ) + female).margins(female, type: mem)\n"
+        ),
+        format!(
+            "{W}wages.reg(log(wage) ~ educ + category(educ) + female).margins(female, at: {{educ: 12}})\n"
         ),
     ];
     let mut out = String::new();

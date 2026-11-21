@@ -333,23 +333,30 @@ pub fn functions() -> Vec<Function> {
                 method: true,
                 params: vec![
                     ParamSpec::required("fit", "RegFit | GlmFit"),
-                    ParamSpec::required("vars", "Vars"),
+                    // Left out, the adjusted prediction (open decision #202 (b)).
+                    ParamSpec {
+                        name: "vars",
+                        ty: "Vars",
+                        default: Some("NA"),
+                        option: false,
+                    },
+                    ParamSpec::option("at", "Record"),
+                    ParamSpec::option_with_default("type", "ame | mem", "ame"),
                 ],
                 rest: None,
                 returns: "TestResult",
                 diagnostics: vec![
                     DiagnosticDecl::new(
                         "Z0401",
-                        "a receiver that is not a `reg` or a `glm` fit, or `vars` that does not name variables",
+                        "a receiver that is not a `reg` or a `glm` fit; `vars` that does not name variables; a value of `at:` that is not a number for a number or a level for a category, or a list; a 0/1 variable or a category both asked for and held by `at:`; no variable named after `fe:`",
                     ),
-                    DiagnosticDecl::new("Z0406", "no variable named"),
                     DiagnosticDecl::new(
                         "Z0414",
-                        "a variable that no term of the model is a function of",
+                        "a variable, asked for or held by `at:`, that no term of the model is a function of",
                     ),
                     DiagnosticDecl::new(
                         "Z0417",
-                        "a variable whose effect cannot be computed: one that enters the model both as a number and as a category, or whose slope is not finite in some row",
+                        "a variable whose effect cannot be computed or that cannot be held: one that enters the model both as a number and as a category, a slope that is not finite where it is asked for, or a term with no value at the values of `at:` or at the means",
                     ),
                 ],
                 help: include_str!("../help/margins.md"),

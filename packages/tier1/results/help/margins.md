@@ -1,13 +1,14 @@
 # margins
 
 ## Summary
-Average marginal effects of a fitted model, with delta-method standard errors
+Marginal effects and adjusted predictions, with delta-method standard errors
 
 ## In brief
 - `m.margins(educ)`: the average effect of `educ` on the outcome, through every term it enters.
 - `m.margins([educ, exper, female])`: several variables in one table.
-- A number gives a slope; a Bool or a 0/1 variable the difference between its two values.
-- A category gives a row for each level, compared with the first.
+- A number gives a slope; a Bool, a 0/1 variable or a category a difference between its values.
+- `at: {exper: 10}` holds a variable at a value; `type: mem` takes the effects at the means.
+- `m.margins()`, with no variable, gives the adjusted prediction, at the values of `at:` if given.
 - The standard errors follow the fit's own: classical, robust or clustered.
 
 ## Description
@@ -24,17 +25,28 @@ whose values are 0 and 1 it is a difference: the prediction with the variable at
 prediction with it at 0, for each row, averaged. For a category it is the same difference
 between each level and the first, one row to a level.
 
+`at:` asks the question at chosen values: with `at: {exper: 10}` every row is given ten years of
+experience, its other variables left as they are, and the effects are averaged over those rows.
+`type: mem` asks it at one point, the means of the variables, in the place of the average over
+the rows. With no variable named, the answer is not an effect but the adjusted prediction: the
+average of the model's predictions for the rows, or the prediction at the means, with the
+variables of `at:` held at its values.
+
 At this release `margins` reads a fit of `reg`.
 
 ## Arguments
 - fit: The fit, from `reg`.
-- vars: The variable whose effect is wanted, or a list of several, named without quotes. A variable is named, not a term: `exper`, not `exper^2`.
+- vars: The variable whose effect is wanted, or a list of several, named without quotes. A variable is named, not a term: `exper`, not `exper^2`. Left out, the result is the adjusted prediction.
+- at: The values to hold variables at, as a record: `{exper: 10, industry: "Mining"}`. A number is held at a number and a category at one of its levels; every other variable stays as it is.
+- type: `ame`, the average over the rows the fit used, or `mem`, at the means of the variables; `ame` unless given.
 
 ## Value
 A `TestResult` whose table has a row for each effect: the variable, what is compared (`dy/dx`
 for a slope, the two values or the two levels for a difference), the estimate, its standard
 error, the t value on the fit's degrees of freedom, the p-value and the interval at the fit's
-level. Lines under the table say which terms a slope was taken through. `estimates` gives the
+level. The lines above the table say what the effects are averaged over, or that they are at
+the means, and what `at:` holds; lines under it say which terms a slope was taken through. With
+no variable named the table has the one row `prediction`. `estimates` gives the
 rows as a frame at full precision and `ci` the intervals; a row is named as the fit names the
 term, `exper` for a number and `industry=Mining` for a level, so that `p_values` reads one
 row's p-value by that name.
@@ -64,6 +76,34 @@ coded by. Each difference is computed for every row, the other variables as that
 and averaged: where the variable is interacted with another, the difference varies from row to
 row, and the average is over the rows as they are.
 
+### Held values
+A variable named in `at:` is set to the value given in every row before anything is computed;
+every other variable keeps what the row has. A number is held at a number, and a category at
+one of the levels it has in the model, written as text. The slope in a variable may be asked
+where the variable itself is held, `m.margins(exper, at: {exper: 10})`, the slope at ten years.
+A 0/1 variable or a category cannot be both asked for and held, since its effect is the
+difference between its values (Z0401).
+
+### At the means
+`type: mem` takes every effect at one point in the place of an average over the rows: each
+number at its mean over the rows the fit used, and each category at the shares of its levels,
+so that the indicator of a level stands at its mean too. A Bool or a 0/1 variable is a number
+here, at its mean, the share of ones. The point need not look like any row: 46 per cent
+female. A variable of `at:` is held at its value and not at its mean. Under weights the means
+and the shares are weighted.
+
+Where every effect is linear in the other variables, as with a square or an interaction of two
+variables, the effect at the means is the average effect. They differ where a term bends in
+another way: the slope through `log(hours)` at the means is the coefficient over the mean of
+`hours`, and its average is the coefficient times the mean of 1 over `hours`.
+
+### Adjusted predictions
+With no variable named, the result is the prediction of the model: averaged over the rows
+(`type: ame`), or at the means (`type: mem`), with the variables of `at:` held. With nothing
+held, the average prediction is the mean of the fitted values. After `fe:` a prediction would
+need the level of each fixed effect and is refused (Z0401); the effects of variables are given
+as before.
+
 ### Standard errors
 In a linear model every effect is a weighted sum of the coefficients, the weights being the
 average over the rows of the derivative (or of the difference) of each column of the model
@@ -80,7 +120,7 @@ since a slope and a difference do not depend on the level of an effect.
 ### When there is no effect
 A variable that enters the model both as a number and as a category has no one effect and is
 refused (Z0417), as is a slope that is not finite in some row, such as that of `sqrt(x)` where
-`x` is 0. An effect that rests on a term the fit omitted as collinear is shown as `NA`, with a
+`x` is 0, and a term with no value at the values asked for, such as `log(x)` with `x` held at 0. An effect that rests on a term the fit omitted as collinear is shown as `NA`, with a
 line saying so.
 
 ## A common mistake
@@ -98,6 +138,10 @@ its own name: the slope through `exper^2` is part of `margins(exper)`.
 | m.margins(x) | marginaleffects::avg_slopes(m, variables = "x") | margins, dydx(x) |
 | m.margins(d), d a 0/1 variable | marginaleffects::avg_comparisons(m, variables = "d") | margins, dydx(d), with i.d in the model |
 | m.margins(g), g a category | marginaleffects::avg_comparisons(m, variables = list(g = "reference")) | margins, dydx(g), with i.g in the model |
+| m.margins(x, at: {z: 10}) | marginaleffects::avg_slopes(m, variables = "x", newdata = transform(d, z = 10)) | margins, dydx(x) at(z = 10) |
+| m.margins(x, type: mem) | marginaleffects::slopes(m, variables = "x", newdata = "mean") | margins, dydx(x) atmeans |
+| m.margins() | marginaleffects::avg_predictions(m) | margins |
+| m.margins(at: {z: 10}) | marginaleffects::avg_predictions(m, newdata = transform(d, z = 10)) | margins, at(z = 10) |
 
 Stata takes the slope through a square only when the model is written with its factor
 notation, `c.exper##c.exper`; here, as in R with `I(exper^2)`, the formula's own `exper^2` is
@@ -107,13 +151,16 @@ estimates agree with both. The standard errors agree with Stata's, and with marg
 when it is given the same variance matrix (`vcov =`); the p-values and intervals are from
 Student's t, as Stata's are after `regress`, where marginaleffects uses the normal distribution
 unless `df =` is set. Under weights Stata weights the average as here; marginaleffects does so
-when `wts = TRUE`.
+when `wts = TRUE`. At the means, a category stands at the shares of its levels, as under
+Stata's `atmeans`; marginaleffects' `newdata = "mean"` puts a category at its commonest level,
+so the two agree only for a model without categories. In R the data must be the rows the fit
+used.
 
 ## Related tasks
 - To read a coefficient itself, use `coef`.
 - To get a ratio or another function of the coefficients with its standard error, use `derive`.
 - To test a restriction on the coefficients, use `test`.
-- To get each row's prediction, use `fitted`; for new rows, `predict`.
+- To get each row's own prediction, use `fitted`; for new rows, `predict`.
 - To see every effect as a frame at full precision, use `estimates`.
 
 ## References
@@ -174,3 +221,41 @@ frame · 1 row × 9 variables
 
       term    estimate    std_error   statistic      df   df2   p_value    ci_lower   ci_upper
   1   educ   0.0545994   0.00136249     40.0731   18186    NA         0   0.0519288    0.05727
+
+// The slope in exper at ten years of experience, the other variables as they are.
+> m.margins(exper, at: {exper: 10})
+margins · m · average marginal effects
+reg · log(wage) ~ educ + exper + exper^2 + female
+averaged over the 18,179 observations the fit used
+at: exper = 10
+standard errors: robust (HC1), by the delta method
+
+  variable   contrast   estimate   std.error   t value   p value   95% CI
+  exper      dy/dx        0.0289      0.0007     43.45    <0.001   [0.0276, 0.0302]
+
+the slope of `exper` is taken through `exper` and `exper^2`
+
+// The same effects at the means of the variables.
+> m.margins([educ, exper, female], type: mem)
+margins · m · marginal effects at the means
+reg · log(wage) ~ educ + exper + exper^2 + female
+at the means over the 18,179 observations the fit used
+standard errors: robust (HC1), by the delta method
+
+  variable   contrast        estimate   std.error   t value   p value   95% CI
+  educ       dy/dx             0.0758      0.0014     56.07    <0.001   [0.0732, 0.0785]
+  exper      dy/dx             0.0222      0.0004     49.61    <0.001   [0.0213, 0.0230]
+  female     female − male    -0.1319      0.0064    -20.63    <0.001   [-0.1445, -0.1194]
+
+the slope of `exper` is taken through `exper` and `exper^2`
+
+// With no variable named, the adjusted prediction: here for a woman with 16 years of schooling.
+> m.margins(at: {educ: 16, female: 1})
+margins · m · average adjusted prediction
+reg · log(wage) ~ educ + exper + exper^2 + female
+averaged over the 18,179 observations the fit used
+at: educ = 16, female = 1
+standard errors: robust (HC1), by the delta method
+
+  quantity     estimate   std.error   t value   p value   95% CI
+  prediction     3.3149      0.0057    583.37    <0.001   [3.3037, 3.3260]

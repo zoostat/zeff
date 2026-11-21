@@ -10,12 +10,17 @@
 //! matrix (or of its difference between the two values), so the standard error is √(J V Jᵀ) with
 //! V the fit's own variance, classical, robust or clustered, the sample's regressors held fixed
 //! (definition (b)). The average is weighted by the fit's weights when it has them.
+//!
+//! Step 11b (definition (c); open decision #202 (b) and (e)): `at:` sets a variable to a value
+//! in every row, the others as observed; `type: mem` takes each effect at one point, every
+//! number at its mean and every category at the shares of its levels; and with no variable
+//! named the result is the adjusted prediction, J the averaged row of the model matrix itself.
 
 use crate::dependence::{Held, NoDerivative, Role};
 use crate::design::Design;
 use std::rc::Rc;
 use zeff_columns::{Column, ColumnType, Table as Columns};
-use zeff_core::display::{fixed, fixed_grouped, level_text, p_value_text};
+use zeff_core::display::{fixed, fixed_grouped, format_float, level_text, p_value_text};
 use zeff_core::runtime::{Args, CallContext, Fail, fail};
 use zeff_core::value::{
     Align, Alternative, Distribution, Estimate, Fit, Frame, Statistic, Table, TermTest, TestResult,
@@ -41,6 +46,8 @@ struct Effect {
     variable: String,
     contrast: String,
     jacobian: Vec<f64>,
+    /// Whether the row is the adjusted prediction and not an effect.
+    prediction: bool,
 }
 
 fn internal(ctx: &CallContext<'_>, what: &str) -> Fail {
@@ -54,9 +61,10 @@ fn internal(ctx: &CallContext<'_>, what: &str) -> Fail {
     )
 }
 
-/// The fit's model matrix rebuilt on `table`, whose rows are the rows the fit used, in order:
+/// The fit's model matrix rebuilt on `table`, the rows the fit used or the one row of the means:
 /// the fit's columns, with the fit's levels for every category.
 fn design_on(ctx: &mut CallContext<'_>, fit: &Fit, table: Columns) -> Result<Design, Fail> {
+    let rows = table.rows();
     let mut model = fit.model.clone();
     model.outcome = None;
     // Whatever the second pass says was said when the model was fitted.
@@ -72,10 +80,10 @@ fn design_on(ctx: &mut CallContext<'_>, fit: &Fit, table: Columns) -> Result<Des
     );
     ctx.messages.truncate(said);
     let design = built?;
-    if design.rows.len() != fit.rows.len() {
+    if design.rows.len() != rows {
         return Err(internal(
             ctx,
-            "the model matrix rebuilt for `margins` has other rows than the fit",
+            "the model matrix rebuilt for `margins` has other rows than it was given",
         ));
     }
     if let Some(name) = design
@@ -104,13 +112,17 @@ fn average(values: &[f64], weights: Option<&[f64]>) -> f64 {
     }
 }
 
-/// `table` with the numeric variable `name` set to `value` in every row, in the variable's own
-/// type.
+/// `table` with the numeric variable `name` set to `value` in every row: in the variable's own
+/// type where the value is one of that type, as a Float otherwise.
 fn set_to(table: &Columns, name: &str, value: f64) -> Option<Columns> {
     let n = table.rows();
     let column = match table.column(name)?.ty() {
-        ColumnType::Bool => Column::bools(std::iter::repeat_n(Some(value != 0.0), n)),
-        ColumnType::Int => Column::ints(std::iter::repeat_n(Some(value as i64), n)),
+        ColumnType::Bool if value == 0.0 || value == 1.0 => {
+            Column::bools(std::iter::repeat_n(Some(value != 0.0), n))
+        }
+        ColumnType::Int if value == value.trunc() && value.abs() < 9.0e15 => {
+            Column::ints(std::iter::repeat_n(Some(value as i64), n))
+        }
         _ => Column::floats(std::iter::repeat_n(Some(value), n)).0,
     };
     table.with_column(name, column).ok()
@@ -165,11 +177,19 @@ fn level_name(level: &str) -> String {
 /// Everything the effects of one call are computed from.
 struct Model<'a> {
     fit: &'a Fit,
-    /// The rows the fit used, as a table.
+    /// The rows the fit used, as they are: what says whether a number is a 0/1 variable.
+    observed: Columns,
+    /// The rows the effects are taken at: the rows the fit used, or the one row of the means,
+    /// with the variables of `at:` set.
     table: Columns,
     /// The model matrix on those rows.
     design: Design,
-    weights: Option<&'a [f64]>,
+    /// The categories held at a level (`at:`) or at the shares of their levels (`type: mem`).
+    held: Vec<Option<Vec<f64>>>,
+    /// The weight of each row of `table` in the average; `None` for equal weights.
+    weights: Option<Vec<f64>>,
+    /// The variables `at:` holds.
+    at: Vec<String>,
     /// What is said under the table: the terms a slope was taken through, a central difference.
     after: Vec<String>,
 }
@@ -198,9 +218,12 @@ impl Model<'_> {
                 variable,
                 format!("it enters the model through the category `{through}` and through another term, so no one difference or slope is its effect"),
             )),
-            Role::Category { source, levels } => Ok(self.levels(variable, source, &levels)),
+            Role::Category { source, levels } => {
+                self.not_held(ctx, variable)?;
+                Ok(self.levels(variable, source, &levels))
+            }
             Role::Number => {
-                let Some(values) = numbers_of(&self.table, variable) else {
+                let Some(values) = numbers_of(&self.observed, variable) else {
                     return Err(self.no_effect(
                         ctx,
                         variable,
@@ -208,17 +231,56 @@ impl Model<'_> {
                     ));
                 };
                 let column = self
-                    .table
+                    .observed
                     .column(variable)
                     .expect("a variable with values");
                 if column.ty() == ColumnType::Bool || values.iter().all(|v| *v == 0.0 || *v == 1.0)
                 {
+                    self.not_held(ctx, variable)?;
                     let contrast = values_named(column);
                     Ok(vec![self.two_values(ctx, variable, contrast)?])
                 } else {
-                    Ok(vec![self.slope(ctx, variable, &values)?])
+                    // The slope is taken where the rows are: at the value of `at:`, at the mean.
+                    let at = numbers_of(&self.table, variable).unwrap_or(values);
+                    Ok(vec![self.slope(ctx, variable, &at)?])
                 }
             }
+        }
+    }
+
+    /// Z0401 for a 0/1 variable or a category that `at:` holds at a value: its effect is the
+    /// difference between its values, which holding it leaves nothing of.
+    fn not_held(&self, ctx: &CallContext<'_>, variable: &str) -> Result<(), Fail> {
+        if !self.at.iter().any(|name| name == variable) {
+            return Ok(());
+        }
+        Err(fail(
+            Diagnostic::error(
+                "Z0401",
+                format!("`{variable}` is held at a value by `at:`, and its effect is the difference between its values"),
+            )
+            .in_file(ctx.script)
+            .primary(ctx.span_of(2), "held here")
+            .help(format!("leave `{variable}` out of `at:` to see its effect, or out of the variables to see the others' effects at that value")),
+        ))
+    }
+
+    /// The adjusted prediction: the model matrix itself, averaged over the rows.
+    fn prediction(&self) -> Effect {
+        let jacobian = (0..self.design.names.len())
+            .map(|column| {
+                average(
+                    &self.design.column_held(column, &self.held),
+                    self.weights.as_deref(),
+                )
+            })
+            .collect();
+        Effect {
+            term: "prediction".to_string(),
+            variable: "prediction".to_string(),
+            contrast: String::new(),
+            jacobian,
+            prediction: true,
         }
     }
 
@@ -251,7 +313,10 @@ impl Model<'_> {
         let columns = self.design.columns_of(variable);
         let k = self.design.names.len();
         let held_at = |level: usize| -> Vec<Option<Vec<f64>>> {
-            let mut held: Vec<Option<Vec<f64>>> = vec![None; source + 1];
+            let mut held = self.held.clone();
+            if held.len() <= source {
+                held.resize(source + 1, None);
+            }
             let mut shares = vec![0.0; levels.len()];
             shares[level] = 1.0;
             held[source] = Some(shares);
@@ -270,13 +335,14 @@ impl Model<'_> {
                     let high = self.design.column_held(column, &held);
                     let difference: Vec<f64> =
                         high.iter().zip(&low[at]).map(|(h, l)| h - l).collect();
-                    jacobian[column] = average(&difference, self.weights);
+                    jacobian[column] = average(&difference, self.weights.as_deref());
                 }
                 Effect {
                     term: format!("{variable}={}", level_name(&levels[level])),
                     variable: variable.to_string(),
                     contrast: format!("{} \u{2212} {}", levels[level], levels[0]),
                     jacobian,
+                    prediction: false,
                 }
             })
             .collect()
@@ -316,18 +382,19 @@ impl Model<'_> {
         let mut jacobian = vec![0.0; self.design.names.len()];
         for column in self.design.columns_of(variable) {
             let difference: Vec<f64> = high
-                .column_held(column, &[])
+                .column_held(column, &self.held)
                 .iter()
-                .zip(low.column_held(column, &[]))
+                .zip(low.column_held(column, &self.held))
                 .map(|(h, l)| h - l)
                 .collect();
-            jacobian[column] = average(&difference, self.weights);
+            jacobian[column] = average(&difference, self.weights.as_deref());
         }
         Ok(Effect {
             term: variable.to_string(),
             variable: variable.to_string(),
             contrast,
             jacobian,
+            prediction: false,
         })
     }
 
@@ -342,7 +409,7 @@ impl Model<'_> {
     ) -> Result<Effect, Fail> {
         let columns = self.design.columns_of(variable);
         let mut jacobian = vec![0.0; self.design.names.len()];
-        let held: &Held = &[];
+        let held: &Held = &self.held;
         // The model matrix a step above and a step below, built once if a column needs them.
         let mut shifted: Option<(Design, Design, f64)> = None;
         let mut by_difference: Vec<String> = Vec::new();
@@ -387,18 +454,30 @@ impl Model<'_> {
                     ctx,
                     variable,
                     format!(
-                        "the slope of `{}` is not finite in some row the fit used",
+                        "the slope of `{}` is not finite where it is asked for",
                         self.design.names[column]
                     ),
                 ));
             }
-            jacobian[column] = average(&derivative, self.weights);
+            jacobian[column] = average(&derivative, self.weights.as_deref());
         }
-        // What the slope was taken through, when that is more than the variable's own column.
-        let through: Vec<String> = columns
-            .iter()
-            .map(|&c| format!("`{}`", self.design.names[c]))
-            .collect();
+        // What the slope was taken through, when that is more than the variable's own term:
+        // the terms, each once, so that an interaction with a category is one name.
+        let terms = self.design.terms();
+        let mut through: Vec<String> = Vec::new();
+        for &column in &columns {
+            let label = terms
+                .iter()
+                .find(|term| term.columns.contains(&column))
+                .map_or_else(
+                    || self.design.names[column].clone(),
+                    |term| term.label.clone(),
+                );
+            let shown = format!("`{label}`");
+            if !through.contains(&shown) {
+                through.push(shown);
+            }
+        }
         if through.len() > 1
             || through
                 .first()
@@ -421,6 +500,7 @@ impl Model<'_> {
             variable: variable.to_string(),
             contrast: "dy/dx".to_string(),
             jacobian,
+            prediction: false,
         })
     }
 }
@@ -449,9 +529,180 @@ fn level_heading(level: f64) -> String {
     format!("{} CI", level_text(level))
 }
 
-/// `fit.margins(vars)`: the average marginal effect of each variable named, a slope for a
-/// number and a difference for a 0/1 variable or a category, each with its delta-method
-/// standard error, its t on the fit's degrees of freedom and its interval at the fit's level.
+/// What `at:` holds one variable at.
+enum Setting {
+    /// A number at a value.
+    Number(f64),
+    /// A category at a level: the source of its codes, the level and how many levels it has.
+    Level {
+        source: usize,
+        level: usize,
+        levels: usize,
+    },
+}
+
+/// One field of `at:`: the variable, what it is held at, and the value as the header prints it.
+struct Held1 {
+    name: String,
+    setting: Setting,
+    shown: String,
+}
+
+/// The fields of `at:` read against the model: each a variable of the model, a number held at
+/// a number and a category at one of its levels.
+fn read_at(
+    ctx: &CallContext<'_>,
+    design: &Design,
+    value: Option<&Value>,
+) -> Result<Vec<Held1>, Fail> {
+    let refuse = |code: &'static str, message: String, help: String| -> Fail {
+        fail(
+            Diagnostic::error(code, message)
+                .in_file(ctx.script)
+                .primary(ctx.span_of(2), "in `at:`")
+                .help(help),
+        )
+    };
+    let fields = match value {
+        None | Some(Value::Na) => return Ok(Vec::new()),
+        Some(Value::Record(fields)) => fields,
+        Some(other) => {
+            return Err(refuse(
+                "Z0401",
+                format!(
+                    "`at:` of `margins` is a record of values, but this is {}",
+                    other.type_word()
+                ),
+                "write the values to hold variables at as a record: `at: {exper: 10, industry: \"Mining\"}`".to_string(),
+            ));
+        }
+    };
+    let mut held = Vec::new();
+    for (name, value) in fields {
+        if matches!(value, Value::List(_)) {
+            return Err(refuse(
+                "Z0401",
+                format!("`at:` holds `{name}` at one value, but this is a list"),
+                "give one value for each variable; several values of one variable are a call each"
+                    .to_string(),
+            ));
+        }
+        match design.role(name) {
+            Role::Absent => {
+                let variables = design.model_variables();
+                let listed = variables
+                    .iter()
+                    .map(|v| format!("`{v}`"))
+                    .collect::<Vec<_>>()
+                    .join(", ");
+                let hint = match did_you_mean(name, variables.iter().map(String::as_str)) {
+                    Some(near) => format!("did you mean `{near}`? "),
+                    None => String::new(),
+                };
+                return Err(refuse(
+                    "Z0414",
+                    format!("`{name}` is not a variable of this model"),
+                    format!("{hint}the variables of the model are {listed}"),
+                ));
+            }
+            Role::Mixed { through } => {
+                return Err(refuse(
+                    "Z0417",
+                    format!(
+                        "`margins` cannot hold `{name}` at a value: it enters the model through the category `{through}` and through another term"
+                    ),
+                    "hold a variable that is a number in every term, or a category in every term"
+                        .to_string(),
+                ));
+            }
+            Role::Number => {
+                let number = match value {
+                    Value::Int(i) => *i as f64,
+                    Value::Float(x) => *x,
+                    Value::Bool(b) => f64::from(u8::from(*b)),
+                    other => {
+                        return Err(refuse(
+                            "Z0401",
+                            format!(
+                                "`at:` holds the number `{name}` at a number, but this is {}",
+                                other.type_word()
+                            ),
+                            format!("write a number: `at: {{{name}: 10}}`"),
+                        ));
+                    }
+                };
+                if !number.is_finite() {
+                    return Err(refuse(
+                        "Z0401",
+                        format!("`at:` holds `{name}` at a finite number"),
+                        format!("write a number: `at: {{{name}: 10}}`"),
+                    ));
+                }
+                held.push(Held1 {
+                    name: name.clone(),
+                    setting: Setting::Number(number),
+                    shown: match value {
+                        Value::Bool(b) => b.to_string(),
+                        _ => format_float(number),
+                    },
+                });
+            }
+            Role::Category { source, levels } => {
+                let wanted = match value {
+                    Value::Str(text) | Value::Word(text) => text.clone(),
+                    Value::Int(i) => i.to_string(),
+                    Value::Float(x) => format_float(*x),
+                    Value::Bool(b) => b.to_string(),
+                    other => {
+                        return Err(refuse(
+                            "Z0401",
+                            format!(
+                                "`at:` holds the category `{name}` at one of its levels, but this is {}",
+                                other.type_word()
+                            ),
+                            format!(
+                                "write the level as text: `at: {{{name}: \"{}\"}}`",
+                                levels[0]
+                            ),
+                        ));
+                    }
+                };
+                let Some(level) = levels.iter().position(|l| *l == wanted) else {
+                    let listed = levels
+                        .iter()
+                        .map(|l| format!("`{l}`"))
+                        .collect::<Vec<_>>()
+                        .join(", ");
+                    let hint = match did_you_mean(&wanted, levels.iter().map(String::as_str)) {
+                        Some(near) => format!("did you mean `{near}`? "),
+                        None => String::new(),
+                    };
+                    return Err(refuse(
+                        "Z0401",
+                        format!("`{wanted}` is not a level of `{name}` in this model"),
+                        format!("{hint}its levels are {listed}"),
+                    ));
+                };
+                held.push(Held1 {
+                    name: name.clone(),
+                    setting: Setting::Level {
+                        source,
+                        level,
+                        levels: levels.len(),
+                    },
+                    shown: wanted,
+                });
+            }
+        }
+    }
+    Ok(held)
+}
+
+/// `fit.margins(vars, at:, type:)`: the marginal effect of each variable named, a slope for a
+/// number and a difference for a 0/1 variable or a category, averaged over the rows the fit
+/// used (`type: ame`) or taken at the means (`type: mem`), the variables of `at:` held at its
+/// values; with no variable named, the adjusted prediction. Each with its delta-method standard
+/// error, its t on the fit's degrees of freedom and its interval at the fit's level.
 pub fn margins(ctx: &mut CallContext<'_>, args: Args) -> Result<Value, Fail> {
     let fit = match args.get(0) {
         Some(Value::Fit(fit)) if fit.kind == "RegFit" => Rc::clone(fit),
@@ -506,22 +757,119 @@ pub fn margins(ctx: &mut CallContext<'_>, args: Args) -> Result<Value, Fail> {
         }
         None => {}
     }
-    if names.is_empty() {
-        return Err(fail(
-            Diagnostic::error(
-                "Z0406",
-                "`margins` needs the variables whose effects are wanted",
-            )
-            .in_file(ctx.script)
-            .primary(ctx.callee_span, "no variable named")
-            .help("name one variable or a list of them: `m.margins(educ)`, `m.margins([educ, exper])`"),
-        ));
-    }
+    let at_means = matches!(args.get(3), Some(Value::Word(word)) if word == "mem");
     let Some(source) = &fit.source else {
         return Err(internal(ctx, "a regression fit that keeps no frame"));
     };
-    let table = source.frame.table.take_rows(&fit.rows);
-    let design = design_on(ctx, &fit, table.clone())?;
+    // With no variable named, the adjusted prediction (open decision #202 (b)), which after
+    // fixed effects would need the level of each effect.
+    if names.is_empty() && !fit.effects.is_empty() {
+        return Err(fail(
+            Diagnostic::error(
+                "Z0401",
+                "`margins` gives no adjusted prediction after `fe:`",
+            )
+            .in_file(ctx.script)
+            .primary(ctx.callee_span, "no variable named")
+            .help("a prediction needs the level of each fixed effect; name the variables whose effects are wanted, which do not depend on the effects, or use `fitted` for each row's prediction"),
+        ));
+    }
+    let observed = source.frame.table.take_rows(&fit.rows);
+    let as_observed = design_on(ctx, &fit, observed.clone())?;
+    let at = read_at(ctx, &as_observed, args.get(2))?;
+    // The rows the effects are taken at, the categories held and the weights of the rows.
+    let mut table = observed.clone();
+    let mut held: Vec<Option<Vec<f64>>> = vec![None; as_observed.source_count()];
+    let mut weights: Option<Vec<f64>> = fit.weights.clone();
+    if at_means {
+        // One row: every number at its mean over the rows the fit used, by the fit's weights;
+        // every category at the shares of its levels (open decision #202 (e)).
+        let mut one = observed.take_rows(&[0]);
+        for name in as_observed.model_variables() {
+            match as_observed.role(&name) {
+                Role::Number => {
+                    let Some(values) = numbers_of(&observed, &name) else {
+                        return Err(fail(
+                            Diagnostic::error(
+                                "Z0417",
+                                format!("`margins` cannot hold `{name}` at its mean: it is not a number, a Bool or a category"),
+                            )
+                            .in_file(ctx.script)
+                            .primary(ctx.span_of(3), "at the means")
+                            .help("`type: ame`, the default, averages over the rows as they are"),
+                        ));
+                    };
+                    let mean = average(&values, fit.weights.as_deref());
+                    let Ok(replaced) = one.with_column(&name, Column::floats([Some(mean)]).0)
+                    else {
+                        return Err(internal(
+                            ctx,
+                            "a variable of the model that the frame lacks",
+                        ));
+                    };
+                    one = replaced;
+                }
+                Role::Mixed { through } => {
+                    return Err(fail(
+                        Diagnostic::error(
+                            "Z0417",
+                            format!("`margins` cannot hold `{name}` at its mean: it enters the model through the category `{through}` and through another term"),
+                        )
+                        .in_file(ctx.script)
+                        .primary(ctx.span_of(3), "at the means")
+                        .help("`type: ame`, the default, averages over the rows as they are"),
+                    ));
+                }
+                Role::Category { .. } | Role::Absent => {}
+            }
+        }
+        for (source, slot) in held.iter_mut().enumerate() {
+            *slot = as_observed.level_shares(source, fit.weights.as_deref());
+        }
+        table = one;
+        weights = None;
+    }
+    for field in &at {
+        match field.setting {
+            Setting::Number(value) => {
+                let Some(set) = set_to(&table, &field.name, value) else {
+                    return Err(internal(ctx, "a variable of `at:` that the frame lacks"));
+                };
+                table = set;
+            }
+            Setting::Level {
+                source,
+                level,
+                levels,
+            } => {
+                let mut shares = vec![0.0; levels];
+                shares[level] = 1.0;
+                held[source] = Some(shares);
+            }
+        }
+    }
+    let design = if at_means || !at.is_empty() {
+        let built = design_on(ctx, &fit, table.clone()).map_err(|_| {
+            fail(
+                Diagnostic::error(
+                    "Z0417",
+                    "`margins` cannot compute a term of the model at the values asked for",
+                )
+                .in_file(ctx.script)
+                .primary(ctx.callee_span, "a term with no value there")
+                .help("a term such as `log(x)` has no value where `x` is held at nought or below; `type: ame` without `at:` takes the rows as they are"),
+            )
+        })?;
+        if built.source_keys() != as_observed.source_keys() {
+            return Err(internal(
+                ctx,
+                "the model matrix rebuilt for `margins` has other sources than the fit's",
+            ));
+        }
+        built
+    } else {
+        as_observed
+    };
     // The position of each column's coefficient among the fit's terms; `None` for a column
     // omitted as collinear, which has none.
     let position: Vec<Option<usize>> = design
@@ -531,12 +879,19 @@ pub fn margins(ctx: &mut CallContext<'_>, args: Args) -> Result<Value, Fail> {
         .collect();
     let mut model = Model {
         fit: &fit,
+        observed,
         table,
         design,
-        weights: fit.weights.as_deref(),
+        held,
+        weights,
+        at: at.iter().map(|field| field.name.clone()).collect(),
         after: Vec::new(),
     };
+    let predicting = names.is_empty();
     let mut effects: Vec<Effect> = Vec::new();
+    if predicting {
+        effects.push(model.prediction());
+    }
     for name in &names {
         effects.extend(model.effects(ctx, name)?);
     }
@@ -551,12 +906,21 @@ pub fn margins(ctx: &mut CallContext<'_>, args: Args) -> Result<Value, Fail> {
     let mut terms: Vec<TermTest> = Vec::new();
     let mut not_estimable: Vec<String> = Vec::new();
     for effect in &effects {
-        // An effect that rests on a coefficient the fit omitted as collinear is not estimable.
-        let estimable = effect
-            .jacobian
-            .iter()
-            .zip(&position)
-            .all(|(j, p)| *j == 0.0 || p.is_some());
+        // An effect that rests on a coefficient the fit omitted as collinear is not estimable;
+        // a prediction takes such a coefficient as nought, as `predict` does.
+        let estimable = effect.prediction
+            || effect
+                .jacobian
+                .iter()
+                .zip(&position)
+                .all(|(j, p)| *j == 0.0 || p.is_some());
+        let lead = |effect: &Effect| -> Vec<String> {
+            if effect.prediction {
+                vec![effect.term.clone()]
+            } else {
+                vec![effect.variable.clone(), effect.contrast.clone()]
+            }
+        };
         let mut gradient = vec![0.0; k];
         for (j, p) in effect.jacobian.iter().zip(&position) {
             if let Some(p) = p {
@@ -584,15 +948,9 @@ pub fn margins(ctx: &mut CallContext<'_>, args: Args) -> Result<Value, Fail> {
             } else {
                 na()
             };
-            rows.push(vec![
-                effect.variable.clone(),
-                effect.contrast.clone(),
-                shown,
-                na(),
-                na(),
-                na(),
-                na(),
-            ]);
+            let mut cells = lead(effect);
+            cells.extend([shown, na(), na(), na(), na()]);
+            rows.push(cells);
             terms.push(TermTest {
                 term: effect.term.clone(),
                 statistic: Statistic {
@@ -618,9 +976,8 @@ pub fn margins(ctx: &mut CallContext<'_>, args: Args) -> Result<Value, Fail> {
             estimate - quantile * std_error,
             estimate + quantile * std_error,
         );
-        rows.push(vec![
-            effect.variable.clone(),
-            effect.contrast.clone(),
+        let mut cells = lead(effect);
+        cells.extend([
             fixed(estimate, DECIMALS),
             fixed(std_error, DECIMALS),
             fixed(t, 2),
@@ -631,6 +988,7 @@ pub fn margins(ctx: &mut CallContext<'_>, args: Args) -> Result<Value, Fail> {
                 fixed(interval.1, DECIMALS)
             ),
         ]);
+        rows.push(cells);
         terms.push(TermTest {
             term: effect.term.clone(),
             statistic: Statistic {
@@ -673,23 +1031,54 @@ pub fn margins(ctx: &mut CallContext<'_>, args: Args) -> Result<Value, Fail> {
         header.push(format!("{} \u{b7} {}", fit.method, fit.formula));
     }
     let observations = fixed_grouped(fit.n as f64, 0);
+    let over = if at_means {
+        format!("at the means over the {observations} observations the fit used")
+    } else {
+        format!("averaged over the {observations} observations the fit used")
+    };
     header.push(match (fit.weight_kind, source.weights.as_deref()) {
-        (Some(WeightKind::Frequency), Some(w)) => format!(
-            "averaged over the {observations} observations the fit used, the rows counted by `{w}`"
-        ),
-        (Some(_), Some(w)) => {
-            format!("averaged over the {observations} observations the fit used, weighted by `{w}`")
-        }
-        _ => format!("averaged over the {observations} observations the fit used"),
+        (Some(WeightKind::Frequency), Some(w)) => format!("{over}, the rows counted by `{w}`"),
+        (Some(_), Some(w)) => format!("{over}, weighted by `{w}`"),
+        _ => over,
     });
+    if !at.is_empty() {
+        header.push(format!(
+            "at: {}",
+            at.iter()
+                .map(|field| format!("{} = {}", field.name, field.shown))
+                .collect::<Vec<_>>()
+                .join(", ")
+        ));
+    }
     header.push(format!(
         "standard errors: {}, by the delta method",
         fit.se_kind
     ));
     let title = format!(
-        "margins \u{b7} {} \u{b7} average marginal effects",
-        fit.name.clone().unwrap_or_else(|| fit.formula.clone())
+        "margins \u{b7} {} \u{b7} {}",
+        fit.name.clone().unwrap_or_else(|| fit.formula.clone()),
+        match (predicting, at_means) {
+            (false, false) => "average marginal effects",
+            (false, true) => "marginal effects at the means",
+            (true, false) => "average adjusted prediction",
+            (true, true) => "adjusted prediction at the means",
+        }
     );
+    let mut columns = if predicting {
+        vec![("quantity".to_string(), Align::Left)]
+    } else {
+        vec![
+            ("variable".to_string(), Align::Left),
+            ("contrast".to_string(), Align::Left),
+        ]
+    };
+    columns.extend([
+        ("estimate".to_string(), Align::Right),
+        ("std.error".to_string(), Align::Right),
+        ("t value".to_string(), Align::Right),
+        ("p value".to_string(), Align::Right),
+        (level_heading(fit.level), Align::Left),
+    ]);
     Ok(Value::TestResult(Rc::new(TestResult {
         method: "margins".to_string(),
         title,
@@ -699,15 +1088,7 @@ pub fn margins(ctx: &mut CallContext<'_>, args: Args) -> Result<Value, Fail> {
         table: Some(Table {
             title: String::new(),
             before: Vec::new(),
-            columns: vec![
-                ("variable".to_string(), Align::Left),
-                ("contrast".to_string(), Align::Left),
-                ("estimate".to_string(), Align::Right),
-                ("std.error".to_string(), Align::Right),
-                ("t value".to_string(), Align::Right),
-                ("p value".to_string(), Align::Right),
-                (level_heading(fit.level), Align::Left),
-            ],
+            columns,
             rows,
             after: Vec::new(),
             more: Vec::new(),

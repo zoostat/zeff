@@ -1319,7 +1319,7 @@ Zeff reports problems the way Rust does: a code, the location, a marker under th
 | Z0411 | `weights:` of a test whose kind is sampling, the default of `weight_type:`; a test takes frequency or analytic weights (section 6) |
 | Z0412 | `group:` of a two-group test naming a variable with one level or more than two (section 6) |
 | Z0413 | A parameter of a distribution outside its domain, or `NA` |
-| Z0414 | A term name given to a result method that the result does not have; the message lists the fit's terms, and a test's result has none. `margins` raises it for a variable that no term of the model is a function of, and lists the model's variables |
+| Z0414 | A term name given to a result method that the result does not have; the message lists the fit's terms, and a test's result has none. `margins` raises it for a variable, asked for or held by `at:`, that no term of the model is a function of, and lists the model's variables |
 | Z0415 | A restriction given to `test` that is not an equality linear in the coefficients, or restrictions that repeat one another |
 | Z0416 | A `compare` of two regressions on different rows, with the same terms, or not nested |
 | Z0504 | A variable on the left of `~` in `instruments:` that is not a regressor of the formula: an instrumented regressor appears in the formula like any other (section 7.1); the help writes the formula with it added |
@@ -1327,7 +1327,7 @@ Zeff reports problems the way Rust does: a code, the location, a marker under th
 | Z0804 | Fewer excluded instruments than instrumented regressors, counted after an instrument that is also a regressor of the formula is moved to the included instruments: the model is under-identified (section 7.1) |
 | Z0507 | `event` given a `ref:` that is not a relative period of the data; the message lists the periods present |
 | W0701 | A data root's file has changed since the last run: its hash differs from the one the last run recorded, and both modification times are given (section 2 of the Engine and Project Specification, "Data roots") |
-| Z0417 | A definition given to `derive` that it cannot differentiate; a variable whose effect `margins` cannot take (one that enters the model both as a number and as a category, or whose slope is not finite in some row) |
+| Z0417 | A definition given to `derive` that it cannot differentiate; a variable whose effect `margins` cannot take or that it cannot hold at a value or at its mean (one that enters the model both as a number and as a category, a slope that is not finite where it is asked for, or a term with no value at the values asked for) |
 | Z0418 | A `seq` that cannot be built: a zero step, a step pointing away from `to`, an argument that is `NA` or infinite, or more than ten million values |
 | Z0419 | A regular expression that cannot be read: an unclosed group or bracket, a repetition with nothing to repeat, or look-around or a back-reference, which section 3.8 excludes |
 | Z0420 | `alternative: less` or `greater` given to `fisher_test` on a table larger than 2 × 2, whose exact test has no direction (section 6; open decision #91) |
