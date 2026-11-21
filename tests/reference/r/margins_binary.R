@@ -198,6 +198,34 @@ case <- function(zeff, r_formula, link, vars, se = "classical", cluster = NULL, 
        vars = as.list(vars), nobs = nobs(fit), rows = rows)
 }
 
+
+# Several values in `at:` (step 12b): the case at each combination of the values of `grid`, the
+# first variable changing slowest, with `fixed` held throughout; each row is named with the
+# values it was taken at, `exper @ exper=5`.
+grid_case <- function(zeff, r_formula, link, vars, grid, fixed = list(), ...) {
+  combos <- list(list())
+  for (name in names(grid)) {
+    combos <- unlist(lapply(combos, function(chosen) {
+      lapply(grid[[name]], function(value) c(chosen, setNames(list(value), name)))
+    }), recursive = FALSE)
+  }
+  rows <- list()
+  out <- NULL
+  for (chosen in combos) {
+    one <- case(zeff, r_formula, link, vars, at = c(chosen, fixed), ...)
+    label <- paste(names(chosen), vapply(chosen, as.character, ""), sep = "=", collapse = ", ")
+    for (row in one$rows) {
+      row$term <- paste0(row$term, " @ ", label)
+      rows[[length(rows) + 1]] <- row
+    }
+    out <- one
+  }
+  out$rows <- rows
+  out$at <- lapply(fixed, function(v) if (is.character(v)) v else num17(v))
+  out$grid <- lapply(grid, function(values) lapply(values, function(v) if (is.character(v)) v else num17(v)))
+  out
+}
+
 cases <- list()
 # The average effects of a logit with a square.
 cases$logit <- case("union ~ educ + exper + exper^2 + female",
@@ -237,6 +265,14 @@ cases$probit_sampling_mem <- case("union ~ educ * female + exper + exper^2",
 cases$logit_frequency <- case("union ~ exper + exper^2 + female + female:exper",
   union ~ exper + I(exper^2) + female + female:exper, "logit", c("exper", "female"),
   weights = "educ", weight_type = "frequency")
+
+# ----- step 12b: several values in `at:` -----
+cases$grid_prediction <- grid_case(wide_zeff, wide, "logit", character(0),
+  grid = list(exper = list(0, 10, 20, 30)))
+cases$grid_effects <- grid_case(wide_zeff, wide, "probit", c("female", "exper"), se = "HC1",
+  grid = list(educ = list(12, 16), industry = list("Mining", "Finance")), fixed = list(exper = 10))
+cases$grid_mem <- grid_case(wide_zeff, wide, "logit", c("female"), type = "mem",
+  grid = list(educ = list(12, 16)))
 
 reference <- reference_block()
 reference$note <- "base R and sandwich; numbers written with 17 significant digits"

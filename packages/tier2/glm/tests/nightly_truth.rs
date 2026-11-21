@@ -11,15 +11,21 @@
 //! still the logit or the probit with the generating coefficients, and the pooled fit estimates
 //! them.
 //!
+//! The same seeds hold `margins` (step 12b): the interval of each average effect on the
+//! probability must cover the true average effect, the effect computed for the same rows at
+//! the generating coefficients, since the delta method holds the regressors fixed.
+//!
 //! Run with `cargo test -p zeff-glm --release --test nightly_truth -- --ignored --nocapture`.
 
+use std::rc::Rc;
 use zeff_columns::{Column, Table};
 use zeff_core::runtime::{Args, CallContext, Fail, Files, Randomness};
-use zeff_core::value::{Distribution, Fit, Frame, Value};
+use zeff_core::value::{Distribution, Fit, Frame, TestResult, Value};
 use zeff_diagnostics::{Diagnostic, Source, Sources, Span};
 use zeff_dist::families;
 use zeff_numeric::random::Stream;
 use zeff_numeric::special::normal_tails;
+use zeff_results::likelihood::Link;
 use zeff_testkit::formula;
 
 const SEEDS: u64 = 50;
@@ -264,6 +270,156 @@ fn fifty_seeds_recover_the_coefficients_and_the_intervals_cover() {
             }
             println!(
                 "{link}, {}: bias in standard errors of the mean: {}; coverage of the 95 per cent intervals: {}",
+                design.name(),
+                bias_text.join(", "),
+                coverage_text.join(", ")
+            );
+        }
+    }
+    assert!(failures.is_empty(), "{}", failures.join("\n"));
+}
+
+/// `fit.margins([x1, x2, d])`: the average effects on the probability.
+fn average_effects(fit: &Rc<Fit>) -> Rc<TestResult> {
+    let script = "m.margins([x1, x2, d])\n";
+    let mut output = String::new();
+    let mut messages: Vec<Diagnostic> = Vec::new();
+    let mut random = Randomness::default();
+    let mut sources = Sources::new();
+    sources.add(Source::new("t.zeff", script));
+    let mut ctx = CallContext {
+        files: &NoFiles,
+        script: "t.zeff",
+        text: script,
+        columns_used: Vec::new(),
+        frame: None,
+        group_rows: None,
+        callee_span: Span::new(2, 9),
+        arg_spans: vec![Some(Span::new(0, 1)), Some(Span::new(10, 22))],
+        rest_spans: Vec::new(),
+        definition_spans: Vec::new(),
+        output: &mut output,
+        messages: &mut messages,
+        random: &mut random,
+        statement: 1,
+    };
+    let args = Args {
+        values: vec![
+            Some(Value::Fit(Rc::clone(fit))),
+            Some(Value::Vars(vec![
+                "x1".to_string(),
+                "x2".to_string(),
+                "d".to_string(),
+            ])),
+            None,
+            Some(Value::Word("ame".to_string())),
+        ],
+        rest: Vec::new(),
+        definitions: Vec::new(),
+    };
+    match zeff_results::margins::margins(&mut ctx, args) {
+        Ok(Value::TestResult(result)) => result,
+        Ok(other) => panic!("not a result: {other:?}"),
+        Err(e) => panic!("{}", e.render(&sources)),
+    }
+}
+
+/// A Float variable of a drawn table, row by row.
+fn values(table: &Table, name: &str) -> Vec<f64> {
+    table
+        .column(name)
+        .and_then(|column| column.as_floats())
+        .unwrap_or_else(|| panic!("no Float variable `{name}`"))
+        .map(|v| v.expect("no NA is drawn"))
+        .collect()
+}
+
+/// The average effects of `x1`, `x2` and `d` on the probability for the rows of `table` at
+/// the generating coefficients: for the two numbers, the coefficient times the mean of the
+/// slope of the probability; for the indicator, the mean difference between the probability
+/// with it at one and at nought.
+fn true_effects(table: &Table, link: Link) -> [f64; 3] {
+    let (x1, x2, d) = (values(table, "x1"), values(table, "x2"), values(table, "d"));
+    let n = x1.len() as f64;
+    let (mut slope, mut difference) = (0.0, 0.0);
+    for i in 0..x1.len() {
+        let without = TRUTH[0].1 + TRUTH[1].1 * x1[i] + TRUTH[2].1 * x2[i];
+        slope += link.mean_slope(without + TRUTH[3].1 * d[i]);
+        difference += link.mean(without + TRUTH[3].1) - link.mean(without);
+    }
+    [
+        TRUTH[1].1 * slope / n,
+        TRUTH[2].1 * slope / n,
+        difference / n,
+    ]
+}
+
+#[test]
+#[ignore = "nightly: the average effects of 50 seeds under two designs and two links"]
+fn the_intervals_of_the_average_effects_cover_the_true_effects() {
+    let mut failures = Vec::new();
+    for (word, link) in [("logit", Link::Logit), ("probit", Link::Probit)] {
+        for design in [Design::Independent, Design::Clustered] {
+            // The errors that suit the design, then one that does not, which is reported.
+            let kinds: &[&str] = match design {
+                Design::Independent => &["classical", "robust"],
+                Design::Clustered => &["cluster", "classical"],
+            };
+            let mut errors: Vec<Vec<f64>> = vec![Vec::new(); 3];
+            let mut covered = vec![0usize; kinds.len()];
+            for seed in 0..SEEDS {
+                let table = draw(design, word, seed);
+                let truth = true_effects(&table, link);
+                for (k, kind) in kinds.iter().enumerate() {
+                    let fitted = Rc::new(fit(&table, word, kind));
+                    let effects = average_effects(&fitted);
+                    assert_eq!(effects.terms.len(), 3, "three effects");
+                    for (e, row) in effects.terms.iter().enumerate() {
+                        let estimate = row.estimate.as_ref().expect("an estimate");
+                        if k == 0 {
+                            errors[e].push(estimate.value - truth[e]);
+                        }
+                        let (lo, hi) = estimate.ci.expect("an interval");
+                        if lo <= truth[e] && truth[e] <= hi {
+                            covered[k] += 1;
+                        }
+                    }
+                }
+            }
+            // The mean error of each effect against the standard error of that mean.
+            let mut bias_text = Vec::new();
+            for (e, name) in ["x1", "x2", "d"].iter().enumerate() {
+                let n = errors[e].len() as f64;
+                let mean = errors[e].iter().sum::<f64>() / n;
+                let variance =
+                    errors[e].iter().map(|x| (x - mean).powi(2)).sum::<f64>() / (n - 1.0);
+                let z = mean / (variance / n).sqrt();
+                bias_text.push(format!("{name} {z:+.2}"));
+                if z.abs() > 4.0 {
+                    failures.push(format!(
+                        "{word}, {}: the average effect of `{name}` is biased, mean error {mean:.5} ({z:+.2} standard errors of the mean)",
+                        design.name()
+                    ));
+                }
+            }
+            let total = (SEEDS as usize * 3) as f64;
+            let mut coverage_text = Vec::new();
+            for (k, kind) in kinds.iter().enumerate() {
+                let share = covered[k] as f64 / total;
+                let suits = design.suitable().contains(kind);
+                coverage_text.push(format!(
+                    "{kind} {share:.3}{}",
+                    if suits { "" } else { " (reported)" }
+                ));
+                if suits && !(COVERAGE.0..=COVERAGE.1).contains(&share) {
+                    failures.push(format!(
+                        "{word}, {}: the 95 per cent intervals of the average effects under {kind} errors cover {share:.3} of the time",
+                        design.name()
+                    ));
+                }
+            }
+            println!(
+                "margins, {word}, {}: bias of the average effects in standard errors of the mean: {}; coverage of the 95 per cent intervals: {}",
                 design.name(),
                 bias_text.join(", "),
                 coverage_text.join(", ")

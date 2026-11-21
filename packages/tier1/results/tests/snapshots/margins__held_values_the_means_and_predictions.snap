@@ -319,15 +319,125 @@ error[Z0401]: `3` is not a level of `industry` in this model
 
 === let wages = dataset(wages)
 let m = wages.reg(log(wage) ~ educ * female + exper + exper^2 + industry + industry:exper, se: robust)
-m.margins(female, at: {exper: [5, 10]}) ===
+m.margins(female, at: {exper: [5, 10]})
+m.margins([exper, female], at: {exper: [5, 20], industry: ["Mining", "Finance"], educ: 12})
+m.margins(at: {exper: [5, 10.5, 20]})
+m.margins(educ, type: mem, at: {female: [0, 1]})
+let e = m.margins(at: {exper: [5, 20]})
+e.estimates()
+e.p_values("prediction @ exper=20")
+e.ci() ===
+margins · m · average marginal effects
+reg · log(wage) ~ educ * female + exper + exper^2 + industry + industry:exper
+averaged over the 18,179 observations the fit used
+at: exper = 5, 10
+standard errors: robust (HC1), by the delta method
+
+  exper   variable   contrast        estimate   std.error   t value   p value   95% CI
+      5   female     female − male    -0.1328      0.0064    -20.86    <0.001   [-0.1453, -0.1204]
+     10   female     female − male    -0.1328      0.0064    -20.86    <0.001   [-0.1453, -0.1204]
+margins · m · average marginal effects
+reg · log(wage) ~ educ * female + exper + exper^2 + industry + industry:exper
+averaged over the 18,179 observations the fit used
+at: exper = 5, 20; industry = Mining, Finance; educ = 12
+standard errors: robust (HC1), by the delta method
+
+  exper   industry   variable   contrast        estimate   std.error   t value   p value   95% CI
+      5   Mining     exper      dy/dx             0.0367      0.0034     10.84    <0.001   [0.0300, 0.0433]
+      5   Mining     female     female − male    -0.1272      0.0075    -16.97    <0.001   [-0.1419, -0.1125]
+      5   Finance    exper      dy/dx             0.0373      0.0018     20.74    <0.001   [0.0337, 0.0408]
+      5   Finance    female     female − male    -0.1272      0.0075    -16.97    <0.001   [-0.1419, -0.1125]
+     20   Mining     exper      dy/dx             0.0161      0.0033      4.96    <0.001   [0.0098, 0.0225]
+     20   Mining     female     female − male    -0.1272      0.0075    -16.97    <0.001   [-0.1419, -0.1125]
+     20   Finance    exper      dy/dx             0.0167      0.0015     11.39    <0.001   [0.0139, 0.0196]
+     20   Finance    female     female − male    -0.1272      0.0075    -16.97    <0.001   [-0.1419, -0.1125]
+
+the slope of `exper` is taken through `exper`, `exper^2` and `industry:exper`
+margins · m · average adjusted prediction
+reg · log(wage) ~ educ * female + exper + exper^2 + industry + industry:exper
+averaged over the 18,179 observations the fit used
+at: exper = 5, 10.5, 20
+standard errors: robust (HC1), by the delta method
+
+  exper   quantity     estimate   std.error   t value   p value   95% CI
+      5   prediction     2.9386      0.0058    503.74    <0.001   [2.9272, 2.9500]
+   10.5   prediction     3.1152      0.0042    748.43    <0.001   [3.1070, 3.1233]
+     20   prediction     3.3227      0.0042    797.24    <0.001   [3.3145, 3.3309]
+margins · m · marginal effects at the means
+reg · log(wage) ~ educ * female + exper + exper^2 + industry + industry:exper
+at the means over the 18,179 observations the fit used
+at: female = 0, 1
+standard errors: robust (HC1), by the delta method
+
+  female   variable   contrast   estimate   std.error   t value   p value   95% CI
+       0   educ       dy/dx        0.0773      0.0018     42.09    <0.001   [0.0737, 0.0809]
+       1   educ       dy/dx        0.0735      0.0019     39.43    <0.001   [0.0699, 0.0772]
+
+the slope of `educ` is taken through `educ` and `educ:female`
+frame · 2 rows × 9 variables
+
+      term                    estimate    std_error   statistic      df   df2   p_value   ci_lower   ci_upper
+  1   prediction @ exper=5     2.93859   0.00583357     503.738   18151    NA         0    2.92716    2.95003
+  2   prediction @ exper=20    3.32269   0.00416772     797.244   18151    NA         0    3.31452    3.33086
+0
+ci · 95%
+
+  term                     lower    upper
+  prediction @ exper=5    2.9272   2.9500
+  prediction @ exper=20   3.3145   3.3309
 --- messages ---
-error[Z0401]: `at:` holds `exper` at one value, but this is a list
+[exit 0]
+
+=== let wages = dataset(wages)
+let m = wages.reg(log(wage) ~ educ * female + exper + exper^2 + industry + industry:exper, se: robust)
+m.margins(female, at: {exper: [5, 5]}) ===
+--- messages ---
+error[Z0401]: `at:` gives `exper` the value `5` twice
  --> scripts/main.zeff:3:23
   |
-3 | m.margins(female, at: {exper: [5, 10]})
-  |                       ^^^^^^^^^^^^^^^^ in `at:`
+3 | m.margins(female, at: {exper: [5, 5]})
+  |                       ^^^^^^^^^^^^^^^ in `at:`
   |
-  = help: give one value for each variable; several values of one variable are a call each
+  = help: give each value once
+[exit 1]
+
+=== let wages = dataset(wages)
+let m = wages.reg(log(wage) ~ educ * female + exper + exper^2 + industry + industry:exper, se: robust)
+m.margins(female, at: {exper: []}) ===
+--- messages ---
+error[Z0219]: `[]` alone has no type
+ --> scripts/main.zeff:3:31
+  |
+3 | m.margins(female, at: {exper: []})
+  |                               ^^ an empty list of what?
+  |
+  = help: where a parameter takes the list, its type is known; elsewhere give one value
+[exit 1]
+
+=== let wages = dataset(wages)
+let m = wages.reg(log(wage) ~ educ * female + exper + exper^2 + industry + industry:exper, se: robust)
+m.margins(female, at: {exper: [[5, 10], [20]]}) ===
+--- messages ---
+error[Z0401]: `at:` holds `exper` at a value or at each value of a list of them
+ --> scripts/main.zeff:3:23
+  |
+3 | m.margins(female, at: {exper: [[5, 10], [20]]})
+  |                       ^^^^^^^^^^^^^^^^^^^^^^^^ in `at:`
+  |
+  = help: write `at: {exper: 10}` or `at: {exper: [5, 10, 20]}`
+[exit 1]
+
+=== let wages = dataset(wages)
+let m = wages.reg(log(wage) ~ educ * female + exper + exper^2 + industry + industry:exper, se: robust)
+m.margins(female, at: {industry: ["Mining", "Minin"]}) ===
+--- messages ---
+error[Z0401]: `Minin` is not a level of `industry` in this model
+ --> scripts/main.zeff:3:23
+  |
+3 | m.margins(female, at: {industry: ["Mining", "Minin"]})
+  |                       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ in `at:`
+  |
+  = help: did you mean `Mining`? its levels are `Agriculture`, `Mining`, `Utilities`, `Construction`, `Manufacturing`, `Retail`, `Transport`, `Finance`, `Services`, `Education`, `Health`, `Public administration`
 [exit 1]
 
 === let wages = dataset(wages)

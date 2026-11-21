@@ -167,6 +167,34 @@ case <- function(zeff, r_formula, vars, se = "classical", cluster = NULL, weight
        vars = as.list(vars), nobs = nobs(fit), df = as.integer(df), rows = rows)
 }
 
+
+# Several values in `at:` (step 12b): the case at each combination of the values of `grid`, the
+# first variable changing slowest, with `fixed` held throughout; each row is named with the
+# values it was taken at, `exper @ exper=5`.
+grid_case <- function(zeff, r_formula, vars, grid, fixed = list(), ...) {
+  combos <- list(list())
+  for (name in names(grid)) {
+    combos <- unlist(lapply(combos, function(chosen) {
+      lapply(grid[[name]], function(value) c(chosen, setNames(list(value), name)))
+    }), recursive = FALSE)
+  }
+  rows <- list()
+  out <- NULL
+  for (chosen in combos) {
+    one <- case(zeff, r_formula, vars, at = c(chosen, fixed), ...)
+    label <- paste(names(chosen), vapply(chosen, as.character, ""), sep = "=", collapse = ", ")
+    for (row in one$rows) {
+      row$term <- paste0(row$term, " @ ", label)
+      rows[[length(rows) + 1]] <- row
+    }
+    out <- one
+  }
+  out$rows <- rows
+  out$at <- lapply(fixed, function(v) if (is.character(v)) v else num17(v))
+  out$grid <- lapply(grid, function(values) lapply(values, function(v) if (is.character(v)) v else num17(v)))
+  out
+}
+
 cases <- list()
 # A quadratic: the slope of exper is b1 + 2 b2 exper, averaged.
 cases$quadratic <- case("log(wage) ~ educ + exper + exper^2 + female",
@@ -229,6 +257,14 @@ cases$prediction_mem <- case(wide_zeff, wide, character(0), type = "mem",
 cases$prediction_frequency <- case("log(wage) ~ exper + exper^2 + female + female:exper",
   log(wage) ~ exper + I(exper^2) + female + female:exper, character(0),
   weights = "educ", weight_type = "frequency", at = list(female = 0))
+
+# ----- step 12b: several values in `at:` -----
+cases$grid_effects <- grid_case(wide_zeff, wide, c("exper", "female"), se = "HC1",
+  grid = list(exper = list(5, 20), industry = list("Mining", "Finance")), fixed = list(educ = 12))
+cases$grid_prediction <- grid_case(wide_zeff, wide, character(0),
+  grid = list(exper = list(5, 10.5, 20)))
+cases$grid_mem <- grid_case(wide_zeff, wide, c("educ"), type = "mem",
+  grid = list(female = list(0, 1)))
 
 reference <- reference_block()
 reference$note <- "base R and sandwich; numbers written with 17 significant digits"

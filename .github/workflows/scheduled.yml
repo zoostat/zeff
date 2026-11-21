@@ -61,7 +61,7 @@ jobs:
       - name: Run the truth-recovery Monte Carlo, 50 seeds under three designs
         run: cargo test -p zeff-regress --locked --release --test nightly_truth -- --ignored --nocapture 2>&1 | tee truth.log
 
-      - name: Run the truth-recovery Monte Carlo of glm, 50 seeds under two designs and each link
+      - name: Run the truth-recovery Monte Carlo of glm and of its margins, 50 seeds under two designs and each link
         run: cargo test -p zeff-glm --locked --release --test nightly_truth -- --ignored --nocapture 2>&1 | tee -a truth.log
 
       - name: Run the benchmark suite (import, summary, mean and aggregate by group, reg, reg with two-way fixed effects, the column chain; 10⁴, 10⁶ and 10⁷ rows)
@@ -116,7 +116,7 @@ jobs:
             echo
             echo "## Nightly: truth recovery"
             echo
-            echo "Fifty seeds of 400 rows were drawn with the engine's generator under three designs with known coefficients (homoskedastic, heteroskedastic and clustered errors) and fitted by \`reg\` with classical, HC1 to HC3 and CR1 errors. Each coefficient's bias is within four standard errors of its Monte Carlo mean, and the 95 per cent intervals of the standard errors that suit each design cover between 89 and 99.5 per cent of the time (testing handbook, section 1). Then fifty seeds of 1,000 binary outcomes were drawn under each link, logit and probit, with independent rows and with rows alike within a hundred clusters, and fitted by \`glm\` with classical, HC1 to HC3 and clustered errors, under the same two bounds."
+            echo "Fifty seeds of 400 rows were drawn with the engine's generator under three designs with known coefficients (homoskedastic, heteroskedastic and clustered errors) and fitted by \`reg\` with classical, HC1 to HC3 and CR1 errors. Each coefficient's bias is within four standard errors of its Monte Carlo mean, and the 95 per cent intervals of the standard errors that suit each design cover between 89 and 99.5 per cent of the time (testing handbook, section 1). Then fifty seeds of 1,000 binary outcomes were drawn under each link, logit and probit, with independent rows and with rows alike within a hundred clusters, and fitted by \`glm\` with classical, HC1 to HC3 and clustered errors, under the same two bounds. On the same seeds the 95 per cent intervals of the average effects on the probability (\`margins\`) cover the true average effect of the rows drawn, under the same bound."
             echo
             echo '```'
             grep -vE "^(running|test |$)" truth.log || true

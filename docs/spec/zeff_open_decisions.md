@@ -4027,6 +4027,8 @@ Raised on 21 November 2026 at release 0.9.0, step 11a, when `margins` was built 
 
 **Status (22 November 2026, step 12a).** After `glm` the table is a z table, with the p-values and the intervals of the normal distribution, as (c) said and as the fit's own table has them; every effect and prediction is on the scale of the probability, and the line above the table says so. At the means the probability is taken at the one point of the means (the link applied to the linear predictor of the means), as Stata's `atmeans` has it, not averaged over the levels of the categories.
 
+**Status (22 November 2026, step 12b).** `at:` takes a list of values for a variable and gives the result at each, and at each combination of several variables' values, the first changing slowest, as Stata's `at(x = (5 10 20))` does. Taken as recommended, the owner's to overturn: the values stand in a column of their own before `variable` (or `quantity`); a row's name carries them, `exper @ exper=5`; a value given twice is refused; the rows are separate statements, with no test between them (`contrasts`, 1.6).
+
 ### 203. One layout of three panes on every page (Zemp Lite)
 
 Raised and decided by the owner on 21 November 2026, in the Zemp Lite session, while trying the hosted alpha of Zemp Lite 0.2; written up by that session in the shared notes and entered here on 22 November 2026 from a Zeff session, which alone edits this register, on the owner's word in that session ("Yes, enter it"). His words of the 21st are given as the note gives them. The mockup he approved (its second draft) is kept outside the repositories; Zemp Lite records the same decision in its own `docs/decisions.md` of that day.

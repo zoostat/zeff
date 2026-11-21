@@ -7,7 +7,7 @@ Marginal effects and adjusted predictions, with delta-method standard errors
 - `m.margins(educ)`: the average effect of `educ` on the outcome, through every term it enters.
 - `m.margins([educ, exper, female])`: several variables in one table.
 - A number gives a slope; a Bool, a 0/1 variable or a category a difference between its values.
-- `at: {exper: 10}` holds a variable at a value; `type: mem` takes the effects at the means.
+- `at: {exper: 10}` holds a variable at a value, `at: {exper: [5, 10, 20]}` at each in turn; `type: mem` takes the effects at the means.
 - `m.margins()`, with no variable, gives the adjusted prediction, at the values of `at:` if given.
 - After `glm` the effects are changes in the probability; the standard errors follow the fit's own.
 
@@ -39,7 +39,7 @@ every prediction on the scale of the probability.
 ## Arguments
 - fit: The fit, from `reg` or `glm`.
 - vars: The variable whose effect is wanted, or a list of several, named without quotes. A variable is named, not a term: `exper`, not `exper^2`. Left out, the result is the adjusted prediction.
-- at: The values to hold variables at, as a record: `{exper: 10, industry: "Mining"}`. A number is held at a number and a category at one of its levels; every other variable stays as it is.
+- at: The values to hold variables at, as a record: `{exper: 10, industry: "Mining"}`. A number is held at a number and a category at one of its levels; every other variable stays as it is. A list of values, `{exper: [5, 10, 20]}`, gives the result at each.
 - type: `ame`, the average over the rows the fit used, or `mem`, at the means of the variables; `ame` unless given.
 
 ## Value
@@ -85,6 +85,13 @@ one of the levels it has in the model, written as text. The slope in a variable 
 where the variable itself is held, `m.margins(exper, at: {exper: 10})`, the slope at ten years.
 A 0/1 variable or a category cannot be both asked for and held, since its effect is the
 difference between its values (Z0401).
+
+A variable given a list of values is held at each in turn, and the table has a row for each,
+with the value in a column of its own. Several variables with lists give every combination of
+their values, the first variable changing slowest. Such a row is named with its values,
+`exper @ exper=5` or `prediction @ exper=5, industry=Mining`, for `p_values` and `estimates`.
+The rows are separate statements, each with its own interval; they are not tested against one
+another.
 
 ### At the means
 `type: mem` takes every effect at one point in the place of an average over the rows: each
@@ -158,6 +165,7 @@ its own name: the slope through `exper^2` is part of `margins(exper)`.
 | m.margins(x, type: mem) | marginaleffects::slopes(m, variables = "x", newdata = "mean") | margins, dydx(x) atmeans |
 | m.margins() | marginaleffects::avg_predictions(m) | margins |
 | m.margins(at: {z: 10}) | marginaleffects::avg_predictions(m, newdata = transform(d, z = 10)) | margins, at(z = 10) |
+| m.margins(at: {z: [5, 10, 20]}) | marginaleffects::avg_predictions(m, variables = list(z = c(5, 10, 20))) | margins, at(z = (5 10 20)) |
 
 After a logit or a probit the same calls give effects on the probability in all three: R's
 `glm` with marginaleffects, Stata's `logit` or `probit` with `margins`.
@@ -293,3 +301,17 @@ standard errors: classical, by the delta method
   female     female − male     0.0117      0.0068      1.70     0.089   [-0.0018, 0.0251]
 
 the slope of `exper` is taken through `exper` and `exper^2`
+
+// The probability of union membership along experience: the prediction at each of four values.
+> g.margins(at: {exper: [0, 10, 20, 30]})
+margins · g · average adjusted prediction
+glm · union ~ educ + exper + exper^2 + female · binomial, logit
+on the scale of the probability, averaged over the 18,390 observations the fit used
+at: exper = 0, 10, 20, 30
+standard errors: classical, by the delta method
+
+  exper   quantity     estimate   std.error   z value   p value   95% CI
+      0   prediction     0.2618      0.0115     22.85    <0.001   [0.2394, 0.2843]
+     10   prediction     0.2824      0.0043     65.56    <0.001   [0.2739, 0.2908]
+     20   prediction     0.3399      0.0047     72.67    <0.001   [0.3307, 0.3491]
+     30   prediction     0.4429      0.0130     34.04    <0.001   [0.4174, 0.4684]

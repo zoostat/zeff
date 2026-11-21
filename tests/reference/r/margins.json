@@ -1017,6 +1017,208 @@
      "ci_upper": "3.2841387046004797"
     }
    ]
+  },
+  "grid_effects": {
+   "formula": "log(wage) ~ educ * female + exper + exper^2 + industry + industry:exper",
+   "se": "HC1",
+   "cluster": "",
+   "weights": "",
+   "weight_type": "sampling",
+   "type": "ame",
+   "at": {
+    "educ": "12"
+   },
+   "vars": [
+    "exper",
+    "female"
+   ],
+   "nobs": 18179,
+   "df": 18151,
+   "rows": [
+    {
+     "term": "exper @ exper=5, industry=Mining",
+     "contrast": "dy/dx",
+     "estimate": "0.036658674446154491",
+     "std_error": "0.0033804346907751279",
+     "t_value": "10.84436701179064",
+     "p_value": "2.5722038767101333e-27",
+     "ci_lower": "0.030032702360376286",
+     "ci_upper": "0.043284646531932695"
+    },
+    {
+     "term": "female @ exper=5, industry=Mining",
+     "contrast": "1 − 0",
+     "estimate": "-0.12719460624302376",
+     "std_error": "0.0074966054465878777",
+     "t_value": "-16.966960199421607",
+     "p_value": "4.4971653115937056e-64",
+     "ci_lower": "-0.14188866276857501",
+     "ci_upper": "-0.1125005497174725"
+    },
+    {
+     "term": "exper @ exper=5, industry=Finance",
+     "contrast": "dy/dx",
+     "estimate": "0.037253510412501321",
+     "std_error": "0.0017963180966351774",
+     "t_value": "20.738815960426919",
+     "p_value": "1.9225504203018397e-94",
+     "ci_lower": "0.033732556850533904",
+     "ci_upper": "0.040774463974468739"
+    },
+    {
+     "term": "female @ exper=5, industry=Finance",
+     "contrast": "1 − 0",
+     "estimate": "-0.12719460624302376",
+     "std_error": "0.0074966054465878777",
+     "t_value": "-16.966960199421607",
+     "p_value": "4.4971653115937056e-64",
+     "ci_lower": "-0.14188866276857501",
+     "ci_upper": "-0.1125005497174725"
+    },
+    {
+     "term": "exper @ exper=20, industry=Mining",
+     "contrast": "dy/dx",
+     "estimate": "0.016136206297111655",
+     "std_error": "0.0032533614596080692",
+     "t_value": "4.9598565967691695",
+     "p_value": "7.1182619922263326e-07",
+     "ci_lower": "0.0097593097769286888",
+     "ci_upper": "0.022513102817294621"
+    },
+    {
+     "term": "female @ exper=20, industry=Mining",
+     "contrast": "1 − 0",
+     "estimate": "-0.12719460624302376",
+     "std_error": "0.0074966054465878777",
+     "t_value": "-16.966960199421607",
+     "p_value": "4.4971653115937056e-64",
+     "ci_lower": "-0.14188866276857501",
+     "ci_upper": "-0.1125005497174725"
+    },
+    {
+     "term": "exper @ exper=20, industry=Finance",
+     "contrast": "dy/dx",
+     "estimate": "0.016731042263458486",
+     "std_error": "0.0014684082268368649",
+     "t_value": "11.393999269194538",
+     "p_value": "5.6637802211801253e-30",
+     "ci_lower": "0.013852823095935642",
+     "ci_upper": "0.01960926143098133"
+    },
+    {
+     "term": "female @ exper=20, industry=Finance",
+     "contrast": "1 − 0",
+     "estimate": "-0.12719460624302376",
+     "std_error": "0.0074966054465878777",
+     "t_value": "-16.966960199421607",
+     "p_value": "4.4971653115937056e-64",
+     "ci_lower": "-0.14188866276857501",
+     "ci_upper": "-0.1125005497174725"
+    }
+   ],
+   "grid": {
+    "exper": [
+     "5",
+     "20"
+    ],
+    "industry": [
+     "Mining",
+     "Finance"
+    ]
+   }
+  },
+  "grid_prediction": {
+   "formula": "log(wage) ~ educ * female + exper + exper^2 + industry + industry:exper",
+   "se": "classical",
+   "cluster": "",
+   "weights": "",
+   "weight_type": "sampling",
+   "type": "ame",
+   "at": [],
+   "vars": [],
+   "nobs": 18179,
+   "df": 18151,
+   "rows": [
+    {
+     "term": "prediction @ exper=5",
+     "contrast": "",
+     "estimate": "2.9385943223828153",
+     "std_error": "0.0059951350996204564",
+     "t_value": "490.1631528818848",
+     "p_value": "0",
+     "ci_lower": "2.9268432899108801",
+     "ci_upper": "2.9503453548547505"
+    },
+    {
+     "term": "prediction @ exper=10.5",
+     "contrast": "",
+     "estimate": "3.1151728806601122",
+     "std_error": "0.0041434716942149044",
+     "t_value": "751.82675557057667",
+     "p_value": "0",
+     "ci_lower": "3.1070512837959572",
+     "ci_upper": "3.1232944775242673"
+    },
+    {
+     "term": "prediction @ exper=20",
+     "contrast": "",
+     "estimate": "3.3226904848856718",
+     "std_error": "0.0041960766109812335",
+     "t_value": "791.85648712659599",
+     "p_value": "0",
+     "ci_lower": "3.3144657774035187",
+     "ci_upper": "3.3309151923678249"
+    }
+   ],
+   "grid": {
+    "exper": [
+     "5",
+     "10.5",
+     "20"
+    ]
+   }
+  },
+  "grid_mem": {
+   "formula": "log(wage) ~ educ * female + exper + exper^2 + industry + industry:exper",
+   "se": "classical",
+   "cluster": "",
+   "weights": "",
+   "weight_type": "sampling",
+   "type": "mem",
+   "at": [],
+   "vars": [
+    "educ"
+   ],
+   "nobs": 18179,
+   "df": 18151,
+   "rows": [
+    {
+     "term": "educ @ female=0",
+     "contrast": "dy/dx",
+     "estimate": "0.077341645427546721",
+     "std_error": "0.0018429200808228563",
+     "t_value": "41.966901458371431",
+     "p_value": "0",
+     "ci_lower": "0.073729347563850273",
+     "ci_upper": "0.080953943291243169"
+    },
+    {
+     "term": "educ @ female=1",
+     "contrast": "dy/dx",
+     "estimate": "0.073549036755023292",
+     "std_error": "0.0018747319544416858",
+     "t_value": "39.231761415688325",
+     "p_value": "3.9525251667299724e-323",
+     "ci_lower": "0.069874384606781761",
+     "ci_upper": "0.077223688903264823"
+    }
+   ],
+   "grid": {
+    "female": [
+     "0",
+     "1"
+    ]
+   }
   }
  }
 }

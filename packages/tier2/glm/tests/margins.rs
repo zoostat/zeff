@@ -129,7 +129,7 @@ fn the_effects_on_the_probability_agree_with_r() {
     let reference: Json = serde_json::from_str(&std::fs::read_to_string(file).unwrap()).unwrap();
     let wages = zeff_datasets::table("wages").expect("the shipped wages");
     let cases = reference["cases"].as_object().unwrap();
-    assert_eq!(cases.len(), 12);
+    assert_eq!(cases.len(), 15);
     for (key, case) in cases {
         let cluster = text(&case["cluster"]);
         let weights = text(&case["weights"]);
@@ -147,24 +147,27 @@ fn the_effects_on_the_probability_agree_with_r() {
         let fit = fit(&wages, text(&case["formula"]), text(&case["link"]), &with);
         assert_eq!(fit.n as u64, case["nobs"].as_u64().unwrap(), "{key}: N");
         let vars: Vec<&str> = case["vars"].as_array().unwrap().iter().map(text).collect();
-        // The values of `at:`: a level as text, a number as R wrote it.
-        let at: Vec<(String, Value)> = case["at"]
-            .as_object()
-            .map(|fields| {
-                fields
-                    .iter()
-                    .map(|(name, value)| {
-                        let written = text(value);
-                        let value = match written.parse::<f64>() {
-                            Ok(x) if x == x.trunc() => Value::Int(x as i64),
-                            Ok(x) => Value::Float(x),
-                            Err(_) => Value::Str(written.to_string()),
-                        };
-                        (name.clone(), value)
-                    })
-                    .collect()
-            })
-            .unwrap_or_default();
+        // The values of `at:`: a level as text, a number as R wrote it; first the variables
+        // given several values, each as a list, then those held at one.
+        let value_of = |written: &str| -> Value {
+            match written.parse::<f64>() {
+                Ok(x) if x == x.trunc() => Value::Int(x as i64),
+                Ok(x) => Value::Float(x),
+                Err(_) => Value::Str(written.to_string()),
+            }
+        };
+        let mut at: Vec<(String, Value)> = Vec::new();
+        if let Some(grid) = case.get("grid").and_then(Json::as_object) {
+            for (name, values) in grid {
+                let values = values.as_array().unwrap().iter().map(|v| value_of(text(v)));
+                at.push((name.clone(), Value::List(values.collect())));
+            }
+        }
+        if let Some(fields) = case["at"].as_object() {
+            for (name, value) in fields {
+                at.push((name.clone(), value_of(text(value))));
+            }
+        }
         let result = effects(
             &fit,
             &vars,
@@ -251,6 +254,11 @@ fn the_effects_of_a_binary_model_printed() {
         // Weights: sampling, then counts.
         format!(
             "{W}wages.glm(union ~ educ * female + exper, family: binomial, weights: hours).margins([educ, female])\nwages.glm(union ~ exper + exper^2 + female, family: binomial, weights: educ, weight_type: frequency).margins(exper)\n"
+        ),
+        // Several values in `at:`: the probability along experience, the effect of sex at two
+        // levels of schooling at the means.
+        format!(
+            "{W}let g = wages.glm(union ~ educ * female + exper + exper^2, family: binomial)\ng.margins(at: {{exper: [0, 10, 20, 30]}})\ng.margins(female, type: mem, at: {{educ: [12, 16]}})\ng.margins(at: {{exper: [0, 10]}}).estimates()\n"
         ),
         // A term omitted as collinear: the effect that rests on it is not estimable.
         format!(

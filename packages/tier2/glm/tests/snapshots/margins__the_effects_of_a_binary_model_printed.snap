@@ -173,6 +173,39 @@ the slope of `exper` is taken through `exper` and `exper^2`
 [exit 0]
 
 === let wages = dataset(wages)
+let g = wages.glm(union ~ educ * female + exper + exper^2, family: binomial)
+g.margins(at: {exper: [0, 10, 20, 30]})
+g.margins(female, type: mem, at: {educ: [12, 16]})
+g.margins(at: {exper: [0, 10]}).estimates() ===
+margins · g · average adjusted prediction
+glm · union ~ educ * female + exper + exper^2 · binomial, logit
+on the scale of the probability, averaged over the 18,390 observations the fit used
+at: exper = 0, 10, 20, 30
+standard errors: classical, by the delta method
+
+  exper   quantity     estimate   std.error   z value   p value   95% CI
+      0   prediction     0.2625      0.0115     22.89    <0.001   [0.2401, 0.2850]
+     10   prediction     0.2824      0.0043     65.58    <0.001   [0.2739, 0.2908]
+     20   prediction     0.3397      0.0047     72.67    <0.001   [0.3306, 0.3489]
+     30   prediction     0.4432      0.0130     34.06    <0.001   [0.4177, 0.4687]
+margins · g · marginal effects at the means
+glm · union ~ educ * female + exper + exper^2 · binomial, logit
+on the scale of the probability, at the means over the 18,390 observations the fit used
+at: educ = 12, 16
+standard errors: classical, by the delta method
+
+  educ   variable   contrast        estimate   std.error   z value   p value   95% CI
+    12   female     female − male     0.0234      0.0078      3.00     0.003   [0.0081, 0.0388]
+    16   female     female − male    -0.0097      0.0097     -0.99     0.320   [-0.0287, 0.0094]
+frame · 2 rows × 9 variables
+
+      term                    estimate    std_error   statistic   df   df2        p_value   ci_lower   ci_upper
+  1   prediction @ exper=0    0.262542    0.0114719     22.8856   NA    NA   6.46209e-116   0.240057   0.285027
+  2   prediction @ exper=10    0.28238   0.00430614     65.5762   NA    NA              0    0.27394    0.29082
+--- messages ---
+[exit 0]
+
+=== let wages = dataset(wages)
 let w = wages.add(twice = educ * 2)
 w.glm(union ~ educ + twice + female, family: binomial).margins([educ, twice, female]) ===
 margins · union ~ educ + twice + female · average marginal effects

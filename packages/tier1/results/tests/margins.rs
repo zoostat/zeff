@@ -10,6 +10,7 @@ mod common;
 
 use common::{Options, call, close, fit_with, json, number, table_of, text};
 use proptest::prelude::*;
+use serde_json::Value as Json;
 use std::rc::Rc;
 use zeff_columns::{Column, Table};
 use zeff_core::value::{Fit, TestResult, Value};
@@ -47,7 +48,7 @@ fn the_average_effects_agree_with_r() {
     let reference = json("r/margins.json");
     let wages = table_of("wages");
     let cases = reference["cases"].as_object().unwrap();
-    assert_eq!(cases.len(), 17);
+    assert_eq!(cases.len(), 20);
     for (key, case) in cases {
         let cluster = text(&case["cluster"]);
         let weights = text(&case["weights"]);
@@ -71,24 +72,27 @@ fn the_average_effects_agree_with_r() {
             "{key}: the degrees of freedom"
         );
         let vars: Vec<&str> = case["vars"].as_array().unwrap().iter().map(text).collect();
-        // The values of `at:`: a level as text, a number as R wrote it.
-        let at: Vec<(String, Value)> = case["at"]
-            .as_object()
-            .map(|fields| {
-                fields
-                    .iter()
-                    .map(|(name, value)| {
-                        let written = text(value);
-                        let value = match written.parse::<f64>() {
-                            Ok(x) if x == x.trunc() => Value::Int(x as i64),
-                            Ok(x) => Value::Float(x),
-                            Err(_) => Value::Str(written.to_string()),
-                        };
-                        (name.clone(), value)
-                    })
-                    .collect()
-            })
-            .unwrap_or_default();
+        // The values of `at:`: a level as text, a number as R wrote it; first the variables
+        // given several values, each as a list, then those held at one.
+        let value_of = |written: &str| -> Value {
+            match written.parse::<f64>() {
+                Ok(x) if x == x.trunc() => Value::Int(x as i64),
+                Ok(x) => Value::Float(x),
+                Err(_) => Value::Str(written.to_string()),
+            }
+        };
+        let mut at: Vec<(String, Value)> = Vec::new();
+        if let Some(grid) = case.get("grid").and_then(Json::as_object) {
+            for (name, values) in grid {
+                let values = values.as_array().unwrap().iter().map(|v| value_of(text(v)));
+                at.push((name.clone(), Value::List(values.collect())));
+            }
+        }
+        if let Some(fields) = case["at"].as_object() {
+            for (name, value) in fields {
+                at.push((name.clone(), value_of(text(value))));
+            }
+        }
         let result = effects_at(
             &fit,
             &vars,
@@ -103,10 +107,15 @@ fn the_average_effects_agree_with_r() {
             assert_eq!(row.term, term, "{key}: the name of row {i}");
             // R's file writes the two values of a 0/1 variable as numbers; the shipped wages
             // carry value labels for them.
+            // The contrast stands after the columns of the variables given several values.
+            let leading = case
+                .get("grid")
+                .and_then(Json::as_object)
+                .map_or(0, |g| g.len());
             let contrast = if vars.is_empty() {
                 ""
             } else {
-                &table.rows[i][1]
+                &table.rows[i][leading + 1]
             };
             match text(&expected["contrast"]) {
                 "1 \u{2212} 0" => assert!(
@@ -358,7 +367,14 @@ fn held_values_the_means_and_predictions() {
         format!("{M}m.margins(exper, at: {{exper: \"ten\"}})\n"),
         format!("{M}m.margins(exper, at: {{industry: \"Minin\"}})\n"),
         format!("{M}m.margins(exper, at: {{industry: 3}})\n"),
-        format!("{M}m.margins(female, at: {{exper: [5, 10]}})\n"),
+        // Several values: the effects at each, and at each combination; a prediction at each.
+        format!(
+            "{M}m.margins(female, at: {{exper: [5, 10]}})\nm.margins([exper, female], at: {{exper: [5, 20], industry: [\"Mining\", \"Finance\"], educ: 12}})\nm.margins(at: {{exper: [5, 10.5, 20]}})\nm.margins(educ, type: mem, at: {{female: [0, 1]}})\nlet e = m.margins(at: {{exper: [5, 20]}})\ne.estimates()\ne.p_values(\"prediction @ exper=20\")\ne.ci()\n"
+        ),
+        format!("{M}m.margins(female, at: {{exper: [5, 5]}})\n"),
+        format!("{M}m.margins(female, at: {{exper: []}})\n"),
+        format!("{M}m.margins(female, at: {{exper: [[5, 10], [20]]}})\n"),
+        format!("{M}m.margins(female, at: {{industry: [\"Mining\", \"Minin\"]}})\n"),
         format!("{M}m.margins(exper, at: 10)\n"),
         format!("{M}m.margins(female, at: {{female: 1}})\n"),
         format!("{M}m.margins(industry, at: {{industry: \"Mining\"}})\n"),
