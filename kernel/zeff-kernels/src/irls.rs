@@ -93,7 +93,9 @@ pub struct Solution {
     pub iterations: usize,
     /// How many steps were halved, in all.
     pub halvings: usize,
-    /// Whether the change of the log-likelihood fell within the tolerance.
+    /// Whether the fit converged: the change of the log-likelihood within its tolerance and the
+    /// step within its own, or, on a nearly singular design, the log-likelihood still and the
+    /// steps no longer shrinking, or no point along a step above the present one.
     pub converged: bool,
     /// The R factor of √w X at the solution, with w the information `Control::method` names
     /// and the columns of X scaled by `scales`: k × k, upper triangular, so that the inverse of
@@ -115,6 +117,13 @@ pub enum Stop {
     /// the weights of every row it touches have vanished.
     RankLost { iteration: usize, column: usize },
 }
+
+/// A step at least this share of the one before it has not shrunk: Fisher scoring and Newton's
+/// method shrink their steps by far more at every iteration until rounding takes over.
+const STALL_RATIO: f64 = 0.5;
+/// How many steps in a row may fail to shrink, the log-likelihood standing still within its
+/// tolerance at each, before the fit is taken as converged to the precision the design allows.
+const STALLED_STEPS: usize = 2;
 
 /// How small a diagonal entry of R may be, relative to the largest, before the weighted columns
 /// count as dependent; the columns are scaled to unit norm, so this is a share of a unit.
@@ -157,12 +166,17 @@ pub fn irls(
     let mut halvings = 0;
     let mut converged = false;
     let mut iterations = 0;
+    // The size of the last step in the linear predictor, and how many steps in a row have
+    // failed to shrink while the log-likelihood stood still: the sign that the fit has reached
+    // the precision the design allows (see `STALLED_STEPS`).
+    let mut previous_moved = f64::INFINITY;
+    let mut stalled = 0;
     while iterations < control.max_iterations {
         iterations += 1;
         let (proposal, _) = weighted_step(&scaled, &eta, &terms, iterations)?;
         let mut candidate = proposal;
         let mut halved = 0;
-        let (next_eta, next_terms, next_ll) = loop {
+        let accepted = loop {
             let candidate_eta = predictor(&scaled, &candidate);
             let candidate_terms = evaluate(model, &candidate_eta, observed);
             let candidate_ll = log_likelihood(&candidate_terms);
@@ -176,11 +190,11 @@ pub fn irls(
                 }
             };
             if !worse {
-                break (
+                break Some((
                     candidate_eta,
                     candidate_terms,
                     candidate_ll.expect("a finite log-likelihood"),
-                );
+                ));
             }
             let Some(previous) = &beta else {
                 return Err(Stop::NotFinite {
@@ -188,6 +202,14 @@ pub fn irls(
                 });
             };
             if halved == control.max_halvings {
+                if candidate_ll.is_some() {
+                    // Every point along the step, down to a billionth of it, has a finite
+                    // log-likelihood that is not above the present one. The step is an ascent
+                    // direction wherever the score is not zero, so the score is zero to the
+                    // precision the log-likelihood is computed with: the present point is the
+                    // maximum, as nearly as this design lets it be found.
+                    break None;
+                }
                 return Err(Stop::NotFinite {
                     iteration: iterations,
                 });
@@ -200,6 +222,12 @@ pub fn irls(
                 .collect();
         };
         halvings += halved;
+        let Some((next_eta, next_terms, next_ll)) = accepted else {
+            // No step was taken in this iteration.
+            iterations -= 1;
+            converged = true;
+            break;
+        };
         let change = (next_ll - ll).abs();
         let bound = control.tolerance * (next_ll.abs() + 0.1);
         // The step in the coefficients, in the scaled columns' units: near the maximum the
@@ -213,6 +241,11 @@ pub fn irls(
                 .map(|(b, c)| (c - b).abs() / c.abs().max(1.0))
                 .fold(0.0_f64, f64::max),
         };
+        let moved_eta = eta
+            .iter()
+            .zip(&next_eta)
+            .map(|(old, new)| (new - old).abs() / new.abs().max(1.0))
+            .fold(0.0_f64, f64::max);
         beta = Some(candidate);
         eta = next_eta;
         terms = next_terms;
@@ -222,6 +255,22 @@ pub fn irls(
             converged = true;
             break;
         }
+        // On a nearly singular design the estimates cannot settle to the step tolerance: along
+        // the directions the design barely tells apart they move by rounding alone, for ever,
+        // and where two large estimates cancel in the linear predictor it keeps fewer digits
+        // too. The step is therefore also measured where the fit is well determined, in the
+        // linear predictor: steps there that no longer shrink while the log-likelihood stands
+        // still are rounding, and the fit has converged to the precision the design allows.
+        if change <= bound && moved_eta >= STALL_RATIO * previous_moved {
+            stalled += 1;
+        } else {
+            stalled = 0;
+        }
+        if stalled >= STALLED_STEPS {
+            converged = true;
+            break;
+        }
+        previous_moved = moved_eta;
     }
     let beta = beta.unwrap_or_else(|| vec![0.0; k]);
     // The R factor of √w X at the solution, for the variance of the estimates.
@@ -368,6 +417,56 @@ mod tests {
         .unwrap();
         for (a, b) in scoring.coefficients.iter().zip(&newton.coefficients) {
             assert!((a - b).abs() < 1e-12 * a.abs().max(1.0));
+        }
+    }
+
+    /// A nearly singular design (release 0.9.0, step 7d): three columns of which the third is
+    /// the second but for a part in a hundred million, so that two large estimates cancel and
+    /// neither settles to the step tolerance. The fit stops when the steps of the linear
+    /// predictor stop shrinking, converged to the precision the design allows: the fitted
+    /// means are those of the well-conditioned fit on the two columns that span the same space
+    /// but for that part, and the score is zero in every column.
+    #[test]
+    fn a_nearly_singular_design_converges_to_the_precision_it_allows() {
+        let n = 40;
+        let a: Vec<f64> = (0..n).map(|i| ((i * 7) % 11) as f64 / 5.0 - 1.0).collect();
+        let u: Vec<f64> = (0..n).map(|i| ((i * 5) % 13) as f64 / 6.0 - 1.0).collect();
+        let y: Vec<f64> = (0..n).map(|i| ((i * 3) % 5) as f64).collect();
+        let near = Matrix::from_fn(n, 3, |i, j| match j {
+            0 => 1.0,
+            1 => a[i],
+            _ => a[i] + 1e-8 * u[i],
+        });
+        let model = Poisson { y: &y };
+        let start = vec![0.5; n];
+        let solution = irls(&near, &model, &start, &Control::default()).unwrap();
+        assert!(solution.converged, "{} iterations", solution.iterations);
+        assert!(
+            solution.iterations < 30,
+            "{} iterations",
+            solution.iterations
+        );
+        // The same model with the third column written as what tells it from the second.
+        let plain = Matrix::from_fn(n, 3, |i, j| match j {
+            0 => 1.0,
+            1 => a[i],
+            _ => u[i],
+        });
+        let reference = irls(&plain, &model, &start, &Control::default()).unwrap();
+        assert!(
+            (solution.log_likelihood - reference.log_likelihood).abs()
+                <= 1e-9 * reference.log_likelihood.abs()
+        );
+        for (ours, theirs) in solution.eta.iter().zip(&reference.eta) {
+            assert!((ours - theirs).abs() <= 1e-6, "{ours} and {theirs}");
+        }
+        for j in 0..3 {
+            let terms: Vec<f64> = (0..n)
+                .map(|i| near.get(i, j) * model.at(i, solution.eta[i], false).score)
+                .collect();
+            let size: f64 = terms.iter().map(|t| t.abs()).sum();
+            let score: f64 = terms.iter().sum();
+            assert!(score.abs() <= 1e-6 * size, "column {j}: {score} of {size}");
         }
     }
 

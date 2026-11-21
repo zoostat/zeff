@@ -38,6 +38,10 @@ pub fn functions() -> Vec<Function> {
                 DiagnosticDecl::note(
                     "a term written twice kept once; a collinear column, a level with no observations, a zero column or one too small or too large to scale dropped; rows with a zero weight left out; clusters of one observation",
                 ),
+                DiagnosticDecl::new(
+                    "W1001",
+                    "near-singular regressors, with the condition number",
+                ),
                 DiagnosticDecl::new("W1002", "fewer than 30 clusters"),
                 DiagnosticDecl::new("W1003", "extreme weights, with the effective sample size"),
                 DiagnosticDecl::new(
@@ -69,7 +73,7 @@ pub fn functions() -> Vec<Function> {
                 ),
                 DiagnosticDecl::new(
                     "Z0803",
-                    "an outcome with one value in every row used, estimates that diverge, or a fit that has not converged in 100 iterations: maximum likelihood is not found",
+                    "an outcome with one value in every row used, separation, a regressor the weighted design cannot tell from the others, a log-likelihood that is not finite, or a fit that has not converged in 100 iterations: maximum likelihood is not found",
                 ),
             ],
             help: include_str!("../help/glm.md"),

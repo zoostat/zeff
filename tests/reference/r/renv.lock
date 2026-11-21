@@ -14,7 +14,7 @@
       "Version": "3.1.1",
       "Source": "Repository",
       "Repository": "CRAN",
-      "Note": "installed by tests/reference/r/install.R into tests/reference/r/library (ignored by Git); used by regression.R alone"
+      "Note": "installed by tests/reference/r/install.R into tests/reference/r/library (ignored by Git); used by regression.R, fixed_effects.R and binary.R"
     },
     "wooldridge": {
       "Package": "wooldridge",

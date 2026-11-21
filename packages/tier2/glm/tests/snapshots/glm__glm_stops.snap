@@ -1,0 +1,11 @@
+---
+source: packages/tier2/glm/tests/glm.rs
+expression: "format!(\"{}\\n  {}\\n  = help: {}\\n\\n{}\\n  {}\\n  = help: {}\", lost.0, lost.1,\nlost.2, not_finite.0, not_finite.1, not_finite.2)"
+---
+glm: `e2` cannot be told from the other regressors at iteration 4, so its estimate does not exist
+  a regressor with no information left
+  = help: `e2` is all but a combination of the regressors before it, or the rows that tell it apart have fitted probabilities at 0 or 1; drop it, or combine it with them
+
+glm: the log-likelihood is not a finite number at iteration 1
+  the fit left the range of the arithmetic
+  = help: a regressor with very large values can do this: rescale it, `add(x_k = x / 1000)`, and check how `union` was coded

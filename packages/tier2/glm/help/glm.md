@@ -52,7 +52,10 @@ with a note.
 The maximum of the likelihood is found by Fisher scoring, iteratively reweighted least squares,
 from R's start, each row's mean moved halfway towards one half. A step that lowers the
 likelihood is halved. The iterations stop when the log-likelihood and the estimates have both
-stopped changing, at a relative 1e-13 and 1e-11; the count is printed under the table.
+stopped changing, at a relative 1e-13 and 1e-11; the count is printed under the table. Where
+regressors are nearly collinear the estimates cannot settle so far, and the iterations stop
+when the fitted values no longer change beyond rounding: the fit has then converged to the
+precision the design allows.
 
 ### Standard errors
 The classical variance is the inverse of the expected information at the maximum. The table is
@@ -81,7 +84,10 @@ error (Z0224); a few rows carrying most of the weight are warned of (W1003).
 
 ### Collinearity
 A regressor that is a combination of the regressors before it is dropped with a note, as in
-`reg`, and so is a column that is zero in every row used.
+`reg`, and so is a column that is zero in every row used. Regressors that are nearly, not
+exactly, a combination are kept, and the fit is warned of when the condition number of the
+scaled, weighted design passes 1e8 (W1001): their estimates are then large, of opposite signs
+and poorly determined, though the fitted probabilities and the log-likelihood are not.
 
 ### When there is no estimate
 The maximum of the likelihood does not always exist, and the fit then stops with an error
@@ -93,7 +99,8 @@ names the regressor that separates the outcome alone, or the regressors that do 
 level of a category with only 0s or only 1s is named as its column, `industry=Mining`. A
 model with as many regressors as rows, or more, is refused as `reg` refuses it (Z0802). A fit
 that has not converged in 100 iterations is refused with the change of the log-likelihood at the
-last (Z0803).
+last (Z0803), and so, rarely, is one in which the weighted design can no longer tell a
+regressor from the others, or whose log-likelihood is not a finite number.
 
 ### Probabilities at 0 or 1
 A fit may converge and still put a row's probability at 0 or 1 to the machine's precision: an

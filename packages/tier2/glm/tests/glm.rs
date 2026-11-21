@@ -780,3 +780,169 @@ fn the_weights_printed() {
         .join("\n====\n");
     insta::assert_snapshot!("glm_weights", all);
 }
+
+/// The shipped wages with the two columns of the nearly singular design of `binary.R`:
+/// e2 = educ + 1e-5 exper and x2 = exper + 1e-4 female.
+fn wages_nearly_singular() -> Table {
+    let wages = zeff_datasets::table("wages").expect("the shipped wages");
+    let numbers = |name: &str| -> Vec<Option<f64>> {
+        let column = wages.column(name).unwrap();
+        match column.as_floats() {
+            Some(values) => values.collect(),
+            None => column
+                .as_ints()
+                .expect("a numeric column")
+                .map(|v| v.map(|i| i as f64))
+                .collect(),
+        }
+    };
+    let (educ, exper, female) = (numbers("educ"), numbers("exper"), numbers("female"));
+    let e2 = educ
+        .iter()
+        .zip(&exper)
+        .map(|(a, b)| Some((*a)? + 1e-5 * (*b)?));
+    let x2 = exper
+        .iter()
+        .zip(&female)
+        .map(|(a, b)| Some((*a)? + 1e-4 * (*b)?));
+    wages
+        .with_column("e2", zeff_columns::Column::floats(e2).0)
+        .unwrap()
+        .with_column("x2", zeff_columns::Column::floats(x2).0)
+        .unwrap()
+}
+
+/// A nearly singular design (step 7d) is fitted, with warning W1001, where it was refused as
+/// divergent. `educ`, `e2` and `x2` span what `educ`, `exper` and `female` span, so the exact
+/// answer is known from the well-conditioned fit of the classical reference (`binary.json`,
+/// `cases`): the same log-likelihood and deviance, the same intercept, and the estimates
+/// c3 = 1e4 b3, c2 = 1e5 (b2 − c3) and c1 = b1 − c2, two of them near 5e7 and cancelling. With
+/// a condition number of 7e10 the fit holds the log-likelihood within 1e-8 and those estimates
+/// within 1e-3; so does R's own fit of this design (`near_singular`), no nearer the answer,
+/// which says of itself that it did not converge at its tolerance.
+#[test]
+fn a_nearly_singular_design_is_fitted_and_warned_of() {
+    let path = root().join("tests/reference/r/binary.json");
+    let json: Json = serde_json::from_str(&std::fs::read_to_string(path).unwrap()).unwrap();
+    let table = wages_nearly_singular();
+    for case in json["near_singular"].as_array().unwrap() {
+        let name = case["name"].as_str().unwrap();
+        let link = case["link"].as_str().unwrap();
+        let plain = json["cases"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .find(|c| c["name"].as_str() == Some(&format!("wages_{link}")))
+            .expect("the well-conditioned fit");
+        let b: Vec<f64> = plain["coefficients"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .map(number)
+            .collect();
+        let c3 = 1e4 * b[3];
+        let c2 = 1e5 * (b[2] - c3);
+        let exact = [b[0], b[1] - c2, c2, c3];
+        let fit = fit_of(&table, "union ~ educ + e2 + x2", link)
+            .unwrap_or_else(|e| panic!("{name}: {e}"));
+        assert_eq!(fit.n as i64, plain["n"].as_i64().unwrap(), "{name}");
+        let likelihood = fit.likelihood.as_ref().unwrap();
+        assert!(likelihood.converged, "{name}");
+        assert!(
+            likelihood.iterations < 30,
+            "{name}: {}",
+            likelihood.iterations
+        );
+        close(
+            fit.log_likelihood,
+            number(&plain["log_likelihood"]),
+            1e-8,
+            &format!("{name} log-likelihood"),
+        );
+        close(
+            likelihood.deviance,
+            number(&plain["deviance"]),
+            1e-8,
+            &format!("{name} deviance"),
+        );
+        close(
+            fit.estimates[0],
+            exact[0],
+            1e-4,
+            &format!("{name} intercept"),
+        );
+        let theirs: Vec<f64> = case["coefficients"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .map(number)
+            .collect();
+        for j in 1..4 {
+            close(
+                fit.estimates[j],
+                exact[j],
+                1e-3,
+                &format!("{name} estimate {j}"),
+            );
+            // R's fit of the same design is held to the same answer, to say what the design
+            // allows any double-precision fit.
+            close(
+                theirs[j],
+                exact[j],
+                1e-3,
+                &format!("{name}, R's estimate {j}"),
+            );
+        }
+        assert!(!case["r_converged"].as_bool().unwrap(), "{name}");
+        // The standard errors of the two estimates that cancel are those of R's fit.
+        let errors = case["std_errors"].as_array().unwrap().iter().map(number);
+        for (j, (ours, theirs)) in fit.std_errors.iter().zip(errors).enumerate().skip(1) {
+            close(*ours, theirs, 1e-3, &format!("{name} std error {j}"));
+        }
+        assert_eq!(fit.warnings.len(), 1, "{name}: {:?}", fit.warnings);
+        assert!(
+            fit.warnings[0].starts_with(
+                "warning[W1001]: near-singular regressors: the condition number of the scaled, weighted design is "
+            ),
+            "{name}: {:?}",
+            fit.warnings
+        );
+        assert!(
+            fit.condition_number > 1e10 && fit.condition_number < 1e12,
+            "{name}"
+        );
+    }
+    let script = "dataset(wages).add(e2 = educ + 1e-5 * exper, x2 = exper + 1e-4 * female).glm(union ~ educ + e2 + x2, family: binomial)\n";
+    insta::assert_snapshot!(
+        "glm_near_singular",
+        format!("{script}---\n{}", printed(script))
+    );
+}
+
+/// What the optimiser's two stops say: a regressor the weighted design cannot tell from the
+/// others, and a log-likelihood that is not finite. Neither is called divergence.
+#[test]
+fn the_stops_of_the_optimiser_say_what_they_are() {
+    use zeff_kernels::irls::Stop;
+    let names = ["(intercept)", "educ", "e2"];
+    let lost = zeff_glm::binary::stop_words(
+        &Stop::RankLost {
+            iteration: 4,
+            column: 2,
+        },
+        |j| names[j].to_string(),
+        "union",
+    );
+    let not_finite = zeff_glm::binary::stop_words(
+        &Stop::NotFinite { iteration: 1 },
+        |j| names[j].to_string(),
+        "union",
+    );
+    insta::assert_snapshot!(
+        "glm_stops",
+        format!(
+            "{}\n  {}\n  = help: {}\n\n{}\n  {}\n  = help: {}",
+            lost.0, lost.1, lost.2, not_finite.0, not_finite.1, not_finite.2
+        )
+    );
+}

@@ -20,8 +20,8 @@ use zeff_results::design::Design;
 use zeff_results::estimator::Fitted;
 use zeff_results::likelihood::{AtMaximum, Binomial, Likelihood, Link, self_check};
 use zeff_results::options::{
-    At, Choices, checked_variance, choices, cluster_and_weight_warnings, clusters_of, observations,
-    se_line, weights_line,
+    At, CONDITION_WARNING, Choices, checked_variance, choices, cluster_and_weight_warnings,
+    clusters_of, observations, se_line, weights_line,
 };
 use zeff_results::summary::{self, Setting, dropped_notes};
 use zeff_results::variance::{Kind, variance};
@@ -143,6 +143,39 @@ fn change_text(change: f64) -> String {
         format!("{change:.2}")
     } else {
         format!("{change:.1e}")
+    }
+}
+
+/// What the optimiser's stop says in a message: its text, the mark's label and the help. Since
+/// separation is found before the fit and a fit that stops improving is taken as converged, a
+/// stop is one of two rare things: a regressor that the weighted design can no longer tell from
+/// the others (its rows' probabilities at 0 or 1, or a combination too nearly exact), and a
+/// log-likelihood that is not a finite number.
+pub fn stop_words(
+    stop: &Stop,
+    name_of: impl Fn(usize) -> String,
+    outcome: &str,
+) -> (String, &'static str, String) {
+    match stop {
+        Stop::RankLost { iteration, column } => {
+            let name = name_of(*column);
+            (
+                format!(
+                    "glm: `{name}` cannot be told from the other regressors at iteration {iteration}, so its estimate does not exist"
+                ),
+                "a regressor with no information left",
+                format!(
+                    "`{name}` is all but a combination of the regressors before it, or the rows that tell it apart have fitted probabilities at 0 or 1; drop it, or combine it with them"
+                ),
+            )
+        }
+        Stop::NotFinite { iteration } => (
+            format!("glm: the log-likelihood is not a finite number at iteration {iteration}"),
+            "the fit left the range of the arithmetic",
+            format!(
+                "a regressor with very large values can do this: rescale it, `add(x_k = x / 1000)`, and check how `{outcome}` was coded"
+            ),
+        ),
     }
 }
 
@@ -408,17 +441,16 @@ pub fn glm_with(ctx: &mut CallContext<'_>, args: Args, control: &Control) -> Res
     };
     let start: Vec<f64> = (0..n).map(|row| model.start(row)).collect();
     let solution = irls(&x, &model, &start, control).map_err(|stop| {
-        let at = match stop {
-            Stop::NotFinite { iteration } | Stop::RankLost { iteration, .. } => iteration,
-        };
+        let (message, label, help) = stop_words(
+            &stop,
+            |column| design.names[chosen.kept[column]].clone(),
+            &outcome,
+        );
         fail(
-            Diagnostic::error(
-                "Z0803",
-                format!("glm: the estimates diverge at iteration {at}; maximum likelihood does not exist"),
-            )
-            .in_file(ctx.script)
-            .primary(ctx.callee_span, "estimates diverge")
-            .help(format!("a regressor may predict `{outcome}` perfectly; check how `{outcome}` was coded")),
+            Diagnostic::error("Z0803", message)
+                .in_file(ctx.script)
+                .primary(ctx.callee_span, label)
+                .help(help),
         )
     })?;
 
@@ -533,7 +565,8 @@ pub fn glm_with(ctx: &mut CallContext<'_>, args: Args, control: &Control) -> Res
         sum(&products) * solution.scales[i] * solution.scales[j]
     });
     // The self-checks of section 11.1: a failure is a bug in the engine, not a result.
-    self_check(&x, &model, &solution, &classical).map_err(|what| internal(ctx, &what))?;
+    self_check(&x, &model, &solution, &classical, fitted.condition_number)
+        .map_err(|what| internal(ctx, &what))?;
     // The robust and the clustered variance, from the variance layer's one computation: the
     // sandwich of the likelihood's scores between the inverse information, with the factors
     // every model has (HC1 N/(N − k); HC2 and HC3 by the leverage of the weighted fit; CR1 over
@@ -569,10 +602,20 @@ pub fn glm_with(ctx: &mut CallContext<'_>, args: Args, control: &Control) -> Res
         .0
     };
     // The statistical warnings, printed here and kept on the fit for the footer of a `report`
-    // table: few clusters (W1002), and probabilities at 0 or 1, where the maximum exists but a
-    // regressor all but decides the outcome (W1008). W1001 waits for step 7d, which lets the
-    // optimiser fit a near-singular design.
+    // table: near-singular regressors (W1001), few clusters (W1002), extreme weights (W1003),
+    // and probabilities at 0 or 1, where the maximum exists but a regressor all but decides
+    // the outcome (W1008).
     let mut warnings: Vec<String> = Vec::new();
+    if fitted.condition_number > CONDITION_WARNING {
+        let text = format!(
+            "near-singular regressors: the condition number of the scaled, weighted design is {:.3e}",
+            fitted.condition_number
+        );
+        warnings.push(format!("warning[W1001]: {text}"));
+        ctx.message(Diagnostic::warning("W1001", text).help(
+            "two regressors are almost the same column, so their estimates are poorly determined; drop one, or combine them",
+        ));
+    }
     cluster_and_weight_warnings(ctx, &mut notes, &mut warnings, clusters.as_ref(), &design);
     if at_the_edge > 0 {
         let (text, rows) = if at_the_edge == 1 {

@@ -274,7 +274,10 @@ impl Estimator for AtMaximum<'_> {
 /// before the fall is more than rounding.
 const FALL_TOLERANCE: f64 = 1e-9;
 /// How large a column's score may be at the maximum, as a share of the sum of the sizes of its
-/// terms: the iterations stop when the estimates move by less than a relative 1e-11.
+/// terms: the iterations stop when the estimates move by less than a relative 1e-11. On a
+/// nearly singular design large estimates cancel in the linear predictor, which then keeps
+/// fewer digits, so the tolerance grows with the condition number, as the variance layer's
+/// check of symmetry does.
 const SCORE_TOLERANCE: f64 = 1e-6;
 /// How far two mirrored entries of the variance may differ, as a share of the two standard
 /// errors' product.
@@ -288,12 +291,15 @@ const SYMMETRY_TOLERANCE: f64 = 1e-12;
 ///
 /// The first value of the history is the log-likelihood of the start, which no coefficients
 /// gave, so the first step may leave it in either direction; the check begins after it.
+/// `condition_number` is that of the weighted, scaled design at the maximum.
 pub fn self_check(
     x: &Matrix,
     model: &dyn IndexModel,
     solution: &Solution,
     vcov: &Matrix,
+    condition_number: f64,
 ) -> Result<(), String> {
+    let score_tolerance = SCORE_TOLERANCE.max(100.0 * f64::EPSILON * condition_number);
     for (at, pair) in solution.history.windows(2).enumerate().skip(1) {
         let floor = pair[0] - FALL_TOLERANCE * (pair[0].abs() + 1.0);
         if pair[1].is_nan() || pair[1] < floor {
@@ -314,11 +320,12 @@ pub fn self_check(
             .map(|(a, s)| a * s)
             .collect();
         let sizes: Vec<f64> = terms.iter().map(|t| t.abs()).collect();
-        let (score, bound) = (sum(&terms).abs(), SCORE_TOLERANCE * sum(&sizes));
+        let (score, bound) = (sum(&terms).abs(), score_tolerance * sum(&sizes));
         if score.is_nan() || score > bound {
             return Err(format!(
-                "the score of column {} is not zero at the maximum",
-                j + 1
+                "the score of column {} is not zero at the maximum: {:.1e} of the size of its terms",
+                j + 1,
+                score / sum(&sizes)
             ));
         }
     }
@@ -374,7 +381,7 @@ mod tests {
     #[test]
     fn a_sound_fit_passes_its_self_checks() {
         let (x, model, solution, vcov) = small_fit();
-        assert_eq!(self_check(&x, &model, &solution, &vcov), Ok(()));
+        assert_eq!(self_check(&x, &model, &solution, &vcov, 10.0), Ok(()));
     }
 
     #[test]
@@ -382,7 +389,7 @@ mod tests {
         let (x, model, mut solution, vcov) = small_fit();
         let last = *solution.history.last().unwrap();
         solution.history.push(last - 0.5);
-        let failed = self_check(&x, &model, &solution, &vcov).unwrap_err();
+        let failed = self_check(&x, &model, &solution, &vcov, 10.0).unwrap_err();
         assert!(
             failed.starts_with("the log-likelihood fell at iteration"),
             "{failed}"
@@ -390,7 +397,7 @@ mod tests {
         // The first step leaves a start that no coefficients gave: a fall there is no failure.
         let (x, model, mut solution, vcov) = small_fit();
         solution.history[0] = solution.history[1] + 10.0;
-        assert_eq!(self_check(&x, &model, &solution, &vcov), Ok(()));
+        assert_eq!(self_check(&x, &model, &solution, &vcov, 10.0), Ok(()));
     }
 
     #[test]
@@ -399,8 +406,19 @@ mod tests {
         for eta in &mut solution.eta {
             *eta += 0.25;
         }
-        let failed = self_check(&x, &model, &solution, &vcov).unwrap_err();
-        assert_eq!(failed, "the score of column 1 is not zero at the maximum");
+        let failed = self_check(&x, &model, &solution, &vcov, 10.0).unwrap_err();
+        assert!(
+            failed.starts_with("the score of column 1 is not zero at the maximum: "),
+            "{failed}"
+        );
+        // A nearly singular design is allowed the digits its linear predictor has lost.
+        let (x, model, solution, vcov) = small_fit();
+        let mut nudged = solution.clone();
+        for eta in &mut nudged.eta {
+            *eta += 1e-5;
+        }
+        assert!(self_check(&x, &model, &nudged, &vcov, 10.0).is_err());
+        assert_eq!(self_check(&x, &model, &nudged, &vcov, 1e12), Ok(()));
     }
 
     #[test]
@@ -409,19 +427,19 @@ mod tests {
         let mut lopsided = vcov.clone();
         lopsided.set(0, 1, 2.0 * vcov.get(0, 1) + 1.0);
         assert_eq!(
-            self_check(&x, &model, &solution, &lopsided).unwrap_err(),
+            self_check(&x, &model, &solution, &lopsided, 10.0).unwrap_err(),
             "an asymmetric variance matrix"
         );
         let mut negative = vcov.clone();
         negative.set(1, 1, -vcov.get(1, 1));
         assert_eq!(
-            self_check(&x, &model, &solution, &negative).unwrap_err(),
+            self_check(&x, &model, &solution, &negative, 10.0).unwrap_err(),
             "the variance of estimate 2 is negative or not a number"
         );
         let mut missing = vcov;
         missing.set(0, 0, f64::NAN);
         assert_eq!(
-            self_check(&x, &model, &solution, &missing).unwrap_err(),
+            self_check(&x, &model, &solution, &missing, 10.0).unwrap_err(),
             "the variance of estimate 1 is negative or not a number"
         );
     }

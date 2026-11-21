@@ -98,6 +98,8 @@ extremes <- list(extreme_case("extreme_logit", "logit"), extreme_case("extreme_p
 # are those complete in the model's variables and in the cluster variable, as `glm` with
 # `cluster:` uses them. Two models: the one of the classical reference, and the sample script's
 # (section 10 of zeff_samples.zeff), with the industry.
+# sandwich: from the harness's own library when install.R made it, as regression.R reads it.
+.libPaths(c(file.path(here(), "library"), .libPaths()))
 library(sandwich)
 matrix_rows <- function(v) lapply(seq_len(nrow(v)), function(r) as.list(num17(unname(v[r, ]))))
 robust_case <- function(name, formula, data, link) {
@@ -202,6 +204,36 @@ frequency_case <- function(link) {
 weighted <- list(sampling_case("logit"), sampling_case("probit"),
                  frequency_case("logit"), frequency_case("probit"))
 
+# A nearly singular design (release 0.9.0, step 7d): `union ~ educ + e2 + x2` with
+# e2 = educ + 1e-5 exper and x2 = exper + 1e-4 female, a condition number near 7e10. Two
+# estimates near 5e7 cancel in the linear predictor, so neither R nor any double-precision fit
+# holds them beyond some four digits, and R says that it did not converge at this tolerance.
+# The three regressors span what educ, exper and female span, so the exact answer is known from
+# the well-conditioned fit above (`cases`), and the test compares with that; R's fit of this
+# design is written here to show what the design allows, and for its standard errors.
+near <- raw[complete.cases(raw[, c("union", "educ", "exper", "female")]), ]
+near$e2 <- near$educ + 1e-5 * near$exper
+near$x2 <- near$exper + 1e-4 * near$female
+near_case <- function(link) {
+  fit <- function(start = NULL) {
+    suppressWarnings(glm(union ~ educ + e2 + x2, family = binomial(link = link), data = near,
+                         control = control, start = start))
+  }
+  m <- fit()
+  for (again in 1:10) m <- fit(coef(m))
+  list(
+    name = paste0("near_singular_", link),
+    link = link,
+    n = nrow(near),
+    coefficients = as.list(num17(unname(coef(m)))),
+    std_errors = as.list(num17(unname(sqrt(diag(vcov(m)))))),
+    log_likelihood = num17(as.numeric(logLik(m))),
+    deviance = num17(deviance(m)),
+    r_converged = m$converged
+  )
+}
+near_singular <- list(near_case("logit"), near_case("probit"))
+
 out <- list(
   software = paste("R", getRversion()),
   generated_rows = nrow(g),
@@ -210,6 +242,7 @@ out <- list(
   extremes = extremes,
   robust = robust,
   weighted = weighted,
+  near_singular = near_singular,
   sandwich = as.character(packageVersion("sandwich"))
 )
 writeLines(to_json(out), file.path(here(), "binary.json"))

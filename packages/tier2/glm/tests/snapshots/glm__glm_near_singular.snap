@@ -1,0 +1,21 @@
+---
+source: packages/tier2/glm/tests/glm.rs
+expression: "format!(\"{script}---\\n{}\", printed(script))"
+---
+dataset(wages).add(e2 = educ + 1e-5 * exper, x2 = exper + 1e-4 * female).glm(union ~ educ + e2 + x2, family: binomial)
+---
+glm · union ~ educ + e2 + x2 · binomial, logit
+N = 18,390 (22 rows dropped for NA in model variables)
+standard errors: classical
+
+  term                estimate       std.error   z value   p value   95% CI
+  (intercept)          -1.2274          0.1100    -11.16    <0.001   [-1.4429, -1.0119]
+  educ           55567143.5973   31836947.5668      1.75     0.081   [-6832127.0113, 117966414.2060]
+  e2            -55567143.5964   31836947.5668     -1.75     0.081   [-117966414.2050, 6832127.0122]
+  x2                  555.6991        318.3695      1.75     0.081   [-68.2937, 1179.6920]
+
+log-likelihood -11,415.06 · AIC 22,838.13 · McFadden R² 0.007
+deviance 22,830.13 on 18,386 df · null deviance 23,001.97 on 18,389 df
+converged in 5 iterations of Fisher scoring
+warning[W1001]: near-singular regressors: the condition number of the scaled, weighted design is 7.602e10 (line 1)
+  = help: two regressors are almost the same column, so their estimates are poorly determined; drop one, or combine them

@@ -72,7 +72,9 @@ Step 7b `[engine]`: `se: robust | hc2 | hc3` and `cluster:` on `glm` through the
 
 Step 7c `[engine]`: `weights:` on `glm`, frequency and sampling, each against R under every kind of error; analytic weights refused on a binary model (#199, taken as recommended); `fe:` refused naming 1.7; a pseudo-likelihood printed as one.
 
-**Next.** Step 7d `[engine]`: the optimiser on a near-singular design, with W1001. Step 3, the weekly run of 23 November, when it has ended.
+Step 7d `[engine]`: the optimiser stops at the precision a nearly singular design allows (the step measured in the linear predictor; an exhausted halving with finite values is the maximum), where it had refused such a fit as divergent; W1001 on `glm`; the other stops named for what they are. Well-conditioned fits keep their bits. Step 7 is done.
+
+**Next.** Step 8 `[function]`: the estimator interface on a `GlmFit`. Step 3, the weekly run of 23 November, when it has ended.
 
 **For the owner.** #198 and #199 (taken as recommended, yours to overturn before 1.0): on a `glm` fit, clustered errors carry the factor (N − 1)/(N − k) that Stata's `logit` and R's `vcovCL` left to itself omit; analytic weights are refused on a binary model, as in Stata.
 
