@@ -331,6 +331,23 @@ inference_case <- function(link) {
 }
 inference <- list(inference_case("logit"), inference_case("probit"))
 
+# The Wooldridge textbook data (the testing handbook, section 1.2: binary-outcome tests):
+# `mroz`, the labour-force participation of 753 married women, example 17.1 of *Introductory
+# Econometrics*, written beside the references as CSV (the variables of the model, 17
+# significant digits) so that the Rust tests fit the same rows; the package is part of the
+# harness alone. The logit and the probit of `inlf`, iterated to their maxima; the book prints
+# their log-likelihoods as −401.77 and −401.30.
+library(wooldridge)
+data(mroz)
+mroz_model <- mroz[, c("inlf", "nwifeinc", "educ", "exper", "expersq", "age", "kidslt6", "kidsge6")]
+mroz_text <- mroz_model
+for (col in names(mroz_text)) mroz_text[[col]] <- sprintf("%.17g", mroz_model[[col]])
+write.csv(mroz_text, file.path(root, "tests", "reference", "data", "mroz.csv"),
+          row.names = FALSE, quote = FALSE)
+mroz_formula <- inlf ~ nwifeinc + educ + exper + expersq + age + kidslt6 + kidsge6
+textbook <- list(fit_case("mroz_logit", mroz_formula, mroz_model, "logit"),
+                 fit_case("mroz_probit", mroz_formula, mroz_model, "probit"))
+
 out <- list(
   software = paste("R", getRversion()),
   generated_rows = nrow(g),
@@ -341,6 +358,7 @@ out <- list(
   weighted = weighted,
   near_singular = near_singular,
   interface = interface,
-  inference = inference
+  inference = inference,
+  textbook = textbook
 )
 writeLines(to_json(out), file.path(here(), "binary.json"))

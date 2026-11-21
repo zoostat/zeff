@@ -565,8 +565,7 @@ pub fn glm_with(ctx: &mut CallContext<'_>, args: Args, control: &Control) -> Res
         sum(&products) * solution.scales[i] * solution.scales[j]
     });
     // The self-checks of section 11.1: a failure is a bug in the engine, not a result.
-    self_check(&x, &model, &solution, &classical, fitted.condition_number)
-        .map_err(|what| internal(ctx, &what))?;
+    self_check(&x, &model, &solution, &classical).map_err(|what| internal(ctx, &what))?;
     // The robust and the clustered variance, from the variance layer's one computation: the
     // sandwich of the likelihood's scores between the inverse information, with the factors
     // every model has (HC1 N/(N − k); HC2 and HC3 by the leverage of the weighted fit; CR1 over

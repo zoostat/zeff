@@ -18,6 +18,7 @@ use crate::estimator::{Estimator, Fitted};
 use zeff_core::runtime::{CallContext, Fail, fail};
 use zeff_diagnostics::Diagnostic;
 use zeff_kernels::irls::{IndexModel, RowTerms, Solution};
+use zeff_kernels::qr::TallSkinnyQr;
 use zeff_kernels::{Matrix, sum};
 use zeff_numeric::maths::{exp, log, log1p};
 use zeff_numeric::special::{normal_density, normal_quantile, normal_tails};
@@ -164,9 +165,11 @@ impl IndexModel for Binomial {
             Link::Logit => {
                 // The canonical link: the observed information is the expected.
                 let (p, q) = logistic(eta);
+                // y − p, taken as y q − (1 − y) p: for an outcome of 1 it is q itself, which
+                // keeps its digits where 1 − p has lost them (a probability near 1).
                 RowTerms {
                     log_likelihood: m * (y * eta - softplus(eta)),
-                    score: m * (y - p),
+                    score: m * (y * q - (1.0 - y) * p),
                     weight: m * p * q,
                 }
             }
@@ -355,61 +358,78 @@ impl Estimator for AtMaximum<'_> {
 /// How far the log-likelihood may fall from one iteration to the next, as a share of its size,
 /// before the fall is more than rounding.
 const FALL_TOLERANCE: f64 = 1e-9;
-/// How large a column's score may be at the maximum, as a share of the sum of the sizes of its
-/// terms: the iterations stop when the estimates move by less than a relative 1e-11. On a
-/// nearly singular design large estimates cancel in the linear predictor, which then keeps
-/// fewer digits, so the tolerance grows with the condition number, as the variance layer's
-/// check of symmetry does.
-const SCORE_TOLERANCE: f64 = 1e-6;
+/// How large the Newton decrement may be at the maximum, as a share of the size of the
+/// log-likelihood. The decrement, sᵀX(XᵀWX)⁻¹Xᵀs, is twice the gain in log-likelihood that one
+/// more step would bring, to second order: the score measured by what the information can
+/// resolve. The iterations stop when a step gains no more than 1e-13 of the log-likelihood, so
+/// a sound fit is some four orders inside.
+const DECREMENT_TOLERANCE: f64 = 1e-9;
 /// How far two mirrored entries of the variance may differ, as a share of the two standard
 /// errors' product.
 const SYMMETRY_TOLERANCE: f64 = 1e-12;
 
+/// The Newton decrement of a model at the linear predictor `eta`, sᵀX(XᵀWX)⁻¹Xᵀs, with s the
+/// rows' scores and W their information: the squared length of W^(−½)s along the columns of
+/// W^(½)X, read from one QR factorisation of the weighted columns beside it, so that nothing
+/// is inverted and a nearly singular design costs it no digits. `scales` are the columns'
+/// scales, as the fit used them. Beside it, the sum of the sizes of the scores of the rows
+/// that carry no information, which no step can reduce.
+fn newton_decrement(x: &Matrix, model: &dyn IndexModel, eta: &[f64], scales: &[f64]) -> (f64, f64) {
+    let k = x.cols();
+    let mut qr = TallSkinnyQr::new(k + 1);
+    let mut row = vec![0.0; k + 1];
+    let mut unweighted = Vec::new();
+    for (i, &e) in eta.iter().enumerate() {
+        let terms = model.at(i, e, false);
+        if terms.weight.is_nan() || terms.weight <= 0.0 {
+            unweighted.push(terms.score.abs());
+            continue;
+        }
+        let root = terms.weight.sqrt();
+        for (j, slot) in row.iter_mut().enumerate().take(k) {
+            *slot = root * x.get(i, j) * scales[j];
+        }
+        row[k] = terms.score / root;
+        qr.push_row(&row);
+    }
+    let r = qr.finish();
+    let parts: Vec<f64> = (0..k).map(|j| r.get(j, k) * r.get(j, k)).collect();
+    (sum(&parts), sum(&unweighted))
+}
+
 /// The self-checks of a fit by maximum likelihood (section 11.1 of the Language Reference,
 /// "Self-checks"): a log-likelihood that never fell during the iterations, a score of zero at
-/// the maximum in every column of `x`, and a variance of the estimates that is symmetric with no
-/// negative entry on its diagonal. `Err` says which check failed; the caller reports it as an
-/// internal error, never as a result.
+/// the maximum, and a variance of the estimates that is symmetric with no negative entry on its
+/// diagonal. `Err` says which check failed; the caller reports it as an internal error, never
+/// as a result.
+///
+/// The score is judged by the Newton decrement, the gain that one more step would bring: a fit
+/// has converged when the likelihood can rise no further, and where the likelihood is nearly
+/// flat in a direction (a regressor that all but separates the outcomes, a nearly singular
+/// design) the score along it is small by that measure though not by the size of its terms
+/// (the formula fuzz target found such a fit refused, release 0.9.0, step 9).
 ///
 /// The first value of the history is the log-likelihood of the start, which no coefficients
 /// gave, so the first step may leave it in either direction; the check begins after it.
-/// `condition_number` is that of the weighted, scaled design at the maximum.
 pub fn self_check(
     x: &Matrix,
     model: &dyn IndexModel,
     solution: &Solution,
     vcov: &Matrix,
-    condition_number: f64,
 ) -> Result<(), String> {
-    let score_tolerance = SCORE_TOLERANCE.max(100.0 * f64::EPSILON * condition_number);
     for (at, pair) in solution.history.windows(2).enumerate().skip(1) {
         let floor = pair[0] - FALL_TOLERANCE * (pair[0].abs() + 1.0);
         if pair[1].is_nan() || pair[1] < floor {
             return Err(format!("the log-likelihood fell at iteration {}", at + 1));
         }
     }
-    let scores: Vec<f64> = solution
-        .eta
-        .iter()
-        .enumerate()
-        .map(|(row, &eta)| model.at(row, eta, false).score)
-        .collect();
-    for j in 0..x.cols() {
-        let terms: Vec<f64> = x
-            .column(j)
-            .iter()
-            .zip(&scores)
-            .map(|(a, s)| a * s)
-            .collect();
-        let sizes: Vec<f64> = terms.iter().map(|t| t.abs()).collect();
-        let (score, bound) = (sum(&terms).abs(), score_tolerance * sum(&sizes));
-        if score.is_nan() || score > bound {
-            return Err(format!(
-                "the score of column {} is not zero at the maximum: {:.1e} of the size of its terms",
-                j + 1,
-                score / sum(&sizes)
-            ));
-        }
+    let (decrement, unweighted) = newton_decrement(x, model, &solution.eta, &solution.scales);
+    let bound = DECREMENT_TOLERANCE * (solution.log_likelihood.abs() + 0.1);
+    if decrement.is_nan() || decrement > bound || unweighted.is_nan() || unweighted > 1e-6 {
+        return Err(format!(
+            "the score is not zero at the maximum: one more step would raise the log-likelihood by {:.1e}",
+            0.5 * decrement
+        ));
     }
     let k = vcov.rows();
     for i in 0..k {
@@ -463,7 +483,7 @@ mod tests {
     #[test]
     fn a_sound_fit_passes_its_self_checks() {
         let (x, model, solution, vcov) = small_fit();
-        assert_eq!(self_check(&x, &model, &solution, &vcov, 10.0), Ok(()));
+        assert_eq!(self_check(&x, &model, &solution, &vcov), Ok(()));
     }
 
     #[test]
@@ -471,7 +491,7 @@ mod tests {
         let (x, model, mut solution, vcov) = small_fit();
         let last = *solution.history.last().unwrap();
         solution.history.push(last - 0.5);
-        let failed = self_check(&x, &model, &solution, &vcov, 10.0).unwrap_err();
+        let failed = self_check(&x, &model, &solution, &vcov).unwrap_err();
         assert!(
             failed.starts_with("the log-likelihood fell at iteration"),
             "{failed}"
@@ -479,7 +499,7 @@ mod tests {
         // The first step leaves a start that no coefficients gave: a fall there is no failure.
         let (x, model, mut solution, vcov) = small_fit();
         solution.history[0] = solution.history[1] + 10.0;
-        assert_eq!(self_check(&x, &model, &solution, &vcov, 10.0), Ok(()));
+        assert_eq!(self_check(&x, &model, &solution, &vcov), Ok(()));
     }
 
     #[test]
@@ -488,19 +508,19 @@ mod tests {
         for eta in &mut solution.eta {
             *eta += 0.25;
         }
-        let failed = self_check(&x, &model, &solution, &vcov, 10.0).unwrap_err();
+        let failed = self_check(&x, &model, &solution, &vcov).unwrap_err();
         assert!(
-            failed.starts_with("the score of column 1 is not zero at the maximum: "),
+            failed.starts_with("the score is not zero at the maximum: one more step would raise the log-likelihood by "),
             "{failed}"
         );
-        // A nearly singular design is allowed the digits its linear predictor has lost.
+        // A linear predictor out by a part in a million is within what the likelihood can
+        // resolve: one more step would gain some 1e-12, far inside the tolerance.
         let (x, model, solution, vcov) = small_fit();
         let mut nudged = solution.clone();
         for eta in &mut nudged.eta {
-            *eta += 1e-5;
+            *eta += 1e-6;
         }
-        assert!(self_check(&x, &model, &nudged, &vcov, 10.0).is_err());
-        assert_eq!(self_check(&x, &model, &nudged, &vcov, 1e12), Ok(()));
+        assert_eq!(self_check(&x, &model, &nudged, &vcov), Ok(()));
     }
 
     #[test]
@@ -509,19 +529,19 @@ mod tests {
         let mut lopsided = vcov.clone();
         lopsided.set(0, 1, 2.0 * vcov.get(0, 1) + 1.0);
         assert_eq!(
-            self_check(&x, &model, &solution, &lopsided, 10.0).unwrap_err(),
+            self_check(&x, &model, &solution, &lopsided).unwrap_err(),
             "an asymmetric variance matrix"
         );
         let mut negative = vcov.clone();
         negative.set(1, 1, -vcov.get(1, 1));
         assert_eq!(
-            self_check(&x, &model, &solution, &negative, 10.0).unwrap_err(),
+            self_check(&x, &model, &solution, &negative).unwrap_err(),
             "the variance of estimate 2 is negative or not a number"
         );
         let mut missing = vcov;
         missing.set(0, 0, f64::NAN);
         assert_eq!(
-            self_check(&x, &model, &solution, &missing, 10.0).unwrap_err(),
+            self_check(&x, &model, &solution, &missing).unwrap_err(),
             "the variance of estimate 1 is negative or not a number"
         );
     }

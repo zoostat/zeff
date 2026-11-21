@@ -1409,3 +1409,82 @@ fn the_tables_and_plots_of_a_glm_fit() {
         .join("\n====\n");
     insta::assert_snapshot!("glm_tables_and_plots", all);
 }
+
+/// A file of numbers with a header as a table of Float variables.
+fn numbers_table(path: std::path::PathBuf) -> Table {
+    let text = std::fs::read_to_string(path).unwrap();
+    let mut lines = text.lines();
+    let names: Vec<String> = lines
+        .next()
+        .unwrap()
+        .split(',')
+        .map(str::to_string)
+        .collect();
+    let mut columns: Vec<Vec<Option<f64>>> = vec![Vec::new(); names.len()];
+    for line in lines {
+        for (slot, field) in columns.iter_mut().zip(line.split(',')) {
+            slot.push(field.parse().ok());
+        }
+    }
+    Table::new(
+        names
+            .into_iter()
+            .zip(columns)
+            .map(|(name, values)| (name, zeff_columns::Column::floats(values).0))
+            .collect(),
+    )
+    .unwrap()
+}
+
+/// The Wooldridge textbook data the testing handbook names for binary-outcome tests (section
+/// 1.2): `mroz`, example 17.1 of *Introductory Econometrics*, the labour-force participation of
+/// 753 married women. The logit and the probit agree with R (`binary.json`, `textbook`), and
+/// with the figures the book prints: log-likelihoods of −401.77 and −401.30, and the logit
+/// coefficients of its table 17.1.
+#[test]
+fn the_textbook_example_agrees_with_r_and_with_the_book() {
+    let path = root().join("tests/reference/r/binary.json");
+    let json: Json = serde_json::from_str(&std::fs::read_to_string(path).unwrap()).unwrap();
+    let mroz = numbers_table(root().join("tests/reference/data/mroz.csv"));
+    let text = "inlf ~ nwifeinc + educ + exper + expersq + age + kidslt6 + kidsge6";
+    for case in json["textbook"].as_array().unwrap() {
+        let name = case["name"].as_str().unwrap();
+        let link = case["link"].as_str().unwrap();
+        let fit = fit_of(&mroz, text, link).unwrap_or_else(|e| panic!("{name}: {e}"));
+        assert_eq!(fit.n, 753, "{name}");
+        for (j, theirs) in case["coefficients"].as_array().unwrap().iter().enumerate() {
+            close(
+                fit.estimates[j],
+                number(theirs),
+                1e-9,
+                &format!("{name} estimate {j}"),
+            );
+        }
+        variance_close(&fit.vcov, &case["vcov"], 1e-8, &format!("{name} vcov"));
+        close(
+            fit.log_likelihood,
+            number(&case["log_likelihood"]),
+            1e-12,
+            &format!("{name} log-likelihood"),
+        );
+        // The book, to the digits it prints.
+        let printed = if link == "logit" { -401.77 } else { -401.30 };
+        assert!(
+            (fit.log_likelihood - printed).abs() < 0.005,
+            "{name}: {}",
+            fit.log_likelihood
+        );
+        if link == "logit" {
+            // Table 17.1: the constant, nwifeinc, educ, exper, expersq, age, kidslt6, kidsge6.
+            let book = [0.425, -0.021, 0.221, 0.206, -0.0032, -0.088, -1.443, 0.060];
+            let digits = [3, 3, 3, 3, 4, 3, 3, 3];
+            for ((ours, theirs), d) in fit.estimates.iter().zip(book).zip(digits) {
+                let half = 0.5 * 10f64.powi(-d);
+                assert!(
+                    (ours - theirs).abs() <= half + 1e-12,
+                    "{name}: {ours} against the book's {theirs}"
+                );
+            }
+        }
+    }
+}

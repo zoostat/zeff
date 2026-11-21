@@ -220,3 +220,34 @@ d.t_test(x, group: g).export("output/two_groups.typ")
     }
   })
 })
+==== likelihood_flat_in_one_direction (corrected at 0.9.0)
+// Corrected at release 0.9.0 (step 9), before it shipped. A `glm` on six rows, one of them far
+// out on the regressor (1e8) and well predicted, ended in an internal error: "the score of
+// column 2 is not zero at the maximum". The likelihood is nearly flat in the direction of that
+// row, so the fit stops when a further step would raise the log-likelihood by less than a part
+// in 1e13, while the score along it, measured against the size of its terms, was still a few
+// parts in a million. The self-check now measures the score by the gain one more step would
+// bring (the Newton decrement), which is what convergence means. The formula fuzz target found
+// it within minutes of being taught `glm`. The fit is given, the slope undetermined: its
+// estimate is nothing beside its standard error.
+let f = frame(u = [0, 0, 0, 1, 1, 1], a = [0, 1e8, -2, -2, 0, -1])
+let g = f.glm(u ~ a, family: binomial)
+g
+g.fit_measures().deviance
+g.test(a == 0)
+---- regressions/likelihood_flat_in_one_direction/stdout
+glm · u ~ a · binomial, logit
+N = 6
+standard errors: classical
+
+  term          estimate   std.error   z value   p value   95% CI
+  (intercept)     0.4055      0.9139      0.44     0.657   [-1.3857, 2.1966]
+  a               0.0000      0.0427      0.00     1.000   [-0.0836, 0.0836]
+
+log-likelihood -3.37 · AIC 10.73 · McFadden R² 0.191
+deviance 6.73 on 4 df · null deviance 8.32 on 5 df
+converged in 29 iterations of Fisher scoring
+6.73012
+test · g · a == 0
+chi2(1) = 0.00   p = 1.000
+---- regressions/likelihood_flat_in_one_direction/stderr

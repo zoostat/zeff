@@ -80,7 +80,9 @@ Step 8b `[function]`: `test` (the Wald chi-squared), `compare` (the likelihood-r
 
 Step 8c `[function]`: `report` (McFadden's R² in its `R²` row, the fit's warnings in its footer), `summary` with its options, `design`, `coef_plot` and `export` on a `GlmFit`; the refusals of 5a removed; catalogue row `glm` marked implemented. Step 8 is done: every method of the result interface answers a `glm` fit.
 
-**Next.** Step 9 `[function]`: `glm` in the samples and the nightly job. Step 3, the weekly run of 23 November, when it has ended.
+Step 9 `[function]`: the truth-recovery Monte Carlo of `glm` (both links, an independent and a clustered design) in the nightly job; the formula fuzz target fits `glm` too; the conformance cases `models/glm` and `models/glm_checked`; the Wooldridge `mroz` example as a reference, against R and the book. Block B (`glm`) is done.
+
+**Next.** Step 10 `[engine]`: what each column of the model matrix is a function of (the first step of `margins`). Step 3, the weekly run of 23 November, when it has ended.
 
 **For the owner.** #198, #199 and #200 and #201 (a) (taken as recommended, yours to overturn before 1.0; #201 (b) is open and yours: which standardized coefficients a `glm` fit has, refused until you choose; #200: `predict` gives a probability and `residuals` the outcome less it unless `type:` says otherwise, where R gives log-odds and deviance residuals): on a `glm` fit, clustered errors carry the factor (N − 1)/(N − k) that Stata's `logit` and R's `vcovCL` left to itself omit; analytic weights are refused on a binary model, as in Stata.
 

@@ -214,11 +214,9 @@ fn the_templates_are_statements_of_the_language_and_offered_by_an_engine_that_ha
     assert_eq!(offered, expected);
     assert!(offered.contains(&"regression table"));
     assert!(offered.contains(&"difference in differences, two periods"));
-    // The binary models arrive with `glm` at 0.9.0: until then their template is not offered.
-    assert_eq!(
-        offered.contains(&"logistic regression"),
-        !registry.named("glm").is_empty()
-    );
+    // The binary models arrived with `glm` at release 0.9.0, and their template with them.
+    assert!(offered.contains(&"logistic regression"));
+    assert_eq!(offered.len(), SNIPPETS.len(), "every template is offered");
 }
 
 #[test]

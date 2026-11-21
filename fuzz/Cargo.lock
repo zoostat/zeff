@@ -996,6 +996,7 @@ dependencies = [
  "zeff-dates",
  "zeff-diagnostics",
  "zeff-dist",
+ "zeff-glm",
  "zeff-hash",
  "zeff-ir",
  "zeff-numeric",
@@ -1025,6 +1026,18 @@ dependencies = [
  "zeff-lsp",
  "zeff-registry",
  "zeff-syntax",
+]
+
+[[package]]
+name = "zeff-glm"
+version = "0.9.0-dev"
+dependencies = [
+ "zeff-core",
+ "zeff-diagnostics",
+ "zeff-kernels",
+ "zeff-numeric",
+ "zeff-registry",
+ "zeff-results",
 ]
 
 [[package]]

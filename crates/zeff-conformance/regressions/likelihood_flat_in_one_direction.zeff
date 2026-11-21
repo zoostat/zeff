@@ -1,0 +1,14 @@
+// Corrected at release 0.9.0 (step 9), before it shipped. A `glm` on six rows, one of them far
+// out on the regressor (1e8) and well predicted, ended in an internal error: "the score of
+// column 2 is not zero at the maximum". The likelihood is nearly flat in the direction of that
+// row, so the fit stops when a further step would raise the log-likelihood by less than a part
+// in 1e13, while the score along it, measured against the size of its terms, was still a few
+// parts in a million. The self-check now measures the score by the gain one more step would
+// bring (the Newton decrement), which is what convergence means. The formula fuzz target found
+// it within minutes of being taught `glm`. The fit is given, the slope undetermined: its
+// estimate is nothing beside its standard error.
+let f = frame(u = [0, 0, 0, 1, 1, 1], a = [0, 1e8, -2, -2, 0, -1])
+let g = f.glm(u ~ a, family: binomial)
+g
+g.fit_measures().deviance
+g.test(a == 0)

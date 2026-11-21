@@ -1,9 +1,13 @@
-//! Random formulas and small frames go through the checker, the model matrix and `reg`, which
-//! must answer with a result or a diagnostic, never an internal error (Z9001) or a crash. The
-//! bytes choose the frame (one to twelve rows of five variables, with missing values, repeated
-//! values and extremes, and a few category labels), the formula's terms and the fit's options;
-//! the fit is then printed, used to predict on its own frame and asked for its influence
-//! measures. A Z9001 in the messages is a failure of the target.
+//! Random formulas and small frames go through the checker, the model matrix, `reg` and `glm`,
+//! which must answer with a result or a diagnostic, never an internal error (Z9001) or a crash.
+//! The bytes choose the frame (one to twelve rows of six variables, with missing values,
+//! repeated values and extremes, a few category labels and a 0/1 outcome), the formula's terms
+//! and the fit's options; the regression is then printed, used to predict on its own frame and
+//! asked for its influence measures, and the same formula is fitted to the 0/1 outcome by
+//! `glm` with either link (release 0.9.0, step 9): the frames are small and extreme, so most
+//! are refused for separation or for their degrees of freedom, each with its own message, and
+//! the fits that pass are asked for every method of the result interface. A Z9001 in the
+//! messages is a failure of the target.
 #![no_main]
 
 use libfuzzer_sys::fuzz_target;
@@ -84,14 +88,16 @@ fuzz_target!(|data: &[u8]| {
     let mut bytes = rest.iter().copied();
     let mut next = || bytes.next().unwrap_or(0);
     // The frame.
-    let mut csv = String::from("y,a,b,c,d\n");
+    let mut csv = String::from("y,a,b,c,d,u\n");
     for _ in 0..rows {
         let y = number(next());
         let a = number(next());
         let b = number(next());
         let c = label(next());
         let d = next() % 2;
-        csv.push_str(&format!("{y},{a},{b},{c},{d}\n"));
+        // The 0/1 outcome of the binary model.
+        let u = next() % 2;
+        csv.push_str(&format!("{y},{a},{b},{c},{d},{u}\n"));
     }
     // The formula and the options.
     let mut formula = String::from("y ~ ");
@@ -102,9 +108,17 @@ fuzz_target!(|data: &[u8]| {
         formula.push_str(TERMS[usize::from(next()) % TERMS.len()]);
     }
     let options = OPTIONS[usize::from(next()) % OPTIONS.len()];
-    let script = format!(
-        "let f = import(\"data/f.csv\")\nlet m = f.reg({formula}{options})\nm\nm.predict(newdata: f)\nm.influence()\nm.test(a == 0)\nm.derive(q = a / b)\n"
-    );
+    let binary = formula.replacen("y ~ ", "u ~ ", 1);
+    let link = if next() % 2 == 0 { "" } else { ", link: probit" };
+    // Each model in a script of its own: a refusal of the first must not hide the second.
+    let scripts = [
+        format!(
+            "let f = import(\"data/f.csv\")\nlet m = f.reg({formula}{options})\nm\nm.predict(newdata: f)\nm.influence()\nm.test(a == 0)\nm.derive(q = a / b)\n"
+        ),
+        format!(
+            "let f = import(\"data/f.csv\")\nlet g = f.glm({binary}, family: binomial{link}{options})\ng\ng.fit_measures()\ng.predict(newdata: f)\ng.predict(newdata: f, type: link)\ng.residuals(type: deviance)\ng.residuals(type: pearson)\ng.residuals(type: working)\ng.test(a == 0)\ng.derive(q = a / b)\nreport([g])\ng.design()\n"
+        ),
+    ];
     let fs = MemoryFileSystem::new();
     fs.add_file(
         "/p/zeff.toml",
@@ -114,12 +128,14 @@ fuzz_target!(|data: &[u8]| {
         ),
     );
     fs.add_file("/p/data/f.csv", csv);
-    fs.add_file("/p/scripts/main.zeff", script.clone());
+    fs.add_file("/p/scripts/main.zeff", scripts[0].clone());
     let project = Project::open(&fs, Path::new("/p")).expect("the fuzz project opens");
-    let outcome = run_script(&fs, &project, "scripts/main.zeff", &script);
-    assert!(
-        !outcome.output.stderr.contains("Z9001"),
-        "an internal error on\n{script}\n{}",
-        outcome.output.stderr
-    );
+    for script in &scripts {
+        let outcome = run_script(&fs, &project, "scripts/main.zeff", script);
+        assert!(
+            !outcome.output.stderr.contains("Z9001"),
+            "an internal error on\n{script}\n{}",
+            outcome.output.stderr
+        );
+    }
 });

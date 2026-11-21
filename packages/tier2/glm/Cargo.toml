@@ -20,6 +20,7 @@ zeff-numeric.workspace = true
 [dev-dependencies]
 zeff-columns.workspace = true
 zeff-datasets.workspace = true
+zeff-dist.workspace = true
 zeff-testkit.workspace = true
 insta = "=1.49.0"
 proptest = "=1.12.0"

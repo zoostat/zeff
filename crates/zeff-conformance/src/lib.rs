@@ -1172,6 +1172,57 @@ fn regress_cases() -> Vec<Line> {
         lines.push(text(&format!("models/{name}/stdout"), &stdout));
         lines.push(text(&format!("models/{name}/stderr"), &stderr));
     }
+    // Binary outcomes (release 0.9.0, step 9). `models/glm`: `glm` on the shipped `wages`
+    // through the whole engine, each link, every kind of standard error, frequency and sampling
+    // weights, and the fit read by every method of the result interface (the measures, the
+    // kinds of residual, a prediction on both scales, the Wald and the likelihood-ratio tests,
+    // a nonlinear combination, the design, a report beside least squares). `models/glm_checked`:
+    // what `glm` refuses, each script stopping at its refusal: no family, an outcome that is
+    // not 0 and 1, separation naming its regressor, an outcome that does not vary, analytic
+    // weights, a likelihood-ratio test of a clustered fit. The iterations are the engine's own
+    // arithmetic in a fixed order, so every digit is the same on the four targets.
+    let wages = "let wages = dataset(wages)\n";
+    let binary: [(&str, &[&str]); 2] = [
+        (
+            "glm",
+            &[
+                "wages.glm(union ~ educ + exper + female, family: binomial)\n",
+                "wages.glm(union ~ educ + exper + female + industry, family: binomial, link: probit, level: 0.99)\n",
+                "wages.glm(union ~ educ + exper + female, family: binomial, se: robust)\n",
+                "wages.glm(union ~ educ + exper + female, family: binomial, link: probit, se: hc3)\n",
+                "wages.glm(union ~ educ + exper + female + industry, family: binomial, cluster: worker)\n",
+                "wages.glm(union ~ educ + exper + female, family: binomial, weights: hours)\n",
+                "wages.add(copies = 1 + female).glm(union ~ educ + exper, family: binomial, weights: copies, weight_type: frequency)\n",
+                "let lr1 = wages.glm(union ~ educ + exper + female + industry, family: binomial)\nlet lr0 = wages.glm(union ~ educ + exper, family: binomial)\nlr1.fit_measures()\nlr1.coef()\nlr1.ci(female)\nlr1.compare(lr0)\nlr1.test(educ == exper, female == 0)\nlr1.derive(ratio = educ / exper, odds = exp(female))\nlr1.predict(newdata: wages.head(3))\nlr1.predict(newdata: wages.head(3), type: link)\nlr1.design().head(3)\nwages.add(response = lr0.residuals(), pearson = lr0.residuals(type: pearson), deviance = lr0.residuals(type: deviance), working = lr0.residuals(type: working), fitted = lr0.fitted()).summary([response, pearson, deviance, working, fitted])\nreport([lr0, lr1, wages.reg(union ~ educ + exper)], stats: [n_obs, r_squared, aic, bic])\n",
+            ],
+        ),
+        (
+            "glm_checked",
+            &[
+                "wages.glm(union ~ educ)\n",
+                "wages.glm(educ ~ exper, family: binomial)\n",
+                "wages.add(union = union + female - union * female).glm(union ~ educ + exper + female, family: binomial)\n",
+                "wages.add(none = 0 * union).glm(none ~ educ, family: binomial)\n",
+                "wages.glm(union ~ educ, family: binomial, weights: hours, weight_type: analytic)\n",
+                "wages.glm(union ~ educ + exper, family: binomial, cluster: worker).compare(wages.glm(union ~ exper, family: binomial, cluster: worker))\n",
+            ],
+        ),
+    ];
+    for (name, scripts) in binary {
+        let (mut stdout, mut stderr) = (String::new(), String::new());
+        for script in scripts {
+            let outcome = run_script(
+                &fs,
+                &project,
+                "scripts/main.zeff",
+                &format!("{wages}{script}"),
+            );
+            stdout.push_str(&outcome.output.stdout);
+            stderr.push_str(&outcome.output.stderr);
+        }
+        lines.push(text(&format!("models/{name}/stdout"), &stdout));
+        lines.push(text(&format!("models/{name}/stderr"), &stderr));
+    }
     lines
 }
 
@@ -1896,7 +1947,7 @@ pub struct Regression {
 /// Every regression, oldest first. The first three are the faults the pre-release routine of
 /// 0.7.0 found and corrected before its tag (release notes of 0.7.0, "Validation"); the next
 /// two, the internal errors of step 20g of 0.8.0.
-pub const REGRESSIONS: [Regression; 8] = [
+pub const REGRESSIONS: [Regression; 9] = [
     Regression {
         name: "values_above_1e150",
         corrected: "0.7.0",
@@ -1951,6 +2002,14 @@ pub const REGRESSIONS: [Regression; 8] = [
         corrected: "0.8.0",
         held: Held::Run,
         script: include_str!("../regressions/test_result_as_typst.zeff"),
+    },
+    // A `glm` fit whose likelihood is nearly flat in one direction, once an internal error of
+    // its own self-check (release 0.9.0, step 9; found by the formula fuzz target).
+    Regression {
+        name: "likelihood_flat_in_one_direction",
+        corrected: "0.9.0",
+        held: Held::Run,
+        script: include_str!("../regressions/likelihood_flat_in_one_direction.zeff"),
     },
 ];
 

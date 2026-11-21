@@ -40,3 +40,8 @@ the bound differently and the quantile ended in an internal error.
 One of 0.8.0 is a layout and no number: a test's result as Typst, whose notes widened the last
 column of its table and whose hypotheses did not stand under one another.
 
+One of 0.9.0 came from the formula fuzz target on the day it was taught `glm`: a fit whose
+likelihood is nearly flat in one direction, refused by the fit's own self-check as an internal
+error, where the score had been measured against the size of its terms and not by the gain a
+further step would bring.
+

@@ -128,6 +128,10 @@ models/ivreg/stdout 2c6aa8d411f5eca0
 models/ivreg/stderr 01ec1ac5c3294ea7
 models/instruments_checked/stdout 449797f7817b0896
 models/instruments_checked/stderr ba06c4edfe4c3af9
+models/glm/stdout 27f57fa3a3f1e4fa
+models/glm/stderr 4323efeb84564aa8
+models/glm_checked/stdout cbf29ce484222325
+models/glm_checked/stderr 370eab9a0a1ef51d
 control/check/stdout cbf29ce484222325
 control/check/stderr 78f09813226bf7ad
 control/schemas/stdout cbf29ce484222325
@@ -290,6 +294,8 @@ regressions/test_result_as_typst/stdout cbf29ce484222325
 regressions/test_result_as_typst/stderr cbf29ce484222325
 regressions/test_result_as_typst/output/one_mean.typ 84b0fd46ccc0e124
 regressions/test_result_as_typst/output/two_groups.typ 6f50e1a411dd06af
+regressions/likelihood_flat_in_one_direction/stdout d31cad93d9ded56f
+regressions/likelihood_flat_in_one_direction/stderr cbf29ce484222325
 plot/lines/stdout c69bf28498722bf2
 plot/lines/stderr 292ed9115946fd12
 plot/lines/scene 6a1463f916305adf
@@ -518,7 +524,7 @@ kernels/inverse 5b7382e62c183d11
 kernels/cholesky 85270cf23d1a64ab
 kernels/singular_values 196e8a08c4421003
 kernels/symmetric_eigen f2bc0956a6e01ad9
-kernels/irls 6b409ba7934b62b2
+kernels/irls 9e0eee1065f9e35a
 milestone/stdout 0d6778e9348f5625
 milestone/stderr b9c8b38efbf6aca6
 milestone/exit_code a8c7f832281a39c5
