@@ -57,6 +57,30 @@ impl Link {
         }
     }
 
+    /// The slope of the probability in the linear predictor, dp/dη: p(1 − p) under the logit,
+    /// the normal density under the probit (`margins`; release 0.9.0, step 12a).
+    pub fn mean_slope(self, eta: f64) -> f64 {
+        match self {
+            Link::Logit => {
+                let (p, q) = logistic(eta);
+                p * q
+            }
+            Link::Probit => normal_density(eta),
+        }
+    }
+
+    /// The second derivative of the probability in the linear predictor, d²p/dη²:
+    /// p(1 − p)(1 − 2p) under the logit, −η φ(η) under the probit.
+    pub fn mean_curve(self, eta: f64) -> f64 {
+        match self {
+            Link::Logit => {
+                let (p, q) = logistic(eta);
+                p * q * (q - p)
+            }
+            Link::Probit => -eta * normal_density(eta),
+        }
+    }
+
     /// The linear predictor of a probability strictly between 0 and 1: the link.
     pub fn link(self, p: f64) -> f64 {
         match self {

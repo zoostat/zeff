@@ -15,9 +15,18 @@
 //! in every row, the others as observed; `type: mem` takes each effect at one point, every
 //! number at its mean and every category at the shares of its levels; and with no variable
 //! named the result is the adjusted prediction, J the averaged row of the model matrix itself.
+//!
+//! Step 12a: after `glm` everything is on the scale of the probability, p = g(η) the inverse
+//! link of the linear predictor η = x·b. The slope of a number is g′(η) times the slope of η;
+//! the effect of a 0/1 variable or of a level is the difference of g(η) at the two values; the
+//! prediction is g(η); each averaged over the rows, or taken at the one point of the means. The
+//! gradient in b, of which the standard error is √(J V Jᵀ), is the average of
+//! g″(η)(dx·b)x + g′(η)dx for a slope, of g′(η₁)x₁ − g′(η₀)x₀ for a difference and of g′(η)x
+//! for a prediction; the z table is the normal distribution's, as the fit's own.
 
 use crate::dependence::{Held, NoDerivative, Role};
 use crate::design::Design;
+use crate::likelihood::Link;
 use std::rc::Rc;
 use zeff_columns::{Column, ColumnType, Table as Columns};
 use zeff_core::display::{fixed, fixed_grouped, format_float, level_text, p_value_text};
@@ -45,7 +54,16 @@ struct Effect {
     /// The variable, which the table prints.
     variable: String,
     contrast: String,
+    /// The gradient of the quantity in the coefficients, one for each column of the model
+    /// matrix: what the delta method's variance is taken through.
     jacobian: Vec<f64>,
+    /// The average of the derivative (or difference) of each column: nought on every column
+    /// the variable does not enter, so that it says whether the effect rests on a coefficient
+    /// the fit omitted. For a linear model it is the gradient.
+    linear: Vec<f64>,
+    /// The quantity itself on the scale of the probability; `None` for a linear model, where
+    /// it is the gradient times the coefficients.
+    estimate: Option<f64>,
     /// Whether the row is the adjusted prediction and not an effect.
     prediction: bool,
 }
@@ -190,6 +208,11 @@ struct Model<'a> {
     weights: Option<Vec<f64>>,
     /// The variables `at:` holds.
     at: Vec<String>,
+    /// The link of a binary model, whose effects are on the scale of the probability; `None`
+    /// for a linear model.
+    link: Option<Link>,
+    /// The coefficient of each column of the model matrix, nought for a column the fit omitted.
+    beta: Vec<f64>,
     /// What is said under the table: the terms a slope was taken through, a central difference.
     after: Vec<String>,
 }
@@ -267,7 +290,7 @@ impl Model<'_> {
 
     /// The adjusted prediction: the model matrix itself, averaged over the rows.
     fn prediction(&self) -> Effect {
-        let jacobian = (0..self.design.names.len())
+        let linear: Vec<f64> = (0..self.design.names.len())
             .map(|column| {
                 average(
                     &self.design.column_held(column, &self.held),
@@ -275,13 +298,90 @@ impl Model<'_> {
                 )
             })
             .collect();
+        let (jacobian, estimate) = match self.link {
+            None => (linear.clone(), None),
+            Some(link) => {
+                let eta = self.eta(&self.design, &self.held);
+                let slopes: Vec<f64> = eta.iter().map(|e| link.mean_slope(*e)).collect();
+                let means: Vec<f64> = eta.iter().map(|e| link.mean(*e)).collect();
+                (
+                    self.columns_by(&self.design, &self.held, &slopes),
+                    Some(average(&means, self.weights.as_deref())),
+                )
+            }
+        };
         Effect {
             term: "prediction".to_string(),
             variable: "prediction".to_string(),
             contrast: String::new(),
             jacobian,
+            linear,
+            estimate,
             prediction: true,
         }
+    }
+
+    /// The linear predictor of each row of `design`, its categories held as `held` says: the
+    /// columns times their coefficients, in the order of the columns.
+    fn eta(&self, design: &Design, held: &Held) -> Vec<f64> {
+        let mut eta = vec![0.0; design.rows.len()];
+        for (column, b) in self.beta.iter().enumerate() {
+            if *b == 0.0 {
+                continue;
+            }
+            for (e, x) in eta.iter_mut().zip(design.column_held(column, held)) {
+                *e += b * x;
+            }
+        }
+        eta
+    }
+
+    /// For each column of `design`, the average over the rows of the column times `by`.
+    fn columns_by(&self, design: &Design, held: &Held, by: &[f64]) -> Vec<f64> {
+        (0..design.names.len())
+            .map(|column| {
+                let product: Vec<f64> = design
+                    .column_held(column, held)
+                    .iter()
+                    .zip(by)
+                    .map(|(x, m)| x * m)
+                    .collect();
+                average(&product, self.weights.as_deref())
+            })
+            .collect()
+    }
+
+    /// The gradient and the value of a difference between the predictions at two settings of
+    /// the model matrix, on the scale of the probability; for a linear model the gradient is
+    /// `linear` and the value is left to it.
+    fn difference(
+        &self,
+        high: (&Design, &Held),
+        low: (&Design, &Held),
+        linear: &[f64],
+    ) -> (Vec<f64>, Option<f64>) {
+        let Some(link) = self.link else {
+            return (linear.to_vec(), None);
+        };
+        let eta_high = self.eta(high.0, high.1);
+        let eta_low = self.eta(low.0, low.1);
+        let slope_high: Vec<f64> = eta_high.iter().map(|e| link.mean_slope(*e)).collect();
+        let slope_low: Vec<f64> = eta_low.iter().map(|e| link.mean_slope(*e)).collect();
+        let jacobian: Vec<f64> = self
+            .columns_by(high.0, high.1, &slope_high)
+            .iter()
+            .zip(self.columns_by(low.0, low.1, &slope_low))
+            .map(|(h, l)| h - l)
+            .collect();
+        let differences: Vec<f64> = eta_high
+            .iter()
+            .zip(&eta_low)
+            .map(|(h, l)| link.mean(*h) - link.mean(*l))
+            .collect();
+        (
+            jacobian,
+            Some(average(&differences, self.weights.as_deref())),
+        )
     }
 
     /// Z0414: `variable` is no variable of the model.
@@ -337,11 +437,16 @@ impl Model<'_> {
                         high.iter().zip(&low[at]).map(|(h, l)| h - l).collect();
                     jacobian[column] = average(&difference, self.weights.as_deref());
                 }
+                let linear = jacobian;
+                let (jacobian, estimate) =
+                    self.difference((&self.design, &held), (&self.design, &base), &linear);
                 Effect {
                     term: format!("{variable}={}", level_name(&levels[level])),
                     variable: variable.to_string(),
                     contrast: format!("{} \u{2212} {}", levels[level], levels[0]),
                     jacobian,
+                    linear,
+                    estimate,
                     prediction: false,
                 }
             })
@@ -389,11 +494,16 @@ impl Model<'_> {
                 .collect();
             jacobian[column] = average(&difference, self.weights.as_deref());
         }
+        let linear = jacobian;
+        let (jacobian, estimate) =
+            self.difference((&high, &self.held), (&low, &self.held), &linear);
         Ok(Effect {
             term: variable.to_string(),
             variable: variable.to_string(),
             contrast,
             jacobian,
+            linear,
+            estimate,
             prediction: false,
         })
     }
@@ -413,6 +523,8 @@ impl Model<'_> {
         // The model matrix a step above and a step below, built once if a column needs them.
         let mut shifted: Option<(Design, Design, f64)> = None;
         let mut by_difference: Vec<String> = Vec::new();
+        // The derivative of each column the variable enters, row by row.
+        let mut derivatives: Vec<(usize, Vec<f64>)> = Vec::new();
         for &column in &columns {
             let derivative = match self.design.derivative_held(column, variable, held) {
                 Ok(Some(derivative)) => derivative,
@@ -460,6 +572,7 @@ impl Model<'_> {
                 ));
             }
             jacobian[column] = average(&derivative, self.weights.as_deref());
+            derivatives.push((column, derivative));
         }
         // What the slope was taken through, when that is more than the variable's own term:
         // the terms, each once, so that an interaction with a category is one name.
@@ -495,11 +608,43 @@ impl Model<'_> {
                 significant(*step)
             ));
         }
+        let linear = jacobian;
+        let (jacobian, estimate) = match self.link {
+            None => (linear.clone(), None),
+            Some(link) => {
+                // The slope of the linear predictor in the variable, then of the probability:
+                // g′(η)·s, whose gradient in b is g″(η)·s·x + g′(η)·dx.
+                let eta = self.eta(&self.design, &self.held);
+                let mut s = vec![0.0; eta.len()];
+                for (column, derivative) in &derivatives {
+                    let b = self.beta[*column];
+                    for (total, d) in s.iter_mut().zip(derivative) {
+                        *total += b * d;
+                    }
+                }
+                let slopes: Vec<f64> = eta.iter().map(|e| link.mean_slope(*e)).collect();
+                let curved: Vec<f64> = eta
+                    .iter()
+                    .zip(&s)
+                    .map(|(e, s)| link.mean_curve(*e) * s)
+                    .collect();
+                let mut jacobian = self.columns_by(&self.design, &self.held, &curved);
+                for (column, derivative) in &derivatives {
+                    let direct: Vec<f64> =
+                        derivative.iter().zip(&slopes).map(|(d, g)| d * g).collect();
+                    jacobian[*column] += average(&direct, self.weights.as_deref());
+                }
+                let effects: Vec<f64> = slopes.iter().zip(&s).map(|(g, s)| g * s).collect();
+                (jacobian, Some(average(&effects, self.weights.as_deref())))
+            }
+        };
         Ok(Effect {
             term: variable.to_string(),
             variable: variable.to_string(),
             contrast: "dy/dx".to_string(),
             jacobian,
+            linear,
+            estimate,
             prediction: false,
         })
     }
@@ -705,18 +850,7 @@ fn read_at(
 /// error, its t on the fit's degrees of freedom and its interval at the fit's level.
 pub fn margins(ctx: &mut CallContext<'_>, args: Args) -> Result<Value, Fail> {
     let fit = match args.get(0) {
-        Some(Value::Fit(fit)) if fit.kind == "RegFit" => Rc::clone(fit),
-        Some(Value::Fit(fit)) if fit.kind == "GlmFit" => {
-            return Err(fail(
-                Diagnostic::error(
-                    "Z0401",
-                    "`margins` does not yet read a `glm` fit",
-                )
-                .in_file(ctx.script)
-                .primary(ctx.span_of(0), "a `glm` fit")
-                .help("the effects of a binary model, on the scale of the probability, arrive with the next step of this release"),
-            ));
-        }
+        Some(Value::Fit(fit)) if fit.kind == "RegFit" || fit.kind == "GlmFit" => Rc::clone(fit),
         other => {
             return Err(fail(
                 Diagnostic::error(
@@ -730,6 +864,19 @@ pub fn margins(ctx: &mut CallContext<'_>, args: Args) -> Result<Value, Fail> {
                 .primary(ctx.span_of(0), "not a `reg` or a `glm` fit"),
             ));
         }
+    };
+    // After `glm` the effects are on the scale of the probability, through the fit's link.
+    let link = match fit.likelihood.as_deref() {
+        Some(likelihood) => match Link::named(&likelihood.link) {
+            Some(link) => Some(link),
+            None => {
+                return Err(internal(
+                    ctx,
+                    "a `glm` fit of a link `margins` does not know",
+                ));
+            }
+        },
+        None => None,
     };
     let mut names: Vec<String> = Vec::new();
     match args.get(1) {
@@ -877,6 +1024,10 @@ pub fn margins(ctx: &mut CallContext<'_>, args: Args) -> Result<Value, Fail> {
         .iter()
         .map(|name| fit.terms.iter().position(|t| t == name))
         .collect();
+    let beta: Vec<f64> = position
+        .iter()
+        .map(|p| p.map_or(0.0, |p| fit.estimates[p]))
+        .collect();
     let mut model = Model {
         fit: &fit,
         observed,
@@ -885,6 +1036,8 @@ pub fn margins(ctx: &mut CallContext<'_>, args: Args) -> Result<Value, Fail> {
         held,
         weights,
         at: at.iter().map(|field| field.name.clone()).collect(),
+        link,
+        beta,
         after: Vec::new(),
     };
     let predicting = names.is_empty();
@@ -895,10 +1048,33 @@ pub fn margins(ctx: &mut CallContext<'_>, args: Args) -> Result<Value, Fail> {
     for name in &names {
         effects.extend(model.effects(ctx, name)?);
     }
-    // The reference distribution of the fit's own table: Student's t on its degrees of freedom.
-    let reference = Distribution::Family {
-        name: "t",
-        params: vec![("df", fit.df_residual as f64)],
+    // The reference distribution of the fit's own table: Student's t on its degrees of freedom
+    // for a regression, the standard normal for a fit by maximum likelihood.
+    let reference = if link.is_some() {
+        Distribution::Family {
+            name: "normal",
+            params: vec![("mean", 0.0), ("sd", 1.0)],
+        }
+    } else {
+        Distribution::Family {
+            name: "t",
+            params: vec![("df", fit.df_residual as f64)],
+        }
+    };
+    let statistic_of = |value: f64| -> Statistic {
+        if link.is_some() {
+            Statistic {
+                name: "z".to_string(),
+                value,
+                df: Vec::new(),
+            }
+        } else {
+            Statistic {
+                name: "t".to_string(),
+                value,
+                df: vec![fit.df_residual as f64],
+            }
+        }
     };
     let quantile = families::quantile(&reference, 1.0 - (1.0 - fit.level) / 2.0);
     let k = fit.terms.len();
@@ -910,7 +1086,7 @@ pub fn margins(ctx: &mut CallContext<'_>, args: Args) -> Result<Value, Fail> {
         // a prediction takes such a coefficient as nought, as `predict` does.
         let estimable = effect.prediction
             || effect
-                .jacobian
+                .linear
                 .iter()
                 .zip(&position)
                 .all(|(j, p)| *j == 0.0 || p.is_some());
@@ -927,16 +1103,17 @@ pub fn margins(ctx: &mut CallContext<'_>, args: Args) -> Result<Value, Fail> {
                 gradient[*p] = *j;
             }
         }
-        let mut estimate = 0.0;
+        let mut linear_estimate = 0.0;
         let mut variance = 0.0;
         for (a, weight) in gradient.iter().enumerate() {
-            estimate += weight * fit.estimates[a];
+            linear_estimate += weight * fit.estimates[a];
             let mut row = 0.0;
             for (b, other) in gradient.iter().enumerate() {
                 row += fit.vcov[a * k + b] * other;
             }
             variance += weight * row;
         }
+        let estimate = effect.estimate.unwrap_or(linear_estimate);
         let std_error = variance.max(0.0).sqrt();
         if !estimable || !estimate.is_finite() || !std_error.is_finite() || std_error == 0.0 {
             let na = || "NA".to_string();
@@ -953,11 +1130,7 @@ pub fn margins(ctx: &mut CallContext<'_>, args: Args) -> Result<Value, Fail> {
             rows.push(cells);
             terms.push(TermTest {
                 term: effect.term.clone(),
-                statistic: Statistic {
-                    name: "t".to_string(),
-                    value: f64::NAN,
-                    df: vec![fit.df_residual as f64],
-                },
+                statistic: statistic_of(f64::NAN),
                 p_value: f64::NAN,
                 effect: None,
                 estimate: Some(Estimate {
@@ -991,11 +1164,7 @@ pub fn margins(ctx: &mut CallContext<'_>, args: Args) -> Result<Value, Fail> {
         rows.push(cells);
         terms.push(TermTest {
             term: effect.term.clone(),
-            statistic: Statistic {
-                name: "t".to_string(),
-                value: t,
-                df: vec![fit.df_residual as f64],
-            },
+            statistic: statistic_of(t),
             p_value: p,
             effect: None,
             estimate: Some(Estimate {
@@ -1028,13 +1197,25 @@ pub fn margins(ctx: &mut CallContext<'_>, args: Args) -> Result<Value, Fail> {
     // the effects are averaged over; where the standard errors come from.
     let mut header = Vec::new();
     if fit.name.is_some() {
-        header.push(format!("{} \u{b7} {}", fit.method, fit.formula));
+        header.push(match fit.likelihood.as_deref() {
+            Some(likelihood) => format!(
+                "{} \u{b7} {} \u{b7} {}, {}",
+                fit.method, fit.formula, likelihood.family, likelihood.link
+            ),
+            None => format!("{} \u{b7} {}", fit.method, fit.formula),
+        });
     }
     let observations = fixed_grouped(fit.n as f64, 0);
-    let over = if at_means {
-        format!("at the means over the {observations} observations the fit used")
+    // After `glm` everything is a probability, or a change of one.
+    let scale = if link.is_some() {
+        "on the scale of the probability, "
     } else {
-        format!("averaged over the {observations} observations the fit used")
+        ""
+    };
+    let over = if at_means {
+        format!("{scale}at the means over the {observations} observations the fit used")
+    } else {
+        format!("{scale}averaged over the {observations} observations the fit used")
     };
     header.push(match (fit.weight_kind, source.weights.as_deref()) {
         (Some(WeightKind::Frequency), Some(w)) => format!("{over}, the rows counted by `{w}`"),
@@ -1075,7 +1256,10 @@ pub fn margins(ctx: &mut CallContext<'_>, args: Args) -> Result<Value, Fail> {
     columns.extend([
         ("estimate".to_string(), Align::Right),
         ("std.error".to_string(), Align::Right),
-        ("t value".to_string(), Align::Right),
+        (
+            if link.is_some() { "z value" } else { "t value" }.to_string(),
+            Align::Right,
+        ),
         ("p value".to_string(), Align::Right),
         (level_heading(fit.level), Align::Left),
     ]);
@@ -1095,11 +1279,7 @@ pub fn margins(ctx: &mut CallContext<'_>, args: Args) -> Result<Value, Fail> {
             rules: Vec::new(),
         }),
         estimate: None,
-        statistic: Statistic {
-            name: "t".to_string(),
-            value: f64::NAN,
-            df: vec![fit.df_residual as f64],
-        },
+        statistic: statistic_of(f64::NAN),
         p_value: f64::NAN,
         terms,
         effect: None,

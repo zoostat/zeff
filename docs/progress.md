@@ -90,7 +90,9 @@ Step 11 split into 11a and 11b. Step 11a `[engine]`: `fit.margins(vars)` after `
 
 Step 11b `[engine]`: `at:` (a variable held at a value, the others as observed), `type: mem` (every number at its mean, a category at the shares of its levels) and, with no variable named, the adjusted prediction, for `reg`; ten further cases against R within 1e-8. Step 11 is done.
 
-**Next.** Step 12 `[engine]`: `margins` for `glm`. Step 3, the weekly run of 23 November, when it has ended.
+Step 12 split into 12a and 12b. Step 12a `[engine]`: `margins` after `glm`, every effect and prediction on the scale of the probability through the link (slopes, differences, the adjusted prediction; averaged or at the means; held values; robust and clustered errors; a z table), twelve cases against R within 1e-7. From 22 November the owner's instruction is to go from one step to the next without a stop, taking the recommended option where a decision is needed.
+
+**Next.** Step 12b `[engine]`: several values in `at:`, and the truth-recovery run of `margins` in the nightly job. Step 3, the weekly run of 23 November, when it has ended.
 
 **For the owner.** The printed table of `margins` (#202 (d)), shown at step 11a, is yours to change; #202 (a) to (e) are taken as recommended. #198, #199 and #200 and #201 (a) (taken as recommended, yours to overturn before 1.0; #201 (b) is open and yours: which standardized coefficients a `glm` fit has, refused until you choose; #200: `predict` gives a probability and `residuals` the outcome less it unless `type:` says otherwise, where R gives log-odds and deviance residuals): on a `glm` fit, clustered errors carry the factor (N − 1)/(N − k) that Stata's `logit` and R's `vcovCL` left to itself omit; analytic weights are refused on a binary model, as in Stata.
 

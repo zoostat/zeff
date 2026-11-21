@@ -311,7 +311,6 @@ fn the_printed_forms_and_every_message() {
         format!(
             "{W}let m = wages.reg(log(wage) ~ educ + exper + female)\nm.test(educ == 0).margins(educ)\n"
         ),
-        format!("{W}let g = wages.glm(union ~ educ + exper, family: binomial)\ng.margins(educ)\n"),
         format!(
             "{W}let v = wages.ivreg(log(wage) ~ educ + exper, instruments: educ ~ age)\nv.margins(exper)\n"
         ),

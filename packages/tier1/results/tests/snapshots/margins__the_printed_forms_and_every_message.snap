@@ -304,19 +304,6 @@ error[Z0401]: `margins` cannot be called on a TestResult
 [exit 1]
 
 === let wages = dataset(wages)
-let g = wages.glm(union ~ educ + exper, family: binomial)
-g.margins(educ) ===
---- messages ---
-error[Z0401]: `margins` does not yet read a `glm` fit
- --> scripts/main.zeff:3:1
-  |
-3 | g.margins(educ)
-  | ^ a `glm` fit
-  |
-  = help: the effects of a binary model, on the scale of the probability, arrive with the next step of this release
-[exit 1]
-
-=== let wages = dataset(wages)
 let v = wages.ivreg(log(wage) ~ educ + exper, instruments: educ ~ age)
 v.margins(exper) ===
 --- messages ---

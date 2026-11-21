@@ -9,7 +9,7 @@ Marginal effects and adjusted predictions, with delta-method standard errors
 - A number gives a slope; a Bool, a 0/1 variable or a category a difference between its values.
 - `at: {exper: 10}` holds a variable at a value; `type: mem` takes the effects at the means.
 - `m.margins()`, with no variable, gives the adjusted prediction, at the values of `at:` if given.
-- The standard errors follow the fit's own: classical, robust or clustered.
+- After `glm` the effects are changes in the probability; the standard errors follow the fit's own.
 
 ## Description
 Answers the question a table of coefficients answers only for the simplest model: by how much
@@ -32,10 +32,12 @@ the rows. With no variable named, the answer is not an effect but the adjusted p
 average of the model's predictions for the rows, or the prediction at the means, with the
 variables of `at:` held at its values.
 
-At this release `margins` reads a fit of `reg`.
+`margins` reads a fit of `reg` or of `glm`. After `glm` the coefficients are on the scale of the
+link, log-odds under the logit, and say little by themselves; `margins` gives every effect and
+every prediction on the scale of the probability.
 
 ## Arguments
-- fit: The fit, from `reg`.
+- fit: The fit, from `reg` or `glm`.
 - vars: The variable whose effect is wanted, or a list of several, named without quotes. A variable is named, not a term: `exper`, not `exper^2`. Left out, the result is the adjusted prediction.
 - at: The values to hold variables at, as a record: `{exper: 10, industry: "Mining"}`. A number is held at a number and a category at one of its levels; every other variable stays as it is.
 - type: `ame`, the average over the rows the fit used, or `mem`, at the means of the variables; `ame` unless given.
@@ -43,8 +45,8 @@ At this release `margins` reads a fit of `reg`.
 ## Value
 A `TestResult` whose table has a row for each effect: the variable, what is compared (`dy/dx`
 for a slope, the two values or the two levels for a difference), the estimate, its standard
-error, the t value on the fit's degrees of freedom, the p-value and the interval at the fit's
-level. The lines above the table say what the effects are averaged over, or that they are at
+error, the t value on the fit's degrees of freedom (the z value, after `glm`), the p-value and
+the interval at the fit's level. The lines above the table say what the effects are averaged over, or that they are at
 the means, and what `at:` holds; lines under it say which terms a slope was taken through. With
 no variable named the table has the one row `prediction`. `estimates` gives the
 rows as a frame at full precision and `ci` the intervals; a row is named as the fit names the
@@ -104,13 +106,27 @@ held, the average prediction is the mean of the fitted values. After `fe:` a pre
 need the level of each fixed effect and is refused (Z0401); the effects of variables are given
 as before.
 
+### After glm
+With p the probability the model gives a row, a function of the row's linear combination of the
+regressors, the slope in a number is the slope of p: the slope of that combination, through
+every term the variable enters, times how fast the probability rises with it at the row, which
+is p(1 − p) under the logit and the normal density under the probit. The effect of a 0/1
+variable or of a level is the difference between the probabilities at the two values, and the
+adjusted prediction is the probability itself. Each differs from row to row even in a model
+without interactions, so here the average over the rows and the value at the means are not the
+same thing: `type: mem` gives the effect for the one point of the means, the average of
+nothing. With nothing held, the average prediction of a logit is the share of ones.
+
 ### Standard errors
 In a linear model every effect is a weighted sum of the coefficients, the weights being the
 average over the rows of the derivative (or of the difference) of each column of the model
 matrix. Its variance is that sum's variance under the fit's own variance matrix, so a fit with
 robust or clustered errors gives effects with robust or clustered errors. The regressors are
 held as they are in the sample: the standard error does not allow for another sample having
-other values of them. The t value and the interval use the fit's degrees of freedom.
+other values of them. The t value and the interval use the fit's degrees of freedom. After
+`glm` an effect is not a weighted sum of the coefficients but a smooth function of them, and its
+variance is taken through the function's gradient at the estimates; the z value and the
+interval are the normal distribution's, as the fit's own table has them.
 
 ### Weights and fixed effects
 Under weights the average over the rows is weighted by them, each row counted as its weight
@@ -143,6 +159,9 @@ its own name: the slope through `exper^2` is part of `margins(exper)`.
 | m.margins() | marginaleffects::avg_predictions(m) | margins |
 | m.margins(at: {z: 10}) | marginaleffects::avg_predictions(m, newdata = transform(d, z = 10)) | margins, at(z = 10) |
 
+After a logit or a probit the same calls give effects on the probability in all three: R's
+`glm` with marginaleffects, Stata's `logit` or `probit` with `margins`.
+
 Stata takes the slope through a square only when the model is written with its factor
 notation, `c.exper##c.exper`; here, as in R with `I(exper^2)`, the formula's own `exper^2` is
 enough. Stata treats a 0/1 variable as a number unless it is written `i.d`, and then gives the
@@ -150,7 +169,8 @@ difference; here, as in marginaleffects, a 0/1 variable always gives the differe
 estimates agree with both. The standard errors agree with Stata's, and with marginaleffects'
 when it is given the same variance matrix (`vcov =`); the p-values and intervals are from
 Student's t, as Stata's are after `regress`, where marginaleffects uses the normal distribution
-unless `df =` is set. Under weights Stata weights the average as here; marginaleffects does so
+unless `df =` is set. After `glm` all three use the normal distribution; clustered errors carry
+the factor the page of `glm` describes. Under weights Stata weights the average as here; marginaleffects does so
 when `wts = TRUE`. At the means, a category stands at the shares of its levels, as under
 Stata's `atmeans`; marginaleffects' `newdata = "mean"` puts a category at its commonest level,
 so the two agree only for a model without categories. In R the data must be the rows the fit
@@ -171,7 +191,7 @@ Arel-Bundock, V., Greifer, N. and Heiss, A. (2024), How to interpret statistical
 marginaleffects for R and Python, Journal of Statistical Software, 111(9).
 
 ## See also
-reg, coef, derive, test, predict, estimates, ci
+reg, glm, coef, derive, test, predict, estimates, ci
 
 ## Examples
 // The average effects after a model with a square: the slope in exper is not its coefficient.
@@ -259,3 +279,17 @@ standard errors: robust (HC1), by the delta method
 
   quantity     estimate   std.error   t value   p value   95% CI
   prediction     3.3149      0.0057    583.37    <0.001   [3.3037, 3.3260]
+
+// After a logit: a year of experience raises the probability of union membership by 0.6 points.
+> let g = wages.glm(union ~ educ + exper + exper^2 + female, family: binomial)
+> g.margins([exper, female])
+margins · g · average marginal effects
+glm · union ~ educ + exper + exper^2 + female · binomial, logit
+on the scale of the probability, averaged over the 18,390 observations the fit used
+standard errors: classical, by the delta method
+
+  variable   contrast        estimate   std.error   z value   p value   95% CI
+  exper      dy/dx             0.0060      0.0005     12.33    <0.001   [0.0050, 0.0069]
+  female     female − male     0.0117      0.0068      1.70     0.089   [-0.0018, 0.0251]
+
+the slope of `exper` is taken through `exper` and `exper^2`

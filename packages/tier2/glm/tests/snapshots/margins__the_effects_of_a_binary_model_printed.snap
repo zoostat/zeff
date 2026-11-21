@@ -1,0 +1,190 @@
+---
+source: packages/tier2/glm/tests/margins.rs
+expression: out
+---
+=== let wages = dataset(wages)
+let g = wages.glm(union ~ educ + exper + exper^2 + female, family: binomial)
+g.margins([educ, exper, female])
+let e = g.margins([exper, female])
+e.estimates()
+e.ci()
+e.p_values(female)
+e.statistic(exper)
+e.df(exper)
+let p = wages.glm(union ~ educ * female + exper + log(hours), family: binomial, link: probit, se: robust, level: 0.9)
+p.margins([educ, female, hours]) ===
+margins · g · average marginal effects
+glm · union ~ educ + exper + exper^2 + female · binomial, logit
+on the scale of the probability, averaged over the 18,390 observations the fit used
+standard errors: classical, by the delta method
+
+  variable   contrast        estimate   std.error   z value   p value   95% CI
+  educ       dy/dx             0.0003      0.0015      0.21     0.831   [-0.0025, 0.0032]
+  exper      dy/dx             0.0060      0.0005     12.33    <0.001   [0.0050, 0.0069]
+  female     female − male     0.0117      0.0068      1.70     0.089   [-0.0018, 0.0251]
+
+the slope of `exper` is taken through `exper` and `exper^2`
+frame · 2 rows × 9 variables
+
+      term       estimate     std_error   statistic   df   df2       p_value     ci_lower     ci_upper
+  1   exper    0.00598486   0.000485474     12.3279   NA    NA   6.41176e-35   0.00503335   0.00693637
+  2   female    0.0116525    0.00684185     1.70312   NA    NA     0.0885459   -0.0017573    0.0250623
+ci · 95%
+
+  term       lower    upper
+  exper     0.0050   0.0069
+  female   -0.0018   0.0251
+0.0885459
+12.3279
+NA
+margins · p · average marginal effects
+glm · union ~ educ * female + exper + log(hours) · binomial, probit
+on the scale of the probability, averaged over the 18,355 observations the fit used
+standard errors: robust (HC1), by the delta method
+
+  variable   contrast        estimate   std.error   z value   p value   90% CI
+  educ       dy/dx             0.0002      0.0014      0.15     0.882   [-0.0022, 0.0026]
+  female     female − male     0.0222      0.0069      3.21     0.001   [0.0108, 0.0337]
+  hours      dy/dx             0.0036      0.0004      8.68    <0.001   [0.0029, 0.0043]
+
+the slope of `educ` is taken through `educ` and `educ:female`
+the slope of `hours` is taken through `log(hours)`
+--- messages ---
+[exit 0]
+
+=== let wages = dataset(wages)
+let c = wages.glm(union ~ industry + educ + female + female:educ, family: binomial, cluster: worker)
+c.margins([industry, female])
+c.margins([female, educ], at: {industry: "Mining", educ: 12})
+c.margins([female, educ, industry], type: mem) ===
+margins · c · average marginal effects
+glm · union ~ industry + educ + female + female:educ · binomial, logit
+on the scale of the probability, averaged over the 18,412 observations the fit used
+standard errors: clustered by worker (3,911 clusters, CR1), by the delta method
+
+  variable   contrast                              estimate   std.error   z value   p value   95% CI
+  industry   Mining − Agriculture                    0.0766      0.1067      0.72     0.473   [-0.1325, 0.2858]
+  industry   Utilities − Agriculture                 0.1545      0.0807      1.92     0.055   [-0.0036, 0.3126]
+  industry   Construction − Agriculture             -0.0112      0.0589     -0.19     0.849   [-0.1267, 0.1043]
+  industry   Manufacturing − Agriculture             0.0826      0.0555      1.49     0.136   [-0.0261, 0.1914]
+  industry   Retail − Agriculture                   -0.1586      0.0533     -2.97     0.003   [-0.2631, -0.0540]
+  industry   Transport − Agriculture                -0.0143      0.0623     -0.23     0.819   [-0.1363, 0.1077]
+  industry   Finance − Agriculture                  -0.1942      0.0552     -3.52    <0.001   [-0.3023, -0.0861]
+  industry   Services − Agriculture                 -0.1312      0.0541     -2.42     0.015   [-0.2373, -0.0252]
+  industry   Education − Agriculture                 0.0403      0.0583      0.69     0.489   [-0.0739, 0.1545]
+  industry   Health − Agriculture                   -0.0775      0.0557     -1.39     0.165   [-0.1867, 0.0318]
+  industry   Public administration − Agriculture     0.1136      0.0599      1.90     0.058   [-0.0038, 0.2311]
+  female     female − male                           0.0133      0.0168      0.79     0.428   [-0.0196, 0.0461]
+margins · c · average marginal effects
+glm · union ~ industry + educ + female + female:educ · binomial, logit
+on the scale of the probability, averaged over the 18,412 observations the fit used
+at: industry = Mining, educ = 12
+standard errors: clustered by worker (3,911 clusters, CR1), by the delta method
+
+  variable   contrast        estimate   std.error   z value   p value   95% CI
+  female     female − male     0.0345      0.0234      1.47     0.140   [-0.0114, 0.0805]
+  educ       dy/dx            -0.0074      0.0040     -1.84     0.066   [-0.0154, 0.0005]
+
+the slope of `educ` is taken through `educ` and `female:educ`
+margins · c · marginal effects at the means
+glm · union ~ industry + educ + female + female:educ · binomial, logit
+on the scale of the probability, at the means over the 18,412 observations the fit used
+standard errors: clustered by worker (3,911 clusters, CR1), by the delta method
+
+  variable   contrast                              estimate   std.error   z value   p value   95% CI
+  female     female − male                           0.0131      0.0174      0.75     0.450   [-0.0210, 0.0472]
+  educ       dy/dx                                  -0.0064      0.0035     -1.83     0.067   [-0.0132, 0.0004]
+  industry   Mining − Agriculture                    0.0768      0.1070      0.72     0.473   [-0.1328, 0.2865]
+  industry   Utilities − Agriculture                 0.1549      0.0809      1.92     0.055   [-0.0036, 0.3134]
+  industry   Construction − Agriculture             -0.0113      0.0591     -0.19     0.849   [-0.1270, 0.1045]
+  industry   Manufacturing − Agriculture             0.0829      0.0556      1.49     0.136   [-0.0262, 0.1919]
+  industry   Retail − Agriculture                   -0.1588      0.0534     -2.97     0.003   [-0.2636, -0.0541]
+  industry   Transport − Agriculture                -0.0143      0.0624     -0.23     0.819   [-0.1366, 0.1080]
+  industry   Finance − Agriculture                  -0.1944      0.0552     -3.52    <0.001   [-0.3027, -0.0861]
+  industry   Services − Agriculture                 -0.1314      0.0542     -2.42     0.015   [-0.2378, -0.0251]
+  industry   Education − Agriculture                 0.0404      0.0584      0.69     0.489   [-0.0741, 0.1548]
+  industry   Health − Agriculture                   -0.0776      0.0558     -1.39     0.165   [-0.1871, 0.0319]
+  industry   Public administration − Agriculture     0.1139      0.0601      1.90     0.058   [-0.0038, 0.2317]
+
+the slope of `educ` is taken through `educ` and `female:educ`
+--- messages ---
+[exit 0]
+
+=== let wages = dataset(wages)
+let g = wages.glm(union ~ educ * female + exper + exper^2 + industry, family: binomial)
+g.margins()
+g.margins(at: {exper: 10, industry: "Mining", female: 1})
+g.margins(type: mem)
+g.margins(type: mem, at: {educ: 16}) ===
+margins · g · average adjusted prediction
+glm · union ~ educ * female + exper + exper^2 + industry · binomial, logit
+on the scale of the probability, averaged over the 18,390 observations the fit used
+standard errors: classical, by the delta method
+
+  quantity     estimate   std.error   z value   p value   95% CI
+  prediction     0.3181      0.0033     95.66    <0.001   [0.3115, 0.3246]
+margins · g · average adjusted prediction
+glm · union ~ educ * female + exper + exper^2 + industry · binomial, logit
+on the scale of the probability, averaged over the 18,390 observations the fit used
+at: exper = 10, industry = Mining, female = 1
+standard errors: classical, by the delta method
+
+  quantity     estimate   std.error   z value   p value   95% CI
+  prediction     0.3960      0.0348     11.39    <0.001   [0.3278, 0.4642]
+margins · g · adjusted prediction at the means
+glm · union ~ educ * female + exper + exper^2 + industry · binomial, logit
+on the scale of the probability, at the means over the 18,390 observations the fit used
+standard errors: classical, by the delta method
+
+  quantity     estimate   std.error   z value   p value   95% CI
+  prediction     0.2934      0.0046     63.46    <0.001   [0.2844, 0.3025]
+margins · g · adjusted prediction at the means
+glm · union ~ educ * female + exper + exper^2 + industry · binomial, logit
+on the scale of the probability, at the means over the 18,390 observations the fit used
+at: educ = 16
+standard errors: classical, by the delta method
+
+  quantity     estimate   std.error   z value   p value   95% CI
+  prediction     0.2932      0.0059     50.12    <0.001   [0.2817, 0.3047]
+--- messages ---
+[exit 0]
+
+=== let wages = dataset(wages)
+wages.glm(union ~ educ * female + exper, family: binomial, weights: hours).margins([educ, female])
+wages.glm(union ~ exper + exper^2 + female, family: binomial, weights: educ, weight_type: frequency).margins(exper) ===
+margins · union ~ educ * female + exper · average marginal effects
+on the scale of the probability, averaged over the 18,355 observations the fit used, weighted by `hours`
+standard errors: robust (HC1), by the delta method
+
+  variable   contrast        estimate   std.error   z value   p value   95% CI
+  educ       dy/dx             0.0003      0.0015      0.18     0.858   [-0.0027, 0.0032]
+  female     female − male     0.0130      0.0071      1.84     0.066   [-0.0009, 0.0268]
+
+the slope of `educ` is taken through `educ` and `educ:female`
+margins · union ~ exper + exper^2 + female · average marginal effects
+on the scale of the probability, averaged over the 248,108 observations the fit used, the rows counted by `educ`
+standard errors: classical, by the delta method
+
+  variable   contrast   estimate   std.error   z value   p value   95% CI
+  exper      dy/dx        0.0058      0.0001     46.50    <0.001   [0.0056, 0.0061]
+
+the slope of `exper` is taken through `exper` and `exper^2`
+--- messages ---
+[exit 0]
+
+=== let wages = dataset(wages)
+let w = wages.add(twice = educ * 2)
+w.glm(union ~ educ + twice + female, family: binomial).margins([educ, twice, female]) ===
+margins · union ~ educ + twice + female · average marginal effects
+on the scale of the probability, averaged over the 18,412 observations the fit used
+standard errors: classical, by the delta method
+
+  variable   contrast        estimate   std.error   z value   p value   95% CI
+  educ       dy/dx            -0.0057      0.0014     -4.13    <0.001   [-0.0084, -0.0030]
+  twice      dy/dx                 NA          NA        NA        NA   NA
+  female     female − male     0.0097      0.0069      1.42     0.156   [-0.0037, 0.0232]
+
+`twice` rests on a term the fit omitted as collinear, so it is not estimable
+--- messages ---
+note: `twice` is collinear with the columns before it and was dropped (line 3)
+[exit 0]
