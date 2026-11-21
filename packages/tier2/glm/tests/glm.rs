@@ -1383,3 +1383,29 @@ fn the_tests_the_comparison_and_the_combinations_printed() {
         .join("\n====\n");
     insta::assert_snapshot!("glm_inference", all);
 }
+
+/// The tables and plots of a `glm` fit (step 8c): `report` of the sample script's two fits, of
+/// a regression beside a `glm` fit with the criteria, and of a fit that carries a warning
+/// (W1008, in the footer under its column's number); `summary` with its options (the BIC added;
+/// `standardized:` refused); `design`; `coef_plot`; and a report exported.
+#[test]
+fn the_tables_and_plots_of_a_glm_fit() {
+    let fits = "let wages = dataset(wages)\nlet lg = wages.glm(union ~ educ + exper + female, family: binomial, cluster: worker)\nlet pr = wages.glm(union ~ educ + exper + female, family: binomial, link: probit, cluster: worker)\nlet m = wages.reg(union ~ educ + exper + female)\n";
+    let lines = [
+        "report([lg, pr])\n",
+        "report([lg, m], stats: [n_obs, r_squared, aic, bic], stars: false)\n",
+        "let edge = import(\"data/extreme_regressor.csv\").glm(y ~ x + z, family: binomial)\nreport([edge, edge], digits: 2)\n",
+        "lg.summary(fit_measures: true)\n",
+        "lg.summary(standardized: true)\n",
+        "lg.design().head(3)\n",
+        "wages.glm(union ~ educ + industry, family: binomial, weights: hours).design().summary()\n",
+        "lg.coef_plot()\n",
+        "report([lg, pr]).export(\"output/table_union.tex\")\n",
+    ];
+    let all = lines
+        .iter()
+        .map(|line| format!("{line}---\n{}", printed(&format!("{fits}{line}"))))
+        .collect::<Vec<_>>()
+        .join("\n====\n");
+    insta::assert_snapshot!("glm_tables_and_plots", all);
+}

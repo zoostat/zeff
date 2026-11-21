@@ -122,6 +122,8 @@ Date: 17 October 2026 · Source: Zeff Specification section 15, Zemp Specificati
 
 **Status (21 November 2026, release 0.9.0, step 8a).** #200 is new: what `predict` and `residuals` give a `glm` fit when `type:` is left out, where R and Stata differ. Taken as recommended (A, the scale of the outcome) under the owner's standing instruction, his to overturn before 1.0.
 
+**Status (21 November 2026, release 0.9.0, step 8c).** #201 is new, in two parts: what the `R²` row of `report` shows for a `glm` fit (McFadden's, marked; taken as recommended under the standing instruction), and which standardization `summary(standardized: true)` gives a `glm` fit (refused until the owner chooses; open, deadline 1.0).
+
 ## Summary
 
 | # | Decision | Recommendation | Decide by |
@@ -213,6 +215,7 @@ Date: 17 October 2026 · Source: Zeff Specification section 15, Zemp Specificati
 | 85 | The Games–Howell comparison in `posthoc` | Add `games_howell` to `method:` in the first release after 0.7.0 with room; until then Tukey's HSD after Welch's ANOVA prints a note | decided 21 November 2026 (option A, on the recommendation); built at 0.9.0, step 29 |
 | 86 | Folding, snippets and the statement ranges behind **Run** in the language server | At 0.8.0, with Zemp's alpha; formatting through the server is built at 0.7.0 | decided 15 November 2026 (option A); built at 0.8.0, step 8b |
 | 87 | A variable name in an option record | Accept a `Vars` of exactly one variable where a parameter takes a `Var`, so that `{ se: robust, cluster: vars(firm) }` can be named once and spread | decided 15 November 2026 (option A); built at 0.8.0, step 4 |
+| 201 | A `glm` fit in `report` and under `summary(standardized:)` | Recommended A for each: the `R²` row of `report` shows McFadden's R² marked `(McFadden)`; `standardized: true` is refused on a `glm` fit until a standardization is chosen | the first decided at 0.9.0, step 8c, under the standing instruction (A); the second open, deadline 1.0 |
 | 200 | What `predict` and `residuals` give a `glm` fit unless told | Recommended A: the scale of the outcome for both, `type: response`: a probability from `predict`, the outcome less the fitted probability from `residuals`; R's defaults (`link`, `deviance`) one word away | decided at 0.9.0, step 8a, under the standing instruction (A); the owner's to overturn before 1.0 |
 | 199 | Analytic weights on a binary model | Recommended A: `weight_type: analytic` is refused on `glm` with `family: binomial` (Z0410), as Stata refuses `aweight` on `logit`; frequency and sampling weights are taken | decided at 0.9.0, step 7c, under the standing instruction (A); the owner's to overturn before 1.0 |
 | 198 | The small-sample factor of robust and clustered errors on a likelihood fit | Recommended A: the factors of the variance layer for every model, HC1 N/(N − k) and CR1 G/(G − 1) · (N − 1)/(N − k), as section 8.3, point 2, of the Engine Specification says | decided at 0.9.0, step 7b, under the standing instruction (A); the owner's to overturn before 1.0 |
@@ -3936,3 +3939,29 @@ Raised on 21 November 2026 at release 0.9.0, step 8a. A model fitted by maximum 
 *Recommendation.* A, with the page of each method saying what R gives and which word gives it here. Deadline: 1.0.
 
 **Decided (21 November 2026, release 0.9.0, step 8a).** A, taken as recommended under the owner's standing instruction of 12 November 2026, and announced to him with the step; his to overturn before 1.0. On a least-squares fit `predict` takes either word (it has one scale) and `residuals` takes `response` alone, another word being refused (Z0401): the weighted kinds of a regression's residuals are not built.
+
+### 201. A `glm` fit in `report` and under `summary(standardized:)`
+
+Raised on 21 November 2026 at release 0.9.0, step 8c, when the tables of the result interface took a `glm` fit. Two questions of what is printed.
+
+**(a) The `R²` row of `report`.** The row is among the default statistics, and a binary model has no R² of least squares.
+
+| Option | For | Against |
+| --- | --- | --- |
+| A. McFadden's R², marked: `0.007 (McFadden)` | The row is not blank in a table of binary models, and says which R² it is, as `(within)` does for a model with fixed effects; Stata's tables print it as "Pseudo R2" | A reader may still set it beside a regression's R² in a mixed table |
+| B. Blank for a `glm` fit, as for a fit by instrumental variables | No number that might be misread | A table of two logits has an empty row by default |
+| C. A row of its own, with a new word in `stats:` | The cleanest table | A new option word, after the freeze |
+
+*Recommendation.* A. **Decided (21 November 2026, step 8c):** A, under the owner's standing instruction; his to overturn before 1.0.
+
+**(b) `summary(standardized: true)` on a `glm` fit.** For a regression the column `beta` is the estimate times the standard deviation of its regressor over that of the outcome. For a binary model that quotient is not a standard quantity: the outcome's standard deviation is that of a 0 or 1, not of what the coefficients are on the scale of.
+
+| Option | For | Against |
+| --- | --- | --- |
+| A. Standardized by the regressor alone: the estimate times the standard deviation of its regressor, the change in the log-odds (or the normal score) for one standard deviation | Simple, and what Stata's `listcoef` calls bStdX (Long and Freese); needs no assumption about a latent outcome | Not what `beta` means for a regression; the column needs a heading of its own |
+| B. Fully standardized through the latent outcome, whose variance is that of the linear predictor plus π²/3 (logit) or 1 (probit) | The nearest thing to a regression's beta; `listcoef`'s bStdXY | Rests on the latent-variable reading of the model; changes with the link |
+| C. Refused on a `glm` fit, the help saying to standardize the regressors before fitting | No number whose meaning is unsettled | An option that one kind of fit does not take |
+
+*Recommendation.* A, with the heading `beta (x)`, when the catalogue next opens; until the owner chooses, C is what the engine does (a refusal settles nothing). Deadline: 1.0.
+
+**Status (21 November 2026).** (b) is open: `standardized: true` is refused on a `glm` fit (Z0401).

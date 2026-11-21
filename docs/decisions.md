@@ -6900,3 +6900,14 @@ Of the 10,360 mutants 359 did not compile. The 815 are 540 that no test failed u
 
 **Held by.** `packages/tier2/glm/tests/glm.rs`: on the sample script's model with each link, against R (`binary.json`, `inference`): four Wald tests under the classical variance and two under the clustered one against `car::linearHypothesis` (the statistic within 1e-8), the likelihood-ratio test against `anova(test = "LRT")` with either fit the receiver (1e-9; its p-value of 1.7e-200 within 1e-6), three nonlinear combinations against `car::deltaMethod` (estimate 1e-9, standard error 1e-8, the normal interval 1e-7); a snapshot of the printed forms and of what `compare` refuses.
 
+## 21 November 2026 — release 0.9.0, step 8c: the tables and plots of a `GlmFit`
+
+- *`report`* takes a `glm` fit as it takes a regression: the estimates with their stars from the fit's z table, the standard errors beneath, the `SEs` and `N` rows. Its `R²` row shows McFadden's R² marked `(McFadden)`, as a fit with fixed effects shows its within R² marked `(within)` (#201 (a), taken as recommended under the standing instruction and announced); AIC and BIC count the coefficients alone. Regressions and `glm` fits may share a table. The footer lists a fit's warnings under its column's number, W1008 among them, by the code that lists a regression's.
+- *`summary`*: `fit_measures: true` adds the BIC alone to a `glm` fit's summary, which has the log-likelihood and the AIC already. `standardized: true` is refused on a `glm` fit (Z0401): the regression's quotient, by the standard deviation of a 0/1 outcome, is no standard quantity, and which standardization to give is the owner's (#201 (b), open, deadline 1.0).
+- *`design`*, a function of `regress`, takes a `GlmFit` as its receiver: it rebuilds the design from what any fit keeps (its frame, its formula, its weights) and calls nothing of `glm`, so the tier rules hold.
+- *`coef_plot`* and *`export`* needed nothing: they read what every fit and every table has.
+- *The refusals of step 5a are gone* (`refuse_likelihood` is removed): every method of the result interface answers a `glm` fit or refuses it for a reason of its own (`r_squared`, `influence`, `vif` and `first_stage` are a regression's, and say so by their receiver's type).
+- *Catalogue row 262 (`glm`)* is marked implemented.
+
+**Held by.** `packages/tier2/glm/tests/glm.rs`: a snapshot of `report` (two clustered fits; a regression beside a `glm` fit with the criteria; a fit carrying W1008), `summary` with each option, `design` with and without weights, `coef_plot` and an exported report.
+

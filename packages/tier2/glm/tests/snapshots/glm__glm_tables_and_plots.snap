@@ -1,0 +1,165 @@
+---
+source: packages/tier2/glm/tests/glm.rs
+expression: all
+---
+report([lg, pr])
+---
+                           (1)                (2)
+  (intercept)          -1.227***          -0.753***
+                       (0.265)            (0.161)
+  educ                  0.001              0.001
+                       (0.017)            (0.010)
+  exper                 0.028***           0.017***
+                       (0.005)            (0.003)
+  female                0.056              0.034
+                       (0.080)            (0.048)
+  ─────────────────────────────────────────────────
+  SEs             cluster worker     cluster worker
+  N                       18,390             18,390
+  R²            0.007 (McFadden)   0.007 (McFadden)
+
+* p < 0.05, ** p < 0.01, *** p < 0.001
+(1), (2) note: 3 of the 3,911 clusters hold one observation
+note: 3 of the 3,911 clusters hold one observation (line 2)
+note: 3 of the 3,911 clusters hold one observation (line 3)
+
+====
+report([lg, m], stats: [n_obs, r_squared, aic, bic], stars: false)
+---
+                             (1)         (2)
+  (intercept)            -1.227       0.220
+                         (0.265)     (0.024)
+  educ                    0.001       0.000
+                         (0.017)     (0.001)
+  exper                   0.028       0.006
+                         (0.005)     (0.000)
+  female                  0.056       0.012
+                         (0.080)     (0.007)
+  ──────────────────────────────────────────
+  SEs             cluster worker   classical
+  N                       18,390      18,390
+  R²            0.007 (McFadden)       0.009
+  AIC                    22838.1     23920.3
+  BIC                    22869.4     23959.4
+
+(1) note: 3 of the 3,911 clusters hold one observation
+note: 3 of the 3,911 clusters hold one observation (line 2)
+note: 3 of the 3,911 clusters hold one observation (line 3)
+
+====
+let edge = import("data/extreme_regressor.csv").glm(y ~ x + z, family: binomial)
+report([edge, edge], digits: 2)
+---
+                           (1)                (2)
+  (intercept)           -0.23              -0.23
+                        (0.14)             (0.14)
+  x                      0.58***            0.58***
+                        (0.12)             (0.12)
+  z                      0.08               0.08
+                        (0.11)             (0.11)
+  ─────────────────────────────────────────────────
+  SEs                  classical          classical
+  N                          243                243
+  R²            0.091 (McFadden)   0.091 (McFadden)
+
+* p < 0.05, ** p < 0.01, *** p < 0.001
+(1), (2) warning[W1008]: 3 fitted probabilities are numerically 0 or 1
+note: 3 of the 3,911 clusters hold one observation (line 2)
+note: 3 of the 3,911 clusters hold one observation (line 3)
+note: data/extreme_regressor.csv read as CSV: 243 rows × 3 variables, types guessed; CSV carries no labels, value labels or categories (line 5)
+warning[W1008]: 3 fitted probabilities are numerically 0 or 1 (line 5)
+  = help: in these rows the regressors all but decide `y`; the estimates exist, but look at the largest and smallest values of each regressor
+
+====
+lg.summary(fit_measures: true)
+---
+glm · union ~ educ + exper + female · binomial, logit
+N = 18,390 (22 rows dropped for NA in model variables)
+standard errors: clustered by worker (3,911 clusters, CR1)
+
+  term          estimate   std.error   z value   p value   95% CI
+  (intercept)    -1.2274      0.2654     -4.63    <0.001   [-1.7475, -0.7073]
+  educ            0.0009      0.0165      0.06     0.956   [-0.0315, 0.0333]
+  exper           0.0277      0.0054      5.13    <0.001   [0.0171, 0.0383]
+  female          0.0556      0.0796      0.70     0.485   [-0.1005, 0.2116]
+
+log-likelihood -11,415.06 · AIC 22,838.13 · McFadden R² 0.007
+deviance 22,830.13 on 18,386 df · null deviance 23,001.97 on 18,389 df
+converged in 5 iterations of Fisher scoring
+BIC 22,869.41
+note: 3 of the 3,911 clusters hold one observation (line 2)
+note: 3 of the 3,911 clusters hold one observation (line 3)
+
+====
+lg.summary(standardized: true)
+---
+note: 3 of the 3,911 clusters hold one observation (line 2)
+note: 3 of the 3,911 clusters hold one observation (line 3)
+error[Z0401]: `standardized:` is for a regression: a `glm` fit has no standardized coefficients in this release
+ --> scripts/main.zeff:5:26
+  |
+5 | lg.summary(standardized: true)
+  |                          ^^^^ not for a fit by maximum likelihood
+  |
+  = help: to compare regressors on one scale, standardize them before fitting: `add(z = standardize(x))`
+
+====
+lg.design().head(3)
+---
+frame · 3 rows × 4 variables
+
+      (intercept)   educ   exper   female
+  1             1     17       9        0
+  2             1     17      10        0
+  3             1     17      11        0
+note: 3 of the 3,911 clusters hold one observation (line 2)
+note: 3 of the 3,911 clusters hold one observation (line 3)
+
+====
+wages.glm(union ~ educ + industry, family: binomial, weights: hours).design().summary()
+---
+summary · frame
+
+  variable                              N   missing     mean      sd     min      max
+  (intercept)                      18,377        35    1.000   0.000   1.000    1.000
+  educ                             18,377        35   13.492   2.486   8.000   20.000
+  industry=Mining                  18,377        35    0.011   0.104   0.000    1.000
+  industry=Utilities               18,377        35    0.020   0.140   0.000    1.000
+  industry=Construction            18,377        35    0.080   0.272   0.000    1.000
+  industry=Manufacturing           18,377        35    0.140   0.347   0.000    1.000
+  industry=Retail                  18,377        35    0.156   0.363   0.000    1.000
+  industry=Transport               18,377        35    0.053   0.224   0.000    1.000
+  industry=Finance                 18,377        35    0.085   0.279   0.000    1.000
+  industry=Services                18,377        35    0.143   0.351   0.000    1.000
+  industry=Education               18,377        35    0.092   0.289   0.000    1.000
+  industry=Health                  18,377        35    0.114   0.318   0.000    1.000
+  industry=Public administration   18,377        35    0.077   0.267   0.000    1.000
+  (weights)                        18,377        35    1.000   0.215   0.184    1.824
+note: 3 of the 3,911 clusters hold one observation (line 2)
+note: 3 of the 3,911 clusters hold one observation (line 3)
+warning[W0201]: 35 rows with NA in (intercept), 35 with NA in educ, 35 with NA in industry=Mining, 35 with NA in industry=Utilities, 35 with NA in industry=Construction, 35 with NA in industry=Manufacturing, 35 with NA in industry=Retail, 35 with NA in industry=Transport, 35 with NA in industry=Finance, 35 with NA in industry=Services, 35 with NA in industry=Education, 35 with NA in industry=Health, 35 with NA in industry=Public administration and 35 with NA in (weights) were skipped (line 5)
+
+====
+lg.coef_plot()
+---
+plot · lg · estimate against term
+
+  axis   title      scale      limits                breaks
+  x                 category   0.4 to 3.6            female, exper, educ
+  y      estimate   linear     -0.11611 to 0.22725   -0.1, -0.05, 0, 0.05, 0.1, 0.15, 0.2
+
+  layer   mark        data   marks   settings
+      1   hline       lg         1   at 0, width 0.5, style dashed
+      2   errorbars   lg         3   low ci_lower, high ci_upper, interval ci 0.95, width 0
+      3   points      lg         3   size 4.5, alpha 1
+
+caption: Bars: 95% confidence intervals
+coordinates: flipped, `x` up the side and `y` along the foot
+note: 3 of the 3,911 clusters hold one observation (line 2)
+note: 3 of the 3,911 clusters hold one observation (line 3)
+
+====
+report([lg, pr]).export("output/table_union.tex")
+---
+note: 3 of the 3,911 clusters hold one observation (line 2)
+note: 3 of the 3,911 clusters hold one observation (line 3)

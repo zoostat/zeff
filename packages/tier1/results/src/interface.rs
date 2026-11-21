@@ -46,25 +46,6 @@ fn receiver(ctx: &CallContext<'_>, args: &Args, name: &str) -> Result<Receiver, 
     }
 }
 
-/// The methods of the result interface that a fit by maximum likelihood does not yet answer
-/// (release 0.9.0, step 5a): each reads what a least-squares fit keeps (a t table, residuals of
-/// least squares, R²), and step 8 gives each its likelihood form. Until then a `glm` fit is
-/// refused by them rather than answered as a regression would be.
-pub fn refuse_likelihood(ctx: &CallContext<'_>, fit: &Fit, name: &str) -> Result<(), Fail> {
-    if fit.likelihood.is_none() {
-        return Ok(());
-    }
-    Err(fail(
-        Diagnostic::error(
-            "Z0401",
-            format!("`{name}` of a `glm` fit arrives with release 0.9.0"),
-        )
-        .in_file(ctx.script)
-        .primary(ctx.callee_span, "not yet for a likelihood fit")
-        .help("the fit's table, `coef`, `vcov`, `std_errors`, `p_values`, `ci`, `estimates` and `n_obs` are there now"),
-    ))
-}
-
 /// The term a `Term` argument names, when one is given: its position among the terms with an
 /// estimate, or `None` for a term omitted as collinear. The interpreter has already checked the
 /// name against the fit's terms (Z0414).
@@ -521,6 +502,11 @@ fn insert_betas(fit: &Fit, table: &mut Table) {
 /// The line of question 3 (d): `log-likelihood -12,034.2 · AIC 24,078.4 · BIC 24,117.5`.
 fn fit_measures_line(fit: &Fit) -> String {
     let (aic, bic) = information_criteria(fit);
+    // The summary of a fit by maximum likelihood gives its log-likelihood and AIC already: the
+    // line adds what it lacks.
+    if fit.likelihood.is_some() {
+        return format!("BIC {}", fixed_grouped(bic, 2));
+    }
     format!(
         "log-likelihood {} · AIC {} · BIC {}",
         fixed_grouped(fit.log_likelihood, 1),
@@ -561,6 +547,20 @@ pub fn summary(ctx: &mut CallContext<'_>, args: Args) -> Result<Value, Fail> {
     match receiver(ctx, &args, "summary")? {
         Receiver::Fit(fit) => {
             let mut table = fit.summary.clone();
+            if standardized && fit.likelihood.is_some() {
+                // Which standardization a binary model's coefficients take is not settled (open
+                // decision #201): the regressor's alone, or the latent outcome's too. The
+                // regression's, by the standard deviation of a 0/1 outcome, is neither.
+                return Err(fail(
+                    Diagnostic::error(
+                        "Z0401",
+                        "`standardized:` is for a regression: a `glm` fit has no standardized coefficients in this release",
+                    )
+                    .in_file(ctx.script)
+                    .primary(ctx.span_of(1), "not for a fit by maximum likelihood")
+                    .help("to compare regressors on one scale, standardize them before fitting: `add(z = standardize(x))`"),
+                ));
+            }
             if standardized {
                 insert_betas(&fit, &mut table);
             }

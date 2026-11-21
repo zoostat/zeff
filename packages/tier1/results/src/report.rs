@@ -203,8 +203,19 @@ pub fn report(ctx: &mut CallContext<'_>, args: Args) -> Result<Value, Fail> {
         match stat.as_str() {
             "n_obs" => statistic_row("N", &|f| count(f.n as u64)),
             // A fit by instrumental variables has no R² to report, as its own table has none.
+            // A fit by maximum likelihood has McFadden's R², marked as the within form is.
             "r_squared" => statistic_row("R²", &|f| match (f.r_squared_within, within_row) {
                 _ if f.instrumented.is_some() => String::new(),
+                _ if f.likelihood.is_some() => f
+                    .likelihood
+                    .as_deref()
+                    .filter(|l| l.null_log_likelihood < 0.0)
+                    .map_or(String::new(), |l| {
+                        format!(
+                            "{} (McFadden)",
+                            fixed(1.0 - f.log_likelihood / l.null_log_likelihood, 3)
+                        )
+                    }),
                 (Some(within), false) => format!("{} (within)", fixed(within, 3)),
                 _ => f.r_squared.map_or("NA".to_string(), |r| fixed(r, 3)),
             }),
@@ -471,10 +482,7 @@ fn fits(ctx: &mut CallContext<'_>, args: &Args) -> Result<Vec<Rc<Fit>>, Fail> {
         .filter(|item| !matches!(item, Value::Failed(_)))
         .enumerate()
         .map(|(i, item)| match item {
-            Value::Fit(fit) => {
-                crate::interface::refuse_likelihood(ctx, fit, "report")?;
-                Ok(Rc::clone(fit))
-            }
+            Value::Fit(fit) => Ok(Rc::clone(fit)),
             other => Err(fail(
                 Diagnostic::error(
                     "Z0401",

@@ -139,10 +139,16 @@ Column<Float> · 18,412 values
 let m = dataset(wages).glm(union ~ educ + exper, family: binomial)
 report([m])
 ---
-error[Z0401]: `report` of a `glm` fit arrives with release 0.9.0
- --> scripts/main.zeff:2:1
-  |
-2 | report([m])
-  | ^^^^^^ not yet for a likelihood fit
-  |
-  = help: the fit's table, `coef`, `vcov`, `std_errors`, `p_values`, `ci`, `estimates` and `n_obs` are there now
+                           (1)
+  (intercept)          -1.199***
+                       (0.109)
+  educ                  0.001
+                       (0.007)
+  exper                 0.028***
+                       (0.002)
+  ──────────────────────────────
+  SEs                  classical
+  N                       18,390
+  R²            0.007 (McFadden)
+
+* p < 0.05, ** p < 0.01, *** p < 0.001

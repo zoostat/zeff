@@ -13,6 +13,10 @@ term; `fit_measures: true` adds a line with the log-likelihood, AIC and BIC unde
 measures, which count the variance as a parameter as R's `AIC` and `BIC` do. Like R's `summary`
 on a fit and Stata's `regress, beta`.
 
+The summary of a `glm` fit gives its log-likelihood and AIC already, so `fit_measures: true`
+adds the BIC alone; `standardized: true` is for a regression and is refused on a `glm` fit
+(Z0401), whose coefficients have no one standardization.
+
 ## Arguments
 - fit: The result.
 - standardized: Whether to add the standardized coefficients.

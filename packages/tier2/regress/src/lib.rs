@@ -358,7 +358,7 @@ pub fn functions() -> Vec<Function> {
                 name: "design",
                 package: "regress",
                 method: true,
-                params: vec![ParamSpec::required("fit", "RegFit | IvFit")],
+                params: vec![ParamSpec::required("fit", "RegFit | IvFit | GlmFit")],
                 rest: None,
                 returns: "Frame",
                 diagnostics: vec![DiagnosticDecl::new(

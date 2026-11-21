@@ -39,6 +39,11 @@ a fit without; the `R²` row then prints such a fit's R² within marked `(within
 overall form for every fit and `R² within` has its own row, empty for a fit without effects.
 AIC and BIC count the effects' parameters, as fixest does.
 
+A `glm` fit takes a column as a regression does, its stars from its z table; its `R²` is
+McFadden's, marked `(McFadden)`, and its AIC and BIC count its coefficients alone. Regressions
+and `glm` fits may stand in one table. A warning a fit carries, such as fitted probabilities at
+0 or 1 (W1008), is listed under the table with the number of its column.
+
 ## See also
 export, reg, summary, estimates
 
@@ -83,3 +88,22 @@ export, reg, summary, estimates
 
 * p < 0.05, ** p < 0.01, *** p < 0.001
 > report([m1, m2], stats: [n_obs, r_squared, aic], labels: {educ: "Years of schooling"}, title: "Table 1").export("output/table1.docx")
+> let lg = wages.glm(union ~ educ + exper + female, family: binomial)
+> let pr = wages.glm(union ~ educ + exper + female, family: binomial, link: probit)
+> report([lg, pr], stats: [n_obs, r_squared, aic])
+                           (1)                (2)
+  (intercept)          -1.227***          -0.753***
+                       (0.110)            (0.067)
+  educ                  0.001              0.001
+                       (0.007)            (0.004)
+  exper                 0.028***           0.017***
+                       (0.002)            (0.001)
+  female                0.056              0.034
+                       (0.032)            (0.019)
+  ─────────────────────────────────────────────────
+  SEs                  classical          classical
+  N                       18,390             18,390
+  R²            0.007 (McFadden)   0.007 (McFadden)
+  AIC                    22838.1            22838.9
+
+* p < 0.05, ** p < 0.01, *** p < 0.001

@@ -78,8 +78,10 @@ Step 8 split into 8a, 8b and 8c. Step 8a `[function]`: `fit_measures`, `fitted`,
 
 Step 8b `[function]`: `test` (the Wald chi-squared), `compare` (the likelihood-ratio test, refused for robust, clustered and pseudo-likelihood fits) and `derive` (the normal distribution) on a `GlmFit`, each against R's `car` and `anova`; the sample script's two lines of section 10 run.
 
-**Next.** Step 8c `[function]`: `report`, `export`, `coef_plot` and `design` on a `GlmFit`, and the catalogue row marked implemented. Step 3, the weekly run of 23 November, when it has ended.
+Step 8c `[function]`: `report` (McFadden's R² in its `R²` row, the fit's warnings in its footer), `summary` with its options, `design`, `coef_plot` and `export` on a `GlmFit`; the refusals of 5a removed; catalogue row `glm` marked implemented. Step 8 is done: every method of the result interface answers a `glm` fit.
 
-**For the owner.** #198, #199 and #200 (taken as recommended, yours to overturn before 1.0; #200: `predict` gives a probability and `residuals` the outcome less it unless `type:` says otherwise, where R gives log-odds and deviance residuals): on a `glm` fit, clustered errors carry the factor (N − 1)/(N − k) that Stata's `logit` and R's `vcovCL` left to itself omit; analytic weights are refused on a binary model, as in Stata.
+**Next.** Step 9 `[function]`: `glm` in the samples and the nightly job. Step 3, the weekly run of 23 November, when it has ended.
+
+**For the owner.** #198, #199 and #200 and #201 (a) (taken as recommended, yours to overturn before 1.0; #201 (b) is open and yours: which standardized coefficients a `glm` fit has, refused until you choose; #200: `predict` gives a probability and `residuals` the outcome less it unless `type:` says otherwise, where R gives log-odds and deviance residuals): on a `glm` fit, clustered errors carry the factor (N − 1)/(N − k) that Stata's `logit` and R's `vcovCL` left to itself omit; analytic weights are refused on a binary model, as in Stata.
 
 **For the owner to decide or do.** Nothing blocks. The R packages `marginaleffects`, `rstatix` and `pROC` for the reference library (and `ivmodel`, `ivDiag`), if he wants the references held to them; the signing key at step 23; the archive link of #161; the reader test at step 45.

@@ -153,6 +153,7 @@ differ slightly; under the logit link they are one.
 - To get each row's fitted probability, use `fitted`; for new rows, `predict`.
 - To test whether terms can be left out, fit both models and use `compare`; for one restriction, `test`.
 - To get an odds ratio with its standard error, use `derive`, with the exponential of the term.
+- To set several fits side by side in one table, use `report`.
 - To see every estimate with its statistic as a frame, use `estimates`.
 
 ## References
@@ -162,7 +163,7 @@ Hall, chapters 2 and 4.
 Agresti, A. (2013), Categorical Data Analysis, 3rd edition, Wiley, chapter 5.
 
 ## See also
-reg, coef, ci, estimates, vcov, fit_measures, predict, residuals, test, compare, derive
+reg, coef, ci, estimates, vcov, fit_measures, predict, residuals, test, compare, derive, report
 
 ## Examples
 // A logistic regression of union membership on schooling, experience and sex.
