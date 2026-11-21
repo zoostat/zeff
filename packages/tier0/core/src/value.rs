@@ -1282,6 +1282,9 @@ pub enum FollowUp {
     /// The factorial `anova` (step 19b): the fitted model, from which `posthoc` reads the
     /// estimated marginal means of a term and the standard error of each difference.
     Factorial(ModelFit),
+    /// `margins` (release 0.9.0, step 13): the kind of standard error of the fit the effects
+    /// were taken from, which `report` prints in its `SEs` row.
+    Margins { se_kind: String },
 }
 
 impl TestResult {

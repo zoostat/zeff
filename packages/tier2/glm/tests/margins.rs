@@ -260,6 +260,10 @@ fn the_effects_of_a_binary_model_printed() {
         format!(
             "{W}let g = wages.glm(union ~ educ * female + exper + exper^2, family: binomial)\ng.margins(at: {{exper: [0, 10, 20, 30]}})\ng.margins(female, type: mem, at: {{educ: [12, 16]}})\ng.margins(at: {{exper: [0, 10]}}).estimates()\n"
         ),
+        // The coefficients of a logit beside its average effects, as a table for a paper.
+        format!(
+            "{W}let g = wages.glm(union ~ educ + exper + exper^2 + female, family: binomial, se: robust)\nlet e = g.margins([educ, exper, female])\nreport([g, e])\ne.std_errors(exper)\ne.ci(female)\n"
+        ),
         // A term omitted as collinear: the effect that rests on it is not estimable.
         format!(
             "{W}let w = wages.add(twice = educ * 2)\nw.glm(union ~ educ + twice + female, family: binomial).margins([educ, twice, female])\n"

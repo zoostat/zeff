@@ -6,7 +6,7 @@
 use std::rc::Rc;
 use zeff_core::display::fixed;
 use zeff_core::runtime::{Args, CallContext, Fail, fail};
-use zeff_core::value::{Align, Fit, Table, TestResult, Value};
+use zeff_core::value::{Align, Fit, FollowUp, Table, TestResult, Value};
 use zeff_diagnostics::{Diagnostic, count};
 
 use crate::interface::information_criteria;
@@ -23,6 +23,82 @@ const DEFAULT_STATS: [&str; 2] = ["n_obs", "r_squared"];
 
 /// The stars legend of section 10.2.
 const LEGEND: &str = "* p < 0.05, ** p < 0.01, *** p < 0.001";
+
+/// Whether a value is the result of `margins`: rows of estimates with standard errors, which
+/// stand in the table of fits.
+fn is_effects(value: &Value) -> bool {
+    matches!(value, Value::TestResult(test) if test.method == "margins")
+}
+
+/// The result of `margins` as a column of the table.
+struct Effects(Rc<TestResult>);
+
+impl Effects {
+    /// The kind of standard error of the fit the effects were taken from.
+    fn se_kind(&self) -> &str {
+        match self.0.follow_up.as_deref() {
+            Some(FollowUp::Margins { se_kind }) => se_kind,
+            _ => "",
+        }
+    }
+}
+
+/// One column of the table: a fit, or the effects of a `margins` result.
+enum Shown {
+    Fit(Rc<Fit>),
+    Effects(Effects),
+}
+
+/// What a column has for a term.
+enum Cell {
+    Estimate {
+        value: f64,
+        std_error: f64,
+        p_value: f64,
+    },
+    /// No estimate, and why: `(omitted)`, `NA`.
+    Marked(&'static str),
+    /// The column has no such term.
+    Absent,
+}
+
+impl Shown {
+    /// The rows the column has, those with an estimate before those a model dropped.
+    fn terms(&self) -> Vec<String> {
+        match self {
+            Shown::Fit(fit) => fit.terms.iter().chain(&fit.omitted).cloned().collect(),
+            Shown::Effects(effects) => effects.0.terms.iter().map(|r| r.term.clone()).collect(),
+        }
+    }
+
+    fn cell(&self, term: &str) -> Cell {
+        match self {
+            Shown::Fit(fit) => match fit.terms.iter().position(|t| t == term) {
+                Some(i) => Cell::Estimate {
+                    value: fit.estimates[i],
+                    std_error: fit.std_errors[i],
+                    p_value: fit.p_values[i],
+                },
+                None if fit.omitted.iter().any(|t| t == term) => Cell::Marked("(omitted)"),
+                None => Cell::Absent,
+            },
+            Shown::Effects(effects) => match effects.0.terms.iter().find(|r| r.term == term) {
+                Some(row) => match (row.estimate.as_ref(), row.std_error) {
+                    (Some(estimate), Some(std_error)) if estimate.value.is_finite() => {
+                        Cell::Estimate {
+                            value: estimate.value,
+                            std_error,
+                            p_value: row.p_value,
+                        }
+                    }
+                    // An effect that is not estimable.
+                    _ => Cell::Marked("NA"),
+                },
+                None => Cell::Absent,
+            },
+        }
+    }
+}
 
 /// The stars of a p-value: three below 0.001, two below 0.01, one below 0.05.
 pub fn stars(p: f64) -> &'static str {
@@ -70,6 +146,9 @@ pub fn report(ctx: &mut CallContext<'_>, args: Args) -> Result<Value, Fail> {
             .iter()
             .all(|v| matches!(v, Value::TestResult(_) | Value::Failed(_)))
         && items.iter().any(|v| matches!(v, Value::TestResult(_)))
+        // The effects of `margins` are estimates with standard errors: they stand in the
+        // table of fits, a column each (release 0.9.0, step 13).
+        && !items.iter().any(is_effects)
     {
         return tests_report(ctx, &args);
     }
@@ -107,10 +186,10 @@ pub fn report(ctx: &mut CallContext<'_>, args: Args) -> Result<Value, Fail> {
     // The terms in order of first appearance across the models, those with an estimate before
     // those a model dropped.
     let mut terms: Vec<String> = Vec::new();
-    for fit in &fits {
-        for term in fit.terms.iter().chain(&fit.omitted) {
-            if !terms.contains(term) {
-                terms.push(term.clone());
+    for shown in &fits {
+        for term in shown.terms() {
+            if !terms.contains(&term) {
+                terms.push(term);
             }
         }
     }
@@ -132,29 +211,26 @@ pub fn report(ctx: &mut CallContext<'_>, args: Args) -> Result<Value, Fail> {
             .map_or(term.clone(), |(_, l)| l.clone());
         let mut estimates = vec![label];
         let mut errors = vec![String::new()];
-        for fit in &fits {
-            match fit.terms.iter().position(|t| t == term) {
-                Some(i) => {
-                    let star = if with_stars {
-                        stars(fit.p_values[i])
-                    } else {
-                        ""
-                    };
+        for shown in &fits {
+            match shown.cell(term) {
+                Cell::Estimate {
+                    value,
+                    std_error,
+                    p_value,
+                } => {
+                    let star = if with_stars { stars(p_value) } else { "" };
                     estimates.push(format!(
                         "{}{star:<width$}",
-                        fixed(fit.estimates[i], digits),
+                        fixed(value, digits),
                         width = tail
                     ));
-                    errors.push(hanging(
-                        format!("({})", fixed(fit.std_errors[i], digits)),
-                        tail - 1,
-                    ));
+                    errors.push(hanging(format!("({})", fixed(std_error, digits)), tail - 1));
                 }
-                None if fit.omitted.contains(term) => {
-                    estimates.push(hanging("(omitted)".to_string(), tail - 1));
+                Cell::Marked(mark) => {
+                    estimates.push(hanging(mark.to_string(), tail - 1));
                     errors.push(String::new());
                 }
-                None => {
+                Cell::Absent => {
                     estimates.push(String::new());
                     errors.push(String::new());
                 }
@@ -167,13 +243,37 @@ pub fn report(ctx: &mut CallContext<'_>, args: Args) -> Result<Value, Fail> {
         }
     }
     let rules = vec![rows.len()];
+    // A row of statistics: of each fit; the effects of `margins` have a kind of standard error
+    // and a count of observations, and nothing in the other rows.
+    let only_effects = fits.iter().all(|shown| matches!(shown, Shown::Effects(_)));
     let mut statistic_row = |name: &str, cell: &dyn Fn(&Fit) -> String| {
+        let cells: Vec<String> = fits
+            .iter()
+            .map(|shown| match shown {
+                Shown::Fit(fit) => cell(fit),
+                Shown::Effects(effects) => match name {
+                    "SEs" => se_label(effects.se_kind()),
+                    "N" => count(effects.0.n as u64),
+                    _ => String::new(),
+                },
+            })
+            .collect();
+        // A table of effects alone has no row for a statistic none of them has (R²).
+        if only_effects && cells.iter().all(String::is_empty) {
+            return;
+        }
         let mut row = vec![name.to_string()];
-        row.extend(fits.iter().map(|f| cell(f)));
+        row.extend(cells);
         rows.push(row);
     };
+    let any_fit = |test: &dyn Fn(&Fit) -> bool| {
+        fits.iter().any(|shown| match shown {
+            Shown::Fit(fit) => test(fit),
+            Shown::Effects(_) => false,
+        })
+    };
     // The `Fixed effects` row of section 10.2 when any model absorbs some: `none` otherwise.
-    if fits.iter().any(|f| !f.effects.is_empty()) {
+    if any_fit(&|f| !f.effects.is_empty()) {
         statistic_row("Fixed effects", &|f| {
             if f.effects.is_empty() {
                 "none".to_string()
@@ -188,7 +288,7 @@ pub fn report(ctx: &mut CallContext<'_>, args: Args) -> Result<Value, Fail> {
     }
     // The `Instruments` row when any model is fitted by instrumental variables: the
     // instruments outside the equation that its first stage kept (release 0.8.0, step 13c).
-    if fits.iter().any(|f| f.instrumented.is_some()) {
+    if any_fit(&|f| f.instrumented.is_some()) {
         statistic_row("Instruments", &|f| {
             f.instrumented
                 .as_ref()
@@ -248,12 +348,26 @@ pub fn report(ctx: &mut CallContext<'_>, args: Args) -> Result<Value, Fail> {
         after.push(LEGEND.to_string());
     }
     let mut of_columns: Vec<(usize, String)> = Vec::new();
-    for (k, fit) in fits.iter().enumerate() {
-        for note in &fit.notes {
-            of_columns.push((k + 1, format!("note: {note}")));
-        }
-        for warning in &fit.warnings {
-            of_columns.push((k + 1, warning.to_string()));
+    for (k, shown) in fits.iter().enumerate() {
+        match shown {
+            Shown::Fit(fit) => {
+                for note in &fit.notes {
+                    of_columns.push((k + 1, format!("note: {note}")));
+                }
+                for warning in &fit.warnings {
+                    of_columns.push((k + 1, warning.to_string()));
+                }
+            }
+            // What the column's numbers are: the result's own title, and what `at:` held.
+            Shown::Effects(effects) => {
+                let test = &effects.0;
+                let at = test
+                    .header
+                    .iter()
+                    .find(|line| line.starts_with("at: "))
+                    .map_or(String::new(), |line| format!("; {line}"));
+                of_columns.push((k + 1, format!("{}{at}", test.title)));
+            }
         }
     }
     after.extend(once_for_its_columns(of_columns));
@@ -402,7 +516,7 @@ fn tests_report(ctx: &mut CallContext<'_>, args: &Args) -> Result<Value, Fail> {
 
 /// The regression fits of the list, in order; a test's result or anything else among them is
 /// refused, and so is an empty list.
-fn fits(ctx: &mut CallContext<'_>, args: &Args) -> Result<Vec<Rc<Fit>>, Fail> {
+fn fits(ctx: &mut CallContext<'_>, args: &Args) -> Result<Vec<Shown>, Fail> {
     let items = match args.get(FITS) {
         Some(Value::List(items)) => items,
         other => {
@@ -482,7 +596,10 @@ fn fits(ctx: &mut CallContext<'_>, args: &Args) -> Result<Vec<Rc<Fit>>, Fail> {
         .filter(|item| !matches!(item, Value::Failed(_)))
         .enumerate()
         .map(|(i, item)| match item {
-            Value::Fit(fit) => Ok(Rc::clone(fit)),
+            Value::Fit(fit) => Ok(Shown::Fit(Rc::clone(fit))),
+            Value::TestResult(test) if is_effects(item) => {
+                Ok(Shown::Effects(Effects(Rc::clone(test))))
+            }
             other => Err(fail(
                 Diagnostic::error(
                     "Z0401",

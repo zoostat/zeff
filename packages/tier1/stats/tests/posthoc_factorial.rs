@@ -1088,6 +1088,10 @@ fn a_comparison_is_read_by_its_name() {
         "ph.df(\"low − mid\")[1] == row.max(df)",
         "len(ph.df(\"low − mid\"))",
         "ph.effect_size(\"low − mid\")",
+        // A comparison's standard error and its interval, by the same name (release 0.9.0,
+        // step 13).
+        "ph.std_errors(\"low − mid\") == row.max(std_error)",
+        "ph.ci(\"low − mid\")[1] == row.max(ci_lower)",
         // Typed with a hyphen, with and without the spaces.
         "ph.p_values(\"low - mid\") == ph.p_values(\"low − mid\")",
         "ph.statistic(\"mid-high\") == ph.statistic(\"mid − high\")",
@@ -1106,7 +1110,8 @@ fn a_comparison_is_read_by_its_name() {
     assert_eq!(
         lines,
         [
-            "true", "true", "true", "1", "NA", "true", "true", "true", "true", "true", "15"
+            "true", "true", "true", "1", "NA", "true", "true", "true", "true", "true", "true",
+            "true", "15"
         ],
         "{stdout}"
     );
@@ -1120,7 +1125,7 @@ fn a_comparison_is_read_by_its_name() {
             "`dose` is not a row of this table",
         ),
         (
-            "d.anova(gain ~ dose * diet).posthoc(term: dose).ci(\"low − mid\")",
+            "d.anova(gain ~ dose * diet).posthoc(term: dose).coef(\"low − mid\")",
             "`estimates()` gives every row of the table as a frame",
         ),
     ] {
@@ -1155,7 +1160,7 @@ fn every_form_and_every_message() {
         "d.where(!(dose == \"high\" && diet == \"a\") && dose != \"mid\").anova(gain ~ dose * diet).posthoc(term: diet)",
         "d.anova(gain ~ dose * diet).posthoc(term: dose).p_values(\"mid − low\")",
         "d.anova(gain ~ dose * diet).posthoc(term: dose).statistic(dose)",
-        "d.anova(gain ~ dose * diet).posthoc(term: dose).ci(\"low − mid\")",
+        "d.anova(gain ~ dose * diet).posthoc(term: dose).coef(\"low − mid\")",
     ] {
         let (exit, _, stderr) = go(&format!("{DATA}{statement}\n"));
         assert_eq!(exit, 1, "{statement}");

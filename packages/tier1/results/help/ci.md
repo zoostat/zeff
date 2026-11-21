@@ -12,12 +12,13 @@ out overrides it, so that any level is available after the fit; `predict`'s inte
 same rule when they arrive. Like `confint` in R, which always uses 95% unless told otherwise.
 
 A test's result gives the intervals it was made with: those of its estimate and its effect size,
-and of each comparison of `posthoc`, at the level of the test, or `NA` when it has none. Another
-level is asked of the test itself, as `t_test(level: 0.9)`.
+and of each comparison of `posthoc` and each effect of `margins`, at the level of the test, or
+`NA` when it has none; one row's interval is read by naming the row, `ci(exper)`. Another level
+is asked of the test itself, as `t_test(level: 0.9)`, and for `margins` of the fit.
 
 ## Arguments
 - fit: The result.
-- term: A term of the model, a bare name or text: `educ`, `industry=Retail`, `educ:female`.
+- term: A term of the model, a bare name or text: `educ`, `industry=Retail`, `educ:female`. On the result of `margins` or `posthoc`, a row of its table.
 - level: The confidence level; the fit's level unless given.
 
 ## Value

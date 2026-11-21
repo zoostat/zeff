@@ -399,3 +399,40 @@ fn held_values_the_means_and_predictions() {
     }
     insta::assert_snapshot!(out);
 }
+
+/// The result of `margins` read by row, set beside fits by `report`, and exported (step 13).
+#[test]
+fn the_result_read_by_row_reported_and_exported() {
+    const M: &str = "let wages = dataset(wages)\nlet m = wages.reg(log(wage) ~ educ + exper + exper^2 + female + industry, se: robust)\nlet a = m.margins([educ, exper, female])\n";
+    let scripts = [
+        // A row's standard error and interval by its name; without a name, nothing of the
+        // whole result.
+        format!(
+            "{M}a.std_errors(exper)\na.ci(exper)\na.std_errors()\na.p_values()\nlet i = m.margins(industry)\ni.std_errors(\"industry=Mining\")\ni.ci(\"industry=Mining\")\nlet p = m.margins(at: {{exper: [5, 20]}})\np.std_errors(\"prediction @ exper=20\")\n"
+        ),
+        // In `report`: the effects beside their fit; two results side by side with a title,
+        // labels and digits; effects alone, held values in the footer; a row not estimable.
+        format!(
+            "{M}report([m, a])\nlet c = wages.reg(log(wage) ~ educ * female + exper, cluster: worker)\nreport([a, c.margins([educ, female, exper])], title: \"Average effects on log wages\", digits: 4, labels: {{exper: \"Experience\", female: \"Female\"}})\nreport([m.margins([exper, female], at: {{industry: \"Mining\", exper: [5, 20]}})], stars: false)\nreport([m.margins()], stats: [n_obs, r_squared, aic])\nlet t = wages.add(twice = educ * 2).reg(log(wage) ~ educ + twice + female)\nreport([t, t.margins([educ, twice, female])])\n"
+        ),
+        // Exported as any result is.
+        format!(
+            "{M}a.export(\"output/margins.tex\")\na.export(\"output/margins.docx\")\na.export(\"output/margins.typ\")\nreport([m, a]).export(\"output/both.tex\")\n"
+        ),
+        // The refusals: a row the result does not have; an interval at another level; a test
+        // among effects.
+        format!("{M}a.std_errors(hours)\n"),
+        format!("{M}a.ci(exper, level: 0.9)\n"),
+        format!("{M}report([a, m.test(educ == 0)])\n"),
+        format!("{M}a.coef(exper)\n"),
+    ];
+    let mut out = String::new();
+    for script in &scripts {
+        out.push_str(&format!(
+            "=== {} ===\n{}\n",
+            script.trim_end(),
+            printed(script)
+        ));
+    }
+    insta::assert_snapshot!(out);
+}

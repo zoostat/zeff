@@ -94,7 +94,9 @@ Step 12 split into 12a and 12b. Step 12a `[engine]`: `margins` after `glm`, ever
 
 Step 12b `[engine]`: `at:` with a list of values gives the effects or the prediction at each, and at each combination, for `reg` and `glm`; the nightly job holds the coverage of the average effects' intervals (94.0 to 96.7 per cent here). Step 12 is done.
 
-**Next.** Step 13 `[function]`: `margins` finished (`report` and `export` of its result, `std_errors` by row, the fuzz target, the page under the full check, catalogue row 260, the conformance case). Step 3, the weekly run of 23 November, when it has ended.
+Step 13 `[function]`: `margins` finished: its result in `report` beside fits, `std_errors` and `ci` by row, the fuzz target, the conformance case `models/margins`, catalogue row 260 implemented. Block C (`margins`) is done.
+
+**Next.** Step 14, the first of block D (`curve`). Step 3, the weekly run of 23 November, when it has ended.
 
 **For the owner.** The printed table of `margins` (#202 (d)), shown at step 11a, is yours to change; #202 (a) to (e) are taken as recommended. #198, #199 and #200 and #201 (a) (taken as recommended, yours to overturn before 1.0; #201 (b) is open and yours: which standardized coefficients a `glm` fit has, refused until you choose; #200: `predict` gives a probability and `residuals` the outcome less it unless `type:` says otherwise, where R gives log-odds and deviance residuals): on a `glm` fit, clustered errors carry the factor (N − 1)/(N − k) that Stata's `logit` and R's `vcovCL` left to itself omit; analytic weights are refused on a binary model, as in Stata.
 

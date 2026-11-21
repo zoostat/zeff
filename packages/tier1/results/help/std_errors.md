@@ -7,11 +7,13 @@ Standard errors of the estimates
 Gives the standard errors of a fitted model, under the kind of standard error the fit was asked
 for: every term with an estimate as a mapping from term name to value, in the model's order, or
 one value when a term is named. A term omitted as collinear has none and gives `NA`; a test's
-result has no standard errors and gives `NA`. Like `sqrt(diag(vcov(fit)))` in R.
+result has no standard error of its own and gives `NA`. Where a result prints a table of rows
+that rest on estimates, the standard error of one row is read by naming it: an effect of
+`margins`, `std_errors(exper)`, or a comparison of `posthoc`. Like `sqrt(diag(vcov(fit)))` in R.
 
 ## Arguments
 - fit: The result.
-- term: A term of the model, a bare name or text: `educ`, `industry=Retail`, `educ:female`.
+- term: A term of the model, a bare name or text: `educ`, `industry=Retail`, `educ:female`. On the result of `margins` or `posthoc`, a row of its table.
 
 ## Value
 A `Mapping` from term name to standard error, or a `Float` when a term is named.

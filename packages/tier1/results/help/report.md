@@ -12,8 +12,13 @@ observations, R² and any other statistics asked for. The table prints as a stat
 cells empty; a term dropped as collinear shows `(omitted)`. Like `modelsummary` in R and Stata's
 `esttab`.
 
+The result of `margins` may stand in the list, alone or beside fits: its effects take the rows
+of the terms of the same name, so that the coefficients of a logit and its average effects on
+the probability read across one row; its column has the kind of standard error and N, no R²,
+and a line under the table says what the column is.
+
 ## Arguments
-- fits: The regression fits, in a list: `[m1, m2]`.
+- fits: The regression fits, in a list: `[m1, m2]`; the results of `margins` may be among them.
 - stats: The statistics listed under the rule, from `n_obs`, `r_squared`, `r_squared_within`,
   `aic` and `bic`; `[n_obs, r_squared]` unless given.
 - digits: The decimals of the estimates and standard errors.

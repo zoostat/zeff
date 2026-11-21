@@ -4505,13 +4505,16 @@ impl<'a> Interpreter<'a> {
                 .collect(),
             Value::TestResult(test) => {
                 // A row of the table read by its name (open decision #100): a term of a
-                // factorial `anova` or a comparison of `posthoc`, on the four methods that
-                // read one figure.
+                // factorial `anova`, a comparison of `posthoc` or an effect of `margins`, on
+                // the methods that read one figure of a row; and, where the rows rest on
+                // estimates (`posthoc`, `margins`), on the two that read a row's standard
+                // error and its interval (release 0.9.0, step 13).
+                let estimated = test.terms.iter().any(|row| row.estimate.is_some());
                 let by_row = call.package == "results"
-                    && matches!(
+                    && (matches!(
                         call.name.as_str(),
                         "p_values" | "statistic" | "df" | "effect_size"
-                    );
+                    ) || (estimated && matches!(call.name.as_str(), "std_errors" | "ci")));
                 if by_row && test.row(name).is_some() {
                     return Ok(());
                 }
@@ -4544,7 +4547,11 @@ impl<'a> Interpreter<'a> {
                             call.name
                         ),
                         "no row is taken here",
-                        "`p_values`, `statistic`, `df` and `effect_size` read one row by its name; `estimates()` gives every row of the table as a frame".to_string(),
+                        if estimated {
+                            "`p_values`, `std_errors`, `ci`, `statistic`, `df` and `effect_size` read one row by its name; `estimates()` gives every row of the table as a frame".to_string()
+                        } else {
+                            "`p_values`, `statistic`, `df` and `effect_size` read one row by its name; `estimates()` gives every row of the table as a frame".to_string()
+                        },
                     )
                 };
                 return Err(fail(

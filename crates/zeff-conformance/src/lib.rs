@@ -1182,7 +1182,7 @@ fn regress_cases() -> Vec<Line> {
     // weights, a likelihood-ratio test of a clustered fit. The iterations are the engine's own
     // arithmetic in a fixed order, so every digit is the same on the four targets.
     let wages = "let wages = dataset(wages)\n";
-    let binary: [(&str, &[&str]); 2] = [
+    let binary: [(&str, &[&str]); 3] = [
         (
             "glm",
             &[
@@ -1205,6 +1205,27 @@ fn regress_cases() -> Vec<Line> {
                 "wages.add(none = 0 * union).glm(none ~ educ, family: binomial)\n",
                 "wages.glm(union ~ educ, family: binomial, weights: hours, weight_type: analytic)\n",
                 "wages.glm(union ~ educ + exper, family: binomial, cluster: worker).compare(wages.glm(union ~ exper, family: binomial, cluster: worker))\n",
+            ],
+        ),
+        // `models/margins` (release 0.9.0, step 13): the effects and the adjusted predictions
+        // after `reg` and after `glm` through the whole engine: slopes through a square, an
+        // interaction and a logarithm, differences for a 0/1 variable and a category, under
+        // each kind of error and under weights; held values, several values, the means; the
+        // result read by the result interface and set beside its fit by `report`; then what
+        // `margins` refuses, each script stopping at its refusal. Every sum over the rows is
+        // the kernels' fixed-shape sum, so every digit is the same on the four targets.
+        (
+            "margins",
+            &[
+                "let m = wages.reg(log(wage) ~ educ * female + exper + exper^2 + log(hours) + industry, se: robust)\nm.margins([educ, exper, female, hours, industry])\nm.margins([exper, female], at: {exper: [5, 20], industry: \"Mining\"})\nm.margins([educ, exper, industry], type: mem)\nm.margins()\nm.margins(type: mem, at: {educ: [12, 16]})\nlet e = m.margins([educ, exper])\ne.estimates()\ne.std_errors(exper)\ne.ci(exper)\ne.p_values(educ)\nreport([m, e])\n",
+                "wages.reg(log(wage) ~ educ + exper + exper^2 + female, cluster: worker).margins([exper, female])\nwages.reg(log(wage) ~ educ * female + exper, weights: hours).margins([educ, female], type: mem)\nwages.reg(log(wage) ~ educ + exper + exper^2 + female, fe: firm).margins([exper, female])\nwages.reg(log(wage) ~ educ + hours + max(hours - 40, 0)).margins(hours)\n",
+                "let g = wages.glm(union ~ educ * female + exper + exper^2 + industry, family: binomial)\ng.margins([educ, exper, female, industry])\ng.margins([exper, female], type: mem, at: {industry: \"Finance\"})\ng.margins()\ng.margins(at: {exper: [0, 10, 20, 30]})\nlet e = g.margins([educ, exper, female])\ne.estimates()\nreport([g, e])\n",
+                "wages.glm(union ~ educ + exper + female, family: binomial, link: probit, cluster: worker).margins([educ, female])\nwages.glm(union ~ educ * female + exper, family: binomial, weights: hours).margins([educ, female], type: mem)\nwages.add(copies = 1 + female).glm(union ~ educ + exper, family: binomial, weights: copies, weight_type: frequency).margins(at: {exper: [5, 25]})\n",
+                "wages.reg(log(wage) ~ educ + exper).margins(hours)\n",
+                "wages.reg(log(wage) ~ educ + sqrt(exper)).margins(exper)\n",
+                "wages.reg(log(wage) ~ educ + female).margins(female, at: {female: 1})\n",
+                "wages.reg(log(wage) ~ educ + exper, fe: firm).margins()\n",
+                "wages.glm(union ~ educ + industry, family: binomial).margins(educ, at: {industry: \"Minin\"})\n",
             ],
         ),
     ];

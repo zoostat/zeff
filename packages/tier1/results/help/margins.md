@@ -48,7 +48,9 @@ for a slope, the two values or the two levels for a difference), the estimate, i
 error, the t value on the fit's degrees of freedom (the z value, after `glm`), the p-value and
 the interval at the fit's level. The lines above the table say what the effects are averaged over, or that they are at
 the means, and what `at:` holds; lines under it say which terms a slope was taken through. With
-no variable named the table has the one row `prediction`. `estimates` gives the
+no variable named the table has the one row `prediction`. `std_errors` and `ci` read one row by
+its name as `p_values` does, and `report` sets the result beside its fit, or beside other
+results of `margins`, in the layout of a journal table. `estimates` gives the
 rows as a frame at full precision and `ci` the intervals; a row is named as the fit names the
 term, `exper` for a number and `industry=Mining` for a level, so that `p_values` reads one
 row's p-value by that name.
@@ -190,6 +192,8 @@ used.
 - To test a restriction on the coefficients, use `test`.
 - To get each row's own prediction, use `fitted`; for new rows, `predict`.
 - To see every effect as a frame at full precision, use `estimates`.
+- To set the effects beside the coefficients in one table, use `report`.
+- To write the table to Word or LaTeX, use `export`.
 
 ## References
 Williams, R. (2012), Using the margins command to estimate and interpret adjusted predictions
@@ -199,7 +203,7 @@ Arel-Bundock, V., Greifer, N. and Heiss, A. (2024), How to interpret statistical
 marginaleffects for R and Python, Journal of Statistical Software, 111(9).
 
 ## See also
-reg, glm, coef, derive, test, predict, estimates, ci
+reg, glm, coef, derive, test, predict, estimates, std_errors, ci, report, export
 
 ## Examples
 // The average effects after a model with a square: the slope in exper is not its coefficient.

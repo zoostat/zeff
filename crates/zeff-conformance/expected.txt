@@ -132,6 +132,8 @@ models/glm/stdout 27f57fa3a3f1e4fa
 models/glm/stderr 4323efeb84564aa8
 models/glm_checked/stdout cbf29ce484222325
 models/glm_checked/stderr 370eab9a0a1ef51d
+models/margins/stdout 408ee449134a3e36
+models/margins/stderr 26394a6077f1061d
 control/check/stdout cbf29ce484222325
 control/check/stderr 78f09813226bf7ad
 control/schemas/stdout cbf29ce484222325

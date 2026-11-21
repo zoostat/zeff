@@ -206,6 +206,36 @@ frame · 2 rows × 9 variables
 [exit 0]
 
 === let wages = dataset(wages)
+let g = wages.glm(union ~ educ + exper + exper^2 + female, family: binomial, se: robust)
+let e = g.margins([educ, exper, female])
+report([g, e])
+e.std_errors(exper)
+e.ci(female) ===
+                           (1)         (2)
+  (intercept)          -1.082***
+                       (0.118)
+  educ                  0.001       0.000
+                       (0.007)     (0.001)
+  exper                 0.002       0.006***
+                       (0.008)     (0.000)
+  exper^2               0.001***
+                       (0.000)
+  female                0.054       0.012
+                       (0.032)     (0.007)
+  ──────────────────────────────────────────
+  SEs                     robust      robust
+  N                       18,390      18,390
+  R²            0.008 (McFadden)
+
+* p < 0.05, ** p < 0.01, *** p < 0.001
+(2) margins · g · average marginal effects
+0.00048759
+-0.00175361
+0.0250586
+--- messages ---
+[exit 0]
+
+=== let wages = dataset(wages)
 let w = wages.add(twice = educ * 2)
 w.glm(union ~ educ + twice + female, family: binomial).margins([educ, twice, female]) ===
 margins · union ~ educ + twice + female · average marginal effects

@@ -77,11 +77,16 @@ fn by_term(fit: &Fit, args: &Args, values: &[f64]) -> Value {
     }
 }
 
-/// `fit.std_errors(term?)`: the standard errors by term, or one; a test's result has none.
+/// `fit.std_errors(term?)`: the standard errors by term, or one; a test's result has none of
+/// its own, and gives that of the row named where its rows rest on estimates (a comparison of
+/// `posthoc`, an effect of `margins`).
 pub fn std_errors(ctx: &mut CallContext<'_>, args: Args) -> Result<Value, Fail> {
     match receiver(ctx, &args, "std_errors")? {
         Receiver::Fit(fit) => Ok(by_term(&fit, &args, &fit.std_errors)),
-        Receiver::Test(_) => Ok(Value::Na),
+        Receiver::Test(test) => Ok(named_row(ctx, &test, &args)?
+            .and_then(|row| row.std_error)
+            .and_then(finite)
+            .map_or(Value::Na, Value::Float)),
     }
 }
 
@@ -221,6 +226,18 @@ pub fn ci(ctx: &mut CallContext<'_>, args: Args) -> Result<Value, Fail> {
         // (the tests of `stats`), and of the estimate of each of its rows (the comparisons of
         // `posthoc`); `test` and `compare` have none.
         Receiver::Test(test) => {
+            // One row by its name: its interval as the two numbers, as a fit's term gives.
+            // At another level than the result was made at, the refusal below speaks.
+            if let Some(row) = named_row(ctx, &test, &args)?
+                && (level - test.level).abs() <= 1e-12
+            {
+                return Ok(match row.estimate.as_ref().and_then(|e| e.ci) {
+                    Some((lower, upper)) => {
+                        Value::List(vec![Value::Float(lower), Value::Float(upper)])
+                    }
+                    None => Value::Na,
+                });
+            }
             let mut rows: Vec<Vec<String>> = Vec::new();
             for item in [&test.estimate, &test.effect].into_iter().flatten() {
                 if let Some((lower, upper)) = item.ci {

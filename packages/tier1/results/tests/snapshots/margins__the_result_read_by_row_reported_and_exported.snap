@@ -1,0 +1,203 @@
+---
+source: packages/tier1/results/tests/margins.rs
+expression: out
+---
+=== let wages = dataset(wages)
+let m = wages.reg(log(wage) ~ educ + exper + exper^2 + female + industry, se: robust)
+let a = m.margins([educ, exper, female])
+a.std_errors(exper)
+a.ci(exper)
+a.std_errors()
+a.p_values()
+let i = m.margins(industry)
+i.std_errors("industry=Mining")
+i.ci("industry=Mining")
+let p = m.margins(at: {exper: [5, 20]})
+p.std_errors("prediction @ exper=20") ===
+0.000442105
+0.0212297
+0.0229628
+NA
+NA
+0.0322086
+0.0873059
+0.21357
+0.00416546
+--- messages ---
+[exit 0]
+
+=== let wages = dataset(wages)
+let m = wages.reg(log(wage) ~ educ + exper + exper^2 + female + industry, se: robust)
+let a = m.margins([educ, exper, female])
+report([m, a])
+let c = wages.reg(log(wage) ~ educ * female + exper, cluster: worker)
+report([a, c.margins([educ, female, exper])], title: "Average effects on log wages", digits: 4, labels: {exper: "Experience", female: "Female"})
+report([m.margins([exper, female], at: {industry: "Mining", exper: [5, 20]})], stars: false)
+report([m.margins()], stats: [n_obs, r_squared, aic])
+let t = wages.add(twice = educ * 2).reg(log(wage) ~ educ + twice + female)
+report([t, t.margins([educ, twice, female])]) ===
+                                       (1)         (2)
+  (intercept)                       1.639***
+                                   (0.029)
+  educ                              0.076***    0.076***
+                                   (0.001)     (0.001)
+  exper                             0.042***    0.022***
+                                   (0.002)     (0.000)
+  exper^2                          -0.001***
+                                   (0.000)
+  female                           -0.132***   -0.132***
+                                   (0.006)     (0.006)
+  industry=Mining                   0.150***
+                                   (0.032)
+  industry=Utilities                0.187***
+                                   (0.028)
+  industry=Construction             0.196***
+                                   (0.021)
+  industry=Manufacturing            0.179***
+                                   (0.020)
+  industry=Retail                   0.111***
+                                   (0.020)
+  industry=Transport                0.102***
+                                   (0.022)
+  industry=Finance                  0.236***
+                                   (0.021)
+  industry=Services                 0.051*
+                                   (0.020)
+  industry=Education                0.167***
+                                   (0.021)
+  industry=Health                   0.169***
+                                   (0.021)
+  industry=Public administration    0.238***
+                                   (0.021)
+  ──────────────────────────────────────────────────────
+  SEs                                 robust      robust
+  N                                   18,179      18,179
+  R²                                   0.227
+
+* p < 0.05, ** p < 0.01, *** p < 0.001
+(2) margins · m · average marginal effects
+Average effects on log wages
+
+                    (1)              (2)
+  educ          0.0757***        0.0760***
+               (0.0013)         (0.0026)
+  Experience    0.0221***        0.0220***
+               (0.0004)         (0.0008)
+  Female       -0.1319***       -0.1329***
+               (0.0063)         (0.0122)
+  ────────────────────────────────────────
+  SEs              robust   cluster worker
+  N                18,179           18,179
+
+* p < 0.05, ** p < 0.01, *** p < 0.001
+(1) margins · m · average marginal effects
+(2) margins · c · average marginal effects
+                          (1)
+  exper @ exper=5      0.036
+                      (0.001)
+  female @ exper=5    -0.132
+                      (0.006)
+  exper @ exper=20     0.015
+                      (0.001)
+  female @ exper=20   -0.132
+                      (0.006)
+  ───────────────────────────
+  SEs                  robust
+  N                    18,179
+
+(1) margins · m · average marginal effects; at: industry = Mining; exper = 5, 20
+                   (1)
+  prediction    3.192***
+               (0.003)
+  ──────────────────────
+  SEs             robust
+  N               18,179
+
+* p < 0.05, ** p < 0.01, *** p < 0.001
+(1) margins · m · average adjusted prediction
+                      (1)         (2)
+  (intercept)      2.525***
+                  (0.019)
+  educ             0.055***    0.055***
+                  (0.001)     (0.001)
+  female          -0.140***   -0.140***
+                  (0.007)     (0.007)
+  twice         (omitted)          NA
+  ─────────────────────────────────────
+  SEs             classical   classical
+  N                  18,201      18,201
+  R²                  0.098
+
+* p < 0.05, ** p < 0.01, *** p < 0.001
+(1) note: `twice` is collinear with the columns before it and was dropped
+(2) margins · t · average marginal effects
+--- messages ---
+note: 33 of the 3,911 clusters hold one observation (line 5)
+note: `twice` is collinear with the columns before it and was dropped (line 9)
+[exit 0]
+
+=== let wages = dataset(wages)
+let m = wages.reg(log(wage) ~ educ + exper + exper^2 + female + industry, se: robust)
+let a = m.margins([educ, exper, female])
+a.export("output/margins.tex")
+a.export("output/margins.docx")
+a.export("output/margins.typ")
+report([m, a]).export("output/both.tex") ===
+--- messages ---
+[exit 0]
+
+=== let wages = dataset(wages)
+let m = wages.reg(log(wage) ~ educ + exper + exper^2 + female + industry, se: robust)
+let a = m.margins([educ, exper, female])
+a.std_errors(hours) ===
+--- messages ---
+error[Z0414]: `hours` is not a row of this table
+ --> scripts/main.zeff:4:14
+  |
+4 | a.std_errors(hours)
+  |              ^^^^^ unknown row
+  |
+  = help: the rows are `educ`, `exper`, `female`; without a name the method gives the figure of the whole test
+[exit 1]
+
+=== let wages = dataset(wages)
+let m = wages.reg(log(wage) ~ educ + exper + exper^2 + female + industry, se: robust)
+let a = m.margins([educ, exper, female])
+a.ci(exper, level: 0.9) ===
+--- messages ---
+error[Z0401]: `ci` of a test's result gives the intervals the test was made at, 95%, not at 90%
+ --> scripts/main.zeff:4:20
+  |
+4 | a.ci(exper, level: 0.9)
+  |                    ^^^ another level
+  |
+  = help: run the test with `level:` for intervals at another level
+[exit 1]
+
+=== let wages = dataset(wages)
+let m = wages.reg(log(wage) ~ educ + exper + exper^2 + female + industry, se: robust)
+let a = m.margins([educ, exper, female])
+report([a, m.test(educ == 0)]) ===
+--- messages ---
+error[Z0401]: `report` sets regressions side by side, but the second fit is a TestResult
+ --> scripts/main.zeff:4:8
+  |
+4 | report([a, m.test(educ == 0)])
+  |        ^^^^^^^^^^^^^^^^^^^^^^ not a regression fit
+  |
+  = help: a test's result has no coefficients; report the fits it was made from
+[exit 1]
+
+=== let wages = dataset(wages)
+let m = wages.reg(log(wage) ~ educ + exper + exper^2 + female + industry, se: robust)
+let a = m.margins([educ, exper, female])
+a.coef(exper) ===
+--- messages ---
+error[Z0414]: `exper` names a row, but `coef` reads no row of a test's result
+ --> scripts/main.zeff:4:8
+  |
+4 | a.coef(exper)
+  |        ^^^^^ no row is taken here
+  |
+  = help: `p_values`, `std_errors`, `ci`, `statistic`, `df` and `effect_size` read one row by its name; `estimates()` gives every row of the table as a frame
+[exit 1]

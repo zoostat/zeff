@@ -32,8 +32,8 @@ use zeff_columns::{Column, ColumnType, Table as Columns};
 use zeff_core::display::{fixed, fixed_grouped, format_float, level_text, p_value_text};
 use zeff_core::runtime::{Args, CallContext, Fail, fail};
 use zeff_core::value::{
-    Align, Alternative, Distribution, Estimate, Fit, Frame, Statistic, Table, TermTest, TestResult,
-    Value,
+    Align, Alternative, Distribution, Estimate, Fit, FollowUp, Frame, Statistic, Table, TermTest,
+    TestResult, Value,
 };
 use zeff_diagnostics::{Diagnostic, did_you_mean};
 use zeff_dist::families;
@@ -1392,6 +1392,8 @@ pub fn margins(ctx: &mut CallContext<'_>, args: Args) -> Result<Value, Fail> {
         notes: Vec::new(),
         n: fit.n,
         dropped: fit.dropped,
-        follow_up: None,
+        follow_up: Some(Rc::new(FollowUp::Margins {
+            se_kind: fit.se_kind.clone(),
+        })),
     })))
 }

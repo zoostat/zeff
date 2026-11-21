@@ -6,8 +6,11 @@
 //! asked for its influence measures, and the same formula is fitted to the 0/1 outcome by
 //! `glm` with either link (release 0.9.0, step 9): the frames are small and extreme, so most
 //! are refused for separation or for their degrees of freedom, each with its own message, and
-//! the fits that pass are asked for every method of the result interface. A Z9001 in the
-//! messages is a failure of the target.
+//! the fits that pass are asked for every method of the result interface. Both fits are then
+//! asked for their margins (release 0.9.0, step 13): the prediction, a slope, effects at the
+//! means, held values, several values, and a `report` of the fit beside its effects, each kept
+//! as a value by `attempt` so that a refusal of one does not hide the next. A Z9001 in the
+//! messages or in what is printed is a failure of the target.
 #![no_main]
 
 use libfuzzer_sys::fuzz_target;
@@ -118,6 +121,12 @@ fuzz_target!(|data: &[u8]| {
         format!(
             "let f = import(\"data/f.csv\")\nlet g = f.glm({binary}, family: binomial{link}{options})\ng\ng.fit_measures()\ng.predict(newdata: f)\ng.predict(newdata: f, type: link)\ng.residuals(type: deviance)\ng.residuals(type: pearson)\ng.residuals(type: working)\ng.test(a == 0)\ng.derive(q = a / b)\nreport([g])\ng.design()\n"
         ),
+        format!(
+            "let f = import(\"data/f.csv\")\nlet m = f.reg({formula}{options})\nattempt(m.margins())\nattempt(m.margins(a))\nattempt(m.margins([b, d], type: mem))\nattempt(m.margins(c, at: {{a: [0, 1]}}))\nattempt(m.margins(type: mem, at: {{c: \"x\", d: 1}}))\nattempt(report([m, m.margins(a)]))\n"
+        ),
+        format!(
+            "let f = import(\"data/f.csv\")\nlet m = f.glm({binary}, family: binomial{link}{options})\nattempt(m.margins())\nattempt(m.margins(a))\nattempt(m.margins([b, d], type: mem))\nattempt(m.margins(c, at: {{a: [0, 1]}}))\nattempt(m.margins(type: mem, at: {{c: \"x\", d: 1}}))\nattempt(report([m, m.margins(a)]))\n"
+        ),
     ];
     let fs = MemoryFileSystem::new();
     fs.add_file(
@@ -132,9 +141,11 @@ fuzz_target!(|data: &[u8]| {
     let project = Project::open(&fs, Path::new("/p")).expect("the fuzz project opens");
     for script in &scripts {
         let outcome = run_script(&fs, &project, "scripts/main.zeff", script);
+        // A failure kept by `attempt` prints its code, so what is printed is read too.
         assert!(
-            !outcome.output.stderr.contains("Z9001"),
-            "an internal error on\n{script}\n{}",
+            !outcome.output.stderr.contains("Z9001") && !outcome.output.stdout.contains("Z9001"),
+            "an internal error on\n{script}\n{}{}",
+            outcome.output.stdout,
             outcome.output.stderr
         );
     }
