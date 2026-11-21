@@ -13,7 +13,8 @@
 //! a probability near 0 or near 1 loses no digit of its log and no row's information vanishes
 //! before it must.
 
-use zeff_kernels::irls::{IndexModel, RowTerms};
+use zeff_kernels::irls::{IndexModel, RowTerms, Solution};
+use zeff_kernels::{Matrix, sum};
 use zeff_numeric::maths::{exp, log, log1p};
 use zeff_numeric::special::{normal_density, normal_quantile, normal_tails};
 
@@ -212,9 +213,161 @@ impl Likelihood for Binomial {
     }
 }
 
+/// How far the log-likelihood may fall from one iteration to the next, as a share of its size,
+/// before the fall is more than rounding.
+const FALL_TOLERANCE: f64 = 1e-9;
+/// How large a column's score may be at the maximum, as a share of the sum of the sizes of its
+/// terms: the iterations stop when the estimates move by less than a relative 1e-11.
+const SCORE_TOLERANCE: f64 = 1e-6;
+/// How far two mirrored entries of the variance may differ, as a share of the two standard
+/// errors' product.
+const SYMMETRY_TOLERANCE: f64 = 1e-12;
+
+/// The self-checks of a fit by maximum likelihood (section 11.1 of the Language Reference,
+/// "Self-checks"): a log-likelihood that never fell during the iterations, a score of zero at
+/// the maximum in every column of `x`, and a variance of the estimates that is symmetric with no
+/// negative entry on its diagonal. `Err` says which check failed; the caller reports it as an
+/// internal error, never as a result.
+///
+/// The first value of the history is the log-likelihood of the start, which no coefficients
+/// gave, so the first step may leave it in either direction; the check begins after it.
+pub fn self_check(
+    x: &Matrix,
+    model: &dyn IndexModel,
+    solution: &Solution,
+    vcov: &Matrix,
+) -> Result<(), String> {
+    for (at, pair) in solution.history.windows(2).enumerate().skip(1) {
+        let floor = pair[0] - FALL_TOLERANCE * (pair[0].abs() + 1.0);
+        if pair[1].is_nan() || pair[1] < floor {
+            return Err(format!("the log-likelihood fell at iteration {}", at + 1));
+        }
+    }
+    let scores: Vec<f64> = solution
+        .eta
+        .iter()
+        .enumerate()
+        .map(|(row, &eta)| model.at(row, eta, false).score)
+        .collect();
+    for j in 0..x.cols() {
+        let terms: Vec<f64> = x
+            .column(j)
+            .iter()
+            .zip(&scores)
+            .map(|(a, s)| a * s)
+            .collect();
+        let sizes: Vec<f64> = terms.iter().map(|t| t.abs()).collect();
+        let (score, bound) = (sum(&terms).abs(), SCORE_TOLERANCE * sum(&sizes));
+        if score.is_nan() || score > bound {
+            return Err(format!(
+                "the score of column {} is not zero at the maximum",
+                j + 1
+            ));
+        }
+    }
+    let k = vcov.rows();
+    for i in 0..k {
+        let variance = vcov.get(i, i);
+        if !variance.is_finite() || variance < 0.0 {
+            return Err(format!(
+                "the variance of estimate {} is negative or not a number",
+                i + 1
+            ));
+        }
+    }
+    for i in 0..k {
+        for j in 0..i {
+            let size = vcov.get(i, i).sqrt() * vcov.get(j, j).sqrt();
+            let apart = (vcov.get(i, j) - vcov.get(j, i)).abs();
+            if apart.is_nan() || apart > SYMMETRY_TOLERANCE * size {
+                return Err("an asymmetric variance matrix".to_string());
+            }
+        }
+    }
+    Ok(())
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    /// A small logistic fit with its variance, for the self-checks.
+    fn small_fit() -> (Matrix, Binomial, Solution, Matrix) {
+        use zeff_kernels::irls::{Control, irls};
+        use zeff_kernels::triangular::inverse_upper;
+        let x = Matrix::from_columns(&[
+            vec![1.0; 8],
+            vec![-2.0, -1.5, -1.0, -0.5, 0.5, 1.0, 1.5, 2.0],
+        ]);
+        let model = Binomial::new(vec![0.0, 0.0, 1.0, 0.0, 1.0, 0.0, 1.0, 1.0], Link::Logit);
+        let start: Vec<f64> = (0..8).map(|row| model.start(row)).collect();
+        let solution = irls(&x, &model, &start, &Control::default()).unwrap();
+        assert!(solution.converged);
+        let inverse = inverse_upper(&solution.r).unwrap();
+        let vcov = Matrix::from_fn(2, 2, |i, j| {
+            (0..2)
+                .map(|l| inverse.get(i, l) * inverse.get(j, l))
+                .sum::<f64>()
+                * solution.scales[i]
+                * solution.scales[j]
+        });
+        (x, model, solution, vcov)
+    }
+
+    #[test]
+    fn a_sound_fit_passes_its_self_checks() {
+        let (x, model, solution, vcov) = small_fit();
+        assert_eq!(self_check(&x, &model, &solution, &vcov), Ok(()));
+    }
+
+    #[test]
+    fn a_log_likelihood_that_fell_fails_the_self_check() {
+        let (x, model, mut solution, vcov) = small_fit();
+        let last = *solution.history.last().unwrap();
+        solution.history.push(last - 0.5);
+        let failed = self_check(&x, &model, &solution, &vcov).unwrap_err();
+        assert!(
+            failed.starts_with("the log-likelihood fell at iteration"),
+            "{failed}"
+        );
+        // The first step leaves a start that no coefficients gave: a fall there is no failure.
+        let (x, model, mut solution, vcov) = small_fit();
+        solution.history[0] = solution.history[1] + 10.0;
+        assert_eq!(self_check(&x, &model, &solution, &vcov), Ok(()));
+    }
+
+    #[test]
+    fn a_score_that_is_not_zero_fails_the_self_check() {
+        let (x, model, mut solution, vcov) = small_fit();
+        for eta in &mut solution.eta {
+            *eta += 0.25;
+        }
+        let failed = self_check(&x, &model, &solution, &vcov).unwrap_err();
+        assert_eq!(failed, "the score of column 1 is not zero at the maximum");
+    }
+
+    #[test]
+    fn a_variance_that_is_not_one_fails_the_self_check() {
+        let (x, model, solution, vcov) = small_fit();
+        let mut lopsided = vcov.clone();
+        lopsided.set(0, 1, 2.0 * vcov.get(0, 1) + 1.0);
+        assert_eq!(
+            self_check(&x, &model, &solution, &lopsided).unwrap_err(),
+            "an asymmetric variance matrix"
+        );
+        let mut negative = vcov.clone();
+        negative.set(1, 1, -vcov.get(1, 1));
+        assert_eq!(
+            self_check(&x, &model, &solution, &negative).unwrap_err(),
+            "the variance of estimate 2 is negative or not a number"
+        );
+        let mut missing = vcov;
+        missing.set(0, 0, f64::NAN);
+        assert_eq!(
+            self_check(&x, &model, &solution, &missing).unwrap_err(),
+            "the variance of estimate 1 is negative or not a number"
+        );
+    }
 
     #[test]
     fn the_two_tails_keep_their_digits() {

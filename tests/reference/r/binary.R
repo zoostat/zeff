@@ -62,10 +62,38 @@ cases <- list(
   fit_case("wages_probit", union ~ educ + exper + female, wages, "probit")
 )
 
+# A fit that converges with fitted probabilities numerically 0 or 1 (release 0.9.0, step 6b):
+# tests/datasets/extreme_regressor.csv, 240 rows that overlap and three far out on `x`. R warns
+# ("fitted probabilities numerically 0 or 1 occurred") by the rule of `glm.fit`, a fitted value
+# within ten machine epsilons of 0 or 1; the count of such rows is written beside the fit.
+extreme <- read_dataset(file.path(root, "tests", "datasets", "extreme_regressor.csv"))
+extreme_case <- function(name, link) {
+  warned <- character(0)
+  m <- withCallingHandlers(
+    glm(y ~ x + z, family = binomial(link = link), data = extreme, control = control),
+    warning = function(w) {
+      warned <<- c(warned, conditionMessage(w))
+      invokeRestart("muffleWarning")
+    }
+  )
+  fit <- suppressWarnings(fit_case(name, y ~ x + z, extreme, link))
+  for (again in 1:10) {
+    m <- suppressWarnings(glm(y ~ x + z, family = binomial(link = link), data = extreme,
+                              control = control, start = coef(m)))
+  }
+  eps <- 10 * .Machine$double.eps
+  mu <- fitted(m)
+  fit$numerically_0_or_1 <- as.integer(sum(mu < eps | mu > 1 - eps))
+  fit$r_warned <- any(grepl("numerically 0 or 1", warned))
+  fit
+}
+extremes <- list(extreme_case("extreme_logit", "logit"), extreme_case("extreme_probit", "probit"))
+
 out <- list(
   software = paste("R", getRversion()),
   generated_rows = nrow(g),
   generated_ones = as.integer(sum(g$y)),
-  cases = cases
+  cases = cases,
+  extremes = extremes
 )
 writeLines(to_json(out), file.path(here(), "binary.json"))

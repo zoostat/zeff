@@ -2,7 +2,7 @@
 source: crates/zeff-cli/tests/cli.rs
 expression: list
 ---
-144 codes are explained; `zeff explain <code>` prints a code's page.
+145 codes are explained; `zeff explain <code>` prints a code's page.
 
 Z00xx  Errors a script raises itself
     Z0001  the script stopped itself with error()
@@ -171,3 +171,4 @@ W1xxx  Statistical warnings: the code is right but the result is fragile
     W1004  little variation left after the fixed effects
     W1006  an observation drives a coefficient
     W1007  weak instruments
+    W1008  fitted probabilities numerically 0 or 1

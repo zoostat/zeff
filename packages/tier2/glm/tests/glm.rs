@@ -367,3 +367,91 @@ fn the_separation_example_of_the_language_reference_prints_word_for_word() {
     let out = printed(&script);
     assert_eq!(error_block(&out), expected, "{out}");
 }
+
+/// `tests/datasets/extreme_regressor.csv` as a table: three numeric columns.
+fn extreme_table() -> Table {
+    let text =
+        std::fs::read_to_string(root().join("tests/datasets/extreme_regressor.csv")).unwrap();
+    let mut columns: Vec<Vec<Option<f64>>> = vec![Vec::new(); 3];
+    for line in text.lines().skip(1) {
+        for (slot, field) in columns.iter_mut().zip(line.split(',')) {
+            slot.push(Some(field.parse().unwrap()));
+        }
+    }
+    Table::new(
+        ["y", "x", "z"]
+            .iter()
+            .zip(columns)
+            .map(|(name, values)| (name.to_string(), zeff_columns::Column::floats(values).0))
+            .collect(),
+    )
+    .unwrap()
+}
+
+/// A fit that converges with fitted probabilities numerically 0 or 1 (step 6b): the estimates,
+/// the variance and the log-likelihood agree with R's on the same file with each link, the fit
+/// carries the warning W1008 with R's count of such rows, where R warns too, and the printed
+/// result shows it.
+#[test]
+fn probabilities_at_0_or_1_are_warned_as_r_warns() {
+    let path = root().join("tests/reference/r/binary.json");
+    let json: Json = serde_json::from_str(&std::fs::read_to_string(path).unwrap()).unwrap();
+    let table = extreme_table();
+    for case in json["extremes"].as_array().unwrap() {
+        let name = case["name"].as_str().unwrap();
+        let link = case["link"].as_str().unwrap();
+        let fit = fit_of(&table, "y ~ x + z", link).unwrap_or_else(|e| panic!("{name}: {e}"));
+        let k = fit.estimates.len();
+        for (j, theirs) in case["coefficients"].as_array().unwrap().iter().enumerate() {
+            close(
+                fit.estimates[j],
+                number(theirs),
+                1e-9,
+                &format!("{name} estimate {j}"),
+            );
+        }
+        for (i, row) in case["vcov"].as_array().unwrap().iter().enumerate() {
+            for (j, theirs) in row.as_array().unwrap().iter().enumerate() {
+                close(
+                    fit.vcov[i * k + j],
+                    number(theirs),
+                    1e-8,
+                    &format!("{name} vcov {i},{j}"),
+                );
+            }
+        }
+        close(
+            fit.log_likelihood,
+            number(&case["log_likelihood"]),
+            1e-12,
+            &format!("{name} log-likelihood"),
+        );
+        assert!(case["r_warned"].as_bool().unwrap(), "{name}");
+        let rows = case["numerically_0_or_1"].as_i64().unwrap();
+        assert_eq!(
+            fit.warnings,
+            vec![format!(
+                "warning[W1008]: {rows} fitted probabilities are numerically 0 or 1"
+            )],
+            "{name}"
+        );
+    }
+    // No warning where no probability is at the edge.
+    let wages = zeff_datasets::table("wages").expect("the shipped wages");
+    assert!(
+        fit_of(&wages, "union ~ educ + exper + female", "logit")
+            .unwrap()
+            .warnings
+            .is_empty()
+    );
+    let scripts = [
+        "import(\"data/extreme_regressor.csv\").glm(y ~ x + z, family: binomial)\n",
+        "import(\"data/extreme_regressor.csv\").where(x < 70 && x > -10).glm(y ~ x + z, family: binomial, link: probit)\n",
+    ];
+    let all = scripts
+        .iter()
+        .map(|s| format!("{s}---\n{}", printed(s)))
+        .collect::<Vec<_>>()
+        .join("\n====\n");
+    insta::assert_snapshot!("glm_probabilities_at_the_edge", all);
+}

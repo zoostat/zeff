@@ -801,3 +801,8 @@ The owner answered the seventeen questions of Zemp Lite's release 0.2 ("Go, as r
 ## 21 November 2026 — Language Reference, the table of codes numbered while the engine was built, row Z0803 (release 0.9.0, step 5b)
 
 The row described Z0803 only as an outcome too large or too small for least squares, although section 11 of the same volume shows `glm`'s separation under Z0803 and section 5.6 makes "a model that cannot be estimated: no variation, perfect separation, ..., non-convergence" an error of the Z08xx area. The row gains a sentence for `glm`: a maximum of the likelihood that does not exist or is not found (an outcome with one value in every row used, estimates that diverge, a fit that has not converged in 100 iterations). Found while coding the refusals of `glm`; no new code is numbered.
+
+## 21 November 2026 — Language Reference, section 11.1, the row "Statistical warnings (W1xxx)" (release 0.9.0, step 6b)
+
+The row lists the statistical warnings by code, W1001 to W1007. The 0.9.0 row of section 14 of the Engine Specification requires the separation checks of a binary model, and a fit that converges with fitted probabilities numerically 0 or 1 is the fragile result the W1xxx area is for; it had no code. The row gains "fitted probabilities numerically 0 or 1 in a binary model, with their count (W1008)", numbered while the engine was built as the codes before it were.
+

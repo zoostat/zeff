@@ -17,7 +17,7 @@ use zeff_kernels::triangular::{inverse_upper, solve_upper_transposed};
 use zeff_kernels::{LaneSum, Matrix, sum};
 use zeff_results::design::Design;
 use zeff_results::estimator::Fitted;
-use zeff_results::likelihood::{Binomial, Likelihood, Link};
+use zeff_results::likelihood::{Binomial, Likelihood, Link, self_check};
 use zeff_results::summary::{self, Setting, dropped_notes, n_note};
 
 /// The places of the arguments, as `functions()` declares them.
@@ -368,6 +368,13 @@ pub fn glm_with(ctx: &mut CallContext<'_>, args: Args, control: &Control) -> Res
     let k = chosen.kept.len();
     let fitted_values: Vec<f64> = solution.eta.iter().map(|&eta| model.mean(eta)).collect();
     let residuals: Vec<f64> = y.iter().zip(&fitted_values).map(|(a, b)| a - b).collect();
+    // R's rule for a fitted probability that is 0 or 1 to the machine's precision: within ten
+    // machine epsilons of either.
+    let edge = 10.0 * f64::EPSILON;
+    let at_the_edge = fitted_values
+        .iter()
+        .filter(|&&mu| mu < edge || mu > 1.0 - edge)
+        .count();
     let mut leverage = Vec::with_capacity(n);
     for (row, &eta) in solution.eta.iter().enumerate() {
         let w = model.at(row, eta, false).weight;
@@ -459,6 +466,31 @@ pub fn glm_with(ctx: &mut CallContext<'_>, args: Args, control: &Control) -> Res
             .collect();
         sum(&products) * solution.scales[i] * solution.scales[j]
     });
+    // The self-checks of section 11.1: a failure is a bug in the engine, not a result.
+    self_check(&x, &model, &solution, &vcov).map_err(|what| internal(ctx, &what))?;
+    // The statistical warning, printed here and kept on the fit for the footer of a `report`
+    // table: the maximum exists, but in these rows a regressor all but decides the outcome.
+    let mut warnings: Vec<String> = Vec::new();
+    if at_the_edge > 0 {
+        let (text, rows) = if at_the_edge == 1 {
+            (
+                "1 fitted probability is numerically 0 or 1".to_string(),
+                "this row",
+            )
+        } else {
+            (
+                format!(
+                    "{} fitted probabilities are numerically 0 or 1",
+                    count(at_the_edge as u64)
+                ),
+                "these rows",
+            )
+        };
+        warnings.push(format!("warning[W1008]: {text}"));
+        ctx.message(Diagnostic::warning("W1008", text).help(format!(
+            "in {rows} the regressors all but decide `{outcome}`; the estimates exist, but look at the largest and smallest values of each regressor"
+        )));
+    }
     let formula_text = formula.to_string();
     let setting = Setting {
         method: "glm",
@@ -506,5 +538,6 @@ pub fn glm_with(ctx: &mut CallContext<'_>, args: Args, control: &Control) -> Res
         cluster: None,
     });
     fit.notes.extend(notes);
+    fit.warnings.extend(warnings);
     Ok(Value::Fit(Rc::new(fit)))
 }

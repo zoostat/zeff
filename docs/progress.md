@@ -64,6 +64,8 @@ Step 5b `[engine]`: every refusal of `glm`'s page raised and snapshotted: `famil
 
 Step 6 split into 6a and 6b. Step 6a `[engine]`: separation found before the fit by a linear program of the kernels; Z0803 names the regressor that separates alone, or those that separate together; agrees with Konis's program written in base R on seven cases (R's own `glm` says it converged on the three quasi-complete ones); the example of section 11 prints word for word, less `cluster: worker` (step 7).
 
-**Next.** Step 6b `[engine]`: the warning on fitted probabilities numerically 0 or 1, and the self-checks. Step 3, the weekly run of 23 November, when it has ended.
+Step 6b `[engine]`: a fit that converges with fitted probabilities numerically 0 or 1 is warned (W1008, a new code, R's rule and R's count on the reference file); the self-checks of a likelihood fit (a log-likelihood that never fell, a zero score, a sound variance) as Z9001. Step 6 is done.
+
+**Next.** Step 7 `[engine]`: robust and clustered errors, and weights, on `glm` (with W1001 and W1002). Step 3, the weekly run of 23 November, when it has ended.
 
 **For the owner to decide or do.** Nothing blocks. The R packages `marginaleffects`, `rstatix` and `pROC` for the reference library (and `ivmodel`, `ivDiag`), if he wants the references held to them; the signing key at step 23; the archive link of #161; the reader test at step 45.

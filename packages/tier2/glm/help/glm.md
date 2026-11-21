@@ -67,6 +67,13 @@ model with as many regressors as rows, or more, is refused as `reg` refuses it (
 that has not converged in 100 iterations is refused with the change of the log-likelihood at the
 last (Z0803).
 
+### Probabilities at 0 or 1
+A fit may converge and still put a row's probability at 0 or 1 to the machine's precision: an
+observation far out on a regressor, on the side its estimate points to. The outcomes are not
+separated, so the estimates exist, but they lean on the rows near that observation; the fit is
+printed with a warning that counts such rows (W1008), by R's rule, a probability within ten
+machine epsilons of 0 or 1.
+
 ### Exactness
 Iterative: the estimates, the standard errors and the log-likelihood agree with R's `glm`,
 iterated to its maximum, to a relative 1e-9 on the reference models. R's own rule stops its

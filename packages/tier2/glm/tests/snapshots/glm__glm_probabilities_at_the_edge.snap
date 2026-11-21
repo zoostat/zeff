@@ -1,0 +1,40 @@
+---
+source: packages/tier2/glm/tests/glm.rs
+expression: all
+---
+import("data/extreme_regressor.csv").glm(y ~ x + z, family: binomial)
+---
+glm · y ~ x + z · binomial, logit
+N = 243
+standard errors: classical
+
+  term          estimate   std.error   z value   p value   95% CI
+  (intercept)    -0.2346      0.1377     -1.70     0.089   [-0.5045, 0.0354]
+  x               0.5835      0.1210      4.82    <0.001   [0.3464, 0.8205]
+  z               0.0818      0.1145      0.71     0.475   [-0.1427, 0.3063]
+
+log-likelihood -152.05 · AIC 310.11 · McFadden R² 0.091
+deviance 304.11 on 240 df · null deviance 334.69 on 242 df
+converged in 7 iterations of Fisher scoring
+note: data/extreme_regressor.csv read as CSV: 243 rows × 3 variables, types guessed; CSV carries no labels, value labels or categories (line 1)
+warning[W1008]: 3 fitted probabilities are numerically 0 or 1 (line 1)
+  = help: in these rows the regressors all but decide `y`; the estimates exist, but look at the largest and smallest values of each regressor
+
+====
+import("data/extreme_regressor.csv").where(x < 70 && x > -10).glm(y ~ x + z, family: binomial, link: probit)
+---
+glm · y ~ x + z · binomial, probit
+N = 241
+standard errors: classical
+
+  term          estimate   std.error   z value   p value   95% CI
+  (intercept)    -0.1395      0.0839     -1.66     0.096   [-0.3041, 0.0250]
+  x               0.3554      0.0724      4.91    <0.001   [0.2135, 0.4973]
+  z               0.0493      0.0699      0.71     0.481   [-0.0877, 0.1863]
+
+log-likelihood -152.17 · AIC 310.34 · McFadden R² 0.083
+deviance 304.34 on 238 df · null deviance 331.90 on 240 df
+converged in 10 iterations of Fisher scoring
+note: data/extreme_regressor.csv read as CSV: 243 rows × 3 variables, types guessed; CSV carries no labels, value labels or categories (line 1)
+warning[W1008]: 1 fitted probability is numerically 0 or 1 (line 1)
+  = help: in this row the regressors all but decide `y`; the estimates exist, but look at the largest and smallest values of each regressor

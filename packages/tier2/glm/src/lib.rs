@@ -29,6 +29,10 @@ pub fn functions() -> Vec<Function> {
                 DiagnosticDecl::note(
                     "a term written twice kept once; a collinear column, a level with no observations, a zero column or one too small or too large to scale dropped",
                 ),
+                DiagnosticDecl::new(
+                    "W1008",
+                    "fitted probabilities numerically 0 or 1, with their count",
+                ),
                 DiagnosticDecl::new("Z0406", "`family:` left out"),
                 DiagnosticDecl::new(
                     "Z0401",
