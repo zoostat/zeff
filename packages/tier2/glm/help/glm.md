@@ -7,6 +7,7 @@ A generalized linear model: logistic and probit regression of a binary outcome
 - `wages.glm(union ~ educ + exper, family: binomial)`: a logistic regression of union membership.
 - `family:` is required; `link: probit` gives a probit regression in the place of the logit.
 - `se: robust` gives robust standard errors and `cluster: worker` errors clustered by worker.
+- `weights: w` weights the rows: survey weights unless `weight_type: frequency` says counts.
 - The table gives z values, as maximum likelihood does; under it, the log-likelihood and the deviance.
 
 ## Description
@@ -27,8 +28,11 @@ the log of the odds for one unit of its regressor, and its exponential the ratio
 - formula: The model: the outcome, 0 and 1 or a Bool, on the left of `~`, the regressors on the right, written as for `reg`.
 - family: The family of the outcome's distribution: `binomial`, for an outcome of 0 and 1. Required.
 - link: The link: `logit` (logistic regression) or `probit` (probit regression); `logit` unless given.
-- se: The kind of standard error: `classical`, `robust` (HC1), `hc2` or `hc3`; `classical` unless given.
+- fe: Fixed effects to absorb, as `reg` takes them; on `glm` from release 1.7, and refused until then (Z0304). A category among the regressors does the same for a few groups.
+- se: The kind of standard error: `classical`, `robust` (HC1), `hc2` or `hc3`; `classical` unless sampling weights are given, when `robust`.
 - cluster: The variable whose values group the observations for clustered errors (CR1): a number, text, a category, a date or a time, each cluster the rows that share a value.
+- weights: The weight variable.
+- weight_type: What the weights are: `frequency` counts or `sampling` probability weights; `sampling` unless given. `analytic` precision weights are refused (Z0410): a binary outcome has no error variance for them to scale.
 - level: The confidence level of the intervals; 0.95 unless given.
 
 ## Value
@@ -39,8 +43,9 @@ null deviance, and the iterations the fit took. It is read as any fit is: `coef`
 for the table.
 
 ## Missing values
-A row with `NA` in the outcome or a regressor is left out, and the line under the title counts
-the rows dropped.
+A row with `NA` in the outcome, a regressor, the weight or the cluster variable is left out, and
+the line under the title counts the rows dropped. A row with a zero weight is left out too,
+with a note.
 
 ## Details
 ### The fit
@@ -61,6 +66,18 @@ G/(G − 1) · (N − 1)/(N − k) for G clusters, CR1: the factors `reg` uses, 
 its errors from one computation. `hc2` or `hc3` with `cluster:` is refused (Z0410), and so is
 one cluster (Z0802); fewer than 30 clusters are warned of (W1002). A row with `NA` in the
 cluster variable is left out.
+
+### Weights
+Weights multiply each row's log-likelihood. With `weight_type: frequency` a row stands for as
+many identical observations as its weight, a whole number: the fit is the one on the rows
+written out, N is the sum of the weights and the classical errors hold. With `weight_type:
+sampling`, the default, the weights are probability weights, as a survey gives: what is
+maximised is a pseudo-likelihood, so the line under the table says log pseudo-likelihood, which
+compares no models; the errors are robust unless `cluster:` is given, and classical errors are
+refused (Z0410). Sampling weights are scaled to sum to the rows used, which changes neither the
+estimates nor their errors. Analytic weights, which say how precisely each outcome was measured,
+are refused (Z0410): the variance of a 0 or 1 is fixed by its mean. A negative weight is an
+error (Z0224); a few rows carrying most of the weight are warned of (W1003).
 
 ### Collinearity
 A regressor that is a combination of the regressors before it is dropped with a note, as in
@@ -106,13 +123,17 @@ error[Z0406]: `glm` needs `family:`
 
 | d.glm(y ~ x, family: binomial, se: robust) | sandwich::vcovHC(m, type = "HC1") | logit y x, vce(robust) |
 | d.glm(y ~ x, family: binomial, cluster: id) | sandwich::vcovCL(m, cluster = ~id, type = "HC1") | logit y x, vce(cluster id) |
+| d.glm(y ~ x, family: binomial, weights: w) | glm(y ~ x, family = quasibinomial, data = d, weights = w) with sandwich::vcovHC(m, type = "HC1") | logit y x [pweight = w] |
+| d.glm(y ~ x, family: binomial, weights: n, weight_type: frequency) | glm(y ~ x, family = binomial, data = d, weights = n) | logit y x [fweight = n] |
 
 R writes the family as a function, `binomial(link = "probit")`; here the family and the link are
 two words. In R the robust and clustered errors come from the package sandwich, and are these
 when its `type` is "HC1"; left to itself, `vcovCL` gives a `glm` fit G/(G − 1) alone, which is
 also Stata's factor after `vce(cluster id)`, so those errors are smaller by the factor
 √((N − k)/(N − 1)), a hair in any sample of size. Stata's `vce(robust)` uses N/(N − 1) where
-HC1 has N/(N − k). Stata's `logit` and `probit` give the same estimates; its `probit` takes its standard
+HC1 has N/(N − k). R's `weights =` are counts of trials, the frequency weights here; for
+survey weights R's package survey fits the same estimates. Stata's `logit` takes no analytic
+weights either. Stata's `logit` and `probit` give the same estimates; its `probit` takes its standard
 errors from the observed information, where R and this function take the expected, so the two
 differ slightly; under the logit link they are one.
 
@@ -197,3 +218,36 @@ log-likelihood -11,415.06 · AIC 22,838.13 · McFadden R² 0.007
 deviance 22,830.13 on 18,386 df · null deviance 23,001.97 on 18,389 df
 converged in 5 iterations of Fisher scoring
 note: 3 of the 3,911 clusters hold one observation (line 5)
+
+// Survey weights: the hours worked as sampling weights, with the robust errors they bring.
+> wages.glm(union ~ educ + exper + female, family: binomial, weights: hours)
+glm · union ~ educ + exper + female · binomial, logit
+N = 18,355 (57 rows dropped for NA in model variables)
+weights: hours (sampling)
+standard errors: robust (HC1)
+
+  term          estimate   std.error   z value   p value   95% CI
+  (intercept)    -1.1947      0.1117    -10.70    <0.001   [-1.4136, -0.9758]
+  educ            0.0010      0.0069      0.14     0.885   [-0.0125, 0.0145]
+  exper           0.0273      0.0023     11.73    <0.001   [0.0227, 0.0318]
+  female          0.0597      0.0326      1.83     0.067   [-0.0041, 0.1235]
+
+log pseudo-likelihood -11,478.76 · AIC 22,965.51 · McFadden R² 0.007
+deviance 22,957.51 on 18,351 df · null deviance 23,126.63 on 18,354 df
+converged in 6 iterations of Fisher scoring
+
+// Frequency weights: each woman's row counted twice.
+> wages.add(copies = 1 + female).glm(union ~ educ + exper, family: binomial, weights: copies, weight_type: frequency)
+glm · union ~ educ + exper · binomial, logit
+N = 27,303 (the sum of the frequency weights over 18,390 rows; 22 rows dropped for NA in model variables)
+weights: copies (frequency)
+standard errors: classical
+
+  term          estimate   std.error   z value   p value   95% CI
+  (intercept)    -1.0523      0.0889    -11.84    <0.001   [-1.2265, -0.8782]
+  educ           -0.0072      0.0055     -1.30     0.192   [-0.0181, 0.0036]
+  exper           0.0258      0.0018     14.04    <0.001   [0.0222, 0.0294]
+
+log-likelihood -16,989.73 · AIC 33,985.46 · McFadden R² 0.007
+deviance 33,979.46 on 27,300 df · null deviance 34,217.31 on 27,302 df
+converged in 6 iterations of Fisher scoring

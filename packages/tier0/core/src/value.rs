@@ -1130,6 +1130,9 @@ pub struct Fit {
 /// optimiser reached the maximum.
 #[derive(Debug, Clone, PartialEq)]
 pub struct LikelihoodFit {
+    /// Whether the likelihood is a pseudo-likelihood: rows weighted by sampling weights, so
+    /// that its value is no likelihood of the sample and compares no models.
+    pub pseudo: bool,
     /// `binomial`.
     pub family: String,
     /// `logit`, `probit`.

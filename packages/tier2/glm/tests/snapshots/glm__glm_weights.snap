@@ -1,0 +1,159 @@
+---
+source: packages/tier2/glm/tests/glm.rs
+expression: all
+---
+dataset(wages).glm(union ~ educ + exper + female, family: binomial, weights: hours)
+---
+glm · union ~ educ + exper + female · binomial, logit
+N = 18,355 (57 rows dropped for NA in model variables)
+weights: hours (sampling)
+standard errors: robust (HC1)
+
+  term          estimate   std.error   z value   p value   95% CI
+  (intercept)    -1.1947      0.1117    -10.70    <0.001   [-1.4136, -0.9758]
+  educ            0.0010      0.0069      0.14     0.885   [-0.0125, 0.0145]
+  exper           0.0273      0.0023     11.73    <0.001   [0.0227, 0.0318]
+  female          0.0597      0.0326      1.83     0.067   [-0.0041, 0.1235]
+
+log pseudo-likelihood -11,478.76 · AIC 22,965.51 · McFadden R² 0.007
+deviance 22,957.51 on 18,351 df · null deviance 23,126.63 on 18,354 df
+converged in 6 iterations of Fisher scoring
+
+====
+dataset(wages).glm(union ~ educ + exper + female, family: binomial, link: probit, weights: hours, cluster: worker)
+---
+glm · union ~ educ + exper + female · binomial, probit
+N = 18,355 (57 rows dropped for NA in model variables)
+weights: hours (sampling)
+standard errors: clustered by worker (3,911 clusters, CR1)
+
+  term          estimate   std.error   z value   p value   95% CI
+  (intercept)    -0.7342      0.1619     -4.53    <0.001   [-1.0516, -0.4168]
+  educ            0.0006      0.0101      0.06     0.952   [-0.0192, 0.0204]
+  exper           0.0165      0.0033      5.02    <0.001   [0.0101, 0.0230]
+  female          0.0367      0.0487      0.75     0.451   [-0.0587, 0.1321]
+
+log pseudo-likelihood -11,479.11 · AIC 22,966.22 · McFadden R² 0.007
+deviance 22,958.22 on 18,351 df · null deviance 23,126.63 on 18,354 df
+converged in 8 iterations of Fisher scoring
+note: 8 of the 3,911 clusters hold one observation (line 1)
+
+====
+dataset(wages).add(copies = 1 + female).glm(union ~ educ + exper, family: binomial, weights: copies, weight_type: frequency)
+---
+glm · union ~ educ + exper · binomial, logit
+N = 27,303 (the sum of the frequency weights over 18,390 rows; 22 rows dropped for NA in model variables)
+weights: copies (frequency)
+standard errors: classical
+
+  term          estimate   std.error   z value   p value   95% CI
+  (intercept)    -1.0523      0.0889    -11.84    <0.001   [-1.2265, -0.8782]
+  educ           -0.0072      0.0055     -1.30     0.192   [-0.0181, 0.0036]
+  exper           0.0258      0.0018     14.04    <0.001   [0.0222, 0.0294]
+
+log-likelihood -16,989.73 · AIC 33,985.46 · McFadden R² 0.007
+deviance 33,979.46 on 27,300 df · null deviance 34,217.31 on 27,302 df
+converged in 6 iterations of Fisher scoring
+
+====
+dataset(wages).glm(union ~ educ + exper, family: binomial, weights: hours, se: classical)
+---
+error[Z0410]: `se: classical` with sampling weights: classical errors treat the weights as precision weights
+ --> scripts/main.zeff:1:80
+  |
+1 | dataset(wages).glm(union ~ educ + exper, family: binomial, weights: hours, se: classical)
+  |                                                                                ^^^^^^^^^ not valid for probability weights
+  |
+  = help: leave `se:` out, which gives `robust`, or write `weight_type: analytic` for precision weights
+
+====
+dataset(wages).glm(union ~ educ + exper, family: binomial, weights: hours, weight_type: analytic)
+---
+error[Z0410]: `weight_type: analytic` and `family: binomial` exclude each other: the variance of a binary outcome is fixed by its mean, so there is no precision to weight
+ --> scripts/main.zeff:1:89
+  |
+1 | dataset(wages).glm(union ~ educ + exper, family: binomial, weights: hours, weight_type: analytic)
+  |                                                                                         ^^^^^^^^ precision weights on a binary outcome
+  |
+  = help: `weight_type: frequency` for a row that stands for several identical observations; `weight_type: sampling`, the default, for survey weights
+
+====
+dataset(wages).add(part = hours / 7).glm(union ~ educ + exper, family: binomial, weights: part, weight_type: frequency)
+---
+error[Z0401]: frequency weights are whole numbers, but `part` holds a fraction in rows 1, 2, 3, 4, 5, 6, 7, 8, 9, 10 and 18,070 more
+ --> scripts/main.zeff:1:38
+  |
+1 | dataset(wages).add(part = hours / 7).glm(union ~ educ + exper, family: binomial, weights: part, weight_type: frequency)
+  |                                      ^^^ a frequency weight with a fraction
+  |
+  = help: a frequency weight counts how many times a row stands; `weight_type: analytic` or `sampling` takes any positive weight
+
+====
+dataset(wages).add(below = educ - 12).glm(union ~ exper, family: binomial, weights: below)
+---
+error[Z0224]: `below` holds a negative weight in rows 37, 38, 45, 46, 49, 50, 51, 52, 53, 54 and 4,075 more
+ --> scripts/main.zeff:1:39
+  |
+1 | dataset(wages).add(below = educ - 12).glm(union ~ exper, family: binomial, weights: below)
+  |                                       ^^^ a weight below zero
+  |
+  = help: weights are zero or positive; `where(w >= 0)` drops the rows, or recode them
+
+====
+dataset(wages).glm(union ~ educ + exper, family: binomial, weights: nobody)
+---
+error[Z0101]: no variable `nobody` in `wages`
+ --> scripts/main.zeff:1:69
+  |
+1 | dataset(wages).glm(union ~ educ + exper, family: binomial, weights: nobody)
+  |                                                                     ^^^^^^ not a variable of wages
+  |
+  = help: the variables of `wages` are: worker, year, wage, educ, exper, age, hours, union and 3 more
+
+====
+dataset(wages).glm(union ~ educ + exper, family: binomial, fe: industry)
+---
+error[Z0304]: `fe:` on `glm` is not available in this release
+ --> scripts/main.zeff:1:64
+  |
+1 | dataset(wages).glm(union ~ educ + exper, family: binomial, fe: industry)
+  |                                                                ^^^^^^^^ arrives with release 1.7
+  |
+  = help: a category among the regressors estimates one coefficient for each of its levels: `y ~ x + industry`; `reg` absorbs fixed effects in a linear model
+
+====
+dataset(wages).add(some = female).glm(union ~ educ + exper, family: binomial, weights: some, weight_type: frequency)
+---
+glm · union ~ educ + exper · binomial, logit
+N = 8,913 (the sum of the frequency weights over 8,913 rows; 22 rows dropped for NA in model variables; 9,477 rows with zero weight left out)
+weights: some (frequency)
+standard errors: classical
+
+  term          estimate   std.error   z value   p value   95% CI
+  (intercept)    -0.7558      0.1544     -4.89    <0.001   [-1.0585, -0.4531]
+  educ           -0.0238      0.0096     -2.46     0.014   [-0.0427, -0.0049]
+  exper           0.0222      0.0032      6.95    <0.001   [0.0160, 0.0285]
+
+log-likelihood -5,570.16 · AIC 11,146.32 · McFadden R² 0.007
+deviance 11,140.32 on 8,910 df · null deviance 11,214.67 on 8,912 df
+converged in 5 iterations of Fisher scoring
+note: 9,477 rows with a zero weight left out of the estimate and the observation count (line 1)
+
+====
+dataset(wages).add(few = 1 + 100000 * to(worker == 1, Int)).glm(union ~ educ + exper, family: binomial, weights: few)
+---
+glm · union ~ educ + exper · binomial, logit
+N = 18,390 (22 rows dropped for NA in model variables)
+weights: few (sampling)
+standard errors: robust (HC1)
+
+  term          estimate   std.error   z value   p value   95% CI
+  (intercept)     8.0642      0.8921      9.04    <0.001   [6.3158, 9.8127]
+  educ           -0.8381      0.0648    -12.92    <0.001   [-0.9651, -0.7110]
+  exper           0.0444      0.0198      2.25     0.025   [0.0057, 0.0831]
+
+log pseudo-likelihood -561.45 · AIC 1,128.89 · McFadden R² 0.354
+deviance 1,122.89 on 18,387 df · null deviance 1,738.84 on 18,389 df
+converged in 10 iterations of Fisher scoring
+warning[W1003]: extreme weights: the effective sample size is 7 of 18,390 rows (line 1)
+  = help: a few rows carry most of the weight; check them, or trim the weights

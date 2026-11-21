@@ -852,6 +852,13 @@ impl Design {
             })
     }
 
+    /// The whole design as one matrix, unweighted whatever the design's weights: for a model
+    /// fitted by maximum likelihood, which weights each row's log-likelihood and leaves its row
+    /// of X as it is. For small designs and tests, as [`Design::matrix`] is.
+    pub fn unweighted(&self) -> Matrix {
+        Matrix::from_fn(self.rows.len(), self.k(), |r, c| self.value_at(c, r))
+    }
+
     /// The whole design as one matrix, the rows scaled by the square roots of their weights:
     /// for tests and for small designs only, since it holds n × k values.
     pub fn matrix(&self) -> Matrix {

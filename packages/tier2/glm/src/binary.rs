@@ -15,31 +15,33 @@ use zeff_kernels::separation::{Separation, separation};
 use zeff_kernels::svd::condition_number;
 use zeff_kernels::triangular::{inverse_upper, solve_upper_transposed};
 use zeff_kernels::{LaneSum, Matrix, sum};
+use zeff_numeric::order::WeightKind;
 use zeff_results::design::Design;
 use zeff_results::estimator::Fitted;
 use zeff_results::likelihood::{AtMaximum, Binomial, Likelihood, Link, self_check};
 use zeff_results::options::{
-    At, Choices, checked_variance, choices, cluster_and_weight_warnings, clusters_of, se_line,
+    At, Choices, checked_variance, choices, cluster_and_weight_warnings, clusters_of, observations,
+    se_line, weights_line,
 };
-use zeff_results::summary::{self, Setting, dropped_notes, n_note};
+use zeff_results::summary::{self, Setting, dropped_notes};
 use zeff_results::variance::{Kind, variance};
 
 /// The places of the arguments, as `functions()` declares them.
 const FAMILY: usize = 2;
 const LINK: usize = 3;
-const SE: usize = 4;
-const CLUSTER: usize = 5;
-const LEVEL: usize = 6;
-/// The place of an option `glm` does not take yet: no argument is there.
-const NOT_YET: usize = usize::MAX;
+const FE: usize = 4;
+const SE: usize = 5;
+const CLUSTER: usize = 6;
+const WEIGHTS: usize = 7;
+const WEIGHT_TYPE: usize = 8;
+const LEVEL: usize = 9;
 
-/// The options `glm` shares with `reg`, among its arguments; `weights:` and `weight_type:`
-/// arrive with step 7c.
+/// The options `glm` shares with `reg`, among its arguments.
 const GLM_AT: At = At {
     se: SE,
     cluster: CLUSTER,
-    weights: NOT_YET,
-    weight_type: NOT_YET,
+    weights: WEIGHTS,
+    weight_type: WEIGHT_TYPE,
     level: LEVEL,
 };
 
@@ -177,12 +179,37 @@ pub fn glm_with(ctx: &mut CallContext<'_>, args: Args, control: &Control) -> Res
         _ => Link::Logit,
     };
     // The options shared with `reg`, read and checked as `reg` checks them.
+    // Fixed effects in a model fitted by maximum likelihood are their own estimator (the
+    // Poisson with absorbed effects of release 1.7); until then `fe:` is refused by name.
+    if args.get(FE).is_some() {
+        return Err(fail(
+            Diagnostic::error("Z0304", "`fe:` on `glm` is not available in this release")
+                .in_file(ctx.script)
+                .primary(ctx.span_of(FE), "arrives with release 1.7")
+                .help("a category among the regressors estimates one coefficient for each of its levels: `y ~ x + industry`; `reg` absorbs fixed effects in a linear model"),
+        ));
+    }
     let Choices {
         cluster,
+        weights,
+        weight_kind,
         kind,
         level,
-        ..
     } = choices(ctx, &args, &GLM_AT, 0)?;
+    // Analytic weights say how precisely each row's outcome was measured, which scales the
+    // error variance of a linear model; a binary outcome has no error variance to scale (the
+    // mean fixes it), so the kind has no meaning here (open decision #199).
+    if weights.is_some() && weight_kind == WeightKind::Analytic {
+        return Err(fail(
+            Diagnostic::error(
+                "Z0410",
+                format!("`weight_type: analytic` and `family: {family}` exclude each other: the variance of a binary outcome is fixed by its mean, so there is no precision to weight"),
+            )
+            .in_file(ctx.script)
+            .primary(ctx.span_of(WEIGHT_TYPE), "precision weights on a binary outcome")
+            .help("`weight_type: frequency` for a row that stands for several identical observations; `weight_type: sampling`, the default, for survey weights"),
+        ));
+    }
 
     // A category on the left of `~` is refused here rather than by the design, so that the
     // help writes the 0/1 outcome `glm` takes.
@@ -207,9 +234,17 @@ pub fn glm_with(ctx: &mut CallContext<'_>, args: Args, control: &Control) -> Res
         ));
     }
 
-    // The cluster variable is given to the design, so that a row where it is `NA` is left out.
-    let extra: Vec<&str> = cluster.iter().map(String::as_str).collect();
-    let design = Design::build(ctx, &frame, &formula, &extra)?;
+    // The weight and the cluster variables are given to the design, so that a row where either
+    // is `NA` is left out; the weights are then checked and kept on it, as for `reg`.
+    let extra: Vec<&str> = weights
+        .iter()
+        .chain(cluster.iter())
+        .map(String::as_str)
+        .collect();
+    let mut design = Design::build(ctx, &frame, &formula, &extra)?;
+    if let Some(name) = &weights {
+        design = design.weighted(ctx, &frame, name, weight_kind)?;
+    }
     let n = design.n();
     if n == 0 {
         let message = if design.dropped == 0 {
@@ -245,6 +280,15 @@ pub fn glm_with(ctx: &mut CallContext<'_>, args: Args, control: &Control) -> Res
     }
     for note in &design.notes {
         ctx.message(Diagnostic::plain_note(note.clone()));
+    }
+    let mut notes = Vec::new();
+    if design.zero_weights > 0 {
+        let text = format!(
+            "{} with a zero weight left out of the estimate and the observation count",
+            rows_text(design.zero_weights)
+        );
+        notes.push(text.clone());
+        ctx.message(Diagnostic::plain_note(text));
     }
 
     // The columns kept, and the design restricted to them.
@@ -295,7 +339,9 @@ pub fn glm_with(ctx: &mut CallContext<'_>, args: Args, control: &Control) -> Res
             )),
         ));
     }
-    let full = design.matrix();
+    // The rows of X as they are: a likelihood fit weights each row's log-likelihood, not its
+    // row of X.
+    let full = design.unweighted();
     let x = Matrix::from_fn(n, chosen.kept.len(), |i, j| full.get(i, chosen.kept[j]));
     // Separation, found before any iteration by the linear program of the kernels: a direction
     // along which the likelihood rises for ever names the regressors whose estimates diverge.
@@ -356,7 +402,10 @@ pub fn glm_with(ctx: &mut CallContext<'_>, args: Args, control: &Control) -> Res
                 .help(help),
         ));
     }
-    let model = Binomial::new(y.clone(), link);
+    let model = match &design.weights {
+        Some(w) => Binomial::weighted(y.clone(), w.clone(), link),
+        None => Binomial::new(y.clone(), link),
+    };
     let start: Vec<f64> = (0..n).map(|row| model.start(row)).collect();
     let solution = irls(&x, &model, &start, control).map_err(|stop| {
         let at = match stop {
@@ -417,13 +466,19 @@ pub fn glm_with(ctx: &mut CallContext<'_>, args: Args, control: &Control) -> Res
         residual_sum_of_squares: deviance,
         condition_number: condition_number(&solution.r),
     };
-    let mut notes = Vec::new();
     dropped_notes(ctx, &mut notes, &design, &fitted, &[], "");
 
     // The null model: the intercept alone, whose maximum is the mean of the outcome, or
     // nothing at all without an intercept.
     let null_eta = if design.intercept {
-        let mean = sum(&y) / n as f64;
+        // The weighted mean of the outcome, each row counted by its weight.
+        let mean = match &design.weights {
+            Some(w) => {
+                let products: Vec<f64> = y.iter().zip(w).map(|(a, b)| a * b).collect();
+                sum(&products) / sum(w)
+            }
+            None => sum(&y) / n as f64,
+        };
         if mean > 0.0 && mean < 1.0 {
             link.link(mean)
         } else {
@@ -492,6 +547,7 @@ pub fn glm_with(ctx: &mut CallContext<'_>, args: Args, control: &Control) -> Res
     } else {
         let at_maximum = AtMaximum {
             model: &model,
+            x: &x,
             eta: &solution.eta,
             bread: &classical,
         };
@@ -540,15 +596,17 @@ pub fn glm_with(ctx: &mut CallContext<'_>, args: Args, control: &Control) -> Res
     }
     let formula_text = formula.to_string();
     let line = se_line(kind, clusters.as_ref(), cluster.as_deref());
+    // The observations: the rows used, or under frequency weights the sum of the weights.
+    let (n_obs, note) = observations(&design, None);
     let setting = Setting {
         method: "glm",
         formula: &formula_text,
         se_line: &line,
-        df: n.saturating_sub(k),
+        df: n_obs.saturating_sub(k),
         level,
-        n,
-        n_note: n_note(&design),
-        more_lines: Vec::new(),
+        n: n_obs,
+        n_note: note,
+        more_lines: weights_line(weights.as_deref(), &design),
         model: formula.clone(),
         levels: design.category_levels(),
         frame_rows: frame.table.rows(),
@@ -557,12 +615,13 @@ pub fn glm_with(ctx: &mut CallContext<'_>, args: Args, control: &Control) -> Res
         singletons: 0,
     };
     let likelihood = LikelihoodFit {
+        pseudo: weights.is_some() && weight_kind == WeightKind::Sampling,
         family,
         link: link.name().to_string(),
         deviance,
         null_deviance,
-        df_deviance: n.saturating_sub(k),
-        df_null: n.saturating_sub(usize::from(design.intercept)),
+        df_deviance: n_obs.saturating_sub(k),
+        df_null: n_obs.saturating_sub(usize::from(design.intercept)),
         iterations: solution.iterations,
         converged: solution.converged,
         method: match control.method {
@@ -582,7 +641,7 @@ pub fn glm_with(ctx: &mut CallContext<'_>, args: Args, control: &Control) -> Res
     );
     fit.source = Some(FitSource {
         frame: frame.clone(),
-        weights: None,
+        weights: weights.clone(),
         cluster: cluster.clone(),
     });
     fit.notes.extend(notes);

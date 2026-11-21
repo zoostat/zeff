@@ -15,6 +15,7 @@ zeff-diagnostics.workspace = true
 zeff-registry.workspace = true
 zeff-results.workspace = true
 zeff-kernels.workspace = true
+zeff-numeric.workspace = true
 
 [dev-dependencies]
 zeff-columns.workspace = true

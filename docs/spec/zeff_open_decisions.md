@@ -118,6 +118,8 @@ Date: 17 October 2026 · Source: Zeff Specification section 15, Zemp Specificati
 
 **Status (21 November 2026, release 0.9.0, step 7b).** #198 is new: the small-sample factor of robust and clustered errors on a `glm` fit, where R's `sandwich` left to itself, Stata, and the variance layer differ. Taken as recommended (A, the variance layer's factors for every model) under the owner's standing instruction of 12 November 2026, his to overturn before 1.0.
 
+**Status (21 November 2026, release 0.9.0, step 7c).** #199 is new: what `weight_type: analytic` means on a binary model. Taken as recommended (A, refused) under the owner's standing instruction, his to overturn before 1.0.
+
 ## Summary
 
 | # | Decision | Recommendation | Decide by |
@@ -209,6 +211,7 @@ Date: 17 October 2026 · Source: Zeff Specification section 15, Zemp Specificati
 | 85 | The Games–Howell comparison in `posthoc` | Add `games_howell` to `method:` in the first release after 0.7.0 with room; until then Tukey's HSD after Welch's ANOVA prints a note | decided 21 November 2026 (option A, on the recommendation); built at 0.9.0, step 29 |
 | 86 | Folding, snippets and the statement ranges behind **Run** in the language server | At 0.8.0, with Zemp's alpha; formatting through the server is built at 0.7.0 | decided 15 November 2026 (option A); built at 0.8.0, step 8b |
 | 87 | A variable name in an option record | Accept a `Vars` of exactly one variable where a parameter takes a `Var`, so that `{ se: robust, cluster: vars(firm) }` can be named once and spread | decided 15 November 2026 (option A); built at 0.8.0, step 4 |
+| 199 | Analytic weights on a binary model | Recommended A: `weight_type: analytic` is refused on `glm` with `family: binomial` (Z0410), as Stata refuses `aweight` on `logit`; frequency and sampling weights are taken | decided at 0.9.0, step 7c, under the standing instruction (A); the owner's to overturn before 1.0 |
 | 198 | The small-sample factor of robust and clustered errors on a likelihood fit | Recommended A: the factors of the variance layer for every model, HC1 N/(N − k) and CR1 G/(G − 1) · (N − 1)/(N − k), as section 8.3, point 2, of the Engine Specification says | decided at 0.9.0, step 7b, under the standing instruction (A); the owner's to overturn before 1.0 |
 | 197 | The plots of a run handed to an interface | Recommended A: an engine step at 0.9.0 by which the browser build keeps the plots of a run, lays one out at a size and theme without a new run, and hands over the scene (C16 of #175) | decided 21 November 2026 (option A, the owner's priority as recommended); built at 0.9.0, step 25 |
 | 196 | Two messages R users meet: `I()` and `poly` in a formula, and a function of a later release | Recommended A: inside a formula, the help of Z0103 for `I(...)` shows the term without it and for `poly(x, k)` writes the powers out; a catalogued name of a later release says its release | decided 21 November 2026 (option A, on the recommendation); built at 0.9.0, step 35 |
@@ -3895,3 +3898,17 @@ On the wages (N = 18,390, k = 4) the standard errors differ in their fifth digit
 *Recommendation.* A now, as the specification says, with the difference and its size written in the help page of `glm` under "Coming from R or Stata" and held by a test (the clustered variance times (N − k)/(N − 1) equals R's `vcovCL` left to itself, within 1e-8). C can be raised when the catalogue next opens. Deadline: 1.0, since changing a default after 1.0 would change published numbers.
 
 **Decided (21 November 2026, release 0.9.0, step 7b).** A, taken as recommended under the owner's standing instruction of 12 November 2026 ("decisions can be taken as per your recommendations"), and announced to him with the step; his to overturn before 1.0.
+
+### 199. Analytic weights on a binary model
+
+Raised on 21 November 2026 at release 0.9.0, step 7c, when `glm` took `weights:` and `weight_type:`. Section 6 of the Language Reference gives three kinds of weight to regression-type models. Frequency weights (a row stands for several identical observations) and sampling weights (probability weights of a survey) mean on a binary model what they mean on a linear one. Analytic weights say how precisely each outcome was measured: in a linear model they scale the error variance, σ²/w, and the estimate of σ² makes their scale immaterial. A 0 or 1 has no σ²: its variance is fixed by its mean, so there is nothing for an analytic weight to scale, and a classical variance computed with such weights would change with their scale (doubling every weight would halve every variance).
+
+| Option | For | Against |
+| --- | --- | --- |
+| A. Refuse `weight_type: analytic` on `glm` with `family: binomial` (Z0410), the message naming `frequency` and `sampling` | No number that depends on an arbitrary scale; Stata does the same (`logit` takes `fweight`, `pweight` and `iweight`, not `aweight`) | A user with weights that are neither counts nor survey weights must say which they are nearest to |
+| B. Take them as R's `weights =`: the likelihood weighted, the classical variance the inverse of the weighted information, the weights as given | Equal to R's `glm(weights = w)` for any w | R itself warns of weights that are not whole numbers on a binomial; the standard errors depend on the scale of the weights; three kinds of weight would be two computations |
+| C. Take them as sampling weights with a note | Something is fitted | Silently another kind than was written |
+
+*Recommendation.* A. A family with a dispersion to estimate (the gamma, the quasi-families of release 1.7) takes analytic weights when it arrives; the refusal names the family. Deadline: 1.0.
+
+**Decided (21 November 2026, release 0.9.0, step 7c).** A, taken as recommended under the owner's standing instruction of 12 November 2026, and announced to him with the step; his to overturn before 1.0.

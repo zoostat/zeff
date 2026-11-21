@@ -304,7 +304,12 @@ pub fn likelihood_fit(
     };
     let after = vec![
         format!(
-            "log-likelihood {} · AIC {} · McFadden R² {}",
+            "{} {} · AIC {} · McFadden R² {}",
+            if likelihood.pseudo {
+                "log pseudo-likelihood"
+            } else {
+                "log-likelihood"
+            },
             fixed_grouped(log_likelihood, 2),
             fixed_grouped(aic, 2),
             fixed(mcfadden, 3)

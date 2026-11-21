@@ -81,6 +81,13 @@ impl Binomial {
         let prior = vec![1.0; y.len()];
         Binomial { y, prior, link }
     }
+
+    /// The model with a weight on each row's log-likelihood: the number of observations a row
+    /// stands for (frequency weights), or its sampling weight.
+    pub fn weighted(y: Vec<f64>, prior: Vec<f64>, link: Link) -> Binomial {
+        assert_eq!(y.len(), prior.len(), "one weight per row");
+        Binomial { y, prior, link }
+    }
 }
 
 /// p = 1/(1 + e^−η) and 1 − p, each computed so that it keeps its relative accuracy far into its
@@ -224,6 +231,9 @@ impl Likelihood for Binomial {
 /// model come from the one computation of `variance::variance` through this.
 pub struct AtMaximum<'a> {
     pub model: &'a dyn IndexModel,
+    /// The columns the fit kept, one row per row used, unweighted: the model carries the
+    /// weights in each row's score, where a least-squares design carries them in its rows.
+    pub x: &'a Matrix,
     /// The linear predictor of each row used, at the maximum.
     pub eta: &'a [f64],
     /// The inverse of the information at the maximum, in the units of the data.
@@ -251,7 +261,7 @@ impl Estimator for AtMaximum<'_> {
             })
             .collect();
         Matrix::from_fn(block.x.rows(), fitted.kept.len(), |r, p| {
-            block.x.get(r, fitted.kept[p]) * scores[r]
+            self.x.get(first_row + r, p) * scores[r]
         })
     }
 

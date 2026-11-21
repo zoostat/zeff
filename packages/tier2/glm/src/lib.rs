@@ -21,30 +21,43 @@ pub fn functions() -> Vec<Function> {
                 ParamSpec::required("formula", "Formula"),
                 ParamSpec::option("family", "binomial"),
                 ParamSpec::option_with_default("link", "logit | probit", "logit"),
+                ParamSpec::option("fe", "Terms"),
                 ParamSpec::option("se", "classical | robust | hc2 | hc3"),
                 ParamSpec::option("cluster", "Var"),
+                ParamSpec::option("weights", "Var"),
+                ParamSpec::option_with_default(
+                    "weight_type",
+                    "frequency | analytic | sampling",
+                    "sampling",
+                ),
                 ParamSpec::option_with_default("level", "Float", "0.95"),
             ],
             rest: None,
             returns: "GlmFit",
             diagnostics: vec![
                 DiagnosticDecl::note(
-                    "a term written twice kept once; a collinear column, a level with no observations, a zero column or one too small or too large to scale dropped",
+                    "a term written twice kept once; a collinear column, a level with no observations, a zero column or one too small or too large to scale dropped; rows with a zero weight left out; clusters of one observation",
                 ),
                 DiagnosticDecl::new("W1002", "fewer than 30 clusters"),
+                DiagnosticDecl::new("W1003", "extreme weights, with the effective sample size"),
                 DiagnosticDecl::new(
                     "W1008",
                     "fitted probabilities numerically 0 or 1, with their count",
                 ),
                 DiagnosticDecl::new("Z0406", "`family:` left out"),
-                DiagnosticDecl::new("Z0410", "`se: hc2` or `hc3` with `cluster:`"),
+                DiagnosticDecl::new("Z0224", "a negative weight"),
+                DiagnosticDecl::new("Z0304", "`fe:`, which `glm` takes from release 1.7"),
+                DiagnosticDecl::new(
+                    "Z0410",
+                    "`se: hc2` or `hc3` with `cluster:`; `se: classical` with sampling weights; `weight_type: analytic`",
+                ),
                 DiagnosticDecl::new(
                     "Z0401",
-                    "an outcome that is not 0 and 1, or true and false, or that is a category; a level outside (0, 1)",
+                    "an outcome that is not 0 and 1, or true and false, or that is a category; a level outside (0, 1); a weight that is not a number, or a frequency weight with a fraction",
                 ),
                 DiagnosticDecl::new(
                     "Z0101",
-                    "a variable of the formula or of `cluster:` is not in the frame",
+                    "a variable of the formula, `cluster:` or `weights:` is not in the frame",
                 ),
                 DiagnosticDecl::new(
                     "Z0801",

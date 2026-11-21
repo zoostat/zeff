@@ -137,6 +137,71 @@ robust <- list(
   robust_case("sample_probit", union ~ educ + exper + female + industry, by_worker, "probit")
 )
 
+# Weights (release 0.9.0, step 7c), on `union ~ educ + exper + female`, each link, the fit
+# iterated to its maximum.
+# Sampling weights: `hours`, scaled to a mean of one over the rows used (the estimates and the
+# sandwich do not depend on the scale); the rows with hours missing or zero are left out. The
+# family is the binomial, which only warns of weights that are not whole numbers. `vcovHC` and
+# `vcovCL(type = "HC1")` of the weighted fit, and the weighted log-likelihood by hand, since
+# R's `logLik` rounds the weights.
+# Frequency weights: `copies`, 1, 2 or 3 by the row's place in the file. The reference is the
+# fit on the rows written out `copies` times each, which is what a frequency weight means: its
+# classical variance, its sandwiches, its log-likelihood and its count of observations.
+raw <- read_dataset(file.path(root, "packages", "tier1", "datasets", "data", "wages.csv"))
+raw$copies <- (seq_len(nrow(raw)) - 1) %% 3 + 1
+iterated <- function(formula, data, link, weights = NULL) {
+  data$.w <- if (is.null(weights)) rep(1, nrow(data)) else weights
+  fit <- function(start = NULL) {
+    suppressWarnings(glm(formula, family = binomial(link = link), data = data, weights = .w,
+                         control = control, start = start))
+  }
+  m <- fit()
+  for (again in 1:10) m <- fit(coef(m))
+  if (!m$converged) stop("a weighted fit did not converge")
+  m
+}
+sampling_case <- function(link) {
+  d <- raw[complete.cases(raw[, c("union", "educ", "exper", "female", "hours", "worker")]), ]
+  d <- d[d$hours > 0, ]
+  w <- d$hours / mean(d$hours)
+  m <- iterated(union ~ educ + exper + female, d, link, w)
+  mu <- fitted(m)
+  list(
+    name = paste0("sampling_", link),
+    kind = "sampling",
+    link = link,
+    n = nrow(d),
+    coefficients = as.list(num17(unname(coef(m)))),
+    log_likelihood = num17(sum(w * (d$union * log(mu) + (1 - d$union) * log1p(-mu)))),
+    hc1 = matrix_rows(vcovHC(m, type = "HC1")),
+    hc2 = matrix_rows(vcovHC(m, type = "HC2")),
+    hc3 = matrix_rows(vcovHC(m, type = "HC3")),
+    cluster = matrix_rows(vcovCL(m, cluster = d$worker, type = "HC1"))
+  )
+}
+frequency_case <- function(link) {
+  d <- raw[complete.cases(raw[, c("union", "educ", "exper", "female", "worker")]), ]
+  e <- d[rep(seq_len(nrow(d)), d$copies), ]
+  m <- iterated(union ~ educ + exper + female, e, link)
+  list(
+    name = paste0("frequency_", link),
+    kind = "frequency",
+    link = link,
+    n = nrow(e),
+    rows = nrow(d),
+    coefficients = as.list(num17(unname(coef(m)))),
+    log_likelihood = num17(as.numeric(logLik(m))),
+    deviance = num17(deviance(m)),
+    vcov = matrix_rows(vcov(m)),
+    hc1 = matrix_rows(vcovHC(m, type = "HC1")),
+    hc2 = matrix_rows(vcovHC(m, type = "HC2")),
+    hc3 = matrix_rows(vcovHC(m, type = "HC3")),
+    cluster = matrix_rows(vcovCL(m, cluster = e$worker, type = "HC1"))
+  )
+}
+weighted <- list(sampling_case("logit"), sampling_case("probit"),
+                 frequency_case("logit"), frequency_case("probit"))
+
 out <- list(
   software = paste("R", getRversion()),
   generated_rows = nrow(g),
@@ -144,6 +209,7 @@ out <- list(
   cases = cases,
   extremes = extremes,
   robust = robust,
+  weighted = weighted,
   sandwich = as.character(packageVersion("sandwich"))
 )
 writeLines(to_json(out), file.path(here(), "binary.json"))

@@ -28,16 +28,24 @@ fn fit_of(table: &Table, text: &str, link: &str) -> Result<Fit, String> {
 
 /// `glm` through its body on `table` under the optimiser's settings `control`.
 fn fit_with(table: &Table, text: &str, link: &str, control: &Control) -> Result<Fit, String> {
-    fit_under(table, text, link, None, None, control)
+    fit_under(table, text, link, With::default(), control)
 }
 
-/// `glm` through its body with `se:` and `cluster:` as given.
+/// The options of a `glm` call a test gives beside the family and the link.
+#[derive(Clone, Copy, Default)]
+struct With<'a> {
+    se: Option<&'a str>,
+    cluster: Option<&'a str>,
+    weights: Option<&'a str>,
+    weight_type: Option<&'a str>,
+}
+
+/// `glm` through its body with the options of `with`.
 fn fit_under(
     table: &Table,
     text: &str,
     link: &str,
-    se: Option<&str>,
-    cluster: Option<&str>,
+    with: With<'_>,
     control: &Control,
 ) -> Result<Fit, String> {
     let mut output = String::new();
@@ -68,8 +76,11 @@ fn fit_under(
             Some(Value::Formula(formula(text))),
             Some(Value::Word("binomial".to_string())),
             Some(Value::Word(link.to_string())),
-            se.map(|word| Value::Word(word.to_string())),
-            cluster.map(|name| Value::Var(name.to_string())),
+            None,
+            with.se.map(|word| Value::Word(word.to_string())),
+            with.cluster.map(|name| Value::Var(name.to_string())),
+            with.weights.map(|name| Value::Var(name.to_string())),
+            with.weight_type.map(|word| Value::Word(word.to_string())),
             None,
         ],
         rest: Vec::new(),
@@ -508,7 +519,12 @@ fn the_robust_and_clustered_variances_agree_with_r() {
         ] {
             let what = format!("{name} {kind}");
             // The rows of the reference are those complete in the cluster variable too.
-            let fit = fit_under(&wages, formula, link, se, cluster, &Control::default())
+            let with = With {
+                se,
+                cluster,
+                ..With::default()
+            };
+            let fit = fit_under(&wages, formula, link, with, &Control::default())
                 .unwrap_or_else(|e| panic!("{what}: {e}"));
             if cluster.is_none() {
                 // `worker` has no missing value in the shipped wages, so the rows are the same.
@@ -563,4 +579,204 @@ fn the_kinds_of_standard_error_printed() {
         .collect::<Vec<_>>()
         .join("\n====\n");
     insta::assert_snapshot!("glm_standard_errors", all);
+}
+
+/// Two variance matrices of the same order, entry by entry within `tolerance` of the product of
+/// the two standard errors of the second.
+fn variances_agree(ours: &[f64], theirs: &[f64], tolerance: f64, what: &str) {
+    let k = (theirs.len() as f64).sqrt() as usize;
+    assert_eq!(ours.len(), theirs.len(), "{what}");
+    for i in 0..k {
+        for j in 0..k {
+            let scale = (theirs[i * k + i] * theirs[j * k + j]).sqrt();
+            assert!(
+                (ours[i * k + j] - theirs[i * k + j]).abs() <= tolerance * scale,
+                "{what} [{i},{j}]: {} and {}",
+                ours[i * k + j],
+                theirs[i * k + j]
+            );
+        }
+    }
+}
+
+/// The shipped wages with `copies`, 1, 2 or 3 by the row's place, as `binary.R` writes it.
+fn wages_with_copies() -> Table {
+    let wages = zeff_datasets::table("wages").expect("the shipped wages");
+    let copies = (0..wages.rows()).map(|i| Some((i % 3 + 1) as f64));
+    wages
+        .with_column("copies", zeff_columns::Column::floats(copies).0)
+        .unwrap()
+}
+
+/// Weights (step 7c) against R (`binary.json`, `weighted`). Sampling weights, `hours`: the
+/// estimates, the weighted log-likelihood and the robust variance that is the default, with
+/// `hc2`, `hc3` and `cluster: worker`, against R's weighted fit and its `sandwich`. Frequency
+/// weights, `copies`: everything against R's fit on the rows written out that many times, the
+/// count of observations and the classical variance among it.
+#[test]
+fn the_weighted_fits_agree_with_r() {
+    let path = root().join("tests/reference/r/binary.json");
+    let json: Json = serde_json::from_str(&std::fs::read_to_string(path).unwrap()).unwrap();
+    let wages = wages_with_copies();
+    for case in json["weighted"].as_array().unwrap() {
+        let name = case["name"].as_str().unwrap();
+        let link = case["link"].as_str().unwrap();
+        let frequency = case["kind"].as_str().unwrap() == "frequency";
+        let base = if frequency {
+            With {
+                weights: Some("copies"),
+                weight_type: Some("frequency"),
+                ..With::default()
+            }
+        } else {
+            With {
+                weights: Some("hours"),
+                ..With::default()
+            }
+        };
+        let mut kinds = vec![
+            ("hc1", Some("robust"), None),
+            ("hc2", Some("hc2"), None),
+            ("hc3", Some("hc3"), None),
+            ("cluster", None, Some("worker")),
+        ];
+        if frequency {
+            kinds.push(("vcov", Some("classical"), None));
+            // Left to itself a fit with frequency weights has classical errors.
+            kinds.push(("vcov", None, None));
+        } else {
+            // Left to itself a fit with sampling weights has robust errors.
+            kinds.push(("hc1", None, None));
+        }
+        for (kind, se, cluster) in kinds {
+            let what = format!("{name} {kind} (se {se:?})");
+            let with = With {
+                se,
+                cluster,
+                ..base
+            };
+            let fit = fit_under(
+                &wages,
+                "union ~ educ + exper + female",
+                link,
+                with,
+                &Control::default(),
+            )
+            .unwrap_or_else(|e| panic!("{what}: {e}"));
+            assert_eq!(fit.n as i64, case["n"].as_i64().unwrap(), "{what}");
+            for (j, theirs) in case["coefficients"].as_array().unwrap().iter().enumerate() {
+                close(
+                    fit.estimates[j],
+                    number(theirs),
+                    1e-9,
+                    &format!("{what} estimate {j}"),
+                );
+            }
+            close(
+                fit.log_likelihood,
+                number(&case["log_likelihood"]),
+                1e-10,
+                &format!("{what} log-likelihood"),
+            );
+            variance_close(&fit.vcov, &case[kind], 1e-8, &what);
+            let likelihood = fit.likelihood.as_ref().unwrap();
+            assert_eq!(likelihood.pseudo, !frequency, "{what}");
+            if frequency {
+                close(likelihood.deviance, number(&case["deviance"]), 1e-10, &what);
+                assert_eq!(
+                    likelihood.df_deviance as i64,
+                    case["n"].as_i64().unwrap() - 4,
+                    "{what}"
+                );
+            }
+        }
+    }
+}
+
+proptest! {
+    #![proptest_config(ProptestConfig { cases: 8, ..ProptestConfig::default() })]
+
+    /// A frequency weight is a count of identical observations: the fit with weights of 0 to 3
+    /// on 600 rows of wages is the fit on the rows written out that many times, a row of weight
+    /// zero left out, in its estimates, its log-likelihood, its count of observations and its
+    /// variance of every kind.
+    #[test]
+    fn frequency_weights_are_rows_written_out(
+        copies in proptest::collection::vec(0usize..=3, 600),
+        probit in any::<bool>(),
+    ) {
+        let wages = zeff_datasets::table("wages").expect("the shipped wages");
+        // Every sixth row, so that the workers and the outcomes vary.
+        let rows: Vec<usize> = (0..600).map(|i| i * 6).collect();
+        let weighted = wages
+            .take_rows(&rows)
+            .with_column(
+                "copies",
+                zeff_columns::Column::floats(copies.iter().map(|&c| Some(c as f64))).0,
+            )
+            .unwrap();
+        let written_out: Vec<usize> = rows
+            .iter()
+            .zip(&copies)
+            .flat_map(|(&row, &c)| std::iter::repeat_n(row, c))
+            .collect();
+        let expanded = wages.take_rows(&written_out);
+        let link = if probit { "probit" } else { "logit" };
+        let text = "union ~ educ + exper + female";
+        for (se, cluster) in [
+            (None, None),
+            (Some("robust"), None),
+            (Some("hc3"), None),
+            (None, Some("worker")),
+        ] {
+            let with = With { se, cluster, ..With::default() };
+            let by_weight = fit_under(
+                &weighted,
+                text,
+                link,
+                With { weights: Some("copies"), weight_type: Some("frequency"), ..with },
+                &Control::default(),
+            );
+            let by_rows = fit_under(&expanded, text, link, with, &Control::default());
+            let (Ok(a), Ok(b)) = (&by_weight, &by_rows) else {
+                // A sample this small may be refused (separation); then both are.
+                prop_assert_eq!(by_weight.is_err(), by_rows.is_err());
+                continue;
+            };
+            prop_assert_eq!(a.n, b.n);
+            for j in 0..a.estimates.len() {
+                let (x, y) = (a.estimates[j], b.estimates[j]);
+                prop_assert!((x - y).abs() <= 1e-9 * y.abs().max(1e-3), "estimate {}: {} and {}", j, x, y);
+            }
+            prop_assert!((a.log_likelihood - b.log_likelihood).abs() <= 1e-10 * b.log_likelihood.abs());
+            variances_agree(&a.vcov, &b.vcov, 1e-7, &format!("{link} {se:?} {cluster:?}"));
+        }
+    }
+}
+
+/// The printed result with weights of each kind, and what `weights:`, `weight_type:` and `fe:`
+/// refuse, note or warn of on a `glm` fit: classical errors with sampling weights, analytic
+/// weights, a frequency weight with a fraction, a negative weight, a weight variable that is not
+/// there, `fe:`, rows of zero weight (a note), and extreme weights (W1003).
+#[test]
+fn the_weights_printed() {
+    let scripts = [
+        "dataset(wages).glm(union ~ educ + exper + female, family: binomial, weights: hours)\n",
+        "dataset(wages).glm(union ~ educ + exper + female, family: binomial, link: probit, weights: hours, cluster: worker)\n",
+        "dataset(wages).add(copies = 1 + female).glm(union ~ educ + exper, family: binomial, weights: copies, weight_type: frequency)\n",
+        "dataset(wages).glm(union ~ educ + exper, family: binomial, weights: hours, se: classical)\n",
+        "dataset(wages).glm(union ~ educ + exper, family: binomial, weights: hours, weight_type: analytic)\n",
+        "dataset(wages).add(part = hours / 7).glm(union ~ educ + exper, family: binomial, weights: part, weight_type: frequency)\n",
+        "dataset(wages).add(below = educ - 12).glm(union ~ exper, family: binomial, weights: below)\n",
+        "dataset(wages).glm(union ~ educ + exper, family: binomial, weights: nobody)\n",
+        "dataset(wages).glm(union ~ educ + exper, family: binomial, fe: industry)\n",
+        "dataset(wages).add(some = female).glm(union ~ educ + exper, family: binomial, weights: some, weight_type: frequency)\n",
+        "dataset(wages).add(few = 1 + 100000 * to(worker == 1, Int)).glm(union ~ educ + exper, family: binomial, weights: few)\n",
+    ];
+    let all = scripts
+        .iter()
+        .map(|s| format!("{s}---\n{}", printed(s)))
+        .collect::<Vec<_>>()
+        .join("\n====\n");
+    insta::assert_snapshot!("glm_weights", all);
 }
