@@ -11,6 +11,7 @@ use zeff_core::value::{FitSource, LikelihoodFit, TermKind, Value};
 use zeff_diagnostics::{Diagnostic, count};
 use zeff_kernels::irls::{Control, IndexModel, Method, Stop, irls};
 use zeff_kernels::qr::{TallSkinnyQr, pivoted_qr};
+use zeff_kernels::separation::{Separation, separation};
 use zeff_kernels::svd::condition_number;
 use zeff_kernels::triangular::{inverse_upper, solve_upper_transposed};
 use zeff_kernels::{LaneSum, Matrix, sum};
@@ -285,6 +286,65 @@ pub fn glm_with(ctx: &mut CallContext<'_>, args: Args, control: &Control) -> Res
     }
     let full = design.matrix();
     let x = Matrix::from_fn(n, chosen.kept.len(), |i, j| full.get(i, chosen.kept[j]));
+    // Separation, found before any iteration by the linear program of the kernels: a direction
+    // along which the likelihood rises for ever names the regressors whose estimates diverge.
+    // Under complete separation many directions separate, and the program's is one of them; the
+    // regressors named are those that separate the outcome alone (with the intercept), or else,
+    // when only a combination does, those the program's direction uses.
+    if let Separation::Separated { diverging, .. } = separation(&x, &y) {
+        let name_of = |j: usize| design.names[chosen.kept[j]].clone();
+        let intercept = (0..x.cols()).find(|&j| name_of(j) == "(intercept)");
+        let alone: Vec<usize> = (0..x.cols())
+            .filter(|&j| Some(j) != intercept)
+            .filter(|&j| {
+                let columns: Vec<usize> = intercept.into_iter().chain([j]).collect();
+                let sub = Matrix::from_fn(n, columns.len(), |i, c| x.get(i, columns[c]));
+                matches!(separation(&sub, &y), Separation::Separated { .. })
+            })
+            .collect();
+        let together = alone.is_empty();
+        let named: Vec<usize> = if together {
+            diverging
+                .into_iter()
+                .filter(|&j| Some(j) != intercept)
+                .collect()
+        } else {
+            alone
+        };
+        let quoted: Vec<String> = named.iter().map(|&j| format!("`{}`", name_of(j))).collect();
+        let list = match quoted.len() {
+            0 => String::new(),
+            1 => quoted[0].clone(),
+            m => format!("{} and {}", quoted[..m - 1].join(", "), quoted[m - 1]),
+        };
+        let (message, help) = match (quoted.len(), together) {
+            (0, _) => (
+                format!("glm: the regressors together perfectly predict `{outcome}` (separation)"),
+                format!("drop or combine the predictors, or check how `{outcome}` was coded"),
+            ),
+            (1, _) => (
+                format!("glm: {list} perfectly predicts `{outcome}` (separation)"),
+                format!("drop or combine the predictor, or check how `{outcome}` was coded"),
+            ),
+            (_, true) => (
+                format!("glm: {list} together perfectly predict `{outcome}` (separation)"),
+                format!("drop or combine the predictors, or check how `{outcome}` was coded"),
+            ),
+            (_, false) => (
+                format!("glm: {list} each perfectly predict `{outcome}` (separation)"),
+                format!("drop or combine the predictors, or check how `{outcome}` was coded"),
+            ),
+        };
+        return Err(fail(
+            Diagnostic::error("Z0803", message)
+                .in_file(ctx.script)
+                .primary(
+                    ctx.callee_span,
+                    "estimates diverge; maximum likelihood does not exist",
+                )
+                .help(help),
+        ));
+    }
     let model = Binomial::new(y.clone(), link);
     let start: Vec<f64> = (0..n).map(|row| model.start(row)).collect();
     let solution = irls(&x, &model, &start, control).map_err(|stop| {

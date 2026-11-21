@@ -62,6 +62,8 @@ Beside the checklist: the owner's answers to the seventeen questions of Zemp Lit
 
 Step 5b `[engine]`: every refusal of `glm`'s page raised and snapshotted: `family:` left out (Z0406), an outcome not 0/1 or a category (Z0401, the help writing the 0/1 variable), no row (Z0801), as many regressors as rows or none (Z0802), an outcome with one value and a fit not converged in 100 iterations (Z0803, an error as section 5.6 says, where the checklist had said a warning); a constant or collinear regressor dropped with `reg`'s note; the fit unchanged by the order of the rows.
 
-**Next.** Step 6 `[engine]`: separation and the self-checks (a linear-programming check before the fit, Z0803 naming the variable). Step 3, the weekly run of 23 November, when it has ended.
+Step 6 split into 6a and 6b. Step 6a `[engine]`: separation found before the fit by a linear program of the kernels; Z0803 names the regressor that separates alone, or those that separate together; agrees with Konis's program written in base R on seven cases (R's own `glm` says it converged on the three quasi-complete ones); the example of section 11 prints word for word, less `cluster: worker` (step 7).
+
+**Next.** Step 6b `[engine]`: the warning on fitted probabilities numerically 0 or 1, and the self-checks. Step 3, the weekly run of 23 November, when it has ended.
 
 **For the owner to decide or do.** Nothing blocks. The R packages `marginaleffects`, `rstatix` and `pROC` for the reference library (and `ivmodel`, `ivDiag`), if he wants the references held to them; the signing key at step 23; the archive link of #161; the reader test at step 45.

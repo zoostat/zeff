@@ -1,0 +1,65 @@
+{
+ "software": "R 4.6.0",
+ "cases": [
+  {
+   "name": "one_variable",
+   "formula": "y_one ~ a + x2",
+   "separated": true,
+   "diverging": [
+    "a"
+   ],
+   "r_glm_converged": false
+  },
+  {
+   "name": "combination",
+   "formula": "y_combo ~ x1 + x2",
+   "separated": true,
+   "diverging": [
+    "x1",
+    "x2"
+   ],
+   "r_glm_converged": false
+  },
+  {
+   "name": "quasi",
+   "formula": "y_quasi ~ b + x2",
+   "separated": true,
+   "diverging": [
+    "b"
+   ],
+   "r_glm_converged": true
+  },
+  {
+   "name": "level",
+   "formula": "y_level ~ group + x1",
+   "separated": true,
+   "diverging": [
+    "group=g3"
+   ],
+   "r_glm_converged": true
+  },
+  {
+   "name": "rare",
+   "formula": "y_rare ~ x2",
+   "separated": false,
+   "diverging": [],
+   "r_glm_converged": true
+  },
+  {
+   "name": "overlap",
+   "formula": "y_quasi ~ x1 + x2",
+   "separated": false,
+   "diverging": [],
+   "r_glm_converged": true
+  },
+  {
+   "name": "wages_female",
+   "formula": "union ~ educ + exper + female",
+   "separated": true,
+   "diverging": [
+    "female"
+   ],
+   "r_glm_converged": true
+  }
+ ]
+}

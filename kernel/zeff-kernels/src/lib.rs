@@ -27,6 +27,7 @@ pub mod matrix;
 pub mod product;
 pub mod qr;
 pub mod reduce;
+pub mod separation;
 pub mod svd;
 pub mod triangular;
 

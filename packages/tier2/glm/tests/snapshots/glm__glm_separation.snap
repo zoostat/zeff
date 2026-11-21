@@ -1,0 +1,48 @@
+---
+source: packages/tier2/glm/tests/glm.rs
+expression: "messages.join(\"\\n====\\n\")"
+---
+one_variable: y_one ~ a + x2
+error[Z0803]: glm: `a` perfectly predicts `y_one` (separation)
+ --> scripts/main.zeff:2:3
+  |
+2 | d.glm(y_one ~ a + x2, family: binomial)
+  |   ^^^ estimates diverge; maximum likelihood does not exist
+  |
+  = help: drop or combine the predictor, or check how `y_one` was coded
+====
+combination: y_combo ~ x1 + x2
+error[Z0803]: glm: `x1` and `x2` together perfectly predict `y_combo` (separation)
+ --> scripts/main.zeff:2:3
+  |
+2 | d.glm(y_combo ~ x1 + x2, family: binomial)
+  |   ^^^ estimates diverge; maximum likelihood does not exist
+  |
+  = help: drop or combine the predictors, or check how `y_combo` was coded
+====
+quasi: y_quasi ~ b + x2
+error[Z0803]: glm: `b` perfectly predicts `y_quasi` (separation)
+ --> scripts/main.zeff:2:3
+  |
+2 | d.glm(y_quasi ~ b + x2, family: binomial)
+  |   ^^^ estimates diverge; maximum likelihood does not exist
+  |
+  = help: drop or combine the predictor, or check how `y_quasi` was coded
+====
+level: y_level ~ group + x1
+error[Z0803]: glm: `group=g3` perfectly predicts `y_level` (separation)
+ --> scripts/main.zeff:2:3
+  |
+2 | d.glm(y_level ~ group + x1, family: binomial)
+  |   ^^^ estimates diverge; maximum likelihood does not exist
+  |
+  = help: drop or combine the predictor, or check how `y_level` was coded
+====
+wages_female: union ~ educ + exper + female
+error[Z0803]: glm: `female` perfectly predicts `union` (separation)
+ --> scripts/main.zeff:2:3
+  |
+2 | d.glm(union ~ educ + exper + female, family: binomial)
+  |   ^^^ estimates diverge; maximum likelihood does not exist
+  |
+  = help: drop or combine the predictor, or check how `union` was coded

@@ -271,3 +271,99 @@ proptest! {
     }
 }
 
+/// The cases of `tests/reference/r/separation.json` (Konis's linear program written in base R on
+/// `tests/datasets/separation.csv` and on the wages with `union` set to 1 wherever `female` is):
+/// where R finds separation, `glm` refuses with Z0803 naming the same regressors; where it does
+/// not, `glm` fits. The messages are snapshotted.
+#[test]
+fn separation_agrees_with_r() {
+    let path = root().join("tests/reference/r/separation.json");
+    let json: Json = serde_json::from_str(&std::fs::read_to_string(path).unwrap()).unwrap();
+    let mut messages = Vec::new();
+    for case in json["cases"].as_array().unwrap() {
+        let name = case["name"].as_str().unwrap();
+        let formula = case["formula"].as_str().unwrap();
+        let script = if name.starts_with("wages") {
+            format!(
+                "let d = dataset(wages).add(union = union + female - union * female)\nd.glm({formula}, family: binomial)\n"
+            )
+        } else {
+            format!(
+                "let d = import(\"data/separation.csv\").add(group = category(group))\nd.glm({formula}, family: binomial)\n"
+            )
+        };
+        let out = printed(&script);
+        let refused = out.contains("error[Z0803]");
+        assert_eq!(
+            refused,
+            case["separated"].as_bool().unwrap(),
+            "{name}: {out}"
+        );
+        if refused {
+            let names: Vec<String> = case["diverging"]
+                .as_array()
+                .unwrap()
+                .iter()
+                .map(|v| format!("`{}`", v.as_str().unwrap()))
+                .collect();
+            let headline = out
+                .lines()
+                .find(|l| l.starts_with("error[Z0803]"))
+                .unwrap()
+                .to_string();
+            let named: Vec<&str> = headline
+                .split('`')
+                .enumerate()
+                .filter(|(i, _)| i % 2 == 1)
+                .map(|(_, part)| part)
+                .collect();
+            // Every name but the last is a regressor; the last is the outcome.
+            let ours: Vec<String> = named[..named.len() - 1]
+                .iter()
+                .map(|part| format!("`{part}`"))
+                .collect();
+            assert_eq!(ours, names, "{name}: {headline}");
+            messages.push(format!("{name}: {formula}\n{}", error_block(&out)));
+        } else {
+            assert!(out.contains("converged in"), "{name}: {out}");
+        }
+    }
+    insta::assert_snapshot!("glm_separation", messages.join("\n====\n"));
+}
+
+/// The error of a printed outcome, from its `error[` line to its help line.
+fn error_block(out: &str) -> String {
+    let start = out.find("error[").expect("an error");
+    let rest = &out[start..];
+    let end = rest
+        .find("\n  = help:")
+        .map(|at| at + rest[at + 1..].find('\n').map_or(rest.len() - at, |n| n + 1))
+        .unwrap_or(rest.len());
+    rest[..end].trim_end().to_string()
+}
+
+/// The Z0803 example of section 11 of the Language Reference prints word for word: a script
+/// whose line 49 fits the wages in which `female` perfectly predicts `union`. The example's
+/// `cluster: worker` waits for step 7, which gives `glm` the option; until then the line is
+/// written without it and compared with the example less those words.
+#[test]
+fn the_separation_example_of_the_language_reference_prints_word_for_word() {
+    let reference =
+        std::fs::read_to_string(root().join("docs/spec/zeff_language_reference.md")).unwrap();
+    let start = reference
+        .find("error[Z0803]: glm: `female` perfectly predicts `union` (separation)")
+        .expect("the example");
+    let example = &reference[start..start + reference[start..].find("```").unwrap()];
+    let expected = example
+        .replace(", cluster: worker", "")
+        .trim_end()
+        .to_string();
+    let mut script =
+        String::from("let wages = dataset(wages).add(union = union + female - union * female)\n");
+    for line in 2..49 {
+        script.push_str(&format!("// line {line}\n"));
+    }
+    script.push_str("let lg = wages.glm(union ~ educ + exper + female, family: binomial)\n");
+    let out = printed(&script);
+    assert_eq!(error_block(&out), expected, "{out}");
+}

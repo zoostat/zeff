@@ -59,7 +59,10 @@ A regressor that is a combination of the regressors before it is dropped with a 
 The maximum of the likelihood does not always exist, and the fit then stops with an error
 rather than print estimates that mean nothing. An outcome that is 0 in every row used, or 1 in
 every row, has its probability estimated at 0 or 1 whatever the regressors (Z0803); so does a
-regressor that separates the 0s from the 1s, whose estimate runs off to infinity (Z0803). A
+regressor that separates the 0s from the 1s, whose estimate runs off to infinity (Z0803). The
+separation is found before the first iteration, by a linear program (Konis's), and the message
+names the regressor that separates the outcome alone, or the regressors that do it together; a
+level of a category with only 0s or only 1s is named as its column, `industry=Mining`. A
 model with as many regressors as rows, or more, is refused as `reg` refuses it (Z0802). A fit
 that has not converged in 100 iterations is refused with the change of the log-likelihood at the
 last (Z0803).
