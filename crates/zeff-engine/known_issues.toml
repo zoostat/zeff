@@ -1,0 +1,26 @@
+# The wrong results known when this engine was built (Language Reference, section 11.1): for
+# each, the functions and the options it affects, the first version affected and the version
+# that corrects it. `zeff audit` reads a project's runs against this list. Every entry stands
+# for one entry "A wrong result" of docs/known_issues.md, which `document` quotes, and a test
+# holds the two together. `options` empty means every call of the functions.
+format = 1
+
+[[issue]]
+number = 1
+summary = "`mad`, `skewness` and `kurtosis` gave a wrong number on a frame that had a variable called `centre`"
+functions = ["mad", "skewness", "kurtosis"]
+options = []
+from = "0.5.0"
+fixed = "0.7.0"
+affected_when = "the data had a variable called `centre`, or `skewness` or `kurtosis` was asked of a variable itself called `dev2`; such a run printed the warning W0102 or a note that `dev2` replaced a variable"
+document = "From 0.5.0 to 0.6.0, `mad`, `skewness` and `kurtosis` gave a"
+
+[[issue]]
+number = 2
+summary = "`correlation` by Pearson's method printed a coefficient of 0.000 for a variable that held a value above 1e150 in size"
+functions = ["correlation"]
+options = []
+from = "0.3.0"
+fixed = "0.7.0"
+affected_when = "a variable held a value above 1e150 in size, which is seldom a measurement and often a code for a missing value that was not declared; `method: spearman` and `method: kendall` were not affected"
+document = "From 0.3.0 to 0.6.0, `correlation` with `method: pearson`"

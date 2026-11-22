@@ -14,6 +14,7 @@ pub mod formulas;
 pub mod fs;
 pub mod help;
 pub mod interpreter;
+pub mod known_issues;
 pub mod language;
 pub mod liveness;
 pub mod manifest;

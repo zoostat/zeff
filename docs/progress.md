@@ -116,7 +116,9 @@ Step 21a `[engine]` (step 21 split in two): `zeff version --verbose` says what t
 
 Step 21b `[engine]`: `zeff doctor`, the launcher's report on the installation: launcher and engines with their builds, the store, PATH and completions, the settings with where each comes from, the release host, the free disk space and the last `selftest` (which `selftest` now records in the store); each problem marked, with what to do, and counted.
 
-**Next.** Step 22 `[engine]`: the known-issues list as data, and `zeff audit`. Step 3, the weekly run of 23 November, when it has ended.
+Step 22a `[engine]` (step 22 split in three; #206 raised and taken as recommended: the engine kept no record of a run for `zeff audit` to read, so 0.9.0 keeps a small provisional one): the known-issues list as data, compiled into the engine and held to `docs/known_issues.md` entry for entry by a test; its first two issues are the wrong results corrected at 0.7.0.
+
+**Next.** Step 22b `[engine]`: a record of each run in `.zeff/runs/`; then 22c, `zeff audit`. Step 3, the weekly run of 23 November, when it has ended.
 
 **For the owner.** The printed table of `margins` (#202 (d)), shown at step 11a, is yours to change; #202 (a) to (e) are taken as recommended. #198, #199 and #200 and #201 (a) (taken as recommended, yours to overturn before 1.0; #201 (b) is open and yours: which standardized coefficients a `glm` fit has, refused until you choose; #200: `predict` gives a probability and `residuals` the outcome less it unless `type:` says otherwise, where R gives log-odds and deviance residuals): on a `glm` fit, clustered errors carry the factor (N − 1)/(N − k) that Stata's `logit` and R's `vcovCL` left to itself omit; analytic weights are refused on a binary model, as in Stata.
 
