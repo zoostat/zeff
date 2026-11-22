@@ -1,0 +1,53 @@
+---
+source: crates/zeff-engine/tests/runs.rs
+expression: "made.text().replace(VERSION, \"<version>\")"
+---
+# A run of this project, kept for `zeff audit`. The form is provisional: the run record
+# of Zeff 0.11.0 replaces it.
+format = 0
+engine = "<version>"
+build = "source"
+on = "2026-11-22"
+at = "14:03:22"
+script = "scripts/main.zeff"
+exit_code = 0
+
+[[call]]
+function = "correlation"
+package = "stats"
+options = []
+
+[[call]]
+function = "dataset"
+package = "datasets"
+options = []
+
+[[call]]
+function = "log"
+package = "core"
+options = []
+
+[[call]]
+function = "mean"
+package = "data"
+options = ["weights"]
+
+[[call]]
+function = "print"
+package = "core"
+options = []
+
+[[call]]
+function = "reg"
+package = "regress"
+options = []
+
+[[call]]
+function = "reg"
+package = "regress"
+options = ["cluster"]
+
+[[call]]
+function = "reg"
+package = "regress"
+options = ["se", "weights"]

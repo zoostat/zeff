@@ -24,6 +24,7 @@ pub mod pragmas;
 pub mod project;
 pub mod registry;
 pub mod run;
+pub mod runs;
 pub mod schemas;
 pub mod scratch;
 pub mod session;

@@ -3040,3 +3040,84 @@ words=({list}); CURRENT=$#words; _zeff; exit 0",
         );
     }
 }
+
+/// Every `zeff run` leaves a small record in the project for `zeff audit` (open decision
+/// #206; release 0.9.0, step 22b), and says nothing of it: what a run prints is unchanged.
+#[test]
+fn a_run_leaves_its_record_in_the_project_and_prints_nothing_for_it() {
+    let (_dir, project) = demo();
+    let runs = project.join(".zeff").join("runs");
+    assert!(!runs.exists(), "a new project has no run");
+    std::fs::write(
+        project.join("scripts/main.zeff"),
+        "let w = dataset(wages)\nprint(w.mean(wage, weights: hours))\n",
+    )
+    .unwrap();
+    let o = zeff(&project, &["run"]);
+    assert_eq!(code(&o), 0, "{}", err(&o));
+    // The script's own warnings and nothing else: no line is printed for the record.
+    assert_eq!(
+        err(&o)
+            .lines()
+            .filter(|line| !line.starts_with("warning[W0201]"))
+            .count(),
+        0,
+        "{}",
+        err(&o)
+    );
+    let records = |runs: &Path| -> Vec<String> {
+        let mut names: Vec<_> = std::fs::read_dir(runs)
+            .unwrap()
+            .flatten()
+            .map(|entry| entry.path())
+            .collect();
+        names.sort();
+        names
+            .iter()
+            .map(|path| std::fs::read_to_string(path).unwrap())
+            .collect()
+    };
+    let kept = records(&runs);
+    assert_eq!(kept.len(), 1);
+    let record = &kept[0];
+    for line in [
+        "format = 0\n".to_string(),
+        format!("engine = \"{VERSION}\"\n"),
+        "build = \"source\"\n".to_string(),
+        "\non = \"20".to_string(),
+        "script = \"scripts/main.zeff\"\nexit_code = 0\n".to_string(),
+        "[[call]]\nfunction = \"mean\"\npackage = \"data\"\noptions = [\"weights\"]\n".to_string(),
+    ] {
+        assert!(record.contains(&line), "{line:?} in\n{record}");
+    }
+    // A run that stops is a run, with how it ended; `check` and `eval` are not runs.
+    std::fs::write(
+        project.join("scripts/main.zeff"),
+        "print(1)\nprint(no_such)\n",
+    )
+    .unwrap();
+    let o = zeff(&project, &["run"]);
+    assert_eq!(code(&o), 1);
+    let _ = zeff(&project, &["check"]);
+    let _ = zeff(&project, &["eval", "1 + 1"]);
+    let kept = records(&runs);
+    assert_eq!(kept.len(), 2);
+    assert!(
+        kept.iter().any(|record| record.contains("exit_code = 1\n")),
+        "{kept:?}"
+    );
+    // A project that cannot be written still runs, and says nothing more.
+    #[cfg(unix)]
+    {
+        use std::os::unix::fs::PermissionsExt;
+        std::fs::write(project.join("scripts/main.zeff"), "print(2)\n").unwrap();
+        std::fs::set_permissions(&runs, std::fs::Permissions::from_mode(0o555)).unwrap();
+        let o = zeff(&project, &["run"]);
+        std::fs::set_permissions(&runs, std::fs::Permissions::from_mode(0o755)).unwrap();
+        assert_eq!(
+            (code(&o), out(&o).as_str(), err(&o).as_str()),
+            (0, "2\n", "")
+        );
+        assert_eq!(records(&runs).len(), 2);
+    }
+}

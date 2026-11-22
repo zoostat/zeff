@@ -1005,6 +1005,21 @@ fn run_command(
             Some(&listener),
         )
     };
+    // Kept for `zeff audit` (open decision #206): what this run was, in the project's folder
+    // of runs. A project that cannot be written is no reason for the run to fail, and nothing
+    // is printed for it.
+    if let Ok(registry) = zeff_engine::registry::registry() {
+        let record = zeff_engine::runs::RunRecord::of(
+            command.fs,
+            &project,
+            &shown,
+            &text,
+            outcome.exit_code,
+            build_kind(),
+            registry,
+        );
+        let _ = zeff_engine::runs::keep(command.fs, &project.root, &record);
+    }
     if command.settings.verbose {
         // The reused fixed-effect work (Engine and Project Specification, section 8.3, point
         // 10): the sets of group indexes built for `fe:` and the fits that reused one, with the
