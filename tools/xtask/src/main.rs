@@ -17,6 +17,7 @@ fn main() -> ExitCode {
         Some("grammar-words") => grammar::write_words(),
         Some("build-datasets") => datasets::build(),
         Some("export-samples") => export_samples(),
+        Some("archive") => archive(),
         _ => {
             eprintln!(
                 "usage: cargo run -p xtask -- check-tiers\n       \
@@ -25,9 +26,94 @@ fn main() -> ExitCode {
                  cargo run -p xtask -- grammar-words\n       \
                  cargo run -p xtask -- build-datasets\n       \
                  cargo run -p xtask -- export-samples\n       \
+                 cargo run -p xtask -- archive <engine> <version> <target> <folder> [<launcher>]\n       \
                  cargo run -p xtask -- compare-identity <folder> <number of reports>"
             );
             ExitCode::from(2)
+        }
+    }
+}
+
+/// `cargo run -p xtask -- archive <engine> <version> <target> <folder> [<launcher>]`: the
+/// archive of a built engine for one target, written into `<folder>` under the name the
+/// launcher reads, and `SHA256SUMS` rewritten to list every archive the folder holds (release
+/// 0.9.0, step 18). Signing `SHA256SUMS` is the release workflow's, with the key no source
+/// file holds.
+fn archive() -> ExitCode {
+    use zeff_launcher::archive::{ArchiveName, Contents, Target, pack};
+    let args: Vec<String> = std::env::args().skip(2).collect();
+    let (Some(engine), Some(version), Some(target), Some(folder)) =
+        (args.first(), args.get(1), args.get(2), args.get(3))
+    else {
+        eprintln!(
+            "usage: cargo run -p xtask -- archive <engine> <version> <target> <folder> [<launcher>]"
+        );
+        return ExitCode::from(2);
+    };
+    let Some(version) = zeff_launcher::Version::parse(version) else {
+        eprintln!("`{version}` is not a version: three numbers, as 0.9.1 or 0.10.0-rc.1");
+        return ExitCode::from(2);
+    };
+    let Some(target) = Target::ALL.into_iter().find(|known| known.name() == target) else {
+        let known: Vec<&str> = Target::ALL.iter().map(|target| target.name()).collect();
+        eprintln!("`{target}` is not a target: one of {}", known.join(", "));
+        return ExitCode::from(2);
+    };
+    let read = |path: &String| {
+        std::fs::read(path).map_err(|error| eprintln!("cannot read {path}: {error}"))
+    };
+    let Ok(engine) = read(engine) else {
+        return ExitCode::from(1);
+    };
+    let launcher = match args.get(4).map(read) {
+        Some(Ok(bytes)) => Some(bytes),
+        Some(Err(())) => return ExitCode::from(1),
+        None => None,
+    };
+    let name = ArchiveName::of(&version, target);
+    let folder = std::path::Path::new(folder);
+    let written = pack(
+        &name,
+        &Contents {
+            engine: &engine,
+            launcher: launcher.as_deref(),
+            beside: &[],
+        },
+    )
+    .and_then(|bytes| {
+        std::fs::create_dir_all(folder)?;
+        std::fs::write(folder.join(&name.file), &bytes)?;
+        // Every archive of the folder, in the order of their names.
+        let mut archives = Vec::new();
+        for entry in std::fs::read_dir(folder)? {
+            let file = entry?.file_name().to_string_lossy().into_owned();
+            if ArchiveName::parse(&file).is_some() {
+                archives.push((file.clone(), std::fs::read(folder.join(&file))?));
+            }
+        }
+        archives.sort();
+        let listed: Vec<(&str, &[u8])> = archives
+            .iter()
+            .map(|(file, bytes)| (file.as_str(), bytes.as_slice()))
+            .collect();
+        std::fs::write(
+            folder.join(zeff_launcher::trust::SUMS),
+            zeff_launcher::trust::sums_of(&listed),
+        )?;
+        Ok(bytes.len())
+    });
+    match written {
+        Ok(size) => {
+            println!(
+                "wrote {} ({size} bytes) and {}",
+                folder.join(&name.file).display(),
+                folder.join(zeff_launcher::trust::SUMS).display()
+            );
+            ExitCode::SUCCESS
+        }
+        Err(error) => {
+            eprintln!("cannot write the archive: {error}");
+            ExitCode::from(1)
         }
     }
 }

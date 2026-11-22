@@ -2,7 +2,7 @@
 source: crates/zeff-cli/tests/cli.rs
 expression: list
 ---
-145 codes are explained; `zeff explain <code>` prints a code's page.
+147 codes are explained; `zeff explain <code>` prints a code's page.
 
 Z00xx  Errors a script raises itself
     Z0001  the script stopped itself with error()
@@ -121,11 +121,13 @@ Z07xx  Projects, paths, data roots, versions, resources and reproducibility
     Z0707  a file cannot be written
     Z0709  not inside a project
     Z0710  the project's engine is not the one at hand
+    Z0711  an engine's archive is not proved to be the publisher's
     Z0712  zeff.toml is not valid TOML
     Z0713  zeff.toml is wrong for Zeff
     Z0714  no such script in the project
     Z0715  no file at the path
     Z0716  a path names no format, or a format not yet written
+    Z0717  an engine's archive cannot be installed
 
 Z08xx  Estimation: convergence, identification
     Z0801  no row remains to fit the model

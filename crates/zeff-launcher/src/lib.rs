@@ -14,6 +14,10 @@
 //! Everything here is a function of the command line, the environment and the files of the
 //! store, so that it is tested on a temporary store; `main` alone starts a process.
 
+pub mod archive;
+pub mod install;
+pub mod trust;
+
 use std::cmp::Ordering;
 use std::path::{Path, PathBuf};
 use toml::de::{DeTable, DeValue};

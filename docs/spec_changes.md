@@ -830,3 +830,6 @@ The owner's ruling of 21 November 2026, given in the Zemp Lite session and passe
 
 The two rows, extended to `margins` at step 11a, now cover `at:` and `type: mem`, which step 11b builds from the usage of catalogue row 260. Z0414: a variable "asked for or held by `at:`". Z0417: a variable whose effect `margins` cannot take "or that it cannot hold at a value or at its mean", with "a term with no value at the values asked for" among its cases. No new code, and the usage of row 260 is unchanged.
 
+## 22 November 2026 — zeff_language_reference.md, section 11.1, new row Z0717 (release 0.9.0, step 18)
+
+Section 2.1 of the Engine and Project Specification gives Z0711 to an archive that fails its checksum or its signature, and no number to an archive that cannot be installed for another reason: a file not named as an archive is, an engine for another kind of machine, a file that cannot be read, or an archive that is proved and still cannot be unpacked. The condition receives the provisional code Z0717, the next free number of its block, with its row after Z0716, as the release's planning provides for conditions the text describes without a number. Z0711 is unchanged.

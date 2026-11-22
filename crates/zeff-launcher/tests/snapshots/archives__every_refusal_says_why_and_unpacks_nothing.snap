@@ -1,0 +1,59 @@
+---
+source: crates/zeff-launcher/tests/archives.rs
+expression: out.into_inner()
+---
+----- a tampered archive
+error[Z0711]: `zeff-0.9.1-linux-x86-64.tar.zst` is not the file that was published: its SHA-256 is d84303230589b47ddeebb874d3b973e2fdd4e7c3a1e621a9f07f8c7018169962 and the published one is 174a2ea1628e97d6f30c1a42c7cb6b39b5d7d7bc7ba407477c0825a29e15d318; nothing was unpacked
+  = help: a download that stopped early gives this, and so does a file changed on the way; fetch the archive again
+
+----- a truncated download
+error[Z0711]: `zeff-0.9.1-linux-x86-64.tar.zst` is not the file that was published: its SHA-256 is 4af923d007bfe9025c265805991727f91211c8b76ef01b3bb82e93d3376b21a2 and the published one is 174a2ea1628e97d6f30c1a42c7cb6b39b5d7d7bc7ba407477c0825a29e15d318; nothing was unpacked
+  = help: a download that stopped early gives this, and so does a file changed on the way; fetch the archive again
+
+----- a wrong signature
+error[Z0711]: the signature of `SHA256SUMS` does not match it; nothing was unpacked
+  = help: the file was changed after it was signed, or was cut short on the way; fetch it and its signature again
+
+----- signed with a key the launcher does not have
+error[Z0711]: `SHA256SUMS` is signed with a key this launcher does not trust; nothing was unpacked
+  = help: an engine is signed with the key built into the launcher or with a key on its signed key list; an archive from anyone else is refused, whatever it holds
+
+----- signed with a key that is not on the key list
+error[Z0711]: `SHA256SUMS` is signed with a key that is not on the key list; nothing was unpacked
+  = help: the key list names every key engines are signed with now; a key taken off it signs nothing any more, and an archive signed with it is refused
+
+----- a signature cut short
+error[Z0711]: the signature of `SHA256SUMS` is not a minisign signature; nothing was unpacked
+  = help: a signature has four lines, of which the second and the fourth are base64; fetch the signature again, for a download that stopped early gives this
+
+----- a page where the signature should be
+error[Z0711]: the signature of `SHA256SUMS` is not a minisign signature; nothing was unpacked
+  = help: a signature has four lines, of which the second and the fourth are base64; fetch the signature again, for a download that stopped early gives this
+
+----- the checksums of another release
+error[Z0711]: `SHA256SUMS` has no checksum for `zeff-0.9.1-linux-x86-64.tar.zst`; nothing was unpacked
+  = help: `SHA256SUMS` must be the one published with this archive: the two belong to one release
+
+----- a launcher built without a key
+error[Z0711]: this launcher has no signing key built in, so it can prove no archive; nothing was unpacked
+  = help: an official launcher carries the key its engines are signed with; this one was built from source before a key was published
+
+----- an archive without its checksums
+error[Z0717]: `<tmp>/no-key/SHA256SUMS` cannot be read: there is no such file
+  = help: an archive is installed from a folder that holds three files: the archive, `SHA256SUMS` and `SHA256SUMS.minisig`
+
+----- a file renamed
+error[Z0717]: `engine.tar.zst` is not named as an engine's archive is
+  = help: an archive is `zeff-<version>-<machine>.tar.zst`, or `.zip` for Windows, where the machine is one of linux-x86-64, linux-arm64, macos-x86-64, macos-arm64, windows-x86-64, windows-arm64; keep the name it was published under, for the checksums list it by that name
+
+----- an engine for another machine
+error[Z0717]: `zeff-0.9.1-linux-x86-64.tar.zst` holds an engine for another kind of machine
+  = help: this machine is macos-arm64; the archive for it is named with that word
+
+----- a signed archive with no engine in it
+error[Z0717]: `zeff-0.9.1-linux-x86-64.tar.zst` holds no engine; the store is as it was
+  = help: the engine is expected at `zeff-0.9.1-linux-x86-64/engines/0.9.1/zeff` inside it; `zeff report-bug` writes a report
+
+----- a signed archive that is half an archive
+error[Z0717]: `zeff-0.9.1-linux-x86-64.tar.zst` cannot be unpacked: its Zstandard stream stops early; the store is as it was
+  = help: the archive is the one that was published and is faulty as published; `zeff report-bug` writes a report

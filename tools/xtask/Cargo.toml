@@ -17,5 +17,6 @@ zeff-data.workspace = true
 zeff-engine.workspace = true
 zeff-hash.workspace = true
 zeff-ir.workspace = true
+zeff-launcher = { path = "../../crates/zeff-launcher" }
 zeff-results.workspace = true
 zeff-syntax.workspace = true

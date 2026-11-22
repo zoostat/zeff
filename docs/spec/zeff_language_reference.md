@@ -1298,7 +1298,7 @@ Zeff reports problems the way Rust does: a code, the location, a marker under th
 | Z04xx | Arguments |
 | Z05xx | Formulas and model blocks |
 | Z06xx | Data: import, merge, reshape |
-| Z07xx | Projects, paths, data roots, versions, network requests (Z0708), installation and engines (Z0709 to Z0711, section 2.1 of the Engine and Project Specification), resources and reproducibility (W0703 marks a use of `today()` or `now()`) |
+| Z07xx | Projects, paths, data roots, versions, network requests (Z0708), installation and engines (Z0709 to Z0711 and Z0717, section 2.1 of the Engine and Project Specification), resources and reproducibility (W0703 marks a use of `today()` or `now()`) |
 | Z08xx | Estimation: convergence, identification |
 | W0xxx | Warnings, numbered by the same areas (W08xx includes failed resampling draws) |
 | W1xxx | Statistical warnings: the code is right but the result is fragile (section 11.1) |
@@ -1348,6 +1348,7 @@ Zeff reports problems the way Rust does: a code, the location, a marker under th
 | Z0323 | A module file that is not one: a statement in a file of `functions/`, or a file whose name is not a name of the language or is a package's (section 5.3, "Modules") |
 | Z0712 to Z0715 | `zeff.toml` is not valid TOML; valid TOML but wrong for Zeff; a script named on the command line that the project lacks; `import` of a project path with no readable file |
 | Z0716 | An export path with no extension, or with one that names no format Zeff writes; the formats are listed |
+| Z0717 | An engine's archive that cannot be installed for a reason other than its checksum or signature, which are Z0711 (section 2.1 of the Engine and Project Specification): a file not named as an archive is, an engine for another kind of machine, a file that cannot be read, or a proved archive that cannot be unpacked; the engine store is left as it was (release 0.9.0) |
 | Z0601 | A panel declaration refused: a unit observed twice at one time, `NA` in the unit or the time variable, or a time variable that is not an Int or a `Date` (section 6, "Panels"; release 0.6.0) |
 | Z0602 | `lag`, `lead`, `diff` or `fill_missing` with `method:` outside `add` or `update`, or on a frame with no panel declaration where the function needs one (section 6, "Panels"; release 0.6.0) |
 | Z0603 | A merge whose keys form a many-to-many relation, or whose `relation:` the data do not have (section 6, "Combine") |

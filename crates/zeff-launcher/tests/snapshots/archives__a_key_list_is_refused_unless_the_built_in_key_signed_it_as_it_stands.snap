@@ -1,0 +1,51 @@
+---
+source: crates/zeff-launcher/tests/archives.rs
+expression: out
+---
+----- an older list
+error[Z0711]: the key list offered has serial 5, older than the list this store holds, of serial 6; nothing was unpacked
+  = help: an old list may name a key since withdrawn, so a list is only ever replaced by a newer one; fetch the current list
+
+----- a list signed with a key that is on the list and not built in
+error[Z0711]: the key list is signed with a key this launcher does not trust; nothing was unpacked
+  = help: the key list is signed with the key built into the launcher and with no other, not even one the list names; a list from anyone else is refused
+
+----- a list changed after it was signed
+error[Z0711]: the signature of the key list does not match it; nothing was unpacked
+  = help: the file was changed after it was signed, or was cut short on the way; fetch it and its signature again
+
+----- an empty list
+error[Z0711]: the key list cannot be read at line 1: the list is empty; nothing was unpacked
+  = help: fetch the key list again; a list in a newer form than this launcher knows needs a newer launcher
+
+----- a list in another form
+error[Z0711]: the key list cannot be read at line 1: the first line is not `zeff keys 1`; nothing was unpacked
+  = help: fetch the key list again; a list in a newer form than this launcher knows needs a newer launcher
+
+----- a list with no serial
+error[Z0711]: the key list cannot be read at line 2: the list has no serial; nothing was unpacked
+  = help: fetch the key list again; a list in a newer form than this launcher knows needs a newer launcher
+
+----- a list with no key
+error[Z0711]: the key list cannot be read at line 2: the list has no key; nothing was unpacked
+  = help: fetch the key list again; a list in a newer form than this launcher knows needs a newer launcher
+
+----- a serial that is not a number
+error[Z0711]: the key list cannot be read at line 2: the serial is not a whole number; nothing was unpacked
+  = help: fetch the key list again; a list in a newer form than this launcher knows needs a newer launcher
+
+----- a serial given twice
+error[Z0711]: the key list cannot be read at line 3: the serial is given twice; nothing was unpacked
+  = help: fetch the key list again; a list in a newer form than this launcher knows needs a newer launcher
+
+----- a key that is not a key
+error[Z0711]: the key list cannot be read at line 3: the key is not a minisign public key; nothing was unpacked
+  = help: fetch the key list again; a list in a newer form than this launcher knows needs a newer launcher
+
+----- a line of another kind
+error[Z0711]: the key list cannot be read at line 4: the line is neither `serial` nor `key`; nothing was unpacked
+  = help: fetch the key list again; a list in a newer form than this launcher knows needs a newer launcher
+
+----- a built-in key that cannot be read
+error[Z0711]: the signing key built into this launcher cannot be read; nothing was unpacked
+  = help: this is a fault of the launcher's build; `zeff report-bug` writes a report
