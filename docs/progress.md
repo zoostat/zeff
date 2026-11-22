@@ -98,7 +98,9 @@ Step 13 `[function]`: `margins` finished: its result in `report` beside fits, `s
 
 Step 14 `[function]`: `fit.curve(newdata:, type: roc)`, the ROC curve of a binary fit at every distinct fitted probability with the area under it, on the fit's rows or new ones, under weights; `plot()` draws it; six cases against R, the area within 1e-12; #204 raised and taken as recommended (`type:` required, how the result is read, weights).
 
-**Next.** Step 15 `[function]`: `fit.confusion(newdata:, cutoff: 0.5)`. Step 3, the weekly run of 23 November, when it has ended.
+Step 15 `[function]`: `fit.confusion(newdata:, cutoff: 0.5)`, the classification table of a binary fit with its sensitivity, specificity, accuracy and predictive values; seven cases against R, the counts exact; #205 raised and taken as recommended (the printed table and how its shares are read).
+
+**Next.** Step 16 `[function]`: `timer(expr)`. Step 3, the weekly run of 23 November, when it has ended.
 
 **For the owner.** The printed table of `margins` (#202 (d)), shown at step 11a, is yours to change; #202 (a) to (e) are taken as recommended. #198, #199 and #200 and #201 (a) (taken as recommended, yours to overturn before 1.0; #201 (b) is open and yours: which standardized coefficients a `glm` fit has, refused until you choose; #200: `predict` gives a probability and `residuals` the outcome less it unless `type:` says otherwise, where R gives log-odds and deviance residuals): on a `glm` fit, clustered errors carry the factor (N − 1)/(N − k) that Stata's `logit` and R's `vcovCL` left to itself omit; analytic weights are refused on a binary model, as in Stata.
 

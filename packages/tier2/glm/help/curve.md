@@ -92,6 +92,7 @@ release.
 - To see the effect of each regressor on the probability, use `margins`.
 - To get each row's fitted probability, use `fitted`; for new rows, `predict`.
 - To draw the curve, use `plot` on the result; to write the figure to a file, `export`.
+- To see the table of counts at one threshold, use `confusion`.
 
 ## References
 Hanley, J. A. and McNeil, B. J. (1982), The meaning and use of the area under a receiver
@@ -100,7 +101,7 @@ operating characteristic (ROC) curve, Radiology, 143, 29–36.
 Fawcett, T. (2006), An introduction to ROC analysis, Pattern Recognition Letters, 27, 861–874.
 
 ## See also
-glm, margins, fitted, predict, plot, estimates, statistic
+glm, confusion, margins, fitted, predict, plot, estimates, statistic
 
 ## Examples
 // The ROC curve of a logit of union membership, on the rows the fit used.

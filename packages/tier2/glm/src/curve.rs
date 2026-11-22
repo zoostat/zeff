@@ -11,14 +11,12 @@
 //! count is a whole number and the area is exact to the last division; under weights a row
 //! counts as its weight says.
 
+use crate::rows::{binary_fit, outcome_name, rows_line, rows_of};
 use std::rc::Rc;
-use zeff_core::display::{fixed_grouped, format_float};
+use zeff_core::display::fixed_grouped;
 use zeff_core::runtime::{Args, CallContext, Fail, fail};
-use zeff_core::value::{Alternative, Estimate, Fit, FollowUp, Frame, Statistic, TestResult, Value};
-use zeff_diagnostics::{Diagnostic, count};
-use zeff_numeric::order::WeightKind;
-use zeff_results::design::Design;
-use zeff_results::likelihood::Link;
+use zeff_core::value::{Alternative, Estimate, FollowUp, Statistic, TestResult, Value};
+use zeff_diagnostics::Diagnostic;
 
 /// The ROC curve of scores against 0/1 outcomes.
 #[derive(Debug, Clone, PartialEq)]
@@ -98,133 +96,12 @@ pub fn roc(scores: &[f64], outcomes: &[f64], weights: Option<&[f64]>) -> Option<
 const NEWDATA: usize = 1;
 const TYPE: usize = 2;
 
-fn internal(ctx: &CallContext<'_>, what: &str) -> Fail {
-    fail(
-        Diagnostic::error(
-            "Z9001",
-            format!("internal error: this is a bug in Zeff, not in your script ({what})"),
-        )
-        .in_file(ctx.script)
-        .primary(ctx.callee_span, "the call that failed"),
-    )
-}
-
-/// The outcome of the model as its formula writes it: what stands before `~`.
-fn outcome_name(fit: &Fit) -> String {
-    fit.formula
-        .split('~')
-        .next()
-        .map_or(String::new(), |text| text.trim().to_string())
-}
-
-/// The scores, the outcomes and the weights the curve is drawn from, with the rows left out.
-struct Rows {
-    scores: Vec<f64>,
-    outcomes: Vec<f64>,
-    weights: Option<Vec<f64>>,
-    /// The observations: the rows, or the sum of the frequency weights.
-    n: usize,
-    dropped: usize,
-    /// How the header names where the rows come from.
-    of_newdata: bool,
-}
-
-/// The rows of `newdata` with nothing missing in a variable of the model: their outcomes and
-/// the probabilities the fit predicts for them.
-fn new_rows(
-    ctx: &mut CallContext<'_>,
-    fit: &Fit,
-    link: Link,
-    newdata: &Frame,
-) -> Result<Rows, Fail> {
-    // Whatever the model matrix says of the new rows is said in the line of the rows used.
-    let said = ctx.messages.len();
-    let built = Design::build_with(ctx, newdata, &fit.model, &[], &fit.levels);
-    ctx.messages.truncate(said);
-    let design = built?;
-    if let Some(name) = design
-        .names
-        .iter()
-        .find(|n| !fit.terms.contains(n) && !fit.omitted.contains(n))
-    {
-        return Err(internal(
-            ctx,
-            &format!("the model matrix of `newdata` has a column `{name}` the fit does not"),
-        ));
-    }
-    let Some(outcomes) = design.outcome() else {
-        return Err(internal(ctx, "a binary fit without an outcome"));
-    };
-    if let Some(other) = outcomes.iter().find(|y| **y != 0.0 && **y != 1.0) {
-        return Err(fail(
-            Diagnostic::error(
-                "Z0401",
-                format!(
-                    "`{}` is {} in a row of `newdata`, and the curve needs an outcome of 0 and 1",
-                    outcome_name(fit),
-                    format_float(*other)
-                ),
-            )
-            .in_file(ctx.script)
-            .primary(ctx.span_of(NEWDATA), "an outcome that is not 0 or 1")
-            .help("the outcome of `newdata` is coded as the outcome the model was fitted to"),
-        ));
-    }
-    // A coefficient omitted as collinear counts as nought, as `predict` has it.
-    let beta: Vec<f64> = design
-        .names
-        .iter()
-        .map(|name| {
-            fit.terms
-                .iter()
-                .position(|t| t == name)
-                .map_or(0.0, |at| fit.estimates[at])
-        })
-        .collect();
-    let mut eta = vec![0.0; design.rows.len()];
-    for (column, b) in beta.iter().enumerate() {
-        if *b == 0.0 {
-            continue;
-        }
-        for (e, x) in eta.iter_mut().zip(design.column_values(column)) {
-            *e += b * x;
-        }
-    }
-    Ok(Rows {
-        scores: eta.iter().map(|e| link.mean(*e)).collect(),
-        outcomes,
-        weights: None,
-        n: design.rows.len(),
-        dropped: newdata.table.rows() - design.rows.len(),
-        of_newdata: true,
-    })
-}
-
 /// `fit.curve(newdata:, type: roc)`: the ROC curve of a binary fit, its points at every
 /// distinct fitted probability and the area under it, on the rows the fit used or on the rows
 /// of `newdata:`.
 pub fn curve(ctx: &mut CallContext<'_>, args: Args) -> Result<Value, Fail> {
-    let fit = match args.get(0) {
-        Some(Value::Fit(fit)) if fit.likelihood.is_some() => Rc::clone(fit),
-        other => {
-            return Err(fail(
-                Diagnostic::error(
-                    "Z0401",
-                    format!(
-                        "`curve` needs the fit of a binary model, but this is {}",
-                        other.map_or("nothing".to_string(), Value::type_word)
-                    ),
-                )
-                .in_file(ctx.script)
-                .primary(ctx.span_of(0), "not a binary fit")
-                .help("fit the model with `glm(y ~ x, family: binomial)`"),
-            ));
-        }
-    };
-    let likelihood = fit.likelihood.as_deref().expect("checked above");
-    let Some(link) = Link::named(&likelihood.link) else {
-        return Err(internal(ctx, "a `glm` fit of a link `curve` does not know"));
-    };
+    let (fit, link) = binary_fit(ctx, &args, "curve")?;
+    let likelihood = fit.likelihood.as_deref().expect("a binary fit");
     match args.get(TYPE) {
         Some(Value::Word(word)) if word == "roc" => {}
         _ => {
@@ -236,30 +113,7 @@ pub fn curve(ctx: &mut CallContext<'_>, args: Args) -> Result<Value, Fail> {
             ));
         }
     }
-    let rows = match args.get(NEWDATA) {
-        Some(Value::Frame(newdata)) => new_rows(ctx, &fit, link, &newdata.clone())?,
-        Some(other) => {
-            return Err(fail(
-                Diagnostic::error(
-                    "Z0401",
-                    format!(
-                        "`newdata:` of `curve` must be a Frame, but this is {}",
-                        other.type_word()
-                    ),
-                )
-                .in_file(ctx.script)
-                .primary(ctx.span_of(NEWDATA), other.type_word()),
-            ));
-        }
-        None => Rows {
-            scores: likelihood.eta.iter().map(|e| link.mean(*e)).collect(),
-            outcomes: likelihood.outcome.clone(),
-            weights: likelihood.weights.clone(),
-            n: fit.n,
-            dropped: fit.dropped,
-            of_newdata: false,
-        },
-    };
+    let rows = rows_of(ctx, &fit, link, args.get(NEWDATA), NEWDATA, "curve")?;
     let outcome = outcome_name(&fit);
     let Some(curve) = roc(&rows.scores, &rows.outcomes, rows.weights.as_deref()) else {
         return Err(fail(
@@ -284,33 +138,7 @@ pub fn curve(ctx: &mut CallContext<'_>, args: Args) -> Result<Value, Fail> {
             fit.method, fit.formula, likelihood.family, likelihood.link
         ));
     }
-    let observations = fixed_grouped(rows.n as f64, 0);
-    let source_weights = fit.source.as_ref().and_then(|s| s.weights.clone());
-    let sampled = !rows.of_newdata
-        && rows.weights.is_some()
-        && fit.weight_kind != Some(WeightKind::Frequency);
-    let mut line = if sampled {
-        format!(
-            "N = {observations}, weighted by `{}`",
-            source_weights.as_deref().unwrap_or("the weights")
-        )
-    } else {
-        format!(
-            "N = {observations}: {} with `{outcome}` 1 and {} with 0",
-            fixed_grouped(curve.ones, 0),
-            fixed_grouped(curve.noughts, 0)
-        )
-    };
-    if rows.of_newdata {
-        line.push_str(" among the rows of `newdata`");
-        if rows.dropped > 0 {
-            line.push_str(&format!(
-                " ({} left out for NA in a variable of the model)",
-                count(rows.dropped as u64)
-            ));
-        }
-    }
-    header.push(line);
+    header.push(rows_line(&fit, &rows, &outcome, curve.ones, curve.noughts));
     let points = curve.thresholds.len();
     let after = vec![format!(
         "the curve has {} {}, one for each distinct fitted probability; `estimates()` gives them and `plot()` draws the curve",

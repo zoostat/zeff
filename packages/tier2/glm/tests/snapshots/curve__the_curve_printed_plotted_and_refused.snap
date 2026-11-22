@@ -170,7 +170,7 @@ error[Z0401]: the rows hold only one value of `union`, so there is no curve
 wages.glm(union ~ educ, family: binomial).curve(newdata: wages.add(union = union * 2), type: roc) ===
 --- messages ---
 note: `union` replaced the variable of that name (line 2)
-error[Z0401]: `union` is 2 in a row of `newdata`, and the curve needs an outcome of 0 and 1
+error[Z0401]: `union` is 2 in a row of `newdata`, and `curve` needs an outcome of 0 and 1
  --> scripts/main.zeff:2:58
   |
 2 | wages.glm(union ~ educ, family: binomial).curve(newdata: wages.add(union = union * 2), type: roc)

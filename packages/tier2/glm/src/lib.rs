@@ -5,7 +5,9 @@
 //! are words added to `family:` and `link:` from release 1.7.
 
 pub mod binary;
+pub mod confusion;
 pub mod curve;
+mod rows;
 
 use zeff_core::runtime::Function;
 use zeff_registry::{AccuracyRecord, DiagnosticDecl, FunctionSpec, ParamSpec};
@@ -110,5 +112,29 @@ pub fn functions() -> Vec<Function> {
             accuracy: None,
         },
         body: curve::curve,
+    },
+    Function {
+        spec: FunctionSpec {
+            name: "confusion",
+            package: "glm",
+            method: true,
+            params: vec![
+                ParamSpec::required("fit", "GlmFit"),
+                ParamSpec::option("newdata", "Frame"),
+                ParamSpec::option_with_default("cutoff", "Float", "0.5"),
+            ],
+            rest: None,
+            returns: "TestResult",
+            diagnostics: vec![
+                DiagnosticDecl::new(
+                    "Z0401",
+                    "a receiver that is not a binary fit; a cutoff outside (0, 1); `newdata:` that is not a frame, whose outcome is not 0 and 1, or a variable of it of a type the model cannot take",
+                ),
+                DiagnosticDecl::new("Z0101", "a variable of the model that `newdata` lacks"),
+            ],
+            help: include_str!("../help/confusion.md"),
+            accuracy: None,
+        },
+        body: confusion::confusion,
     }]
 }

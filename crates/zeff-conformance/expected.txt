@@ -128,8 +128,8 @@ models/ivreg/stdout 2c6aa8d411f5eca0
 models/ivreg/stderr 01ec1ac5c3294ea7
 models/instruments_checked/stdout 449797f7817b0896
 models/instruments_checked/stderr ba06c4edfe4c3af9
-models/glm/stdout 034381e242f460c8
-models/glm/stderr d3b4d39f791539e5
+models/glm/stdout 6f91d1f8e4a6ddec
+models/glm/stderr d3ef9608efb247c1
 models/glm_checked/stdout cbf29ce484222325
 models/glm_checked/stderr 370eab9a0a1ef51d
 models/margins/stdout 408ee449134a3e36

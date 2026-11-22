@@ -33,8 +33,14 @@ iterated <- function(formula, data, link, weights = NULL) {
   m
 }
 
-# The points and the area from scores, outcomes and weights.
+# The points and the area from scores, outcomes and weights. R's fitted values of two rows with
+# the same regressors may differ in their last binary digit, and whether they do differs
+# between platforms (5,721 distinct values of the probit below on macOS, 5,722 on Linux), so the
+# scores are rounded to 12 significant digits before ties are counted: rows the model cannot
+# tell apart share a threshold, as they do in Zeff, whose fitted values of such rows are equal
+# to the last bit.
 roc <- function(score, y, w = rep(1, length(y))) {
+  score <- signif(score, 12)
   o <- order(-score)
   s <- score[o]; yy <- y[o]; ww <- w[o]
   ones <- sum(ww * yy); noughts <- sum(ww * (1 - yy))
@@ -49,7 +55,7 @@ roc <- function(score, y, w = rep(1, length(y))) {
 
 # The Mann-Whitney form for rows without weights: the mean rank of the ones.
 mann_whitney <- function(score, y) {
-  r <- rank(score)
+  r <- rank(signif(score, 12))
   n1 <- as.numeric(sum(y == 1)); n0 <- as.numeric(sum(y == 0))
   (sum(r[y == 1]) - n1 * (n1 + 1) / 2) / (n1 * n0)
 }

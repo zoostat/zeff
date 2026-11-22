@@ -253,6 +253,16 @@ wages
     .glm(union ~ educ + exper + female, family: binomial, link: probit)
     .curve(newdata: wages.where(year > 2017), type: roc)
 wages.glm(union ~ educ + exper + female, family: binomial, weights: hours).curve(type: roc)
+g.confusion()
+let k = g.confusion(cutoff: 0.3)
+k
+k.estimates()
+k.statistic("specificity")
+wages
+    .where(year <= 2017)
+    .glm(union ~ educ + exper + female, family: binomial, link: probit)
+    .confusion(newdata: wages.where(year > 2017), cutoff: 0.35)
+wages.glm(union ~ educ + exper + female, family: binomial, weights: hours).confusion(cutoff: 0.33)
 g.curve()
 ==== script 44
 let wages = dataset(wages)
