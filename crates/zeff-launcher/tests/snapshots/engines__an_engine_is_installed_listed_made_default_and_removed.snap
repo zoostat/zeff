@@ -46,7 +46,7 @@ Zeff engines in `<tmp>/home/engines`
   0.10.0-rc.1       52 B
 
 ----- list as JSON [exit 0]
-{"home": "<tmp>/home", "default": "0.9.0", "default_set": true, "engines": [{"version": "0.9.0", "path": "<tmp>/home/engines/0.9.0", "bytes": 46, "store": "user", "default": true}, {"version": "0.9.1", "path": "<tmp>/home/engines/0.9.1", "bytes": 46, "store": "user", "default": false}, {"version": "0.10.0-rc.1", "path": "<tmp>/home/engines/0.10.0-rc.1", "bytes": 52, "store": "user", "default": false}]}
+{"home": "<tmp>/home", "default": "0.9.0", "default_set": true, "engines": [{"version": "0.9.0", "path": "<tmp>/home/engines/0.9.0", "bytes": 46, "store": "user", "build": null, "default": true}, {"version": "0.9.1", "path": "<tmp>/home/engines/0.9.1", "bytes": 46, "store": "user", "build": null, "default": false}, {"version": "0.10.0-rc.1", "path": "<tmp>/home/engines/0.10.0-rc.1", "bytes": 52, "store": "user", "build": null, "default": false}]}
 
 ----- remove another [exit 0]
 removed Zeff 0.10.0-rc.1 from `<tmp>/home/engines/0.10.0-rc.1`

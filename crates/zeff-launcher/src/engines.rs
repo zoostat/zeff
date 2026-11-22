@@ -199,6 +199,24 @@ fn size_of(folder: &Path) -> u64 {
         .sum()
 }
 
+/// What an engine says its build is, `official` or `source` (section 2.1, "Trust"): asked of
+/// the engine itself, with `version --format json`. `None` for an engine that does not say,
+/// or does not start.
+pub fn build_of(engine: &Path) -> Option<String> {
+    let output = std::process::Command::new(engine)
+        .args(["version", "--format", "json"])
+        .env("ZEFF_LAUNCHER", crate::VERSION)
+        .stdin(std::process::Stdio::null())
+        .stderr(std::process::Stdio::null())
+        .output()
+        .ok()?;
+    let record: serde_json::Value = serde_json::from_slice(&output.stdout).ok()?;
+    match record["build"].as_str()? {
+        build @ ("official" | "source") => Some(build.to_string()),
+        _ => None,
+    }
+}
+
 /// The newest release among `versions`, which are in rising order; a version before its
 /// release only when there is nothing else.
 pub fn newest_release(versions: &[Version]) -> Option<&Version> {
@@ -399,11 +417,13 @@ fn list(asked: &Asked, store: &Store, platform: Platform, out: &mut dyn Write) -
             .iter()
             .map(|(version, folder, in_user)| {
                 format!(
-                    "{{\"version\": {}, \"path\": {}, \"bytes\": {}, \"store\": \"{}\", \"default\": {}}}",
+                    "{{\"version\": {}, \"path\": {}, \"bytes\": {}, \"store\": \"{}\", \"build\": {}, \"default\": {}}}",
                     json_string(&version.text),
                     json_string(&folder.display().to_string()),
                     size_of(folder),
                     if *in_user { "user" } else { "system" },
+                    build_of(&folder.join(platform.engine_file()))
+                        .map_or("null".to_string(), |build| json_string(&build)),
                     runs == Some(version.text.as_str())
                 )
             })
@@ -437,6 +457,9 @@ fn list(asked: &Asked, store: &Store, platform: Platform, out: &mut dyn Write) -
             .unwrap_or(0);
         for (version, folder, in_user) in &rows {
             let mut remarks = Vec::new();
+            if let Some(build) = build_of(&folder.join(platform.engine_file())) {
+                remarks.push(format!("{build} build"));
+            }
             if runs == Some(version.text.as_str()) {
                 remarks.push(match default {
                     Default::Set { .. } => "the default, set in `config.toml`".to_string(),

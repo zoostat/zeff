@@ -12,6 +12,7 @@ fn zeff(cwd: &Path, args: &[&str]) -> Output {
         .current_dir(cwd)
         .env_remove("NO_COLOR")
         .env_remove("ZEFF_ENGINE_USE")
+        .env_remove("ZEFF_LAUNCHER")
         .output()
         .expect("zeff runs")
 }
@@ -76,7 +77,13 @@ fn format_json_gives_records_for_version_and_check() {
     let (_dir, project) = demo();
     let o = zeff(&project, &["version", "--format", "json"]);
     assert_eq!(code(&o), 0);
-    assert_eq!(out(&o), format!("{{\"version\": \"{VERSION}\"}}\n"));
+    let record = out(&o);
+    assert!(
+        record.starts_with(&format!(
+            "{{\"version\": \"{VERSION}\", \"launcher\": null, \"target\": \""
+        )) && record.ends_with("\"build\": \"source\"}\n"),
+        "{record}"
+    );
     let o = zeff(&project, &["--format=json", "check"]);
     assert_eq!(code(&o), 0, "{}", err(&o));
     assert_eq!(out(&o), "[\n]\n");
@@ -1286,9 +1293,44 @@ fn colour_quiet_verbose_and_project_options() {
         "{}",
         err(&o)
     );
+    // What the build says of itself: six lines, a source build here, and the launcher that
+    // started it when one did.
     let o = zeff(&project, &["version", "--verbose"]);
+    let lines: Vec<String> = out(&o).lines().map(str::to_string).collect();
+    assert_eq!(lines.len(), 6, "{lines:?}");
+    assert_eq!(lines[0], format!("zeff {VERSION}"));
+    assert_eq!(lines[1], "launcher: none, this engine was run on its own");
+    let target = lines[2].strip_prefix("target: ").expect("the target");
     assert!(
-        out(&o).starts_with(&format!("zeff {VERSION}\ntarget: ")),
+        [
+            "linux-x86-64",
+            "linux-arm64",
+            "macos-x86-64",
+            "macos-arm64",
+            "windows-x86-64",
+            "windows-arm64"
+        ]
+        .contains(&target),
+        "{target}"
+    );
+    let commit = lines[3].strip_prefix("commit: ").expect("the commit");
+    assert!(
+        commit == "unknown"
+            || (commit.len() == 12 && commit.bytes().all(|b| b.is_ascii_hexdigit())),
+        "{commit}"
+    );
+    assert!(lines[4].starts_with("toolchain: rustc "), "{}", lines[4]);
+    assert_eq!(lines[5], "build: source build");
+    let started = Command::new(env!("CARGO_BIN_EXE_zeff"))
+        .args(["version", "--verbose"])
+        .current_dir(&project)
+        .env("ZEFF_LAUNCHER", "0.9.3")
+        .output()
+        .expect("zeff runs");
+    assert_eq!(out(&started).lines().nth(1), Some("launcher: 0.9.3"));
+    let o = zeff(&project, &["version", "-v", "--format", "json"]);
+    assert!(
+        out(&o).contains(&format!("\"commit\": \"{commit}\"")),
         "{}",
         out(&o)
     );

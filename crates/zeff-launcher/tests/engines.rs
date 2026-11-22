@@ -525,6 +525,59 @@ fn an_engine_of_the_system_wide_store_is_listed_and_never_removed() {
     insta::assert_snapshot!(out);
 }
 
+/// Each engine is asked what its build is; one that does not say is listed without it.
+#[cfg(unix)]
+#[test]
+fn the_list_shows_what_each_engine_says_its_build_is() {
+    use std::os::unix::fs::PermissionsExt;
+    let world = World::new();
+    for (version, answer) in [
+        (
+            "0.9.0",
+            r#"echo '{"version": "0.9.0", "build": "official"}'"#,
+        ),
+        (
+            "0.9.1",
+            r#"echo '{"version": "0.9.1", "launcher": null, "build": "source"}'"#,
+        ),
+        ("0.9.2", "echo zeff 0.9.2"),
+        (
+            "0.9.3",
+            r#"echo '{"version": "0.9.3", "build": "a word of a later launcher"}'"#,
+        ),
+        ("0.9.4", "exit 3"),
+    ] {
+        let folder = world.home().join("engines").join(version);
+        std::fs::create_dir_all(&folder).unwrap();
+        let engine = folder.join("zeff");
+        std::fs::write(&engine, format!("#!/bin/sh\n{answer}\n")).unwrap();
+        std::fs::set_permissions(&engine, std::fs::Permissions::from_mode(0o755)).unwrap();
+    }
+    let listed = world.zeff(&["engine", "list"]);
+    assert_eq!(listed.code, 0);
+    let json = world.zeff(&["engine", "list", "--format", "json"]);
+    for (version, build) in [
+        ("0.9.0", "\"official\""),
+        ("0.9.1", "\"source\""),
+        ("0.9.2", "null"),
+        ("0.9.3", "null"),
+        ("0.9.4", "null"),
+    ] {
+        assert!(
+            json.out.contains(&format!(
+                "\"version\": \"{version}\", \"path\": \"<tmp>/home/engines/{version}\""
+            )) && json
+                .out
+                .split("{\"version\": ")
+                .any(|record| record.starts_with(&format!("\"{version}\""))
+                    && record.contains(&format!("\"build\": {build},"))),
+            "{version}: {}",
+            json.out
+        );
+    }
+    insta::assert_snapshot!(listed.out);
+}
+
 // ----- the launcher itself -----
 
 /// The binary answers `zeff engine` on its own and hands everything else over.

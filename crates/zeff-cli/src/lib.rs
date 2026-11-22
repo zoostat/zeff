@@ -141,6 +141,8 @@ pub struct Environment<'a> {
     /// `ZEFF_ENGINE_USE` is set: the launcher's `zeff engine use` is trying this engine on a
     /// project that pins another, and the pin is not checked.
     pub engine_use: bool,
+    /// `ZEFF_LAUNCHER`: the version of the launcher that started this engine.
+    pub launcher: Option<String>,
     /// The handle by which a run is cancelled from outside: an interrupt of `zeff run` cancels
     /// it, and the run stops before its next step (Z0705).
     pub cancel: zeff_engine::control::Control,
@@ -656,13 +658,46 @@ fn usage_error(err: &mut dyn Write, message: &str) -> i32 {
     1
 }
 
+/// The machine this engine was built for, named as the archives of an engine name it.
+fn target_name() -> String {
+    // The system's name is the archive's word for it already: linux, macos, windows.
+    let os = std::env::consts::OS;
+    let arch = match std::env::consts::ARCH {
+        "aarch64" => "arm64",
+        "x86_64" => "x86-64",
+        other => other,
+    };
+    format!("{os}-{arch}")
+}
+
+/// Whether the release workflow built this engine: `official build`, or `source build` for
+/// every other (section 2.1, "Trust").
+fn build_kind() -> &'static str {
+    match option_env!("ZEFF_OFFICIAL_BUILD") {
+        Some("1") => "official",
+        _ => "source",
+    }
+}
+
+/// `zeff version`: the version; with `--verbose`, what the build says of itself, one fact to a
+/// line: the launcher that started it, the target, the commit, the toolchain, and whether it
+/// is an official build or a source build. `--format json` gives all of it as one record.
 fn version(command: &Command<'_, '_>, out: &mut dyn Write) -> i32 {
+    let commit = env!("ZEFF_BUILD_COMMIT");
+    let toolchain = env!("ZEFF_BUILD_TOOLCHAIN");
+    let launcher = command.env.launcher.as_deref();
     match command.settings.format {
         Format::Json => {
+            use zeff_diagnostics::json_string;
             let _ = writeln!(
                 out,
-                "{{\"version\": {}}}",
-                zeff_diagnostics::json_string(VERSION)
+                "{{\"version\": {}, \"launcher\": {}, \"target\": {}, \"commit\": {}, \"toolchain\": {}, \"build\": {}}}",
+                json_string(VERSION),
+                launcher.map_or("null".to_string(), json_string),
+                json_string(&target_name()),
+                json_string(commit),
+                json_string(toolchain),
+                json_string(build_kind())
             );
         }
         Format::Text => {
@@ -670,9 +705,10 @@ fn version(command: &Command<'_, '_>, out: &mut dyn Write) -> i32 {
             if command.settings.verbose {
                 let _ = writeln!(
                     out,
-                    "target: {} {}\nbuild: source build (official, reproducible builds arrive with release 0.9.0)",
-                    std::env::consts::ARCH,
-                    std::env::consts::OS
+                    "launcher: {}\ntarget: {}\ncommit: {commit}\ntoolchain: {toolchain}\nbuild: {} build",
+                    launcher.unwrap_or("none, this engine was run on its own"),
+                    target_name(),
+                    build_kind()
                 );
             }
         }

@@ -112,7 +112,9 @@ Step 19b `[engine]`: engines from the signed index: `install 0.9.1`, `install 0.
 
 Step 20 `[engine]`: `zeff engine use <version>`, "Update engine" from the command line: every script run on the pinned engine and on the other, what they print, stop on and warn of compared in sentences, the calls a built-in of the other would capture (Z0109) rewritten in full under `--write`, and the pin moved only then. Compared on what is printed until run records arrive (0.11.0).
 
-**Next.** Step 21 `[engine]`: `zeff doctor` and `zeff version --verbose`. Step 3, the weekly run of 23 November, when it has ended.
+Step 21a `[engine]` (step 21 split in two): `zeff version --verbose` says what the build is: launcher, target, commit, toolchain, and official or source build (every build so far is a source build); `--format json` gives the record, and `zeff engine list` shows each engine's build.
+
+**Next.** Step 21b `[engine]`: `zeff doctor`. Step 3, the weekly run of 23 November, when it has ended.
 
 **For the owner.** The printed table of `margins` (#202 (d)), shown at step 11a, is yours to change; #202 (a) to (e) are taken as recommended. #198, #199 and #200 and #201 (a) (taken as recommended, yours to overturn before 1.0; #201 (b) is open and yours: which standardized coefficients a `glm` fit has, refused until you choose; #200: `predict` gives a probability and `residuals` the outcome less it unless `type:` says otherwise, where R gives log-odds and deviance residuals): on a `glm` fit, clustered errors carry the factor (N − 1)/(N − k) that Stata's `logit` and R's `vcovCL` left to itself omit; analytic weights are refused on a binary model, as in Stata.
 
