@@ -225,6 +225,7 @@ Date: 17 October 2026 · Source: Zeff Specification section 15, Zemp Specificati
 | 87 | A variable name in an option record | Accept a `Vars` of exactly one variable where a parameter takes a `Var`, so that `{ se: robust, cluster: vars(firm) }` can be named once and spread | decided 15 November 2026 (option A); built at 0.8.0, step 4 |
 | 205 | `confusion`: the printed table and how its shares are read | Recommended A: the observed outcome in the rows and the predicted in the columns, with totals; five shares under it as proportions; `estimates()` gives them and `statistic(name)` one; a row at the cutoff is predicted 1; rows counted by their weights | decided at 0.9.0, step 15, under the standing instruction (A); the owner's to overturn before 1.0 |
 | 206 | What `zeff audit` reads before run records have their schema | Recommended A: from 0.9.0 `zeff run` keeps a small record of each run in `.zeff/runs/` (the engine, the day, the script, the built-in functions it calls with the options written), in a provisional form that the versioned schema of 0.11.0 replaces; `zeff audit` reads it, and is answered by the newest engine installed, whose list knows the most | decided at 0.9.0, step 22, under the standing instruction (A); the owner's to overturn before 0.11.0, when the schema is fixed |
+| 207 | Which machines the archives of 0.9.0 are built for | Recommended A: the three that continuous integration builds and proves on every push, Linux x86-64 and ARM64 (static) and macOS on Apple silicon; Windows and Intel Macs when the tests run there, by 1.0.0 with the installers | decided at 0.9.0, step 23, under the standing instruction (A); the owner's to overturn at any release |
 | 204 | `curve`: `type:` required, how the result is read, weights | Recommended A for each: `type:` has no default; the area by `statistic()`, the points by `estimates()`, the figure by `plot()`; rows counted by their weights, frequency or sampling | decided at 0.9.0, step 14, under the standing instruction (A); the owner's to overturn before 1.0 |
 | 203 | One layout of three panes on every page (Zemp Lite) | Every place (Script, Data, Plots, Help) has a left pane, the place in the middle and a right pane, each pane opened and closed by its own link; the Panes layout, the Margin link and the Objects panel are removed; Run unfolds every output; revises #174 and #176 (R2) | decided 21 November 2026 (the owner's ruling, given in the Zemp Lite session, passed on in the shared notes and confirmed by him in the Zeff session on 22 November 2026); Zemp Lite 0.2.1, on Zeff 0.8.0 |
 | 202 | `margins`: the average under weights, the call with no variable, the reference distribution, the printed table, a category under `type: mem` | Recommended A for each: the average weighted by the fit's weights; with no variable named, the adjusted prediction; Student's t on the fit's degrees of freedom after `reg`; the table of step 11a; a category held at the shares of its levels | (a), (c) and (d) decided at 0.9.0, step 11a, under the standing instruction (A), (d) shown to the owner; (b) and (e) built at step 11b (22 November 2026); the owner's to overturn before 1.0 |
@@ -4122,4 +4123,19 @@ Two smaller points go with A. (a) *Which engine answers.* The list of an engine 
 *Recommendation.* A, with (a) and (b). **Decided (22 November 2026, step 22):** A, under the standing instruction.
 
 **Status (22 November 2026).** Built as decided, in steps 22a (the list), 22b (the record) and 22c (the audit). Deadline for the owner to overturn: 0.11.0, when the schema is fixed.
+
+### 207. Which machines the archives of 0.9.0 are built for
+
+Raised on 22 November 2026 at release 0.9.0, step 23, when the release workflow was written. Section 2.1 of the Engine and Project Specification lists six targets, Linux, macOS and Windows on x86-64 and on ARM64; the checklist's step speaks of "the four targets", which are the four machines of the identity check (two x86-64 machines of different SIMD levels, ARM64 Linux and Apple silicon). No test of the project has ever been run on Windows or on an Intel Mac.
+
+| Option | What it is | What it costs and buys |
+| --- | --- | --- |
+| A | Archives for the three machines that continuous integration builds and proves on every push: `linux-x86-64` (one archive for every x86-64 processor, as section 2.1 has it) and `linux-arm64`, both static, and `macos-arm64`. Windows and Intel Macs get theirs when the whole suite runs there, at the latest with the installers of 1.0.0 | Every archive is of a build whose results are proved identical on its machine. Users on Windows and on Intel Macs wait, or build from source |
+| B | All six at 0.9.0 | The Windows paths of the launcher (the store under the programs folder, `zeff.exe`, the zip) are written and tested as values on other systems, and never once run on Windows; an archive would ship unproved |
+
+The launcher already reads and writes the Windows forms, and the workflow takes a further target as one more line, so B is a matter of runners and of time on them when the owner wants it.
+
+*Recommendation.* A. **Decided (22 November 2026, step 23):** A, under the standing instruction.
+
+**Status (22 November 2026).** Built as decided: the trial run of the workflow made the three archives. Deadline for the owner to overturn: any release.
 
