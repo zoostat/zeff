@@ -1,0 +1,69 @@
+---
+source: crates/zeff-launcher/tests/engines.rs
+expression: out
+---
+----- nothing installed [exit 0]
+no engine is installed in `<tmp>/home/engines`
+
+----- nothing installed, as JSON [exit 0]
+{"home": "<tmp>/home", "default": null, "default_set": false, "engines": []}
+
+----- no default to name [exit 4]
+error[Z0710]: no Zeff engine is installed
+  = help: `zeff engine install` installs one into `<tmp>/home/engines`
+
+----- install [exit 0]
+installed Zeff 0.9.0 in `<tmp>/home/engines/0.9.0`
+
+----- install again [exit 0]
+Zeff 0.9.0 is already installed in `<tmp>/home/engines/0.9.0`
+
+----- install a second, by a relative path [exit 0]
+installed Zeff 0.9.1 in `<tmp>/home/engines/0.9.1`
+
+----- install one before its release [exit 0]
+installed Zeff 0.10.0-rc.1 in `<tmp>/home/engines/0.10.0-rc.1`
+
+----- list [exit 0]
+Zeff engines in `<tmp>/home/engines`
+  0.9.0             46 B
+  0.9.1             46 B   the default: the newest, none is set
+  0.10.0-rc.1       52 B
+
+----- the default, none set [exit 0]
+the default engine is Zeff 0.9.1, the newest installed; none is set
+
+----- make one the default [exit 0]
+the default engine is now Zeff 0.9.0: it runs outside a project, and `zeff new` pins it
+
+----- the default, set [exit 0]
+the default engine is Zeff 0.9.0, set in `config.toml`
+
+----- list with a default set [exit 0]
+Zeff engines in `<tmp>/home/engines`
+  0.9.0             46 B   the default, set in `config.toml`
+  0.9.1             46 B
+  0.10.0-rc.1       52 B
+
+----- list as JSON [exit 0]
+{"home": "<tmp>/home", "default": "0.9.0", "default_set": true, "engines": [{"version": "0.9.0", "path": "<tmp>/home/engines/0.9.0", "bytes": 46, "store": "user", "default": true}, {"version": "0.9.1", "path": "<tmp>/home/engines/0.9.1", "bytes": 46, "store": "user", "default": false}, {"version": "0.10.0-rc.1", "path": "<tmp>/home/engines/0.10.0-rc.1", "bytes": 52, "store": "user", "default": false}]}
+
+----- remove another [exit 0]
+removed Zeff 0.10.0-rc.1 from `<tmp>/home/engines/0.10.0-rc.1`
+note: a project that pins Zeff 0.10.0-rc.1 will ask to install it again
+
+----- remove the default [exit 0]
+removed Zeff 0.9.0 from `<tmp>/home/engines/0.9.0`
+note: a project that pins Zeff 0.9.0 will ask to install it again
+note: Zeff 0.9.0 was the default engine; the default is now the newest installed, Zeff 0.9.1
+
+----- list after the removals [exit 0]
+Zeff engines in `<tmp>/home/engines`
+  0.9.1       46 B   the default: the newest, none is set
+
+----- remove the last [exit 0]
+removed Zeff 0.9.1 from `<tmp>/home/engines/0.9.1`
+note: a project that pins Zeff 0.9.1 will ask to install it again
+
+----- list with nothing left [exit 0]
+no engine is installed in `<tmp>/home/engines`

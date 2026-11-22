@@ -45,6 +45,27 @@ fn main() -> ExitCode {
         .map(|arg| arg.to_string_lossy().into_owned())
         .collect();
     let cwd = std::env::current_dir().unwrap_or_default();
+    // `zeff engine` is the launcher's own: it is about the store, not about a project.
+    if let Some(asked) = zeff_launcher::engines::read(&readable) {
+        let mut out = std::io::stdout();
+        let mut err = std::io::stderr();
+        let code = match asked {
+            Ok(asked) => zeff_launcher::engines::run(
+                &asked,
+                &zeff_launcher::engines::Machine {
+                    env: &|name| std::env::var(name).ok(),
+                    cwd: &cwd,
+                    platform: Platform::host(),
+                    host: zeff_launcher::archive::Target::host(),
+                    key: zeff_launcher::trust::BUILT_IN_KEY,
+                },
+                &mut out,
+                &mut err,
+            ),
+            Err(wrong) => zeff_launcher::engines::usage(&mut err, &wrong),
+        };
+        return ExitCode::from(code);
+    }
     let choice = choose(
         &readable,
         &cwd,

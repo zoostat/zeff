@@ -1,0 +1,96 @@
+---
+source: crates/zeff-launcher/tests/engines.rs
+expression: out
+---
+----- no command [exit 1]
+error: `zeff engine` takes a command: `list`, `install`, `remove` or `default`
+
+run `zeff help` to see the commands
+
+----- a command there is not [exit 1]
+error: `zeff engine upgrade` is not a command: `list`, `install`, `remove` or `default`
+
+run `zeff help` to see the commands
+
+----- list with a word after it [exit 1]
+error: `zeff engine list` takes nothing after it
+
+run `zeff help` to see the commands
+
+----- a format there is not [exit 1]
+error: `--format yaml` is not a format: write `--format text` or `--format json`
+
+run `zeff help` to see the commands
+
+----- install with nothing [exit 1]
+error: `zeff engine install` installs from an archive on this machine: `zeff engine install --from <file>`
+
+run `zeff help` to see the commands
+
+----- install with a version and a file [exit 1]
+error: `zeff engine install --from <file>` takes no version: the archive's name carries it
+
+run `zeff help` to see the commands
+
+----- `--from` with no file [exit 1]
+error: `--from` needs a value after it
+
+run `zeff help` to see the commands
+
+----- remove with nothing [exit 1]
+error: `zeff engine remove` takes one version, as `zeff engine remove 0.9.0`
+
+run `zeff help` to see the commands
+
+----- remove a range [exit 1]
+error: `0.9` is not the version of an engine: three numbers, as 0.9.0
+
+run `zeff help` to see the commands
+
+----- remove two [exit 1]
+error: `zeff engine remove` takes one version, as `zeff engine remove 0.9.0`
+
+run `zeff help` to see the commands
+
+----- remove one that is not there [exit 4]
+error[Z0710]: Zeff 0.9.0 is not installed
+  = help: the engine installed is 0.9.1; `zeff engine install 0.9.0` installs it
+
+----- default one that is not there [exit 4]
+error[Z0710]: Zeff 0.8.0 is not installed
+  = help: the engine installed is 0.9.1; `zeff engine install 0.8.0` installs it
+
+----- default a word [exit 1]
+error: `newest` is not the version of an engine: three numbers, as 0.9.1
+
+run `zeff help` to see the commands
+
+----- install with no key built in [exit 1]
+error[Z0711]: this launcher has no signing key built in, so it can prove no archive; nothing was unpacked
+  = help: an official launcher carries the key its engines are signed with; this one was built from source before a key was published
+
+----- install what another key signed [exit 1]
+error[Z0711]: `SHA256SUMS` is signed with a key this launcher does not trust; nothing was unpacked
+  = help: an engine is signed with the key built into the launcher or with a key on its signed key list; an archive from anyone else is refused, whatever it holds
+
+----- install a file that is not there [exit 1]
+error[Z0717]: `<tmp>/zeff-0.9.3-linux-x86-64.tar.zst` cannot be read: there is no such file
+  = help: an archive is installed from a folder that holds three files: the archive, `SHA256SUMS` and `SHA256SUMS.minisig`
+
+----- install a file that is no archive [exit 1]
+error[Z0717]: `notes.txt` is not named as an engine's archive is
+  = help: an archive is `zeff-<version>-<machine>.tar.zst`, or `.zip` for Windows, where the machine is one of linux-x86-64, linux-arm64, macos-x86-64, macos-arm64, windows-x86-64, windows-arm64; keep the name it was published under, for the checksums list it by that name
+
+----- a default set in a form that is not rewritten [exit 1]
+error: `<tmp>/home/config.toml` is not valid TOML, or sets the default engine in a form this command does not rewrite; write `default = "0.9.1"` under `[engine]` there by hand
+
+run `zeff help` to see the commands
+
+----- the default set is not installed [exit 4]
+error[Z0710]: the default engine, Zeff 0.9.0, is not installed
+  = help: `zeff engine install 0.9.0` installs it, and `zeff engine default <version>` chooses another; the engine installed is 0.9.1
+
+----- list when the default set is not installed [exit 0]
+Zeff engines in `<tmp>/home/engines`
+  0.9.1       46 B
+the default set in `config.toml`, Zeff 0.9.0, is not installed

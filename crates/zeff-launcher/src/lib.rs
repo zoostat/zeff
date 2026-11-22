@@ -15,6 +15,7 @@
 //! store, so that it is tested on a temporary store; `main` alone starts a process.
 
 pub mod archive;
+pub mod engines;
 pub mod install;
 pub mod trust;
 
@@ -315,12 +316,7 @@ pub fn choose(
         };
     }
     // The newest release; a version before its release only when nothing else is installed.
-    let newest = versions
-        .iter()
-        .rev()
-        .find(|version| version.pre.is_none())
-        .or(versions.last());
-    match newest {
+    match engines::newest_release(&versions) {
         Some(newest) => match find_engine(&store, &newest.text, platform) {
             Some(engine) => Choice::Run {
                 version: newest.text.clone(),

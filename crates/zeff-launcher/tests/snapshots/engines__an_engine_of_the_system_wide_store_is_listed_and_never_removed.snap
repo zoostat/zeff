@@ -1,0 +1,21 @@
+---
+source: crates/zeff-launcher/tests/engines.rs
+expression: out
+---
+----- list [exit 0]
+Zeff engines in `<tmp>/home/engines`
+  0.8.0        6 B   in the system-wide store `<tmp>/Program Files/Zeff`
+  0.9.1       12 B   the default: the newest, none is set
+
+----- remove a shared engine [exit 1]
+error: Zeff 0.8.0 is in the system-wide store `<tmp>/Program Files/Zeff`, which `zeff engine remove` does not change
+
+run `zeff help` to see the commands
+
+----- make a shared engine the default [exit 0]
+the default engine is now Zeff 0.8.0: it runs outside a project, and `zeff new` pins it
+
+----- list [exit 0]
+Zeff engines in `<tmp>/home/engines`
+  0.8.0        6 B   the default, set in `config.toml`; in the system-wide store `<tmp>/Program Files/Zeff`
+  0.9.1       12 B

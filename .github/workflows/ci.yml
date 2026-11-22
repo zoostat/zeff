@@ -243,6 +243,9 @@ jobs:
           cargo build --release --locked -p zeff-cli
           ./target/release/zeff selftest
 
+      - name: The launcher installs, lists and removes an engine on this target (Engine 2.1)
+        run: cargo test --release --locked -p zeff-launcher
+
       - name: Keep the report for the comparison
         uses: actions/upload-artifact@v4
         with:
