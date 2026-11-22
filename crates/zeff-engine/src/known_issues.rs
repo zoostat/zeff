@@ -33,7 +33,7 @@ pub struct Issue {
 
 /// A version as it is compared: its three numbers, and whether it is the release itself, which
 /// comes after every version before its release (`0.9.1-rc.1` before `0.9.1`).
-fn ordered(version: &str) -> Option<([u64; 3], bool)> {
+pub(crate) fn ordered(version: &str) -> Option<([u64; 3], bool)> {
     let (numbers, release) = match version.split_once('-') {
         Some((numbers, word)) if !word.is_empty() => (numbers, false),
         Some(_) => return None,

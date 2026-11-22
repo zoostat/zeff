@@ -14,12 +14,36 @@ fn say(diagnostic: &Diagnostic) {
 /// streams, its signals and its exit code are its own; elsewhere the launcher waits for it and
 /// ends as it ended.
 fn hand_over(engine: &std::path::Path, version: &str, args: &[OsString]) -> ExitCode {
+    hand_over_as(engine, version, args, false)
+}
+
+/// [`hand_over`], for an engine that is not the one the project pins when `whatever_the_pin`:
+/// it is told so and does not refuse the project.
+fn hand_over_as(
+    engine: &std::path::Path,
+    version: &str,
+    args: &[OsString],
+    whatever_the_pin: bool,
+) -> ExitCode {
     let mut command = Command::new(engine);
     command.args(args).env("ZEFF_LAUNCHER", VERSION);
+    if whatever_the_pin {
+        command.env("ZEFF_ENGINE_USE", version);
+    }
     #[cfg(unix)]
     let failure = {
         use std::os::unix::process::CommandExt;
-        command.exec()
+        // An engine whose file was written a moment ago may be "busy" for that moment: tried
+        // again a few times before it is given up.
+        let mut tries = 0;
+        loop {
+            let failure = command.exec();
+            if failure.kind() != std::io::ErrorKind::ExecutableFileBusy || tries == 20 {
+                break failure;
+            }
+            tries += 1;
+            std::thread::sleep(std::time::Duration::from_millis(25));
+        }
     };
     #[cfg(not(unix))]
     let failure = match command.status() {
@@ -74,6 +98,16 @@ fn main() -> ExitCode {
         Platform::host(),
     );
     let args = zeff_launcher::engines::for_the_engine(&args);
+    // `zeff audit` is answered by the newest engine installed, whatever the project pins: its
+    // list of known wrong results knows the most.
+    if zeff_launcher::engines::command_of(&readable) == Some("audit")
+        && let Some((version, engine)) = zeff_launcher::engines::engine_for_audit(
+            &|name| std::env::var(name).ok(),
+            Platform::host(),
+        )
+    {
+        return hand_over_as(&engine, &version, &args, true);
+    }
     match &choice {
         Choice::Run { version, engine } => hand_over(engine, version, &args),
         Choice::PinMissing { version, .. } => {

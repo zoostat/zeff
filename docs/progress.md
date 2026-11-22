@@ -120,7 +120,9 @@ Step 22a `[engine]` (step 22 split in three; #206 raised and taken as recommende
 
 Step 22b `[engine]`: every `zeff run` keeps a small record in `.zeff/runs/` (the engine and its build, the day, the script, how it ended, and the built-in functions called with the options written), in a provisional form that 0.11.0 replaces; nothing is printed for it.
 
-**Next.** Step 22c `[engine]`: `zeff audit`, the runs read against the list. Step 3, the weekly run of 23 November, when it has ended.
+Step 22c `[engine]`: `zeff audit`: the recorded runs read against the list, each affected run said in the form of section 11.1 ("your run of 12 October used `reg` with `weights:`, affected by issue 123, fixed in 0.9.2"), the pin's own known wrong results said plainly, exit code 1 when a run is affected; answered by the newest engine installed.
+
+**Next.** Step 23 `[engine]`: the release workflow builds and signs the archives. Step 3, the weekly run of 23 November, when it has ended.
 
 **For the owner.** The printed table of `margins` (#202 (d)), shown at step 11a, is yours to change; #202 (a) to (e) are taken as recommended. #198, #199 and #200 and #201 (a) (taken as recommended, yours to overturn before 1.0; #201 (b) is open and yours: which standardized coefficients a `glm` fit has, refused until you choose; #200: `predict` gives a probability and `residuals` the outcome less it unless `type:` says otherwise, where R gives log-odds and deviance residuals): on a `glm` fit, clustered errors carry the factor (N − 1)/(N − k) that Stata's `logit` and R's `vcovCL` left to itself omit; analytic weights are refused on a binary model, as in Stata.
 

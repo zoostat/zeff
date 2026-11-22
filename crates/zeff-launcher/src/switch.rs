@@ -225,7 +225,7 @@ fn start(
         Some(version) => command.env("ZEFF_ENGINE_USE", version),
         None => command.env_remove("ZEFF_ENGINE_USE"),
     };
-    let output = command.output()?;
+    let output = crate::output_of(&mut command)?;
     Ok(Ran {
         code: output.status.code(),
         out: String::from_utf8_lossy(&output.stdout).into_owned(),

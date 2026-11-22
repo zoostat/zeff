@@ -28,6 +28,25 @@ use std::path::{Path, PathBuf};
 use toml::de::{DeTable, DeValue};
 use zeff_diagnostics::Diagnostic;
 
+/// Run a program and take what it wrote. A file that is still open for writing somewhere
+/// cannot be started ("text file busy"): an engine that has only just been written may be in
+/// that state for a moment, so that one failure is tried again a few times before it is given
+/// up.
+pub(crate) fn output_of(
+    command: &mut std::process::Command,
+) -> std::io::Result<std::process::Output> {
+    let mut tries = 0;
+    loop {
+        match command.output() {
+            Err(e) if e.kind() == std::io::ErrorKind::ExecutableFileBusy && tries < 20 => {
+                tries += 1;
+                std::thread::sleep(std::time::Duration::from_millis(25));
+            }
+            other => return other,
+        }
+    }
+}
+
 /// The launcher's own version, which the engine prints beside its own (`zeff version
 /// --verbose`).
 pub const VERSION: &str = env!("CARGO_PKG_VERSION");

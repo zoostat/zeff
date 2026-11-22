@@ -640,6 +640,50 @@ fn the_launcher_answers_engine_commands_itself_and_hands_the_rest_over() {
         zeff(&["version"]),
         (0, "engine 0.9.1: version\n".to_string(), String::new())
     );
+    // `zeff audit` goes to the newest engine installed, whatever the project pins, and that
+    // engine is told it is not there for the pin.
+    for version in ["0.9.0", "0.9.2", "0.10.0-rc.1"] {
+        let folder = home.join("engines").join(version);
+        std::fs::create_dir_all(&folder).unwrap();
+        let engine = folder.join("zeff");
+        std::fs::write(
+            &engine,
+            format!("#!/bin/sh\necho \"engine {version}: $* [tried as $ZEFF_ENGINE_USE]\"\n"),
+        )
+        .unwrap();
+        std::fs::set_permissions(&engine, std::fs::Permissions::from_mode(0o755)).unwrap();
+    }
+    std::fs::write(
+        dir.path().join("zeff.toml"),
+        "[project]\nname = \"study\"\nzeff = \"0.9.0\"\n",
+    )
+    .unwrap();
+    assert_eq!(
+        zeff(&["audit", "--format", "json"]),
+        (
+            0,
+            "engine 0.9.2: audit --format json [tried as 0.9.2]\n".to_string(),
+            String::new()
+        )
+    );
+    assert_eq!(
+        zeff(&["-p", ".", "audit"]),
+        (
+            0,
+            "engine 0.9.2: -p . audit [tried as 0.9.2]\n".to_string(),
+            String::new()
+        )
+    );
+    // Every other command stays with the engine the project pins.
+    assert_eq!(
+        zeff(&["run"]),
+        (
+            0,
+            "engine 0.9.0: run [tried as ]\n".to_string(),
+            String::new()
+        )
+    );
+    std::fs::remove_file(dir.path().join("zeff.toml")).unwrap();
     // No key is built in: nothing is installed by this binary yet, and it says why.
     let (code, out, err) = zeff(&[
         "engine",

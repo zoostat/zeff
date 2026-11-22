@@ -184,3 +184,18 @@ pub fn write_signed(path: &Path, text: &str, signer: &Signer) {
     signature.push(".minisig");
     std::fs::write(signature, signer.sign(text.as_bytes())).unwrap();
 }
+
+/// Run a program that a test has just written. On Linux a file still open for writing in a
+/// thread of another test cannot be started for a moment ("text file busy"): tried again.
+pub fn output_of(command: &mut std::process::Command) -> std::process::Output {
+    let mut tries = 0;
+    loop {
+        match command.output() {
+            Err(e) if e.kind() == std::io::ErrorKind::ExecutableFileBusy && tries < 40 => {
+                tries += 1;
+                std::thread::sleep(std::time::Duration::from_millis(25));
+            }
+            other => return other.expect("the program starts"),
+        }
+    }
+}

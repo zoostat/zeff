@@ -59,6 +59,8 @@ Commands:
                     comes from, the release host, the free disk space and the last selftest,
                     with what to do about each problem
   version           print the version of Zeff
+  audit             read the recorded runs of the project against the list of known wrong
+                    results, and say which runs an issue affects and which version corrects it
   selftest          run the conformance cases shipped with the engine against their published
                     results and say whether this installation is conformant
   completions <shell>
@@ -68,7 +70,7 @@ Commands:
 
 Options:
   -p, --project <dir>     the project to act on (default: the nearest folder with zeff.toml)
-  --format text|json      for `check`, `test`, `version`, `selftest` and `explain`: text (the
+  --format text|json      for `check`, `test`, `version`, `selftest`, `audit` and `explain`: text (the
                           default), or JSON records for an editor
   --color auto|always|never
                           colour in messages; `auto` means a terminal, and NO_COLOR is honoured
@@ -497,12 +499,21 @@ pub fn run(
     if settings.format == Format::Json
         && !matches!(
             words.first(),
-            Some(&("check" | "test" | "version" | "--version" | "-V" | "selftest" | "explain"))
+            Some(
+                &("check"
+                    | "test"
+                    | "version"
+                    | "--version"
+                    | "-V"
+                    | "selftest"
+                    | "explain"
+                    | "audit")
+            )
         )
     {
         return usage_error(
             &mut err,
-            "`--format json` applies to `zeff check`, `zeff test`, `zeff version`, `zeff selftest` and `zeff explain` in this release",
+            "`--format json` applies to `zeff check`, `zeff test`, `zeff version`, `zeff selftest`, `zeff audit` and `zeff explain` in this release",
         );
     }
     if settings.deny_warnings && !matches!(words.first(), Some(&("run" | "check" | "test"))) {
@@ -562,6 +573,8 @@ pub fn run(
         ["version" | "--version" | "-V", ..] => {
             usage_error(&mut err, "`zeff version` takes no arguments")
         }
+        ["audit"] => audit_command(&command, &mut out, &mut err),
+        ["audit", ..] => usage_error(&mut err, "`zeff audit` takes no arguments"),
         ["selftest"] => selftest_command(&command, &mut out),
         ["selftest", ..] => usage_error(&mut err, "`zeff selftest` takes no arguments"),
         ["help", name] => help_command(&command, name, &mut out, &mut err),
@@ -720,6 +733,37 @@ fn version(command: &Command<'_, '_>, out: &mut dyn Write) -> i32 {
         }
     }
     0
+}
+
+/// `zeff audit` (Language Reference, section 11.1): the runs `zeff run` recorded in the
+/// project, read against the wrong results this engine knows of. Exit code 0 when no recorded
+/// run is affected, 1 when one is.
+fn audit_command(command: &Command<'_, '_>, out: &mut dyn Write, err: &mut dyn Write) -> i32 {
+    let project = match open_project(command.fs, &command.cwd, command.messages, err) {
+        Ok(project) => project,
+        Err(code) => return code,
+    };
+    let records: Vec<zeff_engine::runs::RunRecord> =
+        zeff_engine::runs::kept(command.fs, &project.root)
+            .into_iter()
+            .map(|(_, record)| record)
+            .collect();
+    let issues = zeff_engine::known_issues::shipped();
+    let report = zeff_engine::audit::audit(&records, &issues, &project.manifest.zeff);
+    match command.settings.format {
+        Format::Json => {
+            let _ = writeln!(out, "{}", report.json(VERSION));
+        }
+        Format::Text => {
+            // The year is left out of a day of this year, as it is when a day is spoken.
+            let this_year = command
+                .fs
+                .now()
+                .map(|micros| zeff_engine::runs::day_and_time(micros).0[..4].to_string());
+            let _ = write!(out, "{}", report.text(VERSION, this_year.as_deref()));
+        }
+    }
+    i32::from(!report.affected.is_empty())
 }
 
 /// `zeff selftest`: the conformance cases of this build against the published report (Engine and

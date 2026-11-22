@@ -1,0 +1,38 @@
+---
+source: crates/zeff-engine/tests/audit.rs
+expression: out
+---
+----- a project with no run
+this project has no recorded run: runs are recorded from Zeff 0.9.0, by `zeff run`
+Zeff 0.9.3, which this project pins, has 1 known wrong result: issue 140 (`margins` with `at:` or `type:`), not yet corrected
+0 runs read against the 4 issues known to Zeff 0.9.3
+
+----- runs that no issue affects, on a pin that is past them
+no recorded run of this project is affected by a known issue
+Zeff 0.9.3, which this project pins, has 1 known wrong result: issue 140 (`margins` with `at:` or `type:`), not yet corrected
+2 runs read against the 4 issues known to Zeff 0.9.3
+
+----- many runs of one script, two scripts, two issues, and a pin that is affected
+your run of 12 October, and 2 runs before it since 3 October, used `reg` with `weights:`, affected by issue 123, fixed in 0.9.2
+  scripts/main.zeff on Zeff 0.9.0: `reg` with `weights:` gave standard errors that left the weights out of the residual variance
+  an analysis is affected when the weights were not all equal
+
+your run of 12 October used `confusion`, affected by issue 131, fixed in 0.9.1
+  scripts/tables.zeff on Zeff 0.9.0: `confusion` counted a row at the cutoff as predicted 0
+  an analysis is affected when a fitted probability was equal to the cutoff
+
+Zeff 0.9.0, which this project pins, has 3 known wrong results: issue 123 (`reg` with `weights:`, `ivreg` with `weights:`), fixed in 0.9.2; issue 131 (`confusion`), fixed in 0.9.1; issue 140 (`margins` with `at:` or `type:`), not yet corrected
+  the pin does not move by itself: `zeff engine use 0.9.2` runs the project on both engines, says what differs, and moves it
+6 runs read against the 4 issues known to Zeff 0.9.3
+
+----- two runs, last year, read without a clock; a run with no day; an issue not corrected
+your run of 31 December 2025, and 1 run before it since 30 December 2025, used `reg` with `weights:`, affected by issue 123, fixed in 0.9.2
+  scripts/main.zeff on Zeff 0.9.1: `reg` with `weights:` gave standard errors that left the weights out of the residual variance
+  an analysis is affected when the weights were not all equal
+
+2 runs with no day recorded used `margins` with `at:` and `type:`, affected by issue 140, not yet corrected
+  scripts/effects.zeff on Zeff 0.9.2: `margins` after `glm` with `at:` and `type: mem` held a category at its first level
+  an analysis is affected when the model had a category among its regressors
+
+Zeff 0.9.2, which this project pins, has 1 known wrong result: issue 140 (`margins` with `at:` or `type:`), not yet corrected
+4 runs read against the 4 issues known to Zeff 0.9.3

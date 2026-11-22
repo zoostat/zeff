@@ -122,7 +122,7 @@ fn format_json_gives_records_for_version_and_check() {
         (&["check", "--format", "xml"][..], "not a format"),
         (
             &["run", "--format", "json"][..],
-            "applies to `zeff check`, `zeff test`, `zeff version`, `zeff selftest` and `zeff explain`",
+            "applies to `zeff check`, `zeff test`, `zeff version`, `zeff selftest`, `zeff audit` and `zeff explain`",
         ),
     ] {
         let o = zeff(&project, args);
@@ -3120,4 +3120,75 @@ fn a_run_leaves_its_record_in_the_project_and_prints_nothing_for_it() {
         );
         assert_eq!(records(&runs).len(), 2);
     }
+}
+
+/// `zeff audit` (Language Reference, section 11.1; release 0.9.0, step 22c): the recorded runs
+/// of the project read against the list this engine carries.
+#[test]
+fn audit_reads_the_recorded_runs_against_the_known_issues() {
+    let (dir, project) = demo();
+    // No run yet.
+    let o = zeff(&project, &["audit"]);
+    assert_eq!(code(&o), 0, "{}", err(&o));
+    assert!(
+        out(&o).starts_with("this project has no recorded run: runs are recorded from Zeff 0.9.0"),
+        "{}",
+        out(&o)
+    );
+    // A run of this engine, which no known issue affects.
+    std::fs::write(
+        project.join("scripts/main.zeff"),
+        "print(dataset(wages).mad(wage))\n",
+    )
+    .unwrap();
+    assert_eq!(code(&zeff(&project, &["run"])), 0);
+    let o = zeff(&project, &["audit"]);
+    assert_eq!(code(&o), 0);
+    assert_eq!(
+        out(&o),
+        format!(
+            "no recorded run of this project is affected by a known issue\nZeff {VERSION}, which this project pins, has no known wrong result\n1 run read against the 2 issues known to Zeff {VERSION}\n"
+        )
+    );
+    // A run made long ago on an engine that issue 1 affects, as its record would say.
+    std::fs::write(
+        project.join(".zeff/runs/20201012-093000.toml"),
+        "format = 0\nengine = \"0.6.0\"\nbuild = \"source\"\non = \"2020-10-12\"\nat = \"09:30:00\"\nscript = \"scripts/main.zeff\"\nexit_code = 0\n\n[[call]]\nfunction = \"mad\"\npackage = \"stats\"\noptions = []\n",
+    )
+    .unwrap();
+    let o = zeff(&project, &["audit"]);
+    assert_eq!(code(&o), 1, "a recorded run is affected");
+    assert!(
+        out(&o).starts_with(
+            "your run of 12 October 2020 used `mad`, affected by issue 1, fixed in 0.7.0\n  scripts/main.zeff on Zeff 0.6.0: "
+        ),
+        "{}",
+        out(&o)
+    );
+    assert!(
+        out(&o).contains("\n2 runs read against the 2 issues known to Zeff "),
+        "{}",
+        out(&o)
+    );
+    assert_eq!(err(&o), "");
+    let o = zeff(&project, &["audit", "--format", "json"]);
+    assert_eq!(code(&o), 1);
+    assert!(
+        out(&o).contains("\"runs\": 2, \"issues\": 2, \"affected\": [{\"issue\": 1, \"fixed\": \"0.7.0\", \"script\": \"scripts/main.zeff\", \"engine\": \"0.6.0\", \"function\": \"mad\""),
+        "{}",
+        out(&o)
+    );
+    // It takes nothing after it, and needs a project.
+    let o = zeff(&project, &["audit", "everything"]);
+    assert!(
+        code(&o) == 1 && err(&o).contains("`zeff audit` takes no arguments"),
+        "{}",
+        err(&o)
+    );
+    let o = zeff(dir.path(), &["audit"]);
+    assert!(
+        code(&o) == 1 && err(&o).starts_with("error[Z0709]"),
+        "{}",
+        err(&o)
+    );
 }

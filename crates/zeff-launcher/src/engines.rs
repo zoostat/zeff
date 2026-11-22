@@ -147,6 +147,39 @@ fn no_fetching_set(env: &dyn Fn(&str) -> Option<String>) -> Option<&'static str>
     }
 }
 
+/// The command of a command line: its first word that is neither an option nor the value of
+/// one.
+pub fn command_of(args: &[String]) -> Option<&str> {
+    let mut at = 0;
+    while at < args.len() {
+        let arg = args[at].as_str();
+        at += 1;
+        if arg == "--" {
+            return args.get(at).map(String::as_str);
+        }
+        if !arg.starts_with('-') || arg == "-" {
+            return Some(arg);
+        }
+        if !arg.contains('=') && WITH_VALUE.contains(&arg) {
+            at += 1;
+        }
+    }
+    None
+}
+
+/// The engine that answers `zeff audit` (open decision #206 (a)): the newest release
+/// installed, whatever the project pins, for its list of known wrong results knows the most.
+pub fn engine_for_audit(
+    env: &dyn Fn(&str) -> Option<String>,
+    platform: Platform,
+) -> Option<(String, PathBuf)> {
+    let store = store(env, platform)?;
+    let versions = installed(&store, platform);
+    let newest = newest_release(&versions)?;
+    let engine = crate::find_engine(&store, &newest.text, platform)?;
+    Some((newest.text.clone(), engine))
+}
+
 /// What the command finds around it.
 pub struct Machine<'a> {
     pub env: &'a dyn Fn(&str) -> Option<String>,
@@ -207,13 +240,13 @@ fn size_of(folder: &Path) -> u64 {
 /// the engine itself, with `version --format json`. `None` for an engine that does not say,
 /// or does not start.
 pub fn build_of(engine: &Path) -> Option<String> {
-    let output = std::process::Command::new(engine)
+    let mut command = std::process::Command::new(engine);
+    command
         .args(["version", "--format", "json"])
         .env("ZEFF_LAUNCHER", crate::VERSION)
         .stdin(std::process::Stdio::null())
-        .stderr(std::process::Stdio::null())
-        .output()
-        .ok()?;
+        .stderr(std::process::Stdio::null());
+    let output = crate::output_of(&mut command).ok()?;
     let record: serde_json::Value = serde_json::from_slice(&output.stdout).ok()?;
     match record["build"].as_str()? {
         build @ ("official" | "source") => Some(build.to_string()),

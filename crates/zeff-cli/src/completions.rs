@@ -78,6 +78,11 @@ pub const COMMANDS: &[(&str, After, &str)] = &[
     ),
     ("version", After::Nothing, "print the version of Zeff"),
     (
+        "audit",
+        After::Nothing,
+        "read the recorded runs against the known wrong results",
+    ),
+    (
         "selftest",
         After::Nothing,
         "check this installation against the published results",

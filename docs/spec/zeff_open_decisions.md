@@ -4121,5 +4121,5 @@ Two smaller points go with A. (a) *Which engine answers.* The list of an engine 
 
 *Recommendation.* A, with (a) and (b). **Decided (22 November 2026, step 22):** A, under the standing instruction.
 
-**Status (22 November 2026).** Being built: 22a the list, 22b the record, 22c the audit. Deadline for the owner to overturn: 0.11.0, when the schema is fixed.
+**Status (22 November 2026).** Built as decided, in steps 22a (the list), 22b (the record) and 22c (the audit). Deadline for the owner to overturn: 0.11.0, when the schema is fixed.
 

@@ -696,10 +696,8 @@ fn a_project_pinned_to_a_missing_engine_runs_after_one_answer() {
     assert_eq!(pinned(&world), Ok(("0.9.1".to_string(), engine.clone())));
     #[cfg(unix)]
     {
-        let ran = std::process::Command::new(&engine)
-            .args(for_the_engine(&args))
-            .output()
-            .unwrap();
+        let ran =
+            common::output_of(std::process::Command::new(&engine).args(for_the_engine(&args)));
         assert_eq!(
             String::from_utf8_lossy(&ran.stdout),
             "engine 0.9.1: run scripts/main.zeff\n"

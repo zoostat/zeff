@@ -172,10 +172,7 @@ fn an_installed_engine_runs() {
     let Ok(Placed::New(engine)) = install_from(&home, &path, &trust, host) else {
         panic!("not installed");
     };
-    let out = std::process::Command::new(engine)
-        .args(["run", "main.zeff"])
-        .output()
-        .unwrap();
+    let out = common::output_of(std::process::Command::new(engine).args(["run", "main.zeff"]));
     assert_eq!(
         String::from_utf8_lossy(&out.stdout),
         "engine 0.9.1: run main.zeff\n"
