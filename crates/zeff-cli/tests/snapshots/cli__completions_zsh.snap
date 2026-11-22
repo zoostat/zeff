@@ -22,6 +22,7 @@ _zeff() {
         'explain:explain the code of an error or a warning'
         'report-bug:build a report of a failure for you to read'
         'engine:list, install, remove or choose the engines installed'
+        'doctor:report on this installation and what to do about each problem'
         'version:print the version of Zeff'
         'selftest:check this installation against the published results'
         'completions:write the completions of a shell'

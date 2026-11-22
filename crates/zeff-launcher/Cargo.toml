@@ -34,6 +34,8 @@ ureq = { version = "=3.5.2", default-features = false, features = ["rustls-no-pr
 rustls = { version = "=0.23.46", default-features = false, features = ["ring", "std", "tls12"] }
 # The engine's `check --format json`, read for the calls `zeff engine use` rewrites (step 20).
 serde_json = "=1.0.154"
+# The free space of the disk the store is on, for `zeff doctor` (step 21b).
+fs4 = { version = "=1.1.0", default-features = false, features = ["sync"] }
 
 [dev-dependencies]
 tempfile = "=3.27.0"

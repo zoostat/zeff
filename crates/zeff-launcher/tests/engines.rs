@@ -154,7 +154,8 @@ fn only_the_engine_command_is_the_launchers() {
             from: None,
             nothing_fetched: None,
             write: false,
-            project: None
+            project: None,
+            doctor: false
         }
     );
     // Options before, between and after; a value in the next word or after `=`.
@@ -166,7 +167,8 @@ fn only_the_engine_command_is_the_launchers() {
             from: None,
             nothing_fetched: None,
             write: false,
-            project: None
+            project: None,
+            doctor: false
         }
     );
     assert_eq!(
@@ -177,7 +179,8 @@ fn only_the_engine_command_is_the_launchers() {
             from: Some(PathBuf::from("a b/zeff.zip")),
             nothing_fetched: None,
             write: false,
-            project: Some(PathBuf::from("study"))
+            project: Some(PathBuf::from("study")),
+            doctor: false
         }
     );
     assert_eq!(

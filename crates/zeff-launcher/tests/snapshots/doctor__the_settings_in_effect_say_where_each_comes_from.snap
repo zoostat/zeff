@@ -1,0 +1,60 @@
+---
+source: crates/zeff-launcher/tests/doctor.rs
+expression: out
+---
+----- offline, on the command line
+  launcher        Zeff <launcher>, source build, commit <commit>, at `<tmp>/ada/.zeff/bin/zeff`
+  engines         0.9.1 (source build, the default)
+  store           `<tmp>/ada/.zeff`, the default, `.zeff` in the user's folder
+  user folder     `<tmp>/ada`
+  PATH            `<tmp>/ada/.zeff/bin` is on PATH
+  completions     none found for zsh in the usual place; `zeff completions zsh` writes the file
+  default engine  Zeff 0.9.1, the newest installed: the default
+  fetching        forbidden by `--offline`, on the command line
+  mirror          none: the default
+  proxy           none: the default
+  colour          on a terminal: the default
+  release host    not asked: fetching is forbidden
+  disk            100.0 GB free where the store is
+  selftest        Zeff 0.9.1: never run here; `zeff selftest` proves the engine on this machine
+  signing key     none is built into this launcher, a source build: it can prove no archive and installs no engine
+
+no problem found
+
+----- frozen by the environment, with a mirror, a proxy and no colour
+  launcher        Zeff <launcher>, source build, commit <commit>, at `<tmp>/ada/.zeff/bin/zeff`
+  engines         0.9.1 (source build, the default)
+  store           `<tmp>/ada/.zeff`, the default, `.zeff` in the user's folder
+  user folder     `<tmp>/ada`
+  PATH            `<tmp>/ada/.zeff/bin` is on PATH
+  completions     none found for fish in the usual place; `zeff completions fish` writes the file
+  default engine  Zeff 0.9.1, the newest installed: the default
+  fetching        forbidden by `ZEFF_FROZEN`, from the environment
+  mirror          `http://10.0.0.7:8080/`, from `ZEFF_MIRROR`
+  proxy           `http://proxy.univ.example:3128`, from `HTTPS_PROXY`
+  colour          never, from `NO_COLOR`
+  release host    not asked: fetching is forbidden
+  disk            100.0 GB free where the store is
+  selftest        Zeff 0.9.1: never run here; `zeff selftest` proves the engine on this machine
+  signing key     none is built into this launcher, a source build: it can prove no archive and installs no engine
+
+no problem found
+
+----- a store named by the environment, on Windows
+  launcher        Zeff <launcher>, source build, commit <commit>, at `<tmp>/ada/.zeff/bin/zeff`
+  engines         0.9.1 (source build, the default)
+  store           `<tmp>/ada/.zeff`, named by `ZEFF_HOME`
+  user folder     `<tmp>/ada`
+  PATH            `<tmp>/ada/.zeff/bin` is on PATH
+  completions     `zeff completions <shell>` writes the file for bash, zsh, fish or powershell
+  default engine  Zeff 0.9.1, the newest installed: the default
+  fetching        allowed: the default
+  mirror          none: the default
+  proxy           none: the default
+  colour          on a terminal: the default
+  release host    not asked: nothing is published at `https://zeff-lang.dev/` before Zeff 1.0; an engine comes from a mirror (`ZEFF_MIRROR`) or from an archive (`zeff engine install --from <file>`)
+  disk            100.0 GB free where the store is
+  selftest        Zeff 0.9.1: never run here; `zeff selftest` proves the engine on this machine
+  signing key     none is built into this launcher, a source build: it can prove no archive and installs no engine
+
+no problem found

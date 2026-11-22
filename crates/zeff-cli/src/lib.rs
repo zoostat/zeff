@@ -54,6 +54,10 @@ Commands:
                     set the `default`, which runs outside a project, or `use <version>`: run
                     the project on the engine it pins and on another, say what differs, and
                     with `--write` move the pin
+  doctor            the launcher's report on this installation: the launcher and the engines,
+                    the store, PATH and completions, the settings in effect and where each
+                    comes from, the release host, the free disk space and the last selftest,
+                    with what to do about each problem
   version           print the version of Zeff
   selftest          run the conformance cases shipped with the engine against their published
                     results and say whether this installation is conformant
@@ -110,8 +114,8 @@ line ending with an operator, continues on the next line.
 ";
 
 /// Commands the specification names that this release does not have yet.
-const LATER: [&str; 8] = [
-    "selftest", "runs", "export", "verify", "doctor", "app", "self", "dataset",
+const LATER: [&str; 7] = [
+    "selftest", "runs", "export", "verify", "app", "self", "dataset",
 ];
 
 /// Options the specification names that this release does not have yet.
@@ -638,9 +642,11 @@ pub fn run(
             &mut err,
             "`zeff test` takes no script: it runs every test of the project",
         ),
-        ["engine", ..] => usage_error(
+        [word @ ("engine" | "doctor"), ..] => usage_error(
             &mut err,
-            "`zeff engine` is answered by the launcher, and this is an engine run on its own; run the `zeff` that was installed with it",
+            &format!(
+                "`zeff {word}` is answered by the launcher, and this is an engine run on its own; run the `zeff` that was installed with it"
+            ),
         ),
         [word, ..] if LATER.contains(word) => usage_error(
             &mut err,
@@ -776,6 +782,20 @@ fn selftest_command(command: &Command<'_, '_>, out: &mut dyn Write) -> i32 {
                 );
             }
         }
+    }
+    // Kept for `zeff doctor`, which says when this engine was last proved on this machine:
+    // one small file in the store for each engine version. A store that cannot be written is
+    // no reason for the proof to fail.
+    if let Some(home) = &command.env.zeff_home {
+        let folder = home.join("selftest");
+        let record = format!(
+            "# the last `zeff selftest` of this engine on this machine\nversion = \"{VERSION}\"\nconformant = {}\ncases = {total}\ndiffering = {}\non = \"{}\"\n",
+            differing.is_empty(),
+            differing.len(),
+            chrono::Local::now().format("%Y-%m-%d")
+        );
+        let _ = std::fs::create_dir_all(&folder)
+            .and_then(|()| std::fs::write(folder.join(format!("{VERSION}.toml")), record));
     }
     i32::from(!differing.is_empty())
 }

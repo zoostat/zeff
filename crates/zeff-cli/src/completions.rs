@@ -71,6 +71,11 @@ pub const COMMANDS: &[(&str, After, &str)] = &[
         After::Nothing,
         "list, install, remove or choose the engines installed",
     ),
+    (
+        "doctor",
+        After::Nothing,
+        "report on this installation and what to do about each problem",
+    ),
     ("version", After::Nothing, "print the version of Zeff"),
     (
         "selftest",

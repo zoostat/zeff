@@ -51,6 +51,8 @@ pub struct Asked {
     pub write: bool,
     /// `-p <dir>` or `--project <dir>`: the project `use` acts on.
     pub project: Option<PathBuf>,
+    /// The command is `zeff doctor`, not `zeff engine`.
+    pub doctor: bool,
 }
 
 /// Read the command line: `None` when the command is not `engine`, which is then the engine's
@@ -106,7 +108,8 @@ pub fn read(args: &[String]) -> Option<Result<Asked, String>> {
             }
         }
     }
-    if words.first().map(String::as_str) != Some("engine") {
+    let doctor = words.first().map(String::as_str) == Some("doctor");
+    if !doctor && words.first().map(String::as_str) != Some("engine") {
         return None;
     }
     Some(match wrong {
@@ -118,6 +121,7 @@ pub fn read(args: &[String]) -> Option<Result<Asked, String>> {
             nothing_fetched,
             write,
             project: crate::project_argument(args),
+            doctor,
         }),
     })
 }
@@ -354,6 +358,16 @@ pub(crate) fn one_version<'a>(
 
 /// Answer `zeff engine ...`; the exit code.
 pub fn run(asked: &Asked, machine: &Machine<'_>, out: &mut dyn Write, err: &mut dyn Write) -> u8 {
+    if asked.doctor {
+        if !asked.words.is_empty() {
+            return usage(err, "`zeff doctor` takes nothing after it");
+        }
+        let around = crate::doctor::Around {
+            own_path: std::env::current_exe().ok(),
+            free_space: None,
+        };
+        return crate::doctor::doctor(asked, machine, &around, out);
+    }
     let Some(store) = store(machine.env, machine.platform) else {
         say(
             err,

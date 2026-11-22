@@ -15,6 +15,7 @@
 //! store, so that it is tested on a temporary store; `main` alone starts a process.
 
 pub mod archive;
+pub mod doctor;
 pub mod engines;
 pub mod install;
 pub mod net;

@@ -13,8 +13,15 @@ fn zeff(cwd: &Path, args: &[&str]) -> Output {
         .env_remove("NO_COLOR")
         .env_remove("ZEFF_ENGINE_USE")
         .env_remove("ZEFF_LAUNCHER")
+        // A store of the tests' own, never the user's: `selftest` keeps its result there.
+        .env("ZEFF_HOME", test_home())
         .output()
         .expect("zeff runs")
+}
+
+/// The store the tests of one run share, in the system's temporary folder.
+fn test_home() -> std::path::PathBuf {
+    std::env::temp_dir().join(format!("zeff-cli-tests-{}", std::process::id()))
 }
 
 /// `zeff` with `ZEFF_HOME` set to `home` and `input` on standard input.
@@ -520,7 +527,13 @@ fn unknown_and_later_commands() {
         "{}",
         err(&o)
     );
-    for later in ["doctor", "runs", "verify"] {
+    let o = zeff(dir.path(), &["doctor"]);
+    assert!(
+        code(&o) == 1 && err(&o).contains("`zeff doctor` is answered by the launcher"),
+        "{}",
+        err(&o)
+    );
+    for later in ["export", "runs", "verify"] {
         let o = zeff(dir.path(), &[later]);
         assert_eq!(code(&o), 1);
         assert!(
@@ -1558,6 +1571,16 @@ fn selftest_says_this_build_is_conformant() {
         "{text}"
     );
     assert_eq!(err(&o), "");
+    // The result is kept in the store, for `zeff doctor`.
+    let record =
+        std::fs::read_to_string(test_home().join("selftest").join(format!("{VERSION}.toml")))
+            .expect("the record of the last selftest");
+    assert!(
+        record.contains(&format!(
+            "version = \"{VERSION}\"\nconformant = true\ncases = "
+        )) && record.contains("\ndiffering = 0\non = \"20"),
+        "{record}"
+    );
     let o = zeff(dir.path(), &["selftest", "--format", "json"]);
     assert_eq!(code(&o), 0);
     let lines: Vec<&str> = out(&o)

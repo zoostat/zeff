@@ -1,0 +1,70 @@
+---
+source: crates/zeff-launcher/tests/doctor.rs
+expression: out
+---
+----- nothing wrong
+no problem found
+
+----- no engine
+! engines         none is installed
+                  fix: `zeff engine install` installs the newest, and `zeff engine install --from <file>` one from an archive on this machine
+1 problem, marked `!`, with what to do about it
+
+----- a default that is not installed
+! default engine  `config.toml` names Zeff 0.8.0, which is not installed
+                  fix: `zeff engine install 0.8.0` installs it, and `zeff engine default <version>` chooses another
+1 problem, marked `!`, with what to do about it
+
+----- settings that are not TOML
+! settings        `<tmp>/ada/.zeff/config.toml` is not valid TOML, so nothing in it is read
+                  fix: correct the file, or move it aside
+1 problem, marked `!`, with what to do about it
+
+----- the launcher's folder is not on PATH
+! PATH            `<tmp>/ada/.zeff/bin`, where the launcher is, is not on PATH
+                  fix: add this line to the shell's start-up file: export PATH="<tmp>/ada/.zeff/bin:$PATH"
+1 problem, marked `!`, with what to do about it
+
+----- a mirror that is not an address
+! mirror          `mirror.univ.example`, from `ZEFF_MIRROR`, is not an address
+                  fix: a mirror begins with `https://` or `http://`
+1 problem, marked `!`, with what to do about it
+
+----- a mirror that does not answer
+! release host    `https://mirror.univ.example/zeff/engines/index.toml`: the server did not answer: no route to host
+                  fix: check the network, the mirror and the proxy above; `--offline` works without it, and `zeff engine install --from <file>` installs an archive already on this machine
+1 problem, marked `!`, with what to do about it
+
+----- a mirror that fails
+! release host    `https://mirror.univ.example/zeff/engines/index.toml`: the server answered 503
+                  fix: check the network, the mirror and the proxy above; `--offline` works without it, and `zeff engine install --from <file>` installs an archive already on this machine
+1 problem, marked `!`, with what to do about it
+
+----- a mirror without an index
+! release host    `https://mirror.univ.example/zeff/engines/index.toml`: the server answers and has no engine index
+                  fix: check the network, the mirror and the proxy above; `--offline` works without it, and `zeff engine install --from <file>` installs an archive already on this machine
+1 problem, marked `!`, with what to do about it
+
+----- a full disk
+! disk            312.0 MB free where the store is
+                  fix: make room: an engine needs some tens of megabytes, and `zeff engine remove <version>` removes one that no project pins
+1 problem, marked `!`, with what to do about it
+
+----- an engine that is not conformant here
+! selftest        Zeff 0.9.1: not conformant, 3 of 558 cases differ, on 2026-11-22
+                  fix: this engine does not reproduce the published results on this machine; run `zeff selftest` again for the cases, and report it with `zeff version --verbose`
+1 problem, marked `!`, with what to do about it
+
+----- a store that cannot be written
+! store           `<tmp>/ada/.zeff`, the default, `.zeff` in the user's folder, cannot be written by this user
+                  fix: give this user the right to write there, or name another folder with `ZEFF_HOME`
+1 problem, marked `!`, with what to do about it
+
+----- three at once
+! engines         none is installed
+                  fix: `zeff engine install` installs the newest, and `zeff engine install --from <file>` one from an archive on this machine
+! PATH            `<tmp>/ada/.zeff/bin`, where the launcher is, is not on PATH
+                  fix: add this line to the shell's start-up file: export PATH="<tmp>/ada/.zeff/bin:$PATH"
+! mirror          `ftp://mirror`, from `ZEFF_MIRROR`, is not an address
+                  fix: a mirror begins with `https://` or `http://`
+3 problems, marked `!`, each with what to do about it

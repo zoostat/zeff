@@ -1,0 +1,22 @@
+---
+source: crates/zeff-launcher/tests/doctor.rs
+expression: text
+---
+  launcher        Zeff <launcher>, source build, commit <commit>, at `<tmp>/ada/.zeff/bin/zeff`
+  engines         0.9.0 (official build); 0.9.1 (official build, the default)
+  store           `<tmp>/ada/.zeff`, the default, `.zeff` in the user's folder
+  user folder     `<tmp>/ada`
+  PATH            `<tmp>/ada/.zeff/bin` is on PATH
+  completions     for zsh, at `<tmp>/ada/.zfunc/_zeff`
+  default engine  Zeff 0.9.1, from `[engine] default` of `config.toml`
+  fetching        allowed: the default
+  mirror          `https://mirror.univ.example/zeff/`, from `[network] mirror` of `config.toml`
+  proxy           `http://proxy.univ.example:3128`, from `[network] proxy` of `config.toml`
+  colour          on a terminal: the default
+  release host    `https://mirror.univ.example/zeff/` answers, with its engine index
+  disk            212.4 GB free where the store is
+  selftest        Zeff 0.9.0: never run here; `zeff selftest` proves the engine on this machine
+  selftest        Zeff 0.9.1: conformant, 558 of 558 cases, on 2026-11-22
+  signing key     none is built into this launcher, a source build: it can prove no archive and installs no engine
+
+no problem found
