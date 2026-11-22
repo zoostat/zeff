@@ -184,12 +184,26 @@ jobs:
             minisign -S -s ../trial/trial.key -m "$file" -t "a trial, not a release"
           done
 
+      - name: A signature of the same checksums by another key, for the installation check
+        run: |
+          mkdir checks
+          minisign -G -W -f -p checks/other.pub -s checks/other.key > /dev/null
+          minisign -S -s checks/other.key -m dist/SHA256SUMS -x checks/SHA256SUMS.minisig > /dev/null
+          rm checks/other.key checks/other.pub
+
       - name: Keep the signed release
         uses: actions/upload-artifact@v4
         with:
           name: signed-release
           path: dist/
           retention-days: 7
+
+      - name: Keep the other signature, which is never published
+        uses: actions/upload-artifact@v4
+        with:
+          name: signed-by-another-key
+          path: checks/
+          retention-days: 1
 
   # The installation check (testing handbook, section 1, "Installation and command line";
   # section 2.4, item 5; release 0.9.0, step 24): on a clean machine of each of the four kinds,
@@ -263,22 +277,24 @@ jobs:
           grep -q 'nothing was unpacked' refused.txt
           "$LAUNCHER" engine list | grep -q 'no engine is installed'
 
+      - name: Fetch the signature another key made
+        uses: actions/download-artifact@v4
+        with:
+          name: signed-by-another-key
+          path: stranger
+
       - name: An archive whose checksums another key signed is refused with Z0711
         run: |
-          mkdir stranger && cp "$ARCHIVE" release/SHA256SUMS stranger/
-          # A signature that is a signature, of these very checksums, by a key made here.
-          if command -v minisign > /dev/null || { [ "$(uname -s)" = "Darwin" ] && brew install minisign; } || sudo apt-get install -y minisign; then
-            minisign -G -W -f -p stranger/other.pub -s stranger/other.key > /dev/null
-            minisign -S -s stranger/other.key -m stranger/SHA256SUMS > /dev/null
-            rm stranger/other.key stranger/other.pub
-            if "$LAUNCHER" engine install --from "stranger/$(basename "$ARCHIVE")" 2> stranger.txt; then
-              echo "an archive signed by another key was installed" >&2
-              exit 1
-            fi
-            cat stranger.txt
-            grep -q '^error\[Z0711\]' stranger.txt
-            grep -q 'does not trust' stranger.txt
+          # The archive and its checksums as published, and a true signature of those very
+          # checksums by a key that is not the launcher's.
+          cp "$ARCHIVE" release/SHA256SUMS stranger/
+          if "$LAUNCHER" engine install --from "stranger/$(basename "$ARCHIVE")" 2> stranger.txt; then
+            echo "an archive signed by another key was installed" >&2
+            exit 1
           fi
+          cat stranger.txt
+          grep -q '^error\[Z0711\]' stranger.txt
+          grep -q 'does not trust' stranger.txt
           "$LAUNCHER" engine list | grep -q 'no engine is installed'
 
       - name: The launcher installs the engine from its archive
