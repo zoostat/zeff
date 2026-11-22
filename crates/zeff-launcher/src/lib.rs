@@ -19,6 +19,7 @@ pub mod engines;
 pub mod install;
 pub mod net;
 pub mod remote;
+pub mod switch;
 pub mod trust;
 
 use std::cmp::Ordering;

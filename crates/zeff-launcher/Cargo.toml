@@ -32,6 +32,8 @@ flate2 = { version = "=1.1.11", default-features = false, features = ["rust_back
 # system's own certificates; what is fetched is trusted for its signature, not for its host.
 ureq = { version = "=3.5.2", default-features = false, features = ["rustls-no-provider", "platform-verifier"] }
 rustls = { version = "=0.23.46", default-features = false, features = ["ring", "std", "tls12"] }
+# The engine's `check --format json`, read for the calls `zeff engine use` rewrites (step 20).
+serde_json = "=1.0.154"
 
 [dev-dependencies]
 tempfile = "=3.27.0"

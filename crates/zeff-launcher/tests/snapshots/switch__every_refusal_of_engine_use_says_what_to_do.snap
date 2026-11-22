@@ -1,0 +1,33 @@
+---
+source: crates/zeff-launcher/tests/switch.rs
+expression: out
+---
+----- no version [exit 1]
+error: `zeff engine use` takes one version, as `zeff engine use 0.9.1`
+
+run `zeff help` to see the commands
+
+----- a series [exit 1]
+error: `0.9` is not the version of an engine: three numbers, as 0.9.1
+
+run `zeff help` to see the commands
+
+----- the engine the project pins [exit 0]
+the project already runs on Zeff 0.9.0
+
+----- an engine that is not installed [exit 4]
+error[Z0710]: Zeff 0.9.7 is not installed
+  = help: `zeff engine use` runs the project on both engines; `zeff engine install 0.9.7` installs it; installed: 0.9.0, 0.9.1
+
+----- outside a project [exit 1]
+error[Z0709]: not inside a Zeff project
+  = help: `zeff engine use` moves a project to another engine: run it in the project's folder, or name the folder with `-p`
+
+----- the pinned engine is not installed [exit 4]
+error[Z0710]: Zeff 0.9.0 is not installed
+  = help: `zeff engine use` runs the project on both engines; `zeff engine install 0.9.0` installs it; installed: 0.9.1
+
+----- a project that pins nothing [exit 1]
+error: `<tmp>/study/zeff.toml` pins no engine that can be read; `zeff check` says what is wrong with it
+
+run `zeff help` to see the commands

@@ -1,0 +1,51 @@
+---
+source: crates/zeff-launcher/tests/switch.rs
+expression: out
+---
+----- zeff engine use 0.9.1 [exit 1]
+Zeff 0.9.0 and Zeff 0.9.1 on the project in `<tmp>/study`: 2 scripts
+
+scripts/main.zeff
+  prints the same on both engines, 1 line
+
+scripts/tables.zeff
+  prints 1 line of 3 differently; the first is line 2:
+    on Zeff 0.9.0: educ           0.0412
+    on Zeff 0.9.1: educ           0.0413
+  Zeff 0.9.1 raises W1002, which Zeff 0.9.0 does not
+
+2 scripts compared: 1 differs on the two engines
+the pin is not moved; `zeff engine use 0.9.1 --write` moves it to Zeff 0.9.1
+
+----- zeff engine use 0.9.1 --write [exit 0]
+Zeff 0.9.0 and Zeff 0.9.1 on the project in `<tmp>/study`: 2 scripts
+
+scripts/main.zeff
+  prints the same on both engines, 1 line
+
+scripts/tables.zeff
+  prints 1 line of 3 differently; the first is line 2:
+    on Zeff 0.9.0: educ           0.0412
+    on Zeff 0.9.1: educ           0.0413
+  Zeff 0.9.1 raises W1002, which Zeff 0.9.0 does not
+
+2 scripts compared: 1 differs on the two engines
+the pin is moved: `<tmp>/study/zeff.toml` now names Zeff 0.9.1
+
+----- zeff engine use 0.9.1, again [exit 0]
+the project already runs on Zeff 0.9.1
+
+----- zeff engine use 0.9.0, back [exit 1]
+Zeff 0.9.1 and Zeff 0.9.0 on the project in `<tmp>/study`: 2 scripts
+
+scripts/main.zeff
+  prints the same on both engines, 1 line
+
+scripts/tables.zeff
+  prints 1 line of 3 differently; the first is line 2:
+    on Zeff 0.9.1: educ           0.0413
+    on Zeff 0.9.0: educ           0.0412
+  Zeff 0.9.1 raises W1002, which Zeff 0.9.0 does not
+
+2 scripts compared: 1 differs on the two engines
+the pin is not moved; `zeff engine use 0.9.0 --write` moves it to Zeff 0.9.0

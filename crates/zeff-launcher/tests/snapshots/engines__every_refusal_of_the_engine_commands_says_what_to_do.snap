@@ -3,12 +3,12 @@ source: crates/zeff-launcher/tests/engines.rs
 expression: out
 ---
 ----- no command [exit 1]
-error: `zeff engine` takes a command: `list`, `install`, `remove` or `default`
+error: `zeff engine` takes a command: `list`, `install`, `remove`, `default` or `use`
 
 run `zeff help` to see the commands
 
 ----- a command there is not [exit 1]
-error: `zeff engine upgrade` is not a command: `list`, `install`, `remove` or `default`
+error: `zeff engine upgrade` is not a command: `list`, `install`, `remove`, `default` or `use`
 
 run `zeff help` to see the commands
 

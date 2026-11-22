@@ -98,7 +98,7 @@ impl Project {
             .in_file(MANIFEST)
             .primary(self.manifest.zeff_span, "the engine the project pins")
             .help(format!(
-                "run it with Zeff {pinned}, or change `zeff` in zeff.toml to {VERSION}; installing other engines (`zeff engine install {pinned}`) arrives with release 0.9.0"
+                "run it with Zeff {pinned}, which `zeff engine install {pinned}` installs, or move the project to this engine with `zeff engine use {VERSION}`"
             ))))
     }
 }

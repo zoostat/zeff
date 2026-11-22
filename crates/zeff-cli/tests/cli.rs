@@ -11,6 +11,7 @@ fn zeff(cwd: &Path, args: &[&str]) -> Output {
         .args(args)
         .current_dir(cwd)
         .env_remove("NO_COLOR")
+        .env_remove("ZEFF_ENGINE_USE")
         .output()
         .expect("zeff runs")
 }
@@ -409,6 +410,57 @@ fn a_project_that_pins_another_engine_is_exit_code_4() {
         err(&o)
     );
     assert!(err(&o).contains("--> zeff.toml:3:8"));
+    assert!(
+        err(&o).contains("`zeff engine install 9.9.9` installs"),
+        "{}",
+        err(&o)
+    );
+    // Under `zeff engine use` the launcher is trying this engine on a project that pins
+    // another, and says so: the pin is then not this run's to check.
+    let tried = Command::new(env!("CARGO_BIN_EXE_zeff"))
+        .args(["run"])
+        .current_dir(&project)
+        .env("ZEFF_ENGINE_USE", VERSION)
+        .output()
+        .expect("zeff runs");
+    assert_eq!(code(&tried), 0, "{}", err(&tried));
+    let o = zeff(&project, &["run"]);
+    assert_eq!(code(&o), 4, "and only then");
+}
+
+/// The rewrite `zeff engine use --write` applies: a bare call that a built-in would capture
+/// carries its full form in the record, in both positions of a call.
+#[test]
+fn a_captured_name_carries_its_rewrite() {
+    let (_dir, project) = demo();
+    std::fs::create_dir_all(project.join("functions")).unwrap();
+    std::fs::write(
+        project.join("functions/helpers.zeff"),
+        "/// Twice a number.\n/// x: The number.\n/// returns: Its double.\n/// > helpers::mean(2.0)\n/// 4\nfn mean(x: Float) -> Float { 2.0 * x }\n",
+    )
+    .unwrap();
+    std::fs::write(
+        project.join("scripts/main.zeff"),
+        "use functions::helpers\nlet a = mean(2.0)\nlet b = 3.0.mean()\nprint(a + b)\n",
+    )
+    .unwrap();
+    let o = zeff(&project, &["check", "--format", "json"]);
+    assert_eq!(code(&o), 1);
+    let records = out(&o);
+    for edit in [
+        r#""fixes": [{"description": "write `helpers::mean`", "edits": [{"line": 2, "column": 9, "end_line": 2, "end_column": 13, "replacement": "helpers::mean"}]}]"#,
+        r#""edits": [{"line": 3, "column": 13, "end_line": 3, "end_column": 17, "replacement": "helpers::mean"}]"#,
+    ] {
+        assert!(records.contains(edit), "{records}");
+    }
+    // Written as the record says, the script runs, and calls what it called.
+    std::fs::write(
+        project.join("scripts/main.zeff"),
+        "use functions::helpers\nlet a = helpers::mean(2.0)\nlet b = 3.0.helpers::mean()\nprint(a + b)\n",
+    )
+    .unwrap();
+    let o = zeff(&project, &["run"]);
+    assert_eq!((code(&o), out(&o).as_str()), (0, "10\n"), "{}", err(&o));
 }
 
 #[test]

@@ -1,0 +1,43 @@
+---
+source: crates/zeff-launcher/tests/switch.rs
+expression: out
+---
+----- the same
+  prints the same on both engines, 3 lines
+
+----- one result
+  prints 1 line of 3 differently; the first is line 2:
+    on Zeff 0.9.0: educ           0.0412
+    on Zeff 0.9.1: educ           0.0413
+
+----- one warning more
+  prints the same on both engines, 3 lines
+  Zeff 0.9.1 raises W1002, which Zeff 0.9.0 does not
+
+----- one warning fewer, and the same twice is once
+  prints the same on both engines, 3 lines
+  Zeff 0.9.0 raises W1002, which Zeff 0.9.1 does not
+
+----- more lines
+  prints 3 lines on Zeff 0.9.0 and 4 lines on Zeff 0.9.1; the first that differs is line 4:
+    on Zeff 0.9.0: (nothing)
+    on Zeff 0.9.1: n              5,200
+
+----- stops on the other
+  runs on Zeff 0.9.0 and stops on Zeff 0.9.1:
+    error[Z0401]: `reg` cannot be called on a Float
+  prints 3 lines on Zeff 0.9.0 and 0 lines on Zeff 0.9.1; the first that differs is line 1:
+    on Zeff 0.9.0: coefficient  estimate
+    on Zeff 0.9.1: (nothing)
+
+----- stops on both, alike
+  stops on both engines, with the same error:
+    on Zeff 0.9.0: error[Z0101]: no variable `incme`
+  prints the same on both engines, 0 lines
+
+----- stops on the pinned engine only
+  stops on Zeff 0.9.0 and runs on Zeff 0.9.1; on Zeff 0.9.0:
+    error[Z0103]: no function `glm`
+  prints 0 lines on Zeff 0.9.0 and 3 lines on Zeff 0.9.1; the first that differs is line 1:
+    on Zeff 0.9.0: (nothing)
+    on Zeff 0.9.1: coefficient  estimate

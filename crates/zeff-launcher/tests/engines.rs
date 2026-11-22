@@ -152,7 +152,9 @@ fn only_the_engine_command_is_the_launchers() {
             words: strings(&["list"]),
             json: false,
             from: None,
-            nothing_fetched: None
+            nothing_fetched: None,
+            write: false,
+            project: None
         }
     );
     // Options before, between and after; a value in the next word or after `=`.
@@ -162,7 +164,9 @@ fn only_the_engine_command_is_the_launchers() {
             words: strings(&["list"]),
             json: true,
             from: None,
-            nothing_fetched: None
+            nothing_fetched: None,
+            write: false,
+            project: None
         }
     );
     assert_eq!(
@@ -171,7 +175,9 @@ fn only_the_engine_command_is_the_launchers() {
             words: strings(&["install"]),
             json: false,
             from: Some(PathBuf::from("a b/zeff.zip")),
-            nothing_fetched: None
+            nothing_fetched: None,
+            write: false,
+            project: Some(PathBuf::from("study"))
         }
     );
     assert_eq!(

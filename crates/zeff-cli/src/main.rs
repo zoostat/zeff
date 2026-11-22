@@ -109,6 +109,7 @@ fn main() -> ExitCode {
                 stderr_is_terminal: std::io::stderr().is_terminal(),
                 stdin_is_terminal: std::io::stdin().is_terminal(),
                 input: &mut input,
+                engine_use: std::env::var_os("ZEFF_ENGINE_USE").is_some_and(|v| !v.is_empty()),
                 cancel,
             };
             let (mut out, mut err) = (std::io::stdout().lock(), std::io::stderr().lock());

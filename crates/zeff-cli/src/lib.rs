@@ -50,8 +50,10 @@ Commands:
                     the variables. It holds no data, and nothing is sent anywhere
   engine <command>  the engines installed, which the launcher keeps: `list` them, `install`
                     one (a version, `0.9` for the newest 0.9.x, nothing for the newest, or
-                    `--from <file>` for an archive on this machine), `remove` one, or say and
-                    set the `default`, which runs outside a project
+                    `--from <file>` for an archive on this machine), `remove` one, say and
+                    set the `default`, which runs outside a project, or `use <version>`: run
+                    the project on the engine it pins and on another, say what differs, and
+                    with `--write` move the pin
   version           print the version of Zeff
   selftest          run the conformance cases shipped with the engine against their published
                     results and say whether this installation is conformant
@@ -136,6 +138,9 @@ pub struct Environment<'a> {
     pub stdin_is_terminal: bool,
     /// Standard input, for the console.
     pub input: &'a mut dyn BufRead,
+    /// `ZEFF_ENGINE_USE` is set: the launcher's `zeff engine use` is trying this engine on a
+    /// project that pins another, and the pin is not checked.
+    pub engine_use: bool,
     /// The handle by which a run is cancelled from outside: an interrupt of `zeff run` cancels
     /// it, and the run stops before its next step (Z0705).
     pub cancel: zeff_engine::control::Control,
@@ -393,6 +398,9 @@ impl Drop for Filtered<'_> {
 struct Messages {
     color: bool,
     quiet: bool,
+    /// The launcher is trying this engine on a project that pins another (`zeff engine use`):
+    /// the pin is not this run's to check.
+    any_pin: bool,
 }
 
 impl Messages {
@@ -478,6 +486,7 @@ pub fn run(
     let messages = Messages {
         color,
         quiet: settings.quiet,
+        any_pin: env.engine_use,
     };
     if settings.format == Format::Json
         && !matches!(
@@ -783,7 +792,9 @@ fn find_project(
 ) -> Result<Option<Project>, i32> {
     match Project::open(fs, cwd) {
         Ok(project) => {
-            if let Err(diagnostic) = project.check_pin() {
+            if let Err(diagnostic) = project.check_pin()
+                && !messages.any_pin
+            {
                 let mut sources = Sources::new();
                 sources.add(Source::new(MANIFEST, project.manifest_text.clone()));
                 messages.show(err, &diagnostic, &sources);
@@ -2176,6 +2187,7 @@ mod tests {
         let messages = Messages {
             color: true,
             quiet: true,
+            any_pin: false,
         };
         let text = "note: skipped (line 1)\nwarning: 1 row with NA in x was skipped (line 2)\nerror[Z0101]: no\n 1 | x\n";
         assert_eq!(

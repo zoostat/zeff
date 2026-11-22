@@ -14,7 +14,7 @@ use crate::schema::{FrameSchema, ImportRequest, SchemaLookup, Schemas, statement
 use crate::ty::{ResultKind, Ty};
 use std::rc::Rc;
 use zeff_diagnostics::messages::no_variable;
-use zeff_diagnostics::{Diagnostic, Diagnostics, Severity, Span, did_you_mean};
+use zeff_diagnostics::{Diagnostic, Diagnostics, Edit, Fix, Severity, Span, did_you_mean};
 
 /// The schemas of frame bindings while a function body is evaluated for its result's schema.
 type SchemaEnv = std::collections::HashMap<BindingId, Rc<FrameSchema>>;
@@ -6168,7 +6168,16 @@ impl Checker<'_> {
                         format!("`{name}` is both a built-in function and a function of this project"),
                     )
                     .primary(callee_span, "which one is meant?")
-                    .help(format!("write it in full: `{full}(...)` for the project's, `{package}::{name}(...)` for the built-in")),
+                    .help(format!("write it in full: `{full}(...)` for the project's, `{package}::{name}(...)` for the built-in"))
+                    // The project's own is what the script called before a built-in took the
+                    // name, so that is the rewrite `zeff engine use --write` applies.
+                    .fix(Fix {
+                        description: format!("write `{full}`"),
+                        edits: vec![Edit {
+                            span: callee_span,
+                            replacement: full.clone(),
+                        }],
+                    }),
                 );
                 return Expr::error(span);
             }

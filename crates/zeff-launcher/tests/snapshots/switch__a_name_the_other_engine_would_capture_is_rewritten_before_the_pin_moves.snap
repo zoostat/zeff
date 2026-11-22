@@ -1,0 +1,26 @@
+---
+source: crates/zeff-launcher/tests/switch.rs
+expression: out
+---
+----- zeff engine use 0.9.1 [exit 1]
+Zeff 0.9.0 and Zeff 0.9.1 on the project in `<tmp>/study`: 1 script
+
+2 calls that a built-in function of Zeff 0.9.1 would capture (Z0109):
+  scripts/main.zeff:2:9: `tally` is both a built-in function and a function of this project; in full, `helpers::tally`
+  scripts/main.zeff:4:15: `tally` is both a built-in function and a function of this project; in full, `helpers::tally`
+
+nothing is compared until these are written in full, and nothing was changed; `zeff engine use 0.9.1 --write` rewrites them, compares, and moves the pin
+
+----- zeff engine use 0.9.1 --write [exit 0]
+Zeff 0.9.0 and Zeff 0.9.1 on the project in `<tmp>/study`: 1 script
+
+2 calls that a built-in function of Zeff 0.9.1 would capture (Z0109):
+  scripts/main.zeff:2:9: `tally` is both a built-in function and a function of this project; in full, `helpers::tally`
+  scripts/main.zeff:4:15: `tally` is both a built-in function and a function of this project; in full, `helpers::tally`
+rewritten in full, each to the project's own function
+
+scripts/main.zeff
+  prints the same on both engines, 1 line
+
+1 script compared: the two engines agree on every one
+the pin is moved: `<tmp>/study/zeff.toml` now names Zeff 0.9.1

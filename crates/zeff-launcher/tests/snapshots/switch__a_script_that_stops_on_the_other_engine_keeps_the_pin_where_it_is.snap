@@ -1,0 +1,18 @@
+---
+source: crates/zeff-launcher/tests/switch.rs
+expression: said
+---
+Zeff 0.9.0 and Zeff 0.9.1 on the project in `<tmp>/study`: 2 scripts
+
+scripts/main.zeff
+  prints the same on both engines, 1 line
+
+scripts/old.zeff
+  runs on Zeff 0.9.0 and stops on Zeff 0.9.1:
+    error[Z0103]: no function `only_before_0_9_1`
+  prints 1 line on Zeff 0.9.0 and 0 lines on Zeff 0.9.1; the first that differs is line 1:
+    on Zeff 0.9.0: 1
+    on Zeff 0.9.1: (nothing)
+
+2 scripts compared: 1 differs on the two engines
+the pin is not moved: a script runs on Zeff 0.9.0 and stops on Zeff 0.9.1

@@ -47,6 +47,10 @@ pub struct Asked {
     pub from: Option<PathBuf>,
     /// `--frozen` or `--offline`, as it was written: nothing is fetched.
     pub nothing_fetched: Option<&'static str>,
+    /// `--write`, for `use`: rewrite the calls and move the pin.
+    pub write: bool,
+    /// `-p <dir>` or `--project <dir>`: the project `use` acts on.
+    pub project: Option<PathBuf>,
 }
 
 /// Read the command line: `None` when the command is not `engine`, which is then the engine's
@@ -56,6 +60,7 @@ pub fn read(args: &[String]) -> Option<Result<Asked, String>> {
     let mut json = false;
     let mut from = None;
     let mut nothing_fetched = None;
+    let mut write = false;
     let mut wrong = None;
     let mut at = 0;
     while at < args.len() {
@@ -77,6 +82,7 @@ pub fn read(args: &[String]) -> Option<Result<Asked, String>> {
             if let Some(flag) = no_fetching(name) {
                 nothing_fetched.get_or_insert(flag);
             }
+            write |= name == "--write";
             continue;
         }
         let value = inline.or_else(|| {
@@ -110,6 +116,8 @@ pub fn read(args: &[String]) -> Option<Result<Asked, String>> {
             json,
             from,
             nothing_fetched,
+            write,
+            project: crate::project_argument(args),
         }),
     })
 }
@@ -310,7 +318,11 @@ fn not_installed(version: &str, versions: &[Version]) -> Diagnostic {
 }
 
 /// One version from the words after a command, or what to say.
-fn one_version<'a>(words: &'a [String], command: &str, example: &str) -> Result<&'a str, String> {
+pub(crate) fn one_version<'a>(
+    words: &'a [String],
+    command: &str,
+    example: &str,
+) -> Result<&'a str, String> {
     match words {
         [version] if Version::parse(version).is_some() => Ok(version),
         [word] => Err(format!(
@@ -343,14 +355,17 @@ pub fn run(asked: &Asked, machine: &Machine<'_>, out: &mut dyn Write, err: &mut 
         ["remove", ..] => remove(&asked.words[1..], &store, machine.platform, out, err),
         ["default"] => say_default(&store, machine.platform, out, err),
         ["default", ..] => set_default(&asked.words[1..], &store, machine.platform, out, err),
+        ["use", ..] => {
+            crate::switch::use_engine(asked, &asked.words[1..], &store, machine, out, err)
+        }
         [] => usage(
             err,
-            "`zeff engine` takes a command: `list`, `install`, `remove` or `default`",
+            "`zeff engine` takes a command: `list`, `install`, `remove`, `default` or `use`",
         ),
         [word, ..] => usage(
             err,
             &format!(
-                "`zeff engine {word}` is not a command: `list`, `install`, `remove` or `default`"
+                "`zeff engine {word}` is not a command: `list`, `install`, `remove`, `default` or `use`"
             ),
         ),
     }
