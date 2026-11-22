@@ -25,9 +25,13 @@
 //   { type: "ready", version }          once, when the engine is loaded
 //   { type: "opened", name }
 //   { type: "started" | "finished" | "pass" | "output", ... }   while a run goes
-//   { type: "done", exit_code, stdout, stderr, plots, frames }  its outcome, with the plots
-//                                       its statements made: [{ index, name, line, kind,
-//                                       theme }], and the frames its bindings hold:
+//   { type: "done", exit_code, stdout, stderr, statements, plots, frames }
+//                                       its outcome, with each statement of the script:
+//                                       [{ index, line, end_line, ran, name, type, rows,
+//                                       columns, length, n, stdout, stderr, reads, calls,
+//                                       seeds, draws, reads_file, writes_file, drew }]; the
+//                                       plots its statements made: [{ index, name, line, kind,
+//                                       theme }]; and the frames its bindings hold:
 //                                       [{ name, rows, variables }]
 //   { type: "plot", index, width, height, theme, svg }          the plot as an SVG at that size
 //   { type: "scene", index, scene }     the plot's scene: scales, panels, layers and marks

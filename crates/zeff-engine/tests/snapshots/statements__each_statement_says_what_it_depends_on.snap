@@ -1,0 +1,17 @@
+---
+source: crates/zeff-engine/tests/statements.rs
+expression: "said.join(\"\\n\")"
+---
+1 - reads [] calls [] seeds
+2 w reads [] calls [] 
+3 pay reads [] calls [] reads a file
+4 some reads [2] calls [] draws, drew
+5 own reads [2] calls [] 
+6 opts reads [] calls [] 
+7 spread reads [2, 6] calls [] 
+8 through reads [2] calls ["helpers::ten"] draws, drew
+9 deeper reads [2] calls ["helpers::counted"] draws, drew
+10 m reads [4, 8] calls [] 
+11 - reads [3] calls [] writes a file
+12 - reads [3] calls [] writes a file
+13 plain reads [3, 9] calls ["helpers::plain_rows"]

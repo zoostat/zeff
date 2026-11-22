@@ -16,6 +16,7 @@ use zeff_diagnostics::Span;
 use zeff_ir::uses::statement_uses;
 use zeff_ir::walk::{Found, walk};
 use zeff_ir::{BindingId, ExprKind, FnId, Program, Statement};
+use zeff_registry::Registry;
 
 /// One statement of the script's top level.
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -30,7 +31,91 @@ pub struct Node {
     pub calls: Vec<FnId>,
     /// Whether it sets the seed (`seed(n)`).
     pub seeds: bool,
+    /// Whether it draws from the run's stream of random numbers, itself or through a function
+    /// of the project it calls: its result then depends on its place among the statements
+    /// that draw (section 8.3, point 3). A call that is given a `seed:` of its own draws from
+    /// a stream of its own and is not counted.
+    pub draws: bool,
+    /// Whether it reads a file (`import`), itself or through a function of the project.
+    pub reads_file: bool,
+    /// Whether it writes a file (`save`, `export`), itself or through a function.
+    pub writes_file: bool,
 }
+
+/// The built-in functions that read a file of the project or of a data root, and those that
+/// write one, by package and name. A test holds the two lists to the catalogue: every
+/// implemented function that takes a path is in one of them.
+pub const READERS: [(&str, &str); 1] = [("data", "import")];
+pub const WRITERS: [(&str, &str); 2] = [("data", "save"), ("results", "export")];
+
+/// What a call of a built-in function does beyond its value.
+#[derive(Debug, Clone, Copy, Default, PartialEq, Eq)]
+struct Effects {
+    seeds: bool,
+    draws: bool,
+    reads_file: bool,
+    writes_file: bool,
+}
+
+impl Effects {
+    fn any(self) -> bool {
+        self.seeds || self.draws || self.reads_file || self.writes_file
+    }
+
+    fn with(self, other: Effects) -> Effects {
+        Effects {
+            seeds: self.seeds || other.seeds,
+            draws: self.draws || other.draws,
+            reads_file: self.reads_file || other.reads_file,
+            writes_file: self.writes_file || other.writes_file,
+        }
+    }
+}
+
+/// The effects of one call. A function draws when the catalogue has it as stochastic; with
+/// the registry at hand, a call that writes its own `seed:` is known not to draw from the
+/// run's stream, and without it every call of such a function is taken to.
+fn effects_of(call: &zeff_ir::Call, registry: Option<&Registry>) -> Effects {
+    let is = |list: &[(&str, &str)]| {
+        list.iter()
+            .any(|(package, name)| call.package == *package && call.name == *name)
+    };
+    let draws = match registry {
+        Some(registry) => registry
+            .named(&call.name)
+            .iter()
+            .find(|known| known.spec.package == call.package)
+            .is_some_and(|known| {
+                let own_seed = known
+                    .spec
+                    .params
+                    .iter()
+                    .position(|param| param.name == "seed")
+                    .is_some_and(|at| {
+                        call.order.iter().any(
+                            |slot| matches!(slot, zeff_ir::Slot::Param(written) if *written == at),
+                        ) || call
+                            .spreads
+                            .iter()
+                            .any(|spread| spread.targets.iter().any(|(_, to)| *to == at))
+                    });
+                known.row.accuracy == "stochastic" && !own_seed
+            }),
+        None => STOCHASTIC
+            .iter()
+            .any(|(package, name)| call.package == *package && call.name == *name),
+    };
+    Effects {
+        seeds: call.package == "core" && call.name == "seed",
+        draws,
+        reads_file: is(&READERS),
+        writes_file: is(&WRITERS),
+    }
+}
+
+/// The functions that draw, for a graph made without the registry; a test holds the list to
+/// the catalogue's `stochastic`.
+pub const STOCHASTIC: [(&str, &str); 2] = [("data", "sample"), ("dist", "draw")];
 
 /// The statements of a script and the functions of its project, with what each needs.
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -54,6 +139,12 @@ fn holds(outer: Span, inner: Span) -> bool {
 
 /// The graph of a checked script; `script` is the project-relative name it was checked under.
 pub fn graph(program: &Program, script: &str) -> Graph {
+    graph_in(program, script, None)
+}
+
+/// [`graph`] with the registry at hand, which says of a call that draws whether it was given
+/// a seed of its own.
+pub fn graph_in(program: &Program, script: &str, registry: Option<&Registry>) -> Graph {
     let mut maker: HashMap<BindingId, usize> = HashMap::new();
     let mut statements: Vec<Node> = Vec::with_capacity(program.statements.len());
     for (index, statement) in program.statements.iter().enumerate() {
@@ -82,11 +173,17 @@ pub fn graph(program: &Program, script: &str) -> Graph {
             reads: reads.into_iter().collect(),
             calls: Vec::new(),
             seeds: false,
+            draws: false,
+            reads_file: false,
+            writes_file: false,
         });
     }
     // The functions called, and the seed: every expression of a file, placed by where it is
     // written, in a statement of the script or in a function of that file.
     let mut functions: Vec<Vec<FnId>> = vec![Vec::new(); program.functions.len()];
+    // What each function of the project does by its own calls of built-ins.
+    let mut function_effects: Vec<Effects> = vec![Effects::default(); program.functions.len()];
+    let mut statement_effects: Vec<Effects> = vec![Effects::default(); statements.len()];
     let mut files: Vec<&str> = vec![script];
     for function in &program.functions {
         if !files.contains(&function.file.as_str()) {
@@ -106,13 +203,13 @@ pub fn graph(program: &Program, script: &str) -> Graph {
             let Found::Expr(expr) = found else {
                 return;
             };
-            let (called, seeds) = match &expr.kind {
-                ExprKind::CallFn { function, .. } => (Some(*function), false),
-                ExprKind::FunctionValue(value) => (value.script, false),
-                ExprKind::Call(call) => (None, call.package == "core" && call.name == "seed"),
-                _ => (None, false),
+            let (called, effects) = match &expr.kind {
+                ExprKind::CallFn { function, .. } => (Some(*function), Effects::default()),
+                ExprKind::FunctionValue(value) => (value.script, Effects::default()),
+                ExprKind::Call(call) => (None, effects_of(call, registry)),
+                _ => (None, Effects::default()),
             };
-            if called.is_none() && !seeds {
+            if called.is_none() && !effects.any() {
                 return;
             }
             // In a function of this file, the innermost that holds it; else in a statement.
@@ -128,18 +225,44 @@ pub fn graph(program: &Program, script: &str) -> Graph {
                 {
                     functions[*id].push(called);
                 }
+                function_effects[*id] = function_effects[*id].with(effects);
             } else if is_script
-                && let Some(node) = statements.iter_mut().find(|n| holds(n.span, expr.span))
+                && let Some(at) = statements.iter().position(|n| holds(n.span, expr.span))
             {
+                let node = &mut statements[at];
                 if let Some(called) = called
                     && !node.calls.contains(&called)
                 {
                     node.calls.push(called);
                 }
-                node.seeds |= seeds;
+                statement_effects[at] = statement_effects[at].with(effects);
             }
         };
         walk(program, file, is_script, &mut tell);
+    }
+    // A statement does what its own calls do and what the functions it reaches do. Setting
+    // the seed is the statement's own act, as before: a function cannot set it.
+    for (at, node) in statements.iter_mut().enumerate() {
+        let mut all = statement_effects[at];
+        let mut reached: Vec<FnId> = node.calls.clone();
+        let mut next = 0;
+        while next < reached.len() {
+            let id = reached[next];
+            next += 1;
+            all = all.with(Effects {
+                seeds: false,
+                ..function_effects[id]
+            });
+            for called in &functions[id] {
+                if !reached.contains(called) {
+                    reached.push(*called);
+                }
+            }
+        }
+        node.seeds = statement_effects[at].seeds;
+        node.draws = all.draws;
+        node.reads_file = all.reads_file;
+        node.writes_file = all.writes_file;
     }
     Graph {
         statements,

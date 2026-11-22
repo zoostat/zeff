@@ -70,7 +70,7 @@ Commands:
 
 Options:
   -p, --project <dir>     the project to act on (default: the nearest folder with zeff.toml)
-  --format text|json      for `check`, `test`, `version`, `selftest`, `audit` and `explain`: text (the
+  --format text|json      for `run`, `check`, `test`, `version`, `selftest`, `audit` and `explain`: text (the
                           default), or JSON records for an editor
   --color auto|always|never
                           colour in messages; `auto` means a terminal, and NO_COLOR is honoured
@@ -507,13 +507,14 @@ pub fn run(
                     | "-V"
                     | "selftest"
                     | "explain"
-                    | "audit")
+                    | "audit"
+                    | "run")
             )
         )
     {
         return usage_error(
             &mut err,
-            "`--format json` applies to `zeff check`, `zeff test`, `zeff version`, `zeff selftest`, `zeff audit` and `zeff explain` in this release",
+            "`--format json` applies to `zeff run`, `zeff check`, `zeff test`, `zeff version`, `zeff selftest`, `zeff audit` and `zeff explain` in this release",
         );
     }
     if settings.deny_warnings && !matches!(words.first(), Some(&("run" | "check" | "test"))) {
@@ -1026,9 +1027,15 @@ fn run_command(
     zeff_regress::reg::reset_fixed_effect_work();
     // What each statement prints and says is written as the statement ends, so that a long
     // run shows where it stands; the two streams hold what they held when written at the end.
+    // With `--format json` the run is given whole at its end, statement by statement, and
+    // nothing is written as it goes.
+    let as_json = command.settings.format == Format::Json;
     let outcome = {
         let streams = std::cell::RefCell::new((&mut *out, &mut *err));
         let listener = |event: &zeff_engine::control::Event| {
+            if as_json {
+                return;
+            }
             if let zeff_engine::control::Event::Output { stdout, stderr } = event {
                 let mut streams = streams.borrow_mut();
                 let _ = streams.0.write_all(stdout.as_bytes());
@@ -1063,6 +1070,28 @@ fn run_command(
             registry,
         );
         let _ = zeff_engine::runs::keep(command.fs, &project.root, &record);
+        if as_json {
+            // Each statement with its result's type and dimensions, what it printed and said,
+            // and what it depends on (open decision #175, C5).
+            let checked =
+                zeff_engine::run::check_in_project(command.fs, &project, &shown, &text, registry);
+            let statements = zeff_engine::statements::statement_facts(
+                &checked.checked.program,
+                &shown,
+                &text,
+                registry,
+                &outcome.output,
+            );
+            let _ = writeln!(
+                out,
+                "{{\"script\": {}, \"exit_code\": {}, \"width\": {}, \"stderr\": {}, \"statements\": {}}}",
+                zeff_diagnostics::json_string(&shown),
+                outcome.exit_code,
+                command.settings.width,
+                zeff_diagnostics::json_string(&outcome.output.stderr),
+                zeff_engine::statements::json(&statements)
+            );
+        }
     }
     if command.settings.verbose {
         // The reused fixed-effect work (Engine and Project Specification, section 8.3, point

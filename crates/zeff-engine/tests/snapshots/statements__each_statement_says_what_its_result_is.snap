@@ -1,0 +1,16 @@
+---
+source: crates/zeff-engine/tests/statements.rs
+expression: "said.join(\"\\n\")"
+---
+1 lines 1-1 w Frame rows Some(18412) columns Some(11) length None n None
+2 lines 2-3 fit RegFit rows None columns None length None n Some(18179)
+3 lines 4-4 m Float rows None columns None length None n None
+4 lines 5-5 described Table rows Some(11) columns Some(5) length None n None
+5 lines 6-6 xs List rows None columns None length Some(3) n None
+6 lines 7-7 many List rows None columns None length Some(5) n None
+7 lines 8-8 t TestResult rows None columns None length None n Some(18201)
+8 lines 9-9 rec Record rows None columns None length Some(2) n None
+9 lines 10-10 p Plot rows None columns None length None n None
+10 lines 11-11 - - rows None columns None length None n None
+11 lines 12-12 - Frame rows Some(3) columns Some(11) length None n None
+12 lines 13-13 - - rows None columns None length None n None

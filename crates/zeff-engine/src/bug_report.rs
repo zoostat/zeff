@@ -1232,6 +1232,8 @@ mod tests {
                         line,
                         stdout: String::new(),
                         stderr: stderr.to_string(),
+                        result: None,
+                        drew: false,
                     })
                     .into_iter()
                     .collect(),

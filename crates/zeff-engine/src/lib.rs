@@ -30,6 +30,7 @@ pub mod schemas;
 pub mod scratch;
 pub mod session;
 pub mod shrink;
+pub mod statements;
 pub mod testing;
 #[cfg(not(target_arch = "wasm32"))]
 pub mod worker;

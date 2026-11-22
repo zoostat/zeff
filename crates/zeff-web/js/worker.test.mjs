@@ -178,6 +178,17 @@ test("a plot of the last run is drawn at a size without a new run, and given as 
   });
   const done = await next("done");
   assert.equal(done.exit_code, 0, done.stderr);
+  // The outcome says of each statement what its result is and what it reads.
+  assert.equal(done.statements.length, 4);
+  assert.deepEqual(
+    done.statements.map((s) => [s.index, s.line, s.name, s.type, s.rows, s.columns, s.reads]),
+    [
+      [1, 1, "d", "Frame", 6, 2, []],
+      [2, 2, "p", "Plot", null, null, [1]],
+      [3, 3, null, "Plot", null, null, [1]],
+      [4, 4, "n", "Int", null, null, [1]],
+    ],
+  );
   // The outcome lists the plots the statements made: one a `let` binds, one a statement gives.
   assert.deepEqual(done.plots, [
     { index: 0, name: "p", line: 2, kind: "points", theme: "journal" },

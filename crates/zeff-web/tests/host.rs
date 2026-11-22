@@ -42,7 +42,7 @@ fn a_run_tells_each_event_as_a_line_of_json_and_gives_its_outcome() {
     );
     assert_eq!(
         done,
-        r#"{"type": "done", "exit_code": 0, "stdout": "one\n", "stderr": "", "plots": [], "frames": []}"#
+        r#"{"type": "done", "exit_code": 0, "stdout": "one\n", "stderr": "", "statements": [{"index": 1, "line": 1, "end_line": 1, "ran": true, "name": null, "type": null, "rows": null, "columns": null, "length": null, "n": null, "stdout": "one\n", "stderr": "", "reads": [], "calls": [], "seeds": false, "draws": false, "reads_file": false, "writes_file": false, "drew": false}, {"index": 2, "line": 2, "end_line": 2, "ran": true, "name": "a", "type": "Int", "rows": null, "columns": null, "length": null, "n": null, "stdout": "", "stderr": "", "reads": [], "calls": [], "seeds": false, "draws": false, "reads_file": false, "writes_file": false, "drew": false}], "plots": [], "frames": []}"#
     );
     // A pass of a loop, with its total where the loop knows it and `null` where it does not.
     assert_eq!(
@@ -540,5 +540,38 @@ fn a_plot_is_given_as_its_scene() {
     assert_eq!(
         host.plot_scene(7),
         r#"{"type": "error", "message": "the last run made no plot numbered 7"}"#
+    );
+}
+
+// ----- each statement of a run (open decision #175, C5; release 0.9.0, step 26a) -----
+
+#[test]
+fn the_outcome_of_a_run_says_of_each_statement_what_its_result_is_and_what_it_depends_on() {
+    let host = Host::new("demo");
+    let text = "seed(5)\nlet d = frame(x = [1.0, 2, 3, 4], y = [2.0, 1, 4, 3])\nlet some = d.sample(n: 2)\nlet fit = d.reg(y ~ x)\nprint(some.n_rows())\n";
+    let (_, done) = run(&host, text, None, never);
+    assert!(done.contains(r#""exit_code": 0"#), "{done}");
+    let from = done.find("\"statements\": [").expect("the statements");
+    let to = done.find("], \"plots\"").expect("the plots follow");
+    let statements = &done[from..to];
+    for part in [
+        r#"{"index": 1, "line": 1, "end_line": 1, "ran": true, "name": null, "type": null,"#,
+        r#""seeds": true, "draws": false,"#,
+        r#"{"index": 2, "line": 2, "end_line": 2, "ran": true, "name": "d", "type": "Frame", "rows": 4, "columns": 2, "length": null, "n": null,"#,
+        r#"{"index": 3, "line": 3, "end_line": 3, "ran": true, "name": "some", "type": "Frame", "rows": 2, "columns": 2,"#,
+        r#""reads": [2], "calls": [], "seeds": false, "draws": true, "reads_file": false, "writes_file": false, "drew": true}"#,
+        r#"{"index": 4, "line": 4, "end_line": 4, "ran": true, "name": "fit", "type": "RegFit", "rows": null, "columns": null, "length": null, "n": 4,"#,
+        r#"{"index": 5, "line": 5, "end_line": 5, "ran": true, "name": null, "type": null, "rows": null, "columns": null, "length": null, "n": null, "stdout": "2\n","#,
+        r#""reads": [3], "calls": []"#,
+    ] {
+        assert!(statements.contains(part), "{part}\n in {statements}");
+    }
+    // A project whose file cannot be read has no statement to tell of.
+    let broken = Host::new("demo");
+    broken.add_file("zeff.toml", b"not toml [");
+    let (_, done) = run(&broken, "print(1)\n", None, never);
+    assert!(
+        done.contains(r#""statements": [], "plots": [], "frames": []}"#),
+        "{done}"
     );
 }

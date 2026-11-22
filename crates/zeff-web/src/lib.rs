@@ -298,10 +298,27 @@ impl Host {
         );
         *self.frames.borrow_mut() = frames;
         *self.plots.borrow_mut() = plots;
-        self.done(
+        // Each statement with its result's type and dimensions and what it depends on (open
+        // decision #175, C5), read from the script as it is checked in the project.
+        let statements = match zeff_engine::registry::registry() {
+            Ok(registry) => {
+                let checked =
+                    zeff_engine::run::check_in_project(&self.fs, &project, script, text, registry);
+                zeff_engine::statements::json(&zeff_engine::statements::statement_facts(
+                    &checked.checked.program,
+                    script,
+                    text,
+                    registry,
+                    &outcome.output,
+                ))
+            }
+            Err(_) => "[]".to_string(),
+        };
+        self.done_with(
             outcome.exit_code,
             &outcome.output.stdout,
             &outcome.output.stderr,
+            &statements,
         )
     }
 
@@ -381,6 +398,14 @@ impl Host {
     /// (the marks of its layers) and its theme, and the frames its bindings hold, each by
     /// name with its rows and variables: what an interface lists before it asks for one.
     fn done(&self, exit_code: i32, stdout: &str, stderr: &str) -> String {
+        self.done_with(exit_code, stdout, stderr, "[]")
+    }
+
+    /// [`Host::done`] with the statements of the run, a JSON list: each with its place, its
+    /// lines, the name it binds, its result's type and dimensions, what it printed and said,
+    /// the statements it reads and the functions it calls, and whether it sets the seed,
+    /// draws, reads a file or writes one.
+    fn done_with(&self, exit_code: i32, stdout: &str, stderr: &str, statements: &str) -> String {
         let frames: Vec<String> = self
             .frames
             .borrow()
@@ -417,7 +442,7 @@ impl Host {
             })
             .collect();
         format!(
-            "{{\"type\": \"done\", \"exit_code\": {exit_code}, \"stdout\": {}, \"stderr\": {}, \"plots\": [{}], \"frames\": [{}]}}",
+            "{{\"type\": \"done\", \"exit_code\": {exit_code}, \"stdout\": {}, \"stderr\": {}, \"statements\": {statements}, \"plots\": [{}], \"frames\": [{}]}}",
             json_string(stdout),
             json_string(stderr),
             plots.join(", "),

@@ -28,6 +28,64 @@ pub struct StatementOutput {
     pub stdout: String,
     /// Its warnings and notes in the short form, and the error that stopped the run, if any.
     pub stderr: String,
+    /// What the statement's value is: of a `let`, the value bound; of a statement that is an
+    /// expression, its value; none for a statement that gives nothing (`print(...)`, a loop)
+    /// or that failed.
+    pub result: Option<ResultFacts>,
+    /// Whether it drew from the run's stream of random numbers.
+    pub drew: bool,
+}
+
+/// What a statement's result is, for an interface that says it beside the statement (C5 of
+/// open decision #175): its type and its dimensions, never its values.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct ResultFacts {
+    /// The name a `let` binds it to.
+    pub name: Option<String>,
+    /// The type, as `type_of` names it: `Frame`, `RegFit`, `Float`.
+    pub ty: String,
+    /// The rows of a frame or of a table.
+    pub rows: Option<u64>,
+    /// The variables of a frame; the columns of a table.
+    pub columns: Option<u64>,
+    /// The length of a column or a list; the fields of a record.
+    pub length: Option<u64>,
+    /// The observations a fit or a test used.
+    pub n: Option<u64>,
+}
+
+impl ResultFacts {
+    /// The facts of `value`, bound to `name` where a `let` binds it; `None` for nothing.
+    pub fn of(name: Option<String>, value: &Value) -> Option<ResultFacts> {
+        if matches!(value, Value::Nothing) {
+            return None;
+        }
+        let mut facts = ResultFacts {
+            name,
+            ty: value.type_name().to_string(),
+            rows: None,
+            columns: None,
+            length: None,
+            n: None,
+        };
+        match value {
+            Value::Frame(frame) => {
+                facts.rows = Some(frame.table.rows() as u64);
+                facts.columns = Some(frame.table.names().len() as u64);
+            }
+            Value::Table(table) => {
+                facts.rows = Some(table.rows.len() as u64);
+                facts.columns = Some(table.columns.len() as u64);
+            }
+            Value::Column(column) => facts.length = Some(column.len() as u64),
+            Value::List(items) => facts.length = Some(items.len() as u64),
+            Value::Record(fields) => facts.length = Some(fields.len() as u64),
+            Value::Fit(fit) => facts.n = Some(fit.n as u64),
+            Value::TestResult(result) => facts.n = Some(result.n as u64),
+            _ => {}
+        }
+        Some(facts)
+    }
 }
 
 /// What a run wrote: the script's output, and the messages beside it.
@@ -589,6 +647,9 @@ impl<'a> Interpreter<'a> {
             // and the run stops as it would at any error (Language Reference, section 11.1).
             // The plot a statement that is an expression or a `print` gives, for an interface.
             let mut shown_plot = None;
+            // The value of a statement that is an expression, for what is said of its result.
+            let mut given: Option<ResultFacts> = None;
+            let drawn_before = self.random.drawing;
             let evaluation = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
                 if let Some(budget) = self.budget
                     && !cancelled
@@ -614,6 +675,7 @@ impl<'a> Interpreter<'a> {
                     Statement::Print { value, .. } => {
                         self.eval(value, &mut printed, &mut messages).map(|v| {
                             printed.push_str(&show_width(&v, self.width));
+                            given = ResultFacts::of(None, &v);
                             if let Value::Plot(plot) = &v {
                                 shown_plot = Some(plot.clone());
                             }
@@ -621,6 +683,7 @@ impl<'a> Interpreter<'a> {
                     }
                     Statement::Expr { value, .. } => {
                         self.eval(value, &mut printed, &mut messages).map(|v| {
+                            given = ResultFacts::of(None, &v);
                             if let Value::Plot(plot) = &v {
                                 shown_plot = Some(plot.clone());
                             }
@@ -721,10 +784,19 @@ impl<'a> Interpreter<'a> {
             }
             output.stdout.push_str(&printed);
             output.stderr.push_str(&statement_errors);
+            let facts = match statement {
+                Statement::Let { binding, .. } if !failed => self.env.get(binding).and_then(|v| {
+                    ResultFacts::of(Some(self.program.bindings[*binding].name.clone()), v)
+                }),
+                _ if failed => None,
+                _ => given.take(),
+            };
             output.statements.push(StatementOutput {
                 line,
                 stdout: printed,
                 stderr: statement_errors,
+                result: facts,
+                drew: self.random.drawing != drawn_before,
             });
             if let Some(plots) = self.plots {
                 let made = match statement {

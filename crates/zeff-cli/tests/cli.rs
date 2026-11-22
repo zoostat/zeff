@@ -121,8 +121,8 @@ fn format_json_gives_records_for_version_and_check() {
         (&["check", "--format"][..], "needs a value"),
         (&["check", "--format", "xml"][..], "not a format"),
         (
-            &["run", "--format", "json"][..],
-            "applies to `zeff check`, `zeff test`, `zeff version`, `zeff selftest`, `zeff audit` and `zeff explain`",
+            &["fmt", "--format", "json"][..],
+            "applies to `zeff run`, `zeff check`, `zeff test`, `zeff version`, `zeff selftest`, `zeff audit` and `zeff explain`",
         ),
     ] {
         let o = zeff(&project, args);
@@ -3190,5 +3190,80 @@ fn audit_reads_the_recorded_runs_against_the_known_issues() {
         code(&o) == 1 && err(&o).starts_with("error[Z0709]"),
         "{}",
         err(&o)
+    );
+}
+
+/// `zeff run --format json` (open decision #175, C5; release 0.9.0, step 26a): the run as one
+/// record, each statement with its result's type and dimensions, what it printed and said,
+/// and what it depends on; nothing else is written.
+#[test]
+fn a_run_is_given_as_a_record_of_its_statements() {
+    let (_dir, project) = demo();
+    std::fs::write(
+        project.join("scripts/main.zeff"),
+        "seed(3)\nlet w = dataset(wages)\nlet some = w.sample(n: 20)\nlet fit = some.reg(log(wage) ~ educ +\n    exper)\nprint(some.n_rows())\nsome.save(\"output/some.csv\")\n",
+    )
+    .unwrap();
+    std::fs::create_dir_all(project.join("output")).unwrap();
+    let o = zeff(&project, &["run", "--format", "json", "--width", "90"]);
+    assert_eq!(code(&o), 0, "{}", err(&o));
+    assert_eq!(err(&o), "", "the messages are in the record");
+    let record = out(&o);
+    assert!(
+        record.starts_with(
+            r#"{"script": "scripts/main.zeff", "exit_code": 0, "width": 90, "stderr": "note: 20 of 18,412 rows sampled with seed 3 (line 3)\nnote: saved output/some.csv"#
+        ),
+        "{record}"
+    );
+    assert_eq!(record.lines().count(), 1, "one record on one line");
+    for part in [
+        r#"{"index": 1, "line": 1, "end_line": 1, "ran": true, "name": null, "type": null,"#,
+        r#"{"index": 2, "line": 2, "end_line": 2, "ran": true, "name": "w", "type": "Frame", "rows": 18412, "columns": 11, "length": null, "n": null,"#,
+        r#"{"index": 3, "line": 3, "end_line": 3, "ran": true, "name": "some", "type": "Frame", "rows": 20, "columns": 11,"#,
+        r#""reads": [2], "calls": [], "seeds": false, "draws": true, "reads_file": false, "writes_file": false, "drew": true}"#,
+        r#"{"index": 4, "line": 4, "end_line": 5, "ran": true, "name": "fit", "type": "RegFit", "rows": null, "columns": null, "length": null, "n": 20,"#,
+        r#""stdout": "20\n", "stderr": "", "reads": [3],"#,
+        r#""reads": [3], "calls": [], "seeds": false, "draws": false, "reads_file": false, "writes_file": true, "drew": false}"#,
+    ] {
+        assert!(record.contains(part), "{part}\n in {record}");
+    }
+    // What the plain run prints is unchanged, and is what the statements of the record hold.
+    let plain = zeff(&project, &["run"]);
+    assert_eq!(out(&plain), "20\n");
+    // A run that stops: its exit code, the statement that stopped it, and the rest not run.
+    std::fs::write(
+        project.join("scripts/main.zeff"),
+        "let w = dataset(wages)\nassert(w.n_rows() < 5, \"too many rows\")\nlet late = w.head(2)\n",
+    )
+    .unwrap();
+    let o = zeff(&project, &["--format=json", "run"]);
+    assert_eq!(code(&o), 1);
+    assert_eq!(err(&o), "");
+    let record = out(&o);
+    assert!(
+        record.starts_with(
+            r#"{"script": "scripts/main.zeff", "exit_code": 1, "width": 118, "stderr": ""#
+        ),
+        "{record}"
+    );
+    assert!(
+        record.contains(
+            r#"{"index": 3, "line": 3, "end_line": 3, "ran": false, "name": "late", "type": null,"#
+        ),
+        "{record}"
+    );
+    assert!(record.contains("too many rows"), "{record}");
+    // A script that does not pass its check: nothing ran, and the record says why.
+    std::fs::write(
+        project.join("scripts/main.zeff"),
+        "let m = dataset(wages).mean(no_such)\n",
+    )
+    .unwrap();
+    let o = zeff(&project, &["run", "--format", "json"]);
+    assert_eq!(code(&o), 1);
+    let record = out(&o);
+    assert!(
+        record.contains(r#""ran": false, "name": "m""#) && record.contains("Z0101"),
+        "{record}"
     );
 }
