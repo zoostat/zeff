@@ -107,8 +107,12 @@ def check_descriptive(committed, regenerated, problems):
 # far more than the tolerance; they are nought to every printed digit. The effects of a binary
 # model (`margins_binary`) come from fits iterated to their maximum, whose last digits differ
 # between platforms more than a regression's, and an effect near nought (a few 1e-4 beside a
-# standard error of 1e-3) is compared on an absolute floor far below its standard error.
-ABSOLUTE = {"association": 1e-15, "tukey": 1e-12, "posthoc": 1e-12, "posthoc_level": 1e-12, "posthoc_games_howell": 1e-12, "margins": 1e-15, "margins_binary": 1e-10}
+# standard error of 1e-3) is compared on an absolute floor far below its standard error. The
+# Games-Howell p-values (`posthoc_games_howell`) are tails of `ptukey` on thousands of degrees of
+# freedom in one case, where a tail of 2e-9 came out 1.4e-12 apart on Linux and on macOS (23
+# November 2026): its floor is 1e-10, far below anything the comparison tests of the engine read,
+# which hold these p-values to R within 1e-6.
+ABSOLUTE = {"association": 1e-15, "tukey": 1e-12, "posthoc": 1e-12, "posthoc_level": 1e-12, "posthoc_games_howell": 1e-10, "margins": 1e-15, "margins_binary": 1e-10}
 
 
 def check_special(committed, regenerated, problems, which="special"):
