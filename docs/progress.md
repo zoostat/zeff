@@ -128,6 +128,8 @@ Step 24 `[engine]`: the installation check, a job of the release workflow that p
 
 **Session closed on 22 November 2026 at step 24, as the owner asked ("stop at 24").** Green: the local routine at step 22c (337 test programs), the launcher's and the workspace's lint and tests after it, continuous integration through step 22c, and both trial runs of the release workflow.
 
+After the close, the same day, on the owner's word in this session ("Yes, enter it"): Zemp Lite 0.2.2 entered as the Zemp Lite session's note has it (#208; section 15 of the Zemp Specification gains the row of 0.2.2 and **Open folder…** in the row of the 0.5 desktop beta; #117 says which of its parts are built at 0.2.2), and a paragraph under #74 that Zemp Lite 0.2.1 sets help pages in type by reading the engine's print, whose layout is from now on changed only knowingly (`docs/decisions.md`). Documents only.
+
 **Next.** Step 25 `[engine]`, the first of block F. Step 3, the weekly mutation run of Monday 23 November, when it has ended.
 
 **For the owner.** The printed table of `margins` (#202 (d)), shown at step 11a, is yours to change; #202 (a) to (e) are taken as recommended. #198, #199 and #200 and #201 (a) (taken as recommended, yours to overturn before 1.0; #201 (b) is open and yours: which standardized coefficients a `glm` fit has, refused until you choose; #200: `predict` gives a probability and `residuals` the outcome less it unless `type:` says otherwise, where R gives log-odds and deviance residuals): on a `glm` fit, clustered errors carry the factor (N − 1)/(N − k) that Stata's `logit` and R's `vcovCL` left to itself omit; analytic weights are refused on a binary model, as in Stata.

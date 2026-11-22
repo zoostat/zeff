@@ -7196,3 +7196,9 @@ Of the 10,360 mutants 359 did not compile. The 815 are 540 that no test failed u
 
 **Held by.** The job itself: run 44998191192 (22 November 2026) passed on the four machines with the other-key check skipped on one; run 44999078504, after the correction, passed on the four with every check made on each: the two refusals, the install, and 560 of 560 cases.
 
+## 22 November 2026 — the print of `zeff help` and `zeff explain` is read by an interface
+
+From Zemp Lite 0.2.1 the Help place sets a function's page and a code's explained page in type, and it does so by reading the engine's print, which is all the worker gives of a page (register, #74, the paragraph of this day). What it reads: the first line (the name, a dash, what the function does, the facts after a run of spaces); the headings, lines of capitals at the first column; a body four characters in; ARGUMENTS and WARNINGS AND NOTES as rows of a key and a text continued under its column; `(shared)` at a line's right edge; backticks around code; asterisks around a title in REFERENCES; `> ` before a statement typed in an example. A test of Zemp Lite holds every page of the engine (the names of the catalogue and the codes) to a known shape and to losing, adding and moving no word.
+
+So the layout of that print is a thing others depend on, as its words already were. A change to it (the indent, the form of the first line, a new kind of block in the prose, another mark than backticks) is made knowingly: it is said in the release notes, and Zemp Lite is told before the engine that carries it is released, since its test would fail at its next engine update and its reader would fall back to showing the page as printed. A structured form of a page, which would end the dependence, is a candidate for the planning of 0.11.0, where help is rebuilt from `///`.
+
