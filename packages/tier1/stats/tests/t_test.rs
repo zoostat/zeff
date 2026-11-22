@@ -42,6 +42,8 @@ fn with_context<T>(f: impl FnOnce(&mut CallContext<'_>) -> T) -> T {
         messages: &mut messages,
         random: &mut random,
         statement: 1,
+        width: zeff_core::display::PAGE_WIDTH,
+        shown: None,
     };
     f(&mut ctx)
 }

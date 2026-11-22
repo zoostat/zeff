@@ -442,6 +442,7 @@ fn run(plan: &Plan, fused: bool) -> (Result<String, Diagnostic>, Vec<Diagnostic>
         output: &mut output,
         random: &mut random,
         statement: 1,
+        width: zeff_core::display::PAGE_WIDTH,
     };
     let mut messages = Vec::new();
     let (result, by_pass) = evaluate_reporting(plan, fused, &mut resources, &mut messages);

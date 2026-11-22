@@ -81,6 +81,8 @@ fn the_phases_of_the_two_way_fit() {
         messages: &mut messages,
         random: &mut random,
         statement: 1,
+        width: zeff_core::display::PAGE_WIDTH,
+        shown: None,
     };
     let formula = zeff_testkit::formula("y ~ x1 + x2 + d");
     let whole = Instant::now();

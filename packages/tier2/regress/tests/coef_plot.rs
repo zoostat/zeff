@@ -45,6 +45,8 @@ fn plotted(table: &Table, text: &str, fe: Option<&str>, level: Option<f64>) -> (
         messages: &mut messages,
         random: &mut random,
         statement: 1,
+        width: zeff_core::display::PAGE_WIDTH,
+        shown: None,
     };
     let args = Args {
         values: vec![
@@ -344,6 +346,8 @@ fn the_event_study_holds_the_estimates_of_its_fit() {
         messages: &mut messages,
         random: &mut random,
         statement: 1,
+        width: zeff_core::display::PAGE_WIDTH,
+        shown: None,
     };
     let Ok(Value::Plot(plot)) = zeff_plot::fits::plot_of_a_fit(
         &mut ctx,

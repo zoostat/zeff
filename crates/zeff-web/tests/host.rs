@@ -575,3 +575,149 @@ fn the_outcome_of_a_run_says_of_each_statement_what_its_result_is_and_what_it_de
         "{done}"
     );
 }
+
+// ----- a statement's print at a width (open decision #175, C6; release 0.9.0, step 26b) -----
+
+/// Statements of the kinds the specification's sample script is made of, which this release
+/// does not run whole: frames printed by `print`, as the value of a statement, beside other
+/// values and inside a loop; a table; a fit and a test; text and numbers; a `let`, which
+/// prints nothing; and a plot.
+const PRINTS: &str = "let w = dataset(wages)\nprint(w.head(4))\nw.head(3)\nprint(\"the first rows\", w.head(2), \"and their count\", 2)\nfor k in 2015..2016 { print(w.where(year == k).head(2)) }\nprint(w.describe())\nlet fit = w.reg(log(wage) ~ educ + exper + female + industry)\nprint(fit)\nfit.coef()\nprint(w.t_test(wage, group: female))\nprint(\"a line of text that is longer than forty characters and is never wrapped\")\nprint(1, 2.5, \"three\")\nlet silent = w.n_rows()\nw.scatter(educ, wage)\nprint(w.correlation([wage, educ, exper, age, hours]))\n";
+
+/// What each statement of `text` prints in a run at `width`, by the engine itself.
+fn printed_in_a_run_at(text: &str, width: usize) -> Vec<String> {
+    use zeff_engine::fs::MemoryFileSystem;
+    use zeff_engine::project::Project;
+    use zeff_engine::run::{RunOptions, run_script_with};
+    let fs = MemoryFileSystem::new();
+    fs.add_file(
+        "/p/zeff.toml",
+        format!(
+            "[project]\nname = \"demo\"\nzeff = \"{}\"\nedition = \"preview\"\n",
+            zeff_engine::VERSION
+        ),
+    );
+    let project = Project::open(&fs, std::path::Path::new("/p")).expect("the project opens");
+    let options = RunOptions {
+        width,
+        ..RunOptions::default()
+    };
+    let outcome = run_script_with(&fs, &project, "scripts/main.zeff", text, &options);
+    assert_eq!(outcome.exit_code, 0, "{}", outcome.output.stderr);
+    outcome
+        .output
+        .statements
+        .iter()
+        .map(|statement| statement.stdout.clone())
+        .collect()
+}
+
+/// The text of a line of JSON of type `printed`.
+fn stdout_of(line: &str) -> String {
+    assert!(line.starts_with(r#"{"type": "printed", "#), "{line}");
+    let from = line.find("\"stdout\": \"").expect("its text") + 11;
+    let mut text = String::new();
+    let mut chars = line[from..line.len() - 2].chars();
+    while let Some(c) = chars.next() {
+        if c != '\\' {
+            text.push(c);
+            continue;
+        }
+        match chars.next() {
+            Some('n') => text.push('\n'),
+            Some('t') => text.push('\t'),
+            Some('u') => {
+                let code: String = chars.by_ref().take(4).collect();
+                text.push(char::from_u32(u32::from_str_radix(&code, 16).unwrap()).unwrap());
+            }
+            Some(other) => text.push(other),
+            None => {}
+        }
+    }
+    text
+}
+
+/// The finish line of the step: what the host gives for a statement at a width, with no new
+/// run, is what `zeff run --width n` prints for that statement, character for character.
+#[test]
+fn a_statements_print_at_a_width_is_what_a_run_at_that_width_prints() {
+    let host = Host::new("demo");
+    let (told, done) = run(&host, PRINTS, None, never);
+    assert!(done.contains(r#""exit_code": 0"#), "{done}");
+    let events = told.len();
+    let statements = printed_in_a_run_at(PRINTS, 118).len();
+    assert_eq!(statements, 15);
+    let mut wrapped_somewhere = 0;
+    for width in [40, 55, 72, 90, 118, 160, 400] {
+        let fresh = printed_in_a_run_at(PRINTS, width);
+        for (at, expected) in fresh.iter().enumerate() {
+            let line = host.print_at(at + 1, width);
+            assert!(
+                line.starts_with(&format!(
+                    r#"{{"type": "printed", "statement": {}, "width": {width}, "stdout": "#,
+                    at + 1
+                )),
+                "{}",
+                &line[..line.len().min(120)]
+            );
+            assert_eq!(
+                &stdout_of(&line),
+                expected,
+                "statement {} at width {width}",
+                at + 1
+            );
+        }
+        // The widths differ in what they print: the test is not of one text seven times.
+        if fresh != printed_in_a_run_at(PRINTS, 118) {
+            wrapped_somewhere += 1;
+        }
+        // The rows of a frame keep to the width, in blocks of columns; its title is one line.
+        for line in fresh[1].lines().filter(|line| line.starts_with("  ")) {
+            assert!(line.chars().count() <= width, "at width {width}: {line}");
+        }
+    }
+    assert!(
+        wrapped_somewhere >= 4,
+        "only {wrapped_somewhere} widths differ from the default"
+    );
+    // A `let` printed nothing at any width, and the text of a line is the same at every width.
+    assert_eq!(stdout_of(&host.print_at(13, 40)), "");
+    assert_eq!(
+        stdout_of(&host.print_at(11, 40)),
+        stdout_of(&host.print_at(11, 400))
+    );
+    // No run was made for any of it.
+    assert_eq!(told.len(), events);
+}
+
+#[test]
+fn a_print_that_cannot_be_given_is_said() {
+    let host = Host::new("demo");
+    assert_eq!(
+        host.print_at(1, 80),
+        r#"{"type": "error", "message": "the last run ran no statement, and none is numbered 1"}"#
+    );
+    let (_, done) = run(
+        &host,
+        "let a = 1\nprint(a)\nassert(a > 5, \"too small\")\nprint(\"never\")\n",
+        None,
+        never,
+    );
+    assert!(done.contains(r#""exit_code": 1"#), "{done}");
+    // The statements that ran, the one that stopped the run among them, have a print; the
+    // one that did not run has none.
+    assert_eq!(stdout_of(&host.print_at(2, 80)), "1\n");
+    assert_eq!(stdout_of(&host.print_at(3, 80)), "");
+    assert_eq!(
+        host.print_at(4, 80),
+        r#"{"type": "error", "message": "the last run ran 3 statements, numbered 1 to 3, and none is numbered 4"}"#
+    );
+    assert_eq!(
+        host.print_at(0, 80),
+        host.print_at(4, 80).replace("numbered 4", "numbered 0")
+    );
+    assert_eq!(
+        host.print_at(2, 39),
+        r#"{"type": "error", "message": "a print is at least 40 characters wide, and 39 was asked for"}"#
+    );
+}

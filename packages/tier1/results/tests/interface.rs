@@ -58,6 +58,8 @@ fn fit_with(table: &Table, text: &str, options: &Options<'_>) -> Rc<Fit> {
         messages: &mut messages,
         random: &mut random,
         statement: 1,
+        width: zeff_core::display::PAGE_WIDTH,
+        shown: None,
     };
     let args = Args {
         values: vec![
@@ -105,6 +107,8 @@ fn call(body: Body, fit: &Rc<Fit>, args: Vec<Option<Value>>) -> Value {
         messages: &mut messages,
         random: &mut random,
         statement: 1,
+        width: zeff_core::display::PAGE_WIDTH,
+        shown: None,
     };
     match body(
         &mut ctx,

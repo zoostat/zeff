@@ -125,7 +125,14 @@ pub struct Host {
     /// The plots the statements of the last run made, for the interface to draw at the size
     /// of its pane (open decision #197).
     plots: std::cell::RefCell<Plots>,
+    /// What each statement of the last run printed, with the values it printed and their
+    /// places in it, for the interface to have the print again at the width of its pane
+    /// (open decision #175, C6).
+    prints: std::cell::RefCell<Vec<(String, Vec<zeff_core::runtime::Shown>)>>,
 }
+
+/// The narrowest page a print is made for, as `--width` has it.
+pub const NARROWEST: usize = 40;
 
 /// A line of JSON of type `error`, for something asked of the host that it cannot give.
 fn refused(message: &str) -> String {
@@ -151,6 +158,7 @@ impl Host {
             fs,
             frames: std::cell::RefCell::default(),
             plots: std::cell::RefCell::default(),
+            prints: std::cell::RefCell::default(),
         }
     }
 
@@ -222,6 +230,36 @@ impl Host {
         }
     }
 
+    /// What a statement of the last run printed, made again at `width` characters without a
+    /// new run (open decision #175, C6; Zemp Specification, section 5, the opened result):
+    /// every frame and table it printed wraps at that width, in blocks of columns, and
+    /// everything else is as it was. `statement` is the statement's place from 1, as the
+    /// outcome and the events of the run number it. The text is what `zeff run --width
+    /// <width>` prints for that statement, character for character. A line of JSON of type
+    /// `printed`, or of type `error`.
+    pub fn print_at(&self, statement: usize, width: usize) -> String {
+        if width < NARROWEST {
+            return refused(&format!(
+                "a print is at least {NARROWEST} characters wide, and {width} was asked for"
+            ));
+        }
+        let prints = self.prints.borrow();
+        let Some((stdout, shown)) = statement.checked_sub(1).and_then(|at| prints.get(at)) else {
+            return refused(&format!(
+                "the last run ran {}, and none is numbered {statement}",
+                match prints.len() {
+                    0 => "no statement".to_string(),
+                    1 => "1 statement, numbered 1".to_string(),
+                    n => format!("{n} statements, numbered 1 to {n}"),
+                }
+            ));
+        };
+        format!(
+            "{{\"type\": \"printed\", \"statement\": {statement}, \"width\": {width}, \"stdout\": {}}}",
+            json_string(&zeff_core::runtime::printed_at(stdout, shown, width))
+        )
+    }
+
     /// A plot of the last run as its scene (section 8.3, point 5; Zemp Specification, section
     /// 7): the scales with their breaks and labels, the panels, and every layer's marks in the
     /// units of the data, as the engine's own JSON of a scene, for an interface that reads the
@@ -269,6 +307,7 @@ impl Host {
             Err(_) => {
                 self.frames.borrow_mut().clear();
                 self.plots.borrow_mut().clear();
+                self.prints.borrow_mut().clear();
                 return self.done(
                     1,
                     "",
@@ -287,7 +326,7 @@ impl Host {
         };
         let control = Control::asking(cancelled);
         let listener = |event: &Event| tell(&event_json(event));
-        let (outcome, frames, plots) = run_script_showing(
+        let (outcome, showing) = run_script_showing(
             &self.fs,
             &project,
             script,
@@ -296,8 +335,15 @@ impl Host {
             &control,
             Some(&listener),
         );
-        *self.frames.borrow_mut() = frames;
-        *self.plots.borrow_mut() = plots;
+        *self.frames.borrow_mut() = showing.frames;
+        *self.plots.borrow_mut() = showing.plots;
+        *self.prints.borrow_mut() = outcome
+            .output
+            .statements
+            .iter()
+            .zip(showing.prints)
+            .map(|(statement, shown)| (statement.stdout.clone(), shown))
+            .collect();
         // Each statement with its result's type and dimensions and what it depends on (open
         // decision #175, C5), read from the script as it is checked in the project.
         let statements = match zeff_engine::registry::registry() {

@@ -59,7 +59,7 @@ fn print(ctx: &mut CallContext<'_>, mut args: Args) -> Result<Value, Fail> {
                 ctx.print(&line);
                 ctx.print("\n");
             }
-            ctx.print(&display::show(&value));
+            ctx.print_value(&value);
         }
     }
     if let Some(line) = line {

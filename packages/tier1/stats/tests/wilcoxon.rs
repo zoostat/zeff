@@ -55,6 +55,8 @@ fn call(frame: &Frame, slots: Vec<(usize, Value)>) -> Result<TestResult, Fail> {
         messages: &mut messages,
         random: &mut random,
         statement: 1,
+        width: zeff_core::display::PAGE_WIDTH,
+        shown: None,
     };
     wilcoxon_test(&mut ctx, args).map(|v| match v {
         Value::TestResult(r) => (*r).clone(),

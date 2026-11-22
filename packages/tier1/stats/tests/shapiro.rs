@@ -52,6 +52,8 @@ fn with_context<T>(
         messages: &mut messages,
         random: &mut random,
         statement: 1,
+        width: zeff_core::display::PAGE_WIDTH,
+        shown: None,
     };
     body(&mut ctx, args).map(unwrap)
 }

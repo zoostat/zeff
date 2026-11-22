@@ -70,6 +70,8 @@ fn fit_under(
         messages: &mut messages,
         random: &mut random,
         statement: 1,
+        width: zeff_core::display::PAGE_WIDTH,
+        shown: None,
     };
     let args = Args {
         values: vec![
@@ -979,6 +981,8 @@ fn method_with(
         messages: &mut messages,
         random: &mut random,
         statement: 1,
+        width: zeff_core::display::PAGE_WIDTH,
+        shown: None,
     };
     let args = Args {
         values,

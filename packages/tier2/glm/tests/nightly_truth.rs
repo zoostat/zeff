@@ -174,6 +174,8 @@ fn fit(table: &Table, link: &str, kind: &str) -> Fit {
         messages: &mut messages,
         random: &mut random,
         statement: 1,
+        width: zeff_core::display::PAGE_WIDTH,
+        shown: None,
     };
     let (se, cluster) = if kind == "cluster" {
         (None, Some(Value::Var("g".to_string())))
@@ -302,6 +304,8 @@ fn average_effects(fit: &Rc<Fit>) -> Rc<TestResult> {
         messages: &mut messages,
         random: &mut random,
         statement: 1,
+        width: zeff_core::display::PAGE_WIDTH,
+        shown: None,
     };
     let args = Args {
         values: vec![

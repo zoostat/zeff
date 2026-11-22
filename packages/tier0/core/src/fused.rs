@@ -189,6 +189,8 @@ pub struct Resources<'a> {
     pub output: &'a mut String,
     pub random: &'a mut Randomness,
     pub statement: u32,
+    /// The width a frame or a table wraps at when it is printed.
+    pub width: usize,
 }
 
 /// Evaluate a plan: fused when `fused` is set and the pass succeeds, unfused otherwise. The
@@ -324,6 +326,8 @@ fn context<'a>(
         messages,
         random: &mut *resources.random,
         statement: resources.statement,
+        width: resources.width,
+        shown: None,
     }
 }
 

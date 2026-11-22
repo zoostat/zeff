@@ -211,6 +211,17 @@ test("a plot of the last run is drawn at a size without a new run, and given as 
   assert.equal(typeof scene.scene.zeff_scene, "number");
   assert.ok(Array.isArray(scene.scene.scales) && scene.scene.scales.length >= 2);
   assert.ok(Array.isArray(scene.scene.panels) && scene.scene.panels.length === 1);
+  // What a statement printed, made again at another width: the frame of six rows is printed
+  // by statement 3 as a plot's line, and a `let` printed nothing.
+  worker.postMessage({ type: "print", statement: 1, width: 60 });
+  const silent = await next("printed");
+  assert.deepEqual([silent.statement, silent.width, silent.stdout], [1, 60, ""]);
+  worker.postMessage({ type: "print", statement: 3, width: 60 });
+  const printed = await next("printed");
+  assert.equal(printed.statement, 3);
+  assert.ok(printed.stdout.length > 0 && printed.stdout.endsWith("\n"), printed.stdout);
+  worker.postMessage({ type: "print", statement: 9, width: 60 });
+  assert.match((await next("error")).message, /none is numbered 9/);
   // A pane too small for the plot's labels, a theme there is not, a plot there is not: each
   // is answered, and the size is said to be at fault where it is.
   worker.postMessage({ type: "plot", index: 0, width: 40, height: 30 });

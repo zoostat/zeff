@@ -151,6 +151,8 @@ fn fit(table: &Table, kind: &str) -> Fit {
         messages: &mut messages,
         random: &mut random,
         statement: 1,
+        width: zeff_core::display::PAGE_WIDTH,
+        shown: None,
     };
     let (se, cluster) = if kind == "cluster" {
         (None, Some(Value::Var("g".to_string())))
@@ -346,6 +348,8 @@ fn fit_panel(table: &Table) -> Fit {
         messages: &mut messages,
         random: &mut random,
         statement: 1,
+        width: zeff_core::display::PAGE_WIDTH,
+        shown: None,
     };
     let args = Args {
         values: vec![
@@ -500,6 +504,8 @@ fn fit_staff(table: &Table, instrumented: bool, kind: &str) -> Fit {
         messages: &mut messages,
         random: &mut random,
         statement: 1,
+        width: zeff_core::display::PAGE_WIDTH,
+        shown: None,
     };
     let frame = Some(Value::Frame(Frame::new(table.clone())));
     let model = Some(Value::Formula(formula(text)));
@@ -680,6 +686,8 @@ fn the_anderson_rubin_set_covers_under_a_weak_instrument() {
             messages: &mut messages,
             random: &mut random,
             statement: 1,
+            width: zeff_core::display::PAGE_WIDTH,
+            shown: None,
         };
         let designs = Designs::build(
             &mut ctx,

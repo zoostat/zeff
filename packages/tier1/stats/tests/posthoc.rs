@@ -67,6 +67,8 @@ fn invoke(
             messages: &mut messages,
             random: &mut random,
             statement: 1,
+            width: zeff_core::display::PAGE_WIDTH,
+            shown: None,
         };
         body(&mut ctx, args)?
     };
@@ -139,6 +141,8 @@ fn by_name(result: &TestResult, name: &str) -> (f64, f64, f64) {
             messages: &mut messages,
             random: &mut random,
             statement: 1,
+            width: zeff_core::display::PAGE_WIDTH,
+            shown: None,
         };
         match body(&mut ctx, args) {
             Ok(value) => value,

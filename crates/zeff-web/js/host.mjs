@@ -14,6 +14,9 @@
 //                                       without a new run; `theme` is journal, minimal or
 //                                       slide, and the plot's own when it is left out
 //   { type: "scene", index }            the same plot as its scene, the engine's data of it
+//   { type: "print", statement, width } what a statement of the last run printed, made again
+//                                       at `width` characters without a new run; `statement`
+//                                       is its place from 1, as the outcome numbers it
 //   { type: "report", script, text, line?, reference? }
 //                                       "Report a problem": the bug report of a script as it
 //                                       stands; for a result believed wrong, `line` is a line
@@ -35,6 +38,8 @@
 //                                       [{ name, rows, variables }]
 //   { type: "plot", index, width, height, theme, svg }          the plot as an SVG at that size
 //   { type: "scene", index, scene }     the plot's scene: scales, panels, layers and marks
+//   { type: "printed", statement, width, stdout }               the statement's print at that
+//                                       width, as `zeff run --width` prints it
 //   { type: "frame", name, bytes }      the frame as an Arrow stream, in a Uint8Array whose
 //                                       buffer is passed to the interface and not copied
 //   { type: "report", name, kind, code, kept, of, reduced, files, text }
@@ -103,6 +108,13 @@ export function serve(engine, port, deviceBytes) {
           break;
         }
         port.postMessage(JSON.parse(project.plot(said.index, said.width, said.height, said.theme)));
+        break;
+      case "print":
+        if (project === null) {
+          port.postMessage({ type: "error", message: "a print was asked for before a project was opened" });
+          break;
+        }
+        port.postMessage(JSON.parse(project.print_at(said.statement, said.width)));
         break;
       case "scene":
         if (project === null) {

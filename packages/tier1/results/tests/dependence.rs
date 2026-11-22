@@ -45,6 +45,8 @@ fn build(table: &Table, text: &str) -> Result<Design, String> {
         messages: &mut messages,
         random: &mut random,
         statement: 1,
+        width: zeff_core::display::PAGE_WIDTH,
+        shown: None,
     };
     Design::build(&mut ctx, &Frame::new(table.clone()), &f, &[]).map_err(|e| e.render(&sources))
 }

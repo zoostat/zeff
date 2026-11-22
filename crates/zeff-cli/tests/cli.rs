@@ -3267,3 +3267,39 @@ fn a_run_is_given_as_a_record_of_its_statements() {
         "{record}"
     );
 }
+
+/// `--width` holds for everything a run prints (release 0.9.0, step 26b): a frame printed by
+/// `print`, alone, beside other values and inside a loop, as one given by a statement that is
+/// an expression. Before this step `print` kept to the default width whatever was asked.
+#[test]
+fn print_keeps_to_the_width_of_the_run_wherever_it_stands() {
+    let (_dir, project) = demo();
+    std::fs::write(
+        project.join("scripts/main.zeff"),
+        "let wide = frame(alpha_long_name = [1.5, 2.5], beta_long_name = [3.5, 4.5], gamma_long_name = [5.5, 6.5], delta_long_name = [7.5, 8.5], epsilon_long = [1.0, 2.0])\nprint(wide)\nfor i in 1..2 { print(wide) }\nprint(\"beside\", wide)\nwide\n",
+    )
+    .unwrap();
+    let narrow = zeff(&project, &["run", "--width", "50"]);
+    assert_eq!(code(&narrow), 0, "{}", err(&narrow));
+    let text = out(&narrow);
+    assert!(
+        text.lines().all(|line| line.chars().count() <= 50),
+        "{text}"
+    );
+    // The frame is printed five times, each in three blocks of columns.
+    assert_eq!(
+        text.matches("alpha_long_name   beta_long_name\n").count(),
+        5,
+        "{text}"
+    );
+    assert_eq!(text.matches("      epsilon_long\n").count(), 5, "{text}");
+    // At the default width nothing has changed: each print is one block.
+    let plain = zeff(&project, &["run"]);
+    let text = out(&plain);
+    assert_eq!(
+        text.lines().map(|line| line.chars().count()).max(),
+        Some(89),
+        "{text}"
+    );
+    assert_eq!(text.matches("epsilon_long\n").count(), 5, "{text}");
+}

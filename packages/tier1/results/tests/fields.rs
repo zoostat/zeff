@@ -42,6 +42,8 @@ fn try_with(body: Body, values: Vec<Option<Value>>) -> Result<Value, Fail> {
         messages: &mut messages,
         random: &mut random,
         statement: 1,
+        width: zeff_core::display::PAGE_WIDTH,
+        shown: None,
     };
     body(
         &mut ctx,

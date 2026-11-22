@@ -361,6 +361,8 @@ pub fn call_rowwise(
                 messages: &mut messages,
                 random: ctx.random,
                 statement: ctx.statement,
+                width: ctx.width,
+                shown: ctx.shown.as_deref_mut(),
             };
             body(&mut row_ctx, row_args)
         };

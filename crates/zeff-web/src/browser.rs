@@ -104,6 +104,12 @@ impl Engine {
             .plot_svg(index as usize, width, height, theme.as_deref())
     }
 
+    /// What a statement of the last run printed, made again at a width, as a line of JSON
+    /// (`Host::print_at`).
+    pub fn print_at(&self, statement: u32, width: u32) -> String {
+        self.host.print_at(statement as usize, width as usize)
+    }
+
     /// A plot of the last run as its scene, a line of JSON (`Host::plot_scene`).
     pub fn scene(&self, index: u32) -> String {
         self.host.plot_scene(index as usize)

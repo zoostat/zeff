@@ -75,6 +75,8 @@ fn fit_with(
         messages: &mut messages,
         random: &mut random,
         statement: 1,
+        width: zeff_core::display::PAGE_WIDTH,
+        shown: None,
     };
     let args = Args {
         values: vec![
@@ -711,6 +713,8 @@ proptest! {
                 files: &NoFiles, script: "t.zeff", text: "", columns_used: Vec::new(), frame: None, group_rows: None,
                 callee_span: Span::new(0, 1), arg_spans: Vec::new(), rest_spans: Vec::new(), definition_spans: Vec::new(),
                 output: &mut output, messages: &mut messages, random: &mut random, statement: 1,
+                width: zeff_core::display::PAGE_WIDTH,
+                shown: None,
             };
             let args = Args {
                 values: vec![Some(Value::Frame(frame.clone())), Some(Value::Formula(f)), Some(Value::Word(se.to_string())), None, None, None, None],
@@ -752,6 +756,8 @@ proptest! {
                 files: &NoFiles, script: "t.zeff", text: "", columns_used: Vec::new(), frame: None, group_rows: None,
                 callee_span: Span::new(0, 1), arg_spans: Vec::new(), rest_spans: Vec::new(), definition_spans: Vec::new(),
                 output: &mut output, messages: &mut messages, random: &mut random, statement: 1,
+                width: zeff_core::display::PAGE_WIDTH,
+                shown: None,
             };
             let design = Design::build(&mut ctx, &frame, &f, &[]).unwrap().with_block_rows(rows);
             fits.push(Ols.fit(&mut ctx, &design).unwrap());

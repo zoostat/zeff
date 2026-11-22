@@ -110,6 +110,8 @@ fn in_context<T>(
         messages: &mut messages,
         random: &mut random,
         statement: 1,
+        width: zeff_core::display::PAGE_WIDTH,
+        shown: None,
     };
     let frame = Frame::new(table.clone());
     let mut extra: Vec<&str> = Vec::new();
@@ -1769,6 +1771,8 @@ fn nothing_instrumented_is_least_squares_to_the_bit() {
         messages: &mut messages,
         random: &mut random,
         statement: 1,
+        width: zeff_core::display::PAGE_WIDTH,
+        shown: None,
     };
     let design = Design::build(&mut ctx, &Frame::new(card.clone()), &formula(text), &[]).unwrap();
     let ols = Ols.fit(&mut ctx, &design).unwrap();

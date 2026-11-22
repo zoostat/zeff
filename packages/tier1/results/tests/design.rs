@@ -46,6 +46,8 @@ fn build(table: &Table, text: &str, extra: &[&str]) -> Result<(Design, Vec<Strin
         messages: &mut messages,
         random: &mut random,
         statement: 1,
+        width: zeff_core::display::PAGE_WIDTH,
+        shown: None,
     };
     let result = Design::build(&mut ctx, &Frame::new(table.clone()), &f, extra);
     let rendered: Vec<String> = messages.iter().map(|m| m.render(&sources)).collect();
@@ -85,6 +87,8 @@ fn build_weighted(
         messages: &mut messages,
         random: &mut random,
         statement: 1,
+        width: zeff_core::display::PAGE_WIDTH,
+        shown: None,
     };
     let frame = Frame::new(table.clone());
     Design::build(&mut ctx, &frame, &f, &[name])

@@ -186,6 +186,41 @@ pub struct CallContext<'a> {
     pub random: &'a mut Randomness,
     /// The place of the statement among all the statements of the run, 1 for the first.
     pub statement: u32,
+    /// The width a frame or a table wraps at when it is printed (`--width`).
+    pub width: usize,
+    /// Where each value the statement prints is kept beside its place in the output, for an
+    /// interface that asks for the print again at another width (open decision #175, C6);
+    /// `None` where nobody asked.
+    pub shown: Option<&'a mut Vec<Shown>>,
+}
+
+/// A value a statement printed: where its text stands in the statement's output, and the
+/// value, from which the text is made again at any width.
+#[derive(Debug, Clone)]
+pub struct Shown {
+    /// The byte at which its text begins in the statement's output, and how many bytes it is.
+    pub at: usize,
+    pub len: usize,
+    pub value: Value,
+}
+
+/// A statement's output made again at `width`: the text as it stands, with each value in
+/// `shown` printed anew at that width in its place. At the width of the run it is the output
+/// itself.
+pub fn printed_at(output: &str, shown: &[Shown], width: usize) -> String {
+    let mut text = String::with_capacity(output.len());
+    let mut from = 0;
+    for piece in shown {
+        // A piece that does not stand where it says is left as it was printed.
+        if piece.at < from || piece.at + piece.len > output.len() {
+            continue;
+        }
+        text.push_str(&output[from..piece.at]);
+        text.push_str(&crate::display::show_width(&piece.value, width));
+        from = piece.at + piece.len;
+    }
+    text.push_str(&output[from..]);
+    text
 }
 
 impl CallContext<'_> {
@@ -227,6 +262,21 @@ impl CallContext<'_> {
     /// Print text as the statement's output.
     pub fn print(&mut self, text: &str) {
         self.output.push_str(text);
+    }
+
+    /// Print a value as the statement's output, at the width of the run: a frame or a table
+    /// wider than it goes in blocks of columns. The value is kept beside its text where an
+    /// interface has asked for that.
+    pub fn print_value(&mut self, value: &Value) {
+        let text = crate::display::show_width(value, self.width);
+        if let Some(shown) = self.shown.as_mut() {
+            shown.push(Shown {
+                at: self.output.len(),
+                len: text.len(),
+                value: value.clone(),
+            });
+        }
+        self.output.push_str(&text);
     }
 
     /// Raise a warning or a note under the statement's output.

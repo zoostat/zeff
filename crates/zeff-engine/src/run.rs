@@ -383,6 +383,7 @@ pub fn run_script_under(
         listener,
         None,
         None,
+        None,
     )
 }
 
@@ -392,6 +393,20 @@ pub type Frames = Vec<(String, zeff_core::value::Frame)>;
 /// The plots the statements of a run made, in the order of the statements (open decision
 /// #197): what an interface lists and draws at the size of its pane.
 pub type Plots = Vec<crate::interpreter::PlotMade>;
+
+/// The values each statement of a run printed, one list for each statement that ran, each
+/// value with its place in the statement's output (open decision #175, C6): what a
+/// statement's print is made again from at another width.
+pub type Prints = Vec<Vec<zeff_core::runtime::Shown>>;
+
+/// What a run leaves for an interface that shows it: the frames its bindings hold, the plots
+/// its statements made, and the values its statements printed.
+#[derive(Debug, Default)]
+pub struct Showing {
+    pub frames: Frames,
+    pub plots: Plots,
+    pub prints: Prints,
+}
 
 /// [`run_script_under`] for a host that shows the frames of a run: no binding is freed after
 /// its last use, as in a session, and the frames the bindings hold when the run ends, or
@@ -405,14 +420,16 @@ pub fn run_script_keeping(
     control: &crate::control::Control,
     listener: Option<crate::control::Listener<'_>>,
 ) -> (Outcome, Frames) {
-    let (outcome, frames, _) =
+    let (outcome, showing) =
         run_script_showing(fs, project, script, text, options, control, listener);
-    (outcome, frames)
+    (outcome, showing.frames)
 }
 
-/// [`run_script_keeping`] for a host that shows the plots of a run too: each plot a statement
-/// of the script made, by the `let` that binds it or as the value of the statement, comes
-/// back with the line of its statement, to be laid out at any size without a new run.
+/// [`run_script_keeping`] for a host that shows the plots of a run too, and its prints: each
+/// plot a statement of the script made, by the `let` that binds it or as the value of the
+/// statement, comes back with the line of its statement, to be laid out at any size without a
+/// new run; and each value a statement printed, with its place in what the statement printed,
+/// to be printed again at any width.
 pub fn run_script_showing(
     fs: &dyn FileSystem,
     project: &Project,
@@ -421,9 +438,10 @@ pub fn run_script_showing(
     options: &RunOptions,
     control: &crate::control::Control,
     listener: Option<crate::control::Listener<'_>>,
-) -> (Outcome, Frames, Plots) {
+) -> (Outcome, Showing) {
     let kept = std::cell::RefCell::new(Vec::new());
     let plots = std::cell::RefCell::new(Vec::new());
+    let prints = std::cell::RefCell::new(Vec::new());
     let options = RunOptions {
         free_bindings: false,
         ..options.clone()
@@ -442,10 +460,18 @@ pub fn run_script_showing(
             listener,
             Some(&kept),
             Some(&plots),
+            Some(&prints),
         ),
         Err(_) => run_script_with(fs, project, script, text, &options),
     };
-    (outcome, kept.into_inner(), plots.into_inner())
+    (
+        outcome,
+        Showing {
+            frames: kept.into_inner(),
+            plots: plots.into_inner(),
+            prints: prints.into_inner(),
+        },
+    )
 }
 
 /// [`run_script_with`] against a given registry and the bodies that run its functions, Rust and
@@ -462,7 +488,7 @@ pub fn run_script_in(
     zeff: &ZeffBodies,
 ) -> Outcome {
     run_controlled(
-        fs, project, script, text, options, registry, bodies, zeff, None, None, None, None,
+        fs, project, script, text, options, registry, bodies, zeff, None, None, None, None, None,
     )
 }
 
@@ -480,6 +506,7 @@ fn run_controlled(
     listener: Option<crate::control::Listener<'_>>,
     kept: Option<&std::cell::RefCell<Frames>>,
     plots: Option<&std::cell::RefCell<Plots>>,
+    prints: Option<&std::cell::RefCell<Prints>>,
 ) -> Outcome {
     // What the check says before the run starts, and what stops it before it starts, is told
     // as it is said, so that the pieces a listener is given are the whole of the messages.
@@ -588,6 +615,7 @@ fn run_controlled(
         .with_listener(listener)
         .with_kept(kept)
         .with_plots(plots)
+        .with_prints(prints)
         .with_budget(options.memory.or_else(|| {
             project
                 .manifest

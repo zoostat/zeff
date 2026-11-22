@@ -59,6 +59,8 @@ fn with_context<T>(
         messages: &mut messages,
         random: &mut random,
         statement: 1,
+        width: zeff_core::display::PAGE_WIDTH,
+        shown: None,
     };
     let result = f(&mut ctx, &sources);
     let rendered: Vec<String> = messages.iter().map(|m| m.render(&sources)).collect();

@@ -10,7 +10,7 @@ use std::collections::HashMap;
 use zeff_core::display::{PAGE_WIDTH, show, show_width};
 use zeff_core::fused;
 use zeff_core::operators::{self, ColumnTrouble, Op, Operand, Trouble};
-use zeff_core::runtime::{Args, CallContext, Fail, Files, Randomness, fail};
+use zeff_core::runtime::{Args, CallContext, Fail, Files, Randomness, Shown, fail};
 use zeff_core::value::{
     ColumnExpr, Failure, Formula as FormulaValue, Frame, FunctionValue, Term as TermValue,
     TypeValue, Value,
@@ -205,6 +205,12 @@ pub struct Interpreter<'a> {
     /// Where each plot a statement of the script makes is put, where someone wants them: an
     /// interface, which draws them at the size of its pane (open decision #197).
     plots: Option<&'a std::cell::RefCell<Vec<PlotMade>>>,
+    /// Where the values each statement printed are put, one list for each statement that ran,
+    /// where someone wants them: an interface, which asks for a statement's print again at the
+    /// width of its pane (open decision #175, C6).
+    prints: Option<&'a std::cell::RefCell<Vec<Vec<Shown>>>>,
+    /// The values the statement being run has printed so far, each with its place.
+    shown: Vec<Shown>,
 }
 
 /// A plot a statement of a run made (open decision #197): the value of a `let`, by its name,
@@ -311,6 +317,8 @@ impl<'a> Interpreter<'a> {
             budget: None,
             kept: None,
             plots: None,
+            prints: None,
+            shown: Vec::new(),
         }
     }
 
@@ -338,6 +346,14 @@ impl<'a> Interpreter<'a> {
     /// the statements; a run that starts empties it.
     pub fn with_plots(mut self, plots: Option<&'a std::cell::RefCell<Vec<PlotMade>>>) -> Self {
         self.plots = plots;
+        self
+    }
+
+    /// The values each statement prints are put here, a list for each statement that runs, in
+    /// the order of the statements; each value with where its text stands in the statement's
+    /// output.
+    pub fn with_prints(mut self, prints: Option<&'a std::cell::RefCell<Vec<Vec<Shown>>>>) -> Self {
+        self.prints = prints;
         self
     }
 
@@ -674,7 +690,15 @@ impl<'a> Interpreter<'a> {
                         .map(|v| self.bind(*binding, v)),
                     Statement::Print { value, .. } => {
                         self.eval(value, &mut printed, &mut messages).map(|v| {
-                            printed.push_str(&show_width(&v, self.width));
+                            let text = show_width(&v, self.width);
+                            if self.prints.is_some() && !text.is_empty() {
+                                self.shown.push(Shown {
+                                    at: printed.len(),
+                                    len: text.len(),
+                                    value: v.clone(),
+                                });
+                            }
+                            printed.push_str(&text);
                             given = ResultFacts::of(None, &v);
                             if let Value::Plot(plot) = &v {
                                 shown_plot = Some(plot.clone());
@@ -784,6 +808,18 @@ impl<'a> Interpreter<'a> {
             }
             output.stdout.push_str(&printed);
             output.stderr.push_str(&statement_errors);
+            if let Some(prints) = self.prints {
+                // Kept only where the value's text stands as it was printed: a piece whose
+                // text was dropped, or moved, is left to the output as it is.
+                let mut pieces = std::mem::take(&mut self.shown);
+                pieces.retain(|piece| {
+                    printed
+                        .get(piece.at..piece.at + piece.len)
+                        .is_some_and(|text| text == show_width(&piece.value, self.width))
+                });
+                pieces.sort_by_key(|piece| piece.at);
+                prints.borrow_mut().push(pieces);
+            }
             let facts = match statement {
                 Statement::Let { binding, .. } if !failed => self.env.get(binding).and_then(|v| {
                     ResultFacts::of(Some(self.program.bindings[*binding].name.clone()), v)
@@ -2322,6 +2358,12 @@ impl<'a> Interpreter<'a> {
             messages,
             random: &mut self.random,
             statement: self.statement,
+            width: self.width,
+            shown: if self.prints.is_some() {
+                Some(&mut self.shown)
+            } else {
+                None
+            },
         };
         let result = body(
             &mut ctx,
@@ -4162,6 +4204,12 @@ impl<'a> Interpreter<'a> {
             messages,
             random: &mut self.random,
             statement: self.statement,
+            width: self.width,
+            shown: if self.prints.is_some() {
+                Some(&mut self.shown)
+            } else {
+                None
+            },
         };
         let args = Args {
             values,
@@ -4287,6 +4335,7 @@ impl<'a> Interpreter<'a> {
             output: printed,
             random: &mut self.random,
             statement: self.statement,
+            width: self.width,
         };
         fused::evaluate(plan, self.fusion, &mut resources, messages)
     }
