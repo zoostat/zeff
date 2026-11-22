@@ -124,7 +124,11 @@ Step 22c `[engine]`: `zeff audit`: the recorded runs read against the list, each
 
 Step 23 `[engine]`: the release workflow: on a tag it builds, packs, signs and checks the archives of three machines (Linux x86-64 and ARM64, static, and macOS on Apple silicon; #207 raised and taken as recommended) and attaches them to the release; started by hand it does the same with a throwaway key and publishes nothing, and that trial passed on all three (run 44997445834). The publisher's key is the owner's to make: three commands, below.
 
-**Next.** Step 24 `[engine]`: the installation check of the testing handbook. Step 3, the weekly run of 23 November, when it has ended.
+Step 24 `[engine]`: the installation check, a job of the release workflow that publishing waits for: on four clean machines (Linux x86-64 on two systems, Linux ARM64, macOS on Apple silicon) the archive is unpacked by hand, its launcher refuses a tampered copy and one signed by another key (Z0711), installs the archive, and the installed engine passes `zeff selftest`. Run 44999078504 passed on all four; the static Linux builds give the published results to the last bit, 560 of 560 cases. Block E is done.
+
+**Session closed on 22 November 2026 at step 24, as the owner asked ("stop at 24").** Green: the local routine at step 22c (337 test programs), the launcher's and the workspace's lint and tests after it, continuous integration through step 22c, and both trial runs of the release workflow.
+
+**Next.** Step 25 `[engine]`, the first of block F. Step 3, the weekly mutation run of Monday 23 November, when it has ended.
 
 **For the owner.** The printed table of `margins` (#202 (d)), shown at step 11a, is yours to change; #202 (a) to (e) are taken as recommended. #198, #199 and #200 and #201 (a) (taken as recommended, yours to overturn before 1.0; #201 (b) is open and yours: which standardized coefficients a `glm` fit has, refused until you choose; #200: `predict` gives a probability and `residuals` the outcome less it unless `type:` says otherwise, where R gives log-odds and deviance residuals): on a `glm` fit, clustered errors carry the factor (N − 1)/(N − k) that Stata's `logit` and R's `vcovCL` left to itself omit; analytic weights are refused on a binary model, as in Stata.
 
