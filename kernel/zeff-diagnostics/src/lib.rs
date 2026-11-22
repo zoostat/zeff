@@ -78,10 +78,64 @@ pub struct Diagnostic {
     /// run time` on a step whose columns depend on the data, `from last run` on a diagnostic
     /// whose only evidence is a schema cached from the last run; `None` otherwise.
     pub mark: Option<String>,
-    /// The calls an error came through, the innermost first: for an error raised inside a
+    /// What an error came through, the innermost first: for an error raised inside a
     /// function, each function it was in with the values it was given and where it was
-    /// called, out to the line of the script (open decision #76). Empty for anything else.
-    pub trace: Vec<String>,
+    /// called, out to the line of the script (open decision #76); and for an error raised in
+    /// a pass of a loop, the pass and what the loop variable held (C22 of open decision #175).
+    /// Empty for anything else.
+    pub chain: Vec<Link>,
+}
+
+/// A link of the chain an error came through.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum Link {
+    /// A call of a function of the project: the function, each parameter with what it was
+    /// given in a few words, and where the call is written.
+    Call {
+        function: String,
+        given: Vec<(String, String)>,
+        file: String,
+        line: u32,
+        column: u32,
+    },
+    /// A pass of a loop: its number from 1, the number of passes where it is known, the loop
+    /// variable with what it held in a few words, and where the variable is written.
+    Pass {
+        pass: u64,
+        of: Option<u64>,
+        variable: String,
+        value: String,
+        file: String,
+        line: u32,
+        column: u32,
+    },
+}
+
+impl Link {
+    /// The link as a message prints it, after `= in: `. A call is printed; a pass is a field
+    /// of the record and is not, so that the message reads as it did before the passes were
+    /// kept.
+    pub fn said(&self) -> Option<String> {
+        match self {
+            Link::Call {
+                function,
+                given,
+                file,
+                line,
+                column,
+            } => {
+                let given: Vec<String> = given
+                    .iter()
+                    .map(|(name, value)| format!("{name}: {value}"))
+                    .collect();
+                Some(format!(
+                    "`{function}({})`, called at {file}:{line}:{column}",
+                    given.join(", ")
+                ))
+            }
+            Link::Pass { .. } => None,
+        }
+    }
 }
 
 /// A count as messages print it, with thousands separators (Language Reference, section 3.8):
@@ -119,7 +173,7 @@ impl Diagnostic {
             help: Vec::new(),
             fixes: Vec::new(),
             mark: None,
-            trace: Vec::new(),
+            chain: Vec::new(),
         }
     }
 
@@ -174,11 +228,16 @@ impl Diagnostic {
         self
     }
 
-    /// A call the error came through, printed as `= in: ...` under the lines it points at;
-    /// added from the innermost call outwards.
-    pub fn traced(mut self, text: impl Into<String>) -> Self {
-        self.trace.push(text.into());
+    /// A link the error came through; a call is printed as `= in: ...` under the lines the
+    /// error points at. Added from the innermost link outwards.
+    pub fn through(mut self, link: Link) -> Self {
+        self.chain.push(link);
         self
+    }
+
+    /// The calls of the chain as a message prints them, the innermost first.
+    pub fn trace(&self) -> Vec<String> {
+        self.chain.iter().filter_map(Link::said).collect()
     }
 
     /// A line of advice, printed as `= help: ...`.
@@ -220,7 +279,7 @@ impl Diagnostic {
             out.push_str(&format!(" (line {line})"));
         }
         out.push('\n');
-        for call in &self.trace {
+        for call in self.trace() {
             out.push_str(&format!("  = in: {call}\n"));
         }
         for help in &self.help {

@@ -1,0 +1,5 @@
+---
+source: crates/zeff-engine/tests/traceback.rs
+expression: chain(&out)
+---
+{"column":5,"file":"scripts/main.zeff","kind":"pass","line":2,"of":5,"pass":4,"value":"4","variable":"k"}

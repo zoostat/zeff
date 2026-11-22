@@ -1234,6 +1234,7 @@ mod tests {
                         stderr: stderr.to_string(),
                         result: None,
                         drew: false,
+                        error: None,
                     })
                     .into_iter()
                     .collect(),

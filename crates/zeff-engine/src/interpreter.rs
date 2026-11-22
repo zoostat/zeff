@@ -34,6 +34,10 @@ pub struct StatementOutput {
     pub result: Option<ResultFacts>,
     /// Whether it drew from the run's stream of random numbers.
     pub drew: bool,
+    /// The error that stopped the run at this statement, as the JSON record of the
+    /// diagnostic: its code, message, place, advice and, for an error raised inside a
+    /// function or a loop, its chain as fields (C22 of open decision #175).
+    pub error: Option<String>,
 }
 
 /// What a statement's result is, for an interface that says it beside the statement (C5 of
@@ -770,9 +774,8 @@ impl<'a> Interpreter<'a> {
                 None => result,
             };
             let failed = result.is_err();
-            if let Err(error) = &result
-                && !refused
-            {
+            let mut record: Option<String> = None;
+            if let Err(error) = &result {
                 // The script's source and the modules', so that an error inside a module
                 // function names its file and line.
                 let mut sources = zeff_diagnostics::Sources::new();
@@ -782,7 +785,13 @@ impl<'a> Interpreter<'a> {
                         sources.add(module.clone());
                     }
                 }
-                statement_errors.push_str(&error.render(&sources));
+                if refused {
+                    // The warning that was refused, as the error it was made.
+                    record = Some(crate::pragmas::denied(error).to_json(&sources));
+                } else {
+                    statement_errors.push_str(&error.render(&sources));
+                    record = Some(error.to_json(&sources));
+                }
             }
             // The checks of the statement, under `zeff test`: a failed one as it is shown.
             if let Some(checks) = self.checks.as_mut() {
@@ -833,6 +842,7 @@ impl<'a> Interpreter<'a> {
                 stderr: statement_errors,
                 result: facts,
                 drew: self.random.drawing != drawn_before,
+                error: record,
             });
             if let Some(plots) = self.plots {
                 let made = match statement {
@@ -1161,7 +1171,27 @@ impl<'a> Interpreter<'a> {
             self.random.pass += 1;
             self.bind(binding, item);
             made += 1;
-            let value = self.eval_block(body, printed, messages)?;
+            // An error that leaves a pass takes with it the pass and what the loop variable
+            // held (C22 of open decision #175): a field of the error's record, which the
+            // message does not print.
+            let value = self
+                .eval_block(body, printed, messages)
+                .map_err(|mut error| {
+                    if error.severity == zeff_diagnostics::Severity::Error {
+                        let variable = &self.program.bindings[binding];
+                        let written = self.source.position(variable.span.start);
+                        error.chain.push(zeff_diagnostics::Link::Pass {
+                            pass: at as u64 + 1,
+                            of: passes.map(|n| n as u64),
+                            variable: variable.name.clone(),
+                            value: self.env.get(&binding).map_or(String::new(), Self::in_brief),
+                            file: self.script.to_string(),
+                            line: written.line,
+                            column: written.column,
+                        });
+                    }
+                    error
+                })?;
             match self.jump.take() {
                 Some(Jump::Break) => break,
                 Some(Jump::Continue) => continue,
@@ -1570,79 +1600,86 @@ impl<'a> Interpreter<'a> {
         result.map_err(|mut error| {
             if error.severity == zeff_diagnostics::Severity::Error {
                 let at = saved_source.position(callee_span.start);
-                error.trace.push(format!(
-                    "`{}({given})`, called at {saved_script}:{}:{}",
-                    f.name, at.line, at.column
-                ));
+                error.chain.push(zeff_diagnostics::Link::Call {
+                    function: f.name.clone(),
+                    given,
+                    file: saved_script.to_string(),
+                    line: at.line,
+                    column: at.column,
+                });
             }
             error
         })
     }
 
-    /// The arguments a function was given, as a traceback shows them: each parameter with a
-    /// number, a logical value or `NA` as it is, a text in quotes and cut short, a variable by
-    /// its name, and anything larger by its type alone.
-    fn given(f: &zeff_ir::Function, values: &[Option<Value>]) -> String {
-        const LONGEST: usize = 24;
+    /// The arguments a function was given, as a traceback shows them: each parameter with
+    /// what it held, in a few words.
+    fn given(f: &zeff_ir::Function, values: &[Option<Value>]) -> Vec<(String, String)> {
         f.params
             .iter()
             .zip(values)
             .filter_map(|(param, value)| {
-                let value = value.as_ref()?;
-                let shown = match value {
-                    Value::Int(_) | Value::Float(_) | Value::Bool(_) | Value::Na => show(value),
-                    Value::Str(text) => {
-                        let cut: String = text.chars().take(LONGEST).collect();
-                        if cut.len() < text.len() {
-                            format!("\"{cut}…\"")
-                        } else {
-                            format!("\"{cut}\"")
-                        }
-                    }
-                    Value::Var(name) => name.clone(),
-                    // A frame by its shape, which is often what made the call fail.
-                    Value::Frame(frame) => {
-                        let (rows, variables) = (frame.table.rows(), frame.table.names().len());
-                        format!(
-                            "a frame of {} {} × {} {}",
-                            zeff_diagnostics::count(rows as u64),
-                            if rows == 1 { "row" } else { "rows" },
-                            variables,
-                            if variables == 1 {
-                                "variable"
-                            } else {
-                                "variables"
-                            }
-                        )
-                    }
-                    // A small record of single values as it is written, which is what the
-                    // state of an iteration is.
-                    Value::Record(fields)
-                        if fields.len() <= 4
-                            && fields.iter().all(|(_, v)| {
-                                matches!(
-                                    v,
-                                    Value::Int(_) | Value::Float(_) | Value::Bool(_) | Value::Na
-                                )
-                            }) =>
-                    {
-                        let written: Vec<String> = fields
-                            .iter()
-                            .map(|(name, v)| format!("{name}: {}", show(v).trim_end()))
-                            .collect();
-                        format!("{{{}}}", written.join(", "))
-                    }
-                    Value::List(items) => format!(
-                        "a list of {} {}",
-                        zeff_diagnostics::count(items.len() as u64),
-                        if items.len() == 1 { "item" } else { "items" }
-                    ),
-                    other => zeff_core::types::type_name(other),
-                };
-                Some(format!("{}: {}", param.name, shown.trim_end()))
+                Some((param.name.clone(), Self::in_brief(value.as_ref()?)))
             })
-            .collect::<Vec<_>>()
-            .join(", ")
+            .collect()
+    }
+
+    /// A value in a few words, for the chain of an error: a number, a logical value or `NA`
+    /// as it is, a text in quotes and cut short, a variable by its name, and anything larger
+    /// by its type alone.
+    fn in_brief(value: &Value) -> String {
+        const LONGEST: usize = 24;
+        let shown = match value {
+            Value::Int(_) | Value::Float(_) | Value::Bool(_) | Value::Na => show(value),
+            Value::Str(text) => {
+                let cut: String = text.chars().take(LONGEST).collect();
+                if cut.len() < text.len() {
+                    format!("\"{cut}…\"")
+                } else {
+                    format!("\"{cut}\"")
+                }
+            }
+            Value::Var(name) => name.clone(),
+            // A frame by its shape, which is often what made the call fail.
+            Value::Frame(frame) => {
+                let (rows, variables) = (frame.table.rows(), frame.table.names().len());
+                format!(
+                    "a frame of {} {} × {} {}",
+                    zeff_diagnostics::count(rows as u64),
+                    if rows == 1 { "row" } else { "rows" },
+                    variables,
+                    if variables == 1 {
+                        "variable"
+                    } else {
+                        "variables"
+                    }
+                )
+            }
+            // A small record of single values as it is written, which is what the
+            // state of an iteration is.
+            Value::Record(fields)
+                if fields.len() <= 4
+                    && fields.iter().all(|(_, v)| {
+                        matches!(
+                            v,
+                            Value::Int(_) | Value::Float(_) | Value::Bool(_) | Value::Na
+                        )
+                    }) =>
+            {
+                let written: Vec<String> = fields
+                    .iter()
+                    .map(|(name, v)| format!("{name}: {}", show(v).trim_end()))
+                    .collect();
+                format!("{{{}}}", written.join(", "))
+            }
+            Value::List(items) => format!(
+                "a list of {} {}",
+                zeff_diagnostics::count(items.len() as u64),
+                if items.len() == 1 { "item" } else { "items" }
+            ),
+            other => zeff_core::types::type_name(other),
+        };
+        shown.trim_end().to_string()
     }
 
     /// A function value applied to values in parameter order (what `iterate` does with its
@@ -2190,7 +2227,12 @@ impl<'a> Interpreter<'a> {
                 at += 1;
             }
         }
-        result.map_err(|e| {
+        result.map_err(|mut e| {
+            // A pass of a loop in the body is not a line of the project: the chain of an
+            // error keeps the passes of the project's own loops alone.
+            e.chain.retain(|link| {
+                !matches!(link, zeff_diagnostics::Link::Pass { file, .. } if file == builtin.source.name())
+            });
             if inside(&e) && !e.code.starts_with("Z9") {
                 // An error the body raised with `argument:` is marked on that argument of the
                 // call, as a body written in Rust marks it; a missing argument, and any other

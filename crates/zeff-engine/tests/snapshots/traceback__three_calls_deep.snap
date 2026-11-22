@@ -1,0 +1,14 @@
+---
+source: crates/zeff-engine/tests/traceback.rs
+expression: out.output.stderr
+---
+note: no row kept: the result is empty (line 3)
+error[Z0001]: no rows to take the mean of
+ --> functions/clean.zeff:12:5
+   |
+12 |     assert(data.n_rows() > 0, "no rows to take the mean of")
+   |     ^^^^^^ in this call
+   |
+   = in: `checked_mean(data: a frame of 0 rows × 1 variable, var: x, label: "the rows above the thres…")`, called at functions/clean.zeff:27:29
+   = in: `mean_above(data: a frame of 3 rows × 1 variable, var: x, above: 10)`, called at functions/clean.zeff:54:37
+   = in: `means_above(data: a frame of 3 rows × 1 variable, var: x, thresholds: a list of 4 items)`, called at scripts/main.zeff:3:9

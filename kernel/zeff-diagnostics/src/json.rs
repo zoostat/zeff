@@ -4,7 +4,7 @@
 //! editor shows; it is written by hand here so the kernel takes no dependency for it.
 
 use crate::source::Sources;
-use crate::{Diagnostic, Severity, Span};
+use crate::{Diagnostic, Link, Severity, Span};
 
 /// `text` as a JSON string literal.
 pub fn json_string(text: &str) -> String {
@@ -37,6 +37,53 @@ fn span_fields(diagnostic: &Diagnostic, span: Span, sources: &Sources) -> String
         "\"line\": {}, \"column\": {}, \"end_line\": {}, \"end_column\": {}",
         start.line, start.column, end.line, end.column
     )
+}
+
+impl Link {
+    /// The link as one JSON object: `kind` is `call` or `pass`.
+    pub fn json(&self) -> String {
+        match self {
+            Link::Call {
+                function,
+                given,
+                file,
+                line,
+                column,
+            } => {
+                let given: Vec<String> = given
+                    .iter()
+                    .map(|(name, value)| {
+                        format!(
+                            "{{\"name\": {}, \"value\": {}}}",
+                            json_string(name),
+                            json_string(value)
+                        )
+                    })
+                    .collect();
+                format!(
+                    "{{\"kind\": \"call\", \"function\": {}, \"given\": [{}], \"file\": {}, \"line\": {line}, \"column\": {column}}}",
+                    json_string(function),
+                    given.join(", "),
+                    json_string(file)
+                )
+            }
+            Link::Pass {
+                pass,
+                of,
+                variable,
+                value,
+                file,
+                line,
+                column,
+            } => format!(
+                "{{\"kind\": \"pass\", \"pass\": {pass}, \"of\": {}, \"variable\": {}, \"value\": {}, \"file\": {}, \"line\": {line}, \"column\": {column}}}",
+                of.map_or("null".to_string(), |n| n.to_string()),
+                json_string(variable),
+                json_string(value),
+                json_string(file)
+            ),
+        }
+    }
 }
 
 impl Diagnostic {
@@ -87,9 +134,16 @@ impl Diagnostic {
         fields.push(format!("\"help\": [{}]", help.join(", ")));
         // The calls an error came through; the field is written only where there are some,
         // so that a record without a traceback is the record it was.
-        if !self.trace.is_empty() {
-            let trace: Vec<String> = self.trace.iter().map(|t| json_string(t)).collect();
+        let trace = self.trace();
+        if !trace.is_empty() {
+            let trace: Vec<String> = trace.iter().map(|t| json_string(t)).collect();
             fields.push(format!("\"trace\": [{}]", trace.join(", ")));
+        }
+        // The same chain as fields, with the passes of the loops it went through (C22 of
+        // open decision #175); written, like `trace`, only where there is a link.
+        if !self.chain.is_empty() {
+            let chain: Vec<String> = self.chain.iter().map(Link::json).collect();
+            fields.push(format!("\"chain\": [{}]", chain.join(", ")));
         }
         fields.push(format!(
             "\"mark\": {}",
@@ -152,18 +206,59 @@ mod tests {
         );
         // The calls an error came through are a field of their own, written where there are
         // some.
+        // An error that came through a pass of a loop and a call: the call is printed and is
+        // in `trace`, as it was; both are in `chain`, each as its fields.
         let traced = Diagnostic::error("Z0001", "stopped")
-            .traced("`half(x: -1)`, called at scripts/main.zeff:7:7");
+            .through(Link::Pass {
+                pass: 3,
+                of: Some(4),
+                variable: "t".to_string(),
+                value: "10".to_string(),
+                file: "functions/clean.zeff".to_string(),
+                line: 2,
+                column: 9,
+            })
+            .through(Link::Call {
+                function: "half".to_string(),
+                given: vec![("x".to_string(), "-1".to_string())],
+                file: "scripts/main.zeff".to_string(),
+                line: 7,
+                column: 7,
+            });
         assert!(
             traced
                 .to_json(&sources)
-                .contains(r#""help": [], "trace": ["`half(x: -1)`, called at scripts/main.zeff:7:7"], "mark": null"#),
+                .contains(concat!(
+                    r#""help": [], "trace": ["`half(x: -1)`, called at scripts/main.zeff:7:7"], "#,
+                    r#""chain": [{"kind": "pass", "pass": 3, "of": 4, "variable": "t", "value": "10", "file": "functions/clean.zeff", "line": 2, "column": 9}, "#,
+                    r#"{"kind": "call", "function": "half", "given": [{"name": "x", "value": "-1"}], "file": "scripts/main.zeff", "line": 7, "column": 7}], "#,
+                    r#""mark": null"#
+                )),
             "{}",
             traced.to_json(&sources)
         );
         assert_eq!(
             traced.short(None),
             "error[Z0001]: stopped\n  = in: `half(x: -1)`, called at scripts/main.zeff:7:7\n"
+        );
+        // A pass alone is a field and prints nothing; a loop whose length is not known has
+        // no count.
+        let in_a_loop = Diagnostic::error("Z0001", "stopped").through(Link::Pass {
+            pass: 2,
+            of: None,
+            variable: "t".to_string(),
+            value: "\"b\"".to_string(),
+            file: "scripts/main.zeff".to_string(),
+            line: 1,
+            column: 5,
+        });
+        assert_eq!(in_a_loop.short(None), "error[Z0001]: stopped\n");
+        assert!(
+            in_a_loop.to_json(&sources).contains(
+                r#""help": [], "chain": [{"kind": "pass", "pass": 2, "of": null, "variable": "t", "value": "\"b\"", "file": "scripts/main.zeff", "line": 1, "column": 5}], "mark": null"#
+            ),
+            "{}",
+            in_a_loop.to_json(&sources)
         );
         let plain = Diagnostic::warning("W0201", "3 rows skipped");
         assert_eq!(

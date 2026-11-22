@@ -1,0 +1,8 @@
+---
+source: crates/zeff-engine/tests/traceback.rs
+expression: chain(&out)
+---
+{"column":29,"file":"functions/clean.zeff","function":"checked_mean","given":[{"name":"data","value":"a frame of 0 rows × 1 variable"},{"name":"var","value":"x"},{"name":"label","value":"\"the rows above the thres…\""}],"kind":"call","line":27}
+{"column":37,"file":"functions/clean.zeff","function":"mean_above","given":[{"name":"data","value":"a frame of 3 rows × 1 variable"},{"name":"var","value":"x"},{"name":"above","value":"10"}],"kind":"call","line":54}
+{"column":10,"file":"functions/clean.zeff","kind":"pass","line":54,"of":4,"pass":3,"value":"10","variable":"above"}
+{"column":9,"file":"scripts/main.zeff","function":"means_above","given":[{"name":"data","value":"a frame of 3 rows × 1 variable"},{"name":"var","value":"x"},{"name":"thresholds","value":"a list of 4 items"}],"kind":"call","line":3}

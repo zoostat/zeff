@@ -195,11 +195,11 @@ fn the_record_of_a_statement_is_one_object() {
     let (facts, _) = facts_of("let w = dataset(wages).head(4)\nprint(\"a \\\"quoted\\\" line\")\n");
     assert_eq!(
         facts[0].json(),
-        r#"{"index": 1, "line": 1, "end_line": 1, "ran": true, "name": "w", "type": "Frame", "rows": 4, "columns": 11, "length": null, "n": null, "stdout": "", "stderr": "", "reads": [], "calls": [], "seeds": false, "draws": false, "reads_file": false, "writes_file": false, "drew": false}"#
+        r#"{"index": 1, "line": 1, "end_line": 1, "ran": true, "name": "w", "type": "Frame", "rows": 4, "columns": 11, "length": null, "n": null, "stdout": "", "stderr": "", "reads": [], "calls": [], "seeds": false, "draws": false, "reads_file": false, "writes_file": false, "drew": false, "error": null}"#
     );
     assert_eq!(
         facts[1].json(),
-        r#"{"index": 2, "line": 2, "end_line": 2, "ran": true, "name": null, "type": null, "rows": null, "columns": null, "length": null, "n": null, "stdout": "a \"quoted\" line\n", "stderr": "", "reads": [], "calls": [], "seeds": false, "draws": false, "reads_file": false, "writes_file": false, "drew": false}"#
+        r#"{"index": 2, "line": 2, "end_line": 2, "ran": true, "name": null, "type": null, "rows": null, "columns": null, "length": null, "n": null, "stdout": "a \"quoted\" line\n", "stderr": "", "reads": [], "calls": [], "seeds": false, "draws": false, "reads_file": false, "writes_file": false, "drew": false, "error": null}"#
     );
     assert_eq!(
         json(&facts),

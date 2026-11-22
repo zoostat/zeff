@@ -3220,10 +3220,10 @@ fn a_run_is_given_as_a_record_of_its_statements() {
         r#"{"index": 1, "line": 1, "end_line": 1, "ran": true, "name": null, "type": null,"#,
         r#"{"index": 2, "line": 2, "end_line": 2, "ran": true, "name": "w", "type": "Frame", "rows": 18412, "columns": 11, "length": null, "n": null,"#,
         r#"{"index": 3, "line": 3, "end_line": 3, "ran": true, "name": "some", "type": "Frame", "rows": 20, "columns": 11,"#,
-        r#""reads": [2], "calls": [], "seeds": false, "draws": true, "reads_file": false, "writes_file": false, "drew": true}"#,
+        r#""reads": [2], "calls": [], "seeds": false, "draws": true, "reads_file": false, "writes_file": false, "drew": true, "error": null}"#,
         r#"{"index": 4, "line": 4, "end_line": 5, "ran": true, "name": "fit", "type": "RegFit", "rows": null, "columns": null, "length": null, "n": 20,"#,
         r#""stdout": "20\n", "stderr": "", "reads": [3],"#,
-        r#""reads": [3], "calls": [], "seeds": false, "draws": false, "reads_file": false, "writes_file": true, "drew": false}"#,
+        r#""reads": [3], "calls": [], "seeds": false, "draws": false, "reads_file": false, "writes_file": true, "drew": false, "error": null}"#,
     ] {
         assert!(record.contains(part), "{part}\n in {record}");
     }
@@ -3253,6 +3253,15 @@ fn a_run_is_given_as_a_record_of_its_statements() {
         "{record}"
     );
     assert!(record.contains("too many rows"), "{record}");
+    // The statement that stopped the run carries its error as a record (step 27): the code,
+    // the message and the place, where the statements before it have none.
+    assert!(
+        record.contains(
+            r#""drew": false, "error": {"code": "Z0001", "severity": "error", "message": "too many rows", "file": "scripts/main.zeff", "span": {"line": 2, "column": 1, "end_line": 2, "end_column": 7}"#
+        ),
+        "{record}"
+    );
+    assert_eq!(record.matches(r#""error": null"#).count(), 2, "{record}");
     // A script that does not pass its check: nothing ran, and the record says why.
     std::fs::write(
         project.join("scripts/main.zeff"),
@@ -3264,6 +3273,46 @@ fn a_run_is_given_as_a_record_of_its_statements() {
     let record = out(&o);
     assert!(
         record.contains(r#""ran": false, "name": "m""#) && record.contains("Z0101"),
+        "{record}"
+    );
+}
+
+/// The chain of an error as fields (open decision #175, C22; release 0.9.0, step 27): the
+/// record of a run names, for the statement that stopped it, each call the error came through
+/// with what it was given, and each pass of a loop with what the loop variable held; and the
+/// plain run prints the message it printed before.
+#[test]
+fn a_run_that_stops_inside_a_function_and_a_loop_gives_the_chain_as_fields() {
+    let (_dir, project) = demo();
+    let script = "/// The mean wage of the rows with more schooling than a threshold.\nfn mean_above(data: Frame, years: Float) -> Float {\n    let kept = data.where(educ > years)\n    assert(kept.n_rows() > 0, \"no worker has that much schooling\")\n    kept.mean(wage)\n}\nlet w = dataset(wages)\nfor years in [8.0, 12.0, 40.0, 16.0] {\n    print(w.mean_above(years))\n}\n";
+    std::fs::write(project.join("scripts/main.zeff"), script).unwrap();
+    let plain = zeff(&project, &["run"]);
+    assert_eq!(code(&plain), 1);
+    // Printed: the one call, as since 0.7.0, and no line for the pass.
+    let said = err(&plain);
+    assert!(
+        said.contains(
+            "= in: `mean_above(data: a frame of 18,412 rows × 11 variables, years: 40)`, called at scripts/main.zeff:9:13"
+        ),
+        "{said}"
+    );
+    assert_eq!(said.matches("= in: ").count(), 1, "{said}");
+    assert!(!said.contains("pass"), "{said}");
+    let o = zeff(&project, &["run", "--format", "json"]);
+    assert_eq!(code(&o), 1);
+    let record = out(&o);
+    // The printed lines, as they were; then the same call as fields, and the pass.
+    assert!(
+        record.contains(concat!(
+            r#""trace": ["`mean_above(data: a frame of 18,412 rows × 11 variables, years: 40)`, called at scripts/main.zeff:9:13"], "#,
+            r#""chain": [{"kind": "call", "function": "mean_above", "given": [{"name": "data", "value": "a frame of 18,412 rows × 11 variables"}, {"name": "years", "value": "40"}], "file": "scripts/main.zeff", "line": 9, "column": 13}, "#,
+            r#"{"kind": "pass", "pass": 3, "of": 4, "variable": "years", "value": "40", "file": "scripts/main.zeff", "line": 8, "column": 5}], "mark": null"#
+        )),
+        "{record}"
+    );
+    // The text of the record's `stderr` is what the plain run printed.
+    assert!(
+        record.contains("no worker has that much schooling"),
         "{record}"
     );
 }

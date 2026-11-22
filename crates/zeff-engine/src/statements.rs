@@ -44,6 +44,9 @@ pub struct StatementFacts {
     pub writes_file: bool,
     /// Whether it drew from the run's stream in this run.
     pub drew: bool,
+    /// The error that stopped the run at it, as the JSON record of the diagnostic, with its
+    /// chain as fields (C22 of open decision #175).
+    pub error: Option<String>,
 }
 
 /// The line, from 1, that the byte at `offset` of `text` is on.
@@ -101,6 +104,7 @@ pub fn statement_facts(
                 reads_file: node.reads_file,
                 writes_file: node.writes_file,
                 drew: ran.is_some_and(|ran| ran.drew),
+                error: ran.and_then(|ran| ran.error.clone()),
             }
         })
         .collect()
@@ -116,7 +120,7 @@ impl StatementFacts {
         let result = &self.result;
         let number = |pick: fn(&ResultFacts) -> Option<u64>| count(result.as_ref().and_then(pick));
         format!(
-            "{{\"index\": {}, \"line\": {}, \"end_line\": {}, \"ran\": {}, \"name\": {}, \"type\": {}, \"rows\": {}, \"columns\": {}, \"length\": {}, \"n\": {}, \"stdout\": {}, \"stderr\": {}, \"reads\": [{}], \"calls\": [{}], \"seeds\": {}, \"draws\": {}, \"reads_file\": {}, \"writes_file\": {}, \"drew\": {}}}",
+            "{{\"index\": {}, \"line\": {}, \"end_line\": {}, \"ran\": {}, \"name\": {}, \"type\": {}, \"rows\": {}, \"columns\": {}, \"length\": {}, \"n\": {}, \"stdout\": {}, \"stderr\": {}, \"reads\": [{}], \"calls\": [{}], \"seeds\": {}, \"draws\": {}, \"reads_file\": {}, \"writes_file\": {}, \"drew\": {}, \"error\": {}}}",
             self.index,
             self.line,
             self.end_line,
@@ -145,7 +149,8 @@ impl StatementFacts {
             self.draws,
             self.reads_file,
             self.writes_file,
-            self.drew
+            self.drew,
+            self.error.as_deref().unwrap_or("null")
         )
     }
 }

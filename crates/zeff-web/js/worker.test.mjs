@@ -237,6 +237,38 @@ test("a plot of the last run is drawn at a size without a new run, and given as 
   await worker.terminate();
 });
 
+test("the statement that stopped a run carries its error, with the chain as fields", async () => {
+  const { worker, next } = await opened(0);
+  worker.postMessage({
+    type: "run",
+    script: "scripts/main.zeff",
+    text: '/// Half of a positive number.\nfn half(x: Float) -> Float {\n    assert(x > 0, "a positive number is needed")\n    x / 2\n}\nlet two = half(4.0)\nlet halves = [for x in [3.0, -1.0, 5.0] { half(x) }]\nprint("never")\n',
+  });
+  const done = await next("done");
+  assert.equal(done.exit_code, 1);
+  // The message is as a run prints it: one line for the call, none for the pass.
+  assert.match(done.stderr, /= in: `half\(x: -1\)`, called at scripts\/main\.zeff:7:43/);
+  assert.deepEqual(
+    done.statements.map((s) => [s.index, s.ran, s.error === null]),
+    [
+      [1, true, true],
+      [2, true, false],
+      [3, false, true],
+    ],
+  );
+  const error = done.statements[1].error;
+  assert.equal(error.code, "Z0001");
+  assert.equal(error.message, "a positive number is needed");
+  assert.deepEqual(error.span, { line: 3, column: 5, end_line: 3, end_column: 11 });
+  assert.deepEqual(error.trace, ["`half(x: -1)`, called at scripts/main.zeff:7:43"]);
+  // The chain, the innermost first: the call with what it was given, then the pass.
+  assert.deepEqual(error.chain, [
+    { kind: "call", function: "half", given: [{ name: "x", value: "-1" }], file: "scripts/main.zeff", line: 7, column: 43 },
+    { kind: "pass", pass: 2, of: 3, variable: "x", value: "-1", file: "scripts/main.zeff", line: 7, column: 19 },
+  ]);
+  await worker.terminate();
+});
+
 test("a message the worker cannot act on is answered, not passed over", async () => {
   const { worker, said, next } = started(0);
   await next("ready");

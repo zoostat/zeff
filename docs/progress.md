@@ -136,7 +136,9 @@ Step 26a `[engine]` (step 26 split in two): each statement of a run as a record:
 
 Step 26b `[engine]`: `print(...)` now keeps to `--width` wherever it stands (it kept to the default of 118 before; nothing changes at the default), and the browser build gives what a statement of the last run printed, made again at another width without a new run, equal character for character to a run at that width. Step 26 is done.
 
-**Next.** Step 27 `[engine]`: an error's chain as fields. Step 3, the weekly mutation run of Monday 23 November, when it has ended.
+Step 27 `[engine]` (the owner's "Continue to 27"): an error's chain as fields (C22 of #175, for #183). Each call an error came through, with what it was given and where it was called, and, new, each pass of a loop with its number and what the loop variable held, are fields of the error's record; the statement that stopped a run carries that record in `zeff run --format json` and in the browser build's outcome. The printed message is the same to the character: a pass is a field and prints no line.
+
+**Next.** Step 28 `[engine]`: sections in a script (#178). Step 3, the weekly mutation run of Monday 23 November, when it has ended.
 
 **For the owner.** The printed table of `margins` (#202 (d)), shown at step 11a, is yours to change; #202 (a) to (e) are taken as recommended. #198, #199 and #200 and #201 (a) (taken as recommended, yours to overturn before 1.0; #201 (b) is open and yours: which standardized coefficients a `glm` fit has, refused until you choose; #200: `predict` gives a probability and `residuals` the outcome less it unless `type:` says otherwise, where R gives log-odds and deviance residuals): on a `glm` fit, clustered errors carry the factor (N − 1)/(N − k) that Stata's `logit` and R's `vcovCL` left to itself omit; analytic weights are refused on a binary model, as in Stata.
 

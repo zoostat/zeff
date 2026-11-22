@@ -32,9 +32,16 @@
 //                                       its outcome, with each statement of the script:
 //                                       [{ index, line, end_line, ran, name, type, rows,
 //                                       columns, length, n, stdout, stderr, reads, calls,
-//                                       seeds, draws, reads_file, writes_file, drew }]; the
-//                                       plots its statements made: [{ index, name, line, kind,
-//                                       theme }]; and the frames its bindings hold:
+//                                       seeds, draws, reads_file, writes_file, drew, error }];
+//                                       `error` is null, or for the statement that stopped the
+//                                       run the diagnostic's record: { code, severity, message,
+//                                       file, span, labels, help, trace, chain, mark, fixes },
+//                                       where `chain` lists what the error came through, the
+//                                       innermost first: { kind: "call", function, given:
+//                                       [{ name, value }], file, line, column } and { kind:
+//                                       "pass", pass, of, variable, value, file, line, column };
+//                                       the plots its statements made: [{ index, name, line,
+//                                       kind, theme }]; and the frames its bindings hold:
 //                                       [{ name, rows, variables }]
 //   { type: "plot", index, width, height, theme, svg }          the plot as an SVG at that size
 //   { type: "scene", index, scene }     the plot's scene: scales, panels, layers and marks

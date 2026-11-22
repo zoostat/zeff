@@ -1,6 +1,8 @@
 //! The traceback of an error raised inside a function (release 0.7.0, step 33d; open
 //! decision #76): each function the error came through, the innermost first, with what the
-//! function was given and where it was called, out to the line of the script.
+//! function was given and where it was called, out to the line of the script. From release
+//! 0.9.0, step 27 (C22 of open decision #175), the same chain is in the error's record as
+//! fields, with each pass of a loop it went through, and the printed message is as it was.
 
 use std::path::Path;
 use zeff_engine::VERSION;
@@ -49,6 +51,20 @@ fn mean_above(data: Frame, var: Var, above: Float) -> Float {
 fn wrong_iqr(data: Frame, var: Var) -> Float {
     data.iqr(var, type: 12)
 }
+
+/// The mean above each of several thresholds.
+///
+/// A loop over the thresholds inside a function: the mean of the rows above each.
+///
+/// data: The frame.
+/// var: The variable.
+/// thresholds: The thresholds.
+/// returns: The means, a list of numbers.
+/// > frame(x = [1.0, 3]).means_above(x, [0.5, 2])
+/// [2, 3]
+fn means_above(data: Frame, var: Var, thresholds: List<Float>) -> List<Float> {
+    [for above in thresholds { data.mean_above(var, above) }]
+}
 ";
 
 fn run(script: &str) -> Outcome {
@@ -60,6 +76,30 @@ fn run(script: &str) -> Outcome {
     fs.add_file("/p/functions/clean.zeff", CLEAN);
     let project = Project::open(&fs, Path::new("/p")).unwrap();
     run_script(&fs, &project, "scripts/main.zeff", script)
+}
+
+/// The record of the error that stopped a run: that of the last statement it reached.
+fn record(out: &Outcome) -> serde_json::Value {
+    let text = out
+        .output
+        .statements
+        .last()
+        .and_then(|statement| statement.error.as_deref())
+        .expect("the run stopped at an error");
+    serde_json::from_str(text).expect("the record is JSON")
+}
+
+/// The chain of a run's error, a link to a line, the innermost first.
+fn chain(out: &Outcome) -> String {
+    record(out)["chain"]
+        .as_array()
+        .map(|links| {
+            links
+                .iter()
+                .map(|link| format!("{link}\n"))
+                .collect::<String>()
+        })
+        .unwrap_or_default()
 }
 
 /// The lines of the traceback in what a run said.
@@ -172,4 +212,153 @@ fn an_error_at_the_top_level_and_a_warning_inside_a_function_have_no_traceback()
         out.output.stderr
     );
     assert!(trace(&out).is_empty(), "{}", out.output.stderr);
+}
+
+#[test]
+fn an_error_three_calls_deep_has_each_link_as_fields_and_prints_as_it_did() {
+    // The script's line calls `means_above`, whose loop calls `mean_above` at each
+    // pass, which calls `checked_mean`, whose `assert` fails at the third threshold.
+    let out = run(
+        "use functions::clean\nlet d = frame(x = [1.0, 2, 3])\nprint(d.means_above(x, [0.5, 1.5, 10.0, 2.5]))\n",
+    );
+    assert_eq!(out.exit_code, 1);
+    // What is printed: the three calls, the innermost first, and no line for the pass.
+    insta::assert_snapshot!("three_calls_deep", out.output.stderr);
+    assert_eq!(trace(&out).len(), 3);
+    // The record: the same three calls and, between the second and the third, the pass.
+    insta::assert_snapshot!("three_calls_deep_chain", chain(&out));
+    let record = record(&out);
+    // `trace` is the printed lines, as it was at 0.7.0.
+    let printed: Vec<&str> = record["trace"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .map(|line| line.as_str().unwrap())
+        .collect();
+    assert_eq!(printed, trace(&out));
+    // Each call's fields make its printed line.
+    let calls: Vec<String> = record["chain"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .filter(|link| link["kind"] == "call")
+        .map(|link| {
+            let given: Vec<String> = link["given"]
+                .as_array()
+                .unwrap()
+                .iter()
+                .map(|g| {
+                    format!(
+                        "{}: {}",
+                        g["name"].as_str().unwrap(),
+                        g["value"].as_str().unwrap()
+                    )
+                })
+                .collect();
+            format!(
+                "`{}({})`, called at {}:{}:{}",
+                link["function"].as_str().unwrap(),
+                given.join(", "),
+                link["file"].as_str().unwrap(),
+                link["line"],
+                link["column"]
+            )
+        })
+        .collect();
+    assert_eq!(calls, trace(&out));
+    // The record is that of the error printed.
+    assert_eq!(record["code"], "Z0001");
+    assert_eq!(record["message"], "no rows to take the mean of");
+    assert_eq!(record["file"], "functions/clean.zeff");
+}
+
+#[test]
+fn an_error_inside_a_loop_has_the_pass_and_what_the_loop_variable_held() {
+    // A loop of the script, a loop inside it, and a function called in the inner one.
+    let out = run(
+        "use functions::clean\nlet d = frame(x = [1.0, 2, 3], y = [4.0, 5, 6])\nfor v in vars(x, y) {\n    for t in [0.5, 2.5, 5.5, 1.0] {\n        print(d.mean_above(v, t))\n    }\n}\nprint(\"never\")\n",
+    );
+    assert_eq!(out.exit_code, 1);
+    // Two passes of the inner loop ran on `x`; the third found no row above its threshold.
+    assert_eq!(out.output.stdout, "2\n3\n", "{}", out.output.stderr);
+    insta::assert_snapshot!("inside_a_loop", out.output.stderr);
+    insta::assert_snapshot!("inside_a_loop_chain", chain(&out));
+    // The message prints the calls alone.
+    assert_eq!(trace(&out).len(), 2);
+    let record = record(&out);
+    let passes: Vec<(u64, Option<u64>, &str, &str)> = record["chain"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .filter(|link| link["kind"] == "pass")
+        .map(|link| {
+            (
+                link["pass"].as_u64().unwrap(),
+                link["of"].as_u64(),
+                link["variable"].as_str().unwrap(),
+                link["value"].as_str().unwrap(),
+            )
+        })
+        .collect();
+    // The inner loop first: its third pass of four, with the threshold; then the outer.
+    assert_eq!(passes, [(3, Some(4), "t", "5.5"), (1, Some(2), "v", "x")]);
+}
+
+#[test]
+fn an_error_in_a_loop_with_no_function_has_the_pass_alone_and_prints_no_traceback() {
+    let out =
+        run("let d = frame(x = [1.0, 2, 3])\nfor k in 1..5 {\n    assert(k < 4, \"too far\")\n}\n");
+    assert_eq!(out.exit_code, 1);
+    assert!(trace(&out).is_empty(), "{}", out.output.stderr);
+    insta::assert_snapshot!("a_loop_alone", out.output.stderr);
+    let record = record(&out);
+    // No call, so no `trace`; the chain is the pass.
+    assert!(record.get("trace").is_none(), "{record}");
+    insta::assert_snapshot!("a_loop_alone_chain", chain(&out));
+    // The whole record as the engine writes it, its fields in their order.
+    insta::assert_snapshot!(
+        "a_loop_alone_record",
+        out.output
+            .statements
+            .last()
+            .unwrap()
+            .error
+            .as_deref()
+            .unwrap()
+    );
+}
+
+#[test]
+fn an_error_outside_a_function_and_a_loop_has_a_record_with_no_chain() {
+    let out = run("let d = frame(x = [1.0, 2, 3])\nerror(\"stopped at the top\")\n");
+    assert_eq!(out.exit_code, 1);
+    let record = record(&out);
+    assert_eq!(record["message"], "stopped at the top");
+    assert_eq!(record["span"]["line"], 2);
+    assert!(record.get("chain").is_none(), "{record}");
+    assert!(record.get("trace").is_none(), "{record}");
+    // A statement that ran has no error; a run that ends well has none at all.
+    assert!(out.output.statements[0].error.is_none());
+    let out = run("let d = frame(x = [1.0, 2, 3])\nprint(d.n_rows())\n");
+    assert!(out.output.statements.iter().all(|s| s.error.is_none()));
+}
+
+#[test]
+fn a_pass_of_a_loop_inside_a_built_in_is_not_in_the_chain() {
+    // `iqr` is written in Zeff; whatever loops its body has, the chain of its refusal is the
+    // project's own: the one call of the module's function.
+    let out = run("use functions::clean\nlet d = frame(x = [1.0, 2, 3])\nprint(d.wrong_iqr(x))\n");
+    assert_eq!(out.exit_code, 1);
+    let record = record(&out);
+    let links = record["chain"].as_array().unwrap();
+    assert_eq!(links.len(), 1, "{record}");
+    assert_eq!(links[0]["kind"], "call");
+    assert_eq!(links[0]["function"], "wrong_iqr");
+    assert!(
+        links
+            .iter()
+            .all(|link| link["file"].as_str().unwrap().ends_with(".zeff")
+                && !link["file"].as_str().unwrap().contains("builtin")),
+        "{record}"
+    );
 }

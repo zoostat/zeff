@@ -42,7 +42,7 @@ fn a_run_tells_each_event_as_a_line_of_json_and_gives_its_outcome() {
     );
     assert_eq!(
         done,
-        r#"{"type": "done", "exit_code": 0, "stdout": "one\n", "stderr": "", "statements": [{"index": 1, "line": 1, "end_line": 1, "ran": true, "name": null, "type": null, "rows": null, "columns": null, "length": null, "n": null, "stdout": "one\n", "stderr": "", "reads": [], "calls": [], "seeds": false, "draws": false, "reads_file": false, "writes_file": false, "drew": false}, {"index": 2, "line": 2, "end_line": 2, "ran": true, "name": "a", "type": "Int", "rows": null, "columns": null, "length": null, "n": null, "stdout": "", "stderr": "", "reads": [], "calls": [], "seeds": false, "draws": false, "reads_file": false, "writes_file": false, "drew": false}], "plots": [], "frames": []}"#
+        r#"{"type": "done", "exit_code": 0, "stdout": "one\n", "stderr": "", "statements": [{"index": 1, "line": 1, "end_line": 1, "ran": true, "name": null, "type": null, "rows": null, "columns": null, "length": null, "n": null, "stdout": "one\n", "stderr": "", "reads": [], "calls": [], "seeds": false, "draws": false, "reads_file": false, "writes_file": false, "drew": false, "error": null}, {"index": 2, "line": 2, "end_line": 2, "ran": true, "name": "a", "type": "Int", "rows": null, "columns": null, "length": null, "n": null, "stdout": "", "stderr": "", "reads": [], "calls": [], "seeds": false, "draws": false, "reads_file": false, "writes_file": false, "drew": false, "error": null}], "plots": [], "frames": []}"#
     );
     // A pass of a loop, with its total where the loop knows it and `null` where it does not.
     assert_eq!(
@@ -559,7 +559,7 @@ fn the_outcome_of_a_run_says_of_each_statement_what_its_result_is_and_what_it_de
         r#""seeds": true, "draws": false,"#,
         r#"{"index": 2, "line": 2, "end_line": 2, "ran": true, "name": "d", "type": "Frame", "rows": 4, "columns": 2, "length": null, "n": null,"#,
         r#"{"index": 3, "line": 3, "end_line": 3, "ran": true, "name": "some", "type": "Frame", "rows": 2, "columns": 2,"#,
-        r#""reads": [2], "calls": [], "seeds": false, "draws": true, "reads_file": false, "writes_file": false, "drew": true}"#,
+        r#""reads": [2], "calls": [], "seeds": false, "draws": true, "reads_file": false, "writes_file": false, "drew": true, "error": null}"#,
         r#"{"index": 4, "line": 4, "end_line": 4, "ran": true, "name": "fit", "type": "RegFit", "rows": null, "columns": null, "length": null, "n": 4,"#,
         r#"{"index": 5, "line": 5, "end_line": 5, "ran": true, "name": null, "type": null, "rows": null, "columns": null, "length": null, "n": null, "stdout": "2\n","#,
         r#""reads": [3], "calls": []"#,
@@ -574,6 +574,32 @@ fn the_outcome_of_a_run_says_of_each_statement_what_its_result_is_and_what_it_de
         done.contains(r#""statements": [], "plots": [], "frames": []}"#),
         "{done}"
     );
+}
+
+// ----- an error's chain as fields (open decision #175, C22; release 0.9.0, step 27) -----
+
+#[test]
+fn the_statement_that_stopped_a_run_carries_its_error_with_the_chain_as_fields() {
+    let host = Host::new("demo");
+    let text = "/// Half of a positive number.\nfn half(x: Float) -> Float {\n    assert(x > 0, \"a positive number is needed\")\n    x / 2\n}\nlet two = half(4.0)\nlet halves = [for x in [3.0, -1.0, 5.0] { half(x) }]\nprint(\"never\")\n";
+    let (_, done) = run(&host, text, None, never);
+    assert!(done.contains(r#""exit_code": 1"#), "{done}");
+    // The message is the one a run prints, with its one line for the call.
+    assert!(
+        done.contains(r#"= in: `half(x: -1)`, called at scripts/main.zeff:7:43"#),
+        "{done}"
+    );
+    // The first statement ran and has no error; the second stopped the run: its record has
+    // the call with what it was given and the pass with what the loop variable held; the
+    // third did not run.
+    for part in [
+        r#"{"index": 1, "line": 6, "end_line": 6, "ran": true, "name": "two", "type": "Float","#,
+        r#""drew": false, "error": null}, {"index": 2, "line": 7, "end_line": 7, "ran": true, "name": "halves", "type": null,"#,
+        r#""error": {"code": "Z0001", "severity": "error", "message": "a positive number is needed", "file": "scripts/main.zeff", "span": {"line": 3, "column": 5, "end_line": 3, "end_column": 11}"#,
+        r#""trace": ["`half(x: -1)`, called at scripts/main.zeff:7:43"], "chain": [{"kind": "call", "function": "half", "given": [{"name": "x", "value": "-1"}], "file": "scripts/main.zeff", "line": 7, "column": 43}, {"kind": "pass", "pass": 2, "of": 3, "variable": "x", "value": "-1", "file": "scripts/main.zeff", "line": 7, "column": 19}], "mark": null, "fixes": []}}, {"index": 3, "line": 8, "end_line": 8, "ran": false,"#,
+    ] {
+        assert!(done.contains(part), "{part}\n in {done}");
+    }
 }
 
 // ----- a statement's print at a width (open decision #175, C6; release 0.9.0, step 26b) -----

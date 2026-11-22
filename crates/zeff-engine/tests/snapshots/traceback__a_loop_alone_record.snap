@@ -1,0 +1,5 @@
+---
+source: crates/zeff-engine/tests/traceback.rs
+expression: out.output.statements.last().unwrap().error.as_deref().unwrap()
+---
+{"code": "Z0001", "severity": "error", "message": "too far", "file": "scripts/main.zeff", "span": {"line": 3, "column": 5, "end_line": 3, "end_column": 11}, "labels": [{"text": "in this call", "primary": true, "line": 3, "column": 5, "end_line": 3, "end_column": 11}], "help": [], "chain": [{"kind": "pass", "pass": 4, "of": 5, "variable": "k", "value": "4", "file": "scripts/main.zeff", "line": 2, "column": 5}], "mark": null, "fixes": []}

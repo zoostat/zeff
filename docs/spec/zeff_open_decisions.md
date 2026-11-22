@@ -3699,6 +3699,8 @@ Raised on 18 November 2026. Since Zeff 0.7.0 an error raised inside a function n
 
 **The owner's answer (21 November 2026, given in the Zemp Lite session at step 1 of its release 0.2 and passed on in the shared notes; entered from a Zeff session, which alone edits this register).** His words to the seventeen questions of that checklist, each put with a recommendation: "Go, as recommended." Option A (R14), at the Zemp 0.2 alpha; the pass is added to the trail when the engine gives it (C22, placed at Zeff 0.9.0, step 27).
 
+**Status (22 November 2026).** What the trail needs of the engine is built at step 27 of Zeff 0.9.0 (C22 of #175): the record of the error that stopped a run lists each link of the chain as fields, a call with what it was given and where it was called, a pass of a loop with its number, the number of passes and what the loop variable held; the statement that stopped the run carries the record in `zeff run --format json` and in the outcome of the browser build. The printed message is unchanged. It reaches Zemp Lite when Zemp moves to an engine of 0.9.0.
+
 ### 184. Searching the passes of a block, and drawing a field across them
 
 Raised on 18 November 2026. #76's inspector gives one row per pass: for `for`, the loop variable, the rows after a `where`, the result and the time; for `iterate`, the state and what `done` compared. A debugger's conditional breakpoint answers "which pass went wrong?" without reading every row. A sampler's trace plot answers "is it still moving?" for `iterate`.

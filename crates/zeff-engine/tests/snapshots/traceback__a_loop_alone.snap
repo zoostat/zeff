@@ -1,0 +1,9 @@
+---
+source: crates/zeff-engine/tests/traceback.rs
+expression: out.output.stderr
+---
+error[Z0001]: too far
+ --> scripts/main.zeff:3:5
+  |
+3 |     assert(k < 4, "too far")
+  |     ^^^^^^ in this call
