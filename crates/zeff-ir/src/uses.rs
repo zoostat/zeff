@@ -106,7 +106,8 @@ pub fn expr_uses(expr: &Expr, used: &mut Vec<BindingId>) {
         ExprKind::Term(e)
         | ExprKind::TermExpr(e)
         | ExprKind::FrameExpr { expr: e, .. }
-        | ExprKind::Attempt(e) => expr_uses(e, used),
+        | ExprKind::Attempt(e)
+        | ExprKind::Timer(e) => expr_uses(e, used),
         ExprKind::List(items) => {
             for e in items {
                 expr_uses(e, used);

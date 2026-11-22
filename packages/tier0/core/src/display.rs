@@ -412,6 +412,28 @@ pub fn alpha_text(alpha: f64) -> String {
 }
 
 /// `95%` for a level of 0.95.
+/// A span of time as `timer` notes it, from microseconds: `0.012 s` under a minute,
+/// `2 min 3.4 s` under an hour, `1 h 2 min 3 s` from an hour on; nought for a clock that went
+/// backwards.
+pub fn elapsed_text(micros: i64) -> String {
+    let micros = micros.max(0);
+    let seconds = micros as f64 / 1e6;
+    if micros < 60_000_000 {
+        return format!("{} s", fixed(seconds, 3));
+    }
+    let whole_minutes = micros / 60_000_000;
+    let rest = (micros % 60_000_000) as f64 / 1e6;
+    if whole_minutes < 60 {
+        return format!("{whole_minutes} min {} s", fixed(rest, 1));
+    }
+    format!(
+        "{} h {} min {} s",
+        whole_minutes / 60,
+        whole_minutes % 60,
+        fixed(rest, 0)
+    )
+}
+
 pub fn level_text(level: f64) -> String {
     format!("{}%", format_float((level * 1e12).round() / 1e10))
 }
@@ -792,6 +814,19 @@ pub fn list_levels(levels: &[String]) -> String {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn a_span_of_time_is_written_by_its_size() {
+        assert_eq!(elapsed_text(0), "0.000 s");
+        assert_eq!(elapsed_text(12_345), "0.012 s");
+        assert_eq!(elapsed_text(59_999_499), "59.999 s");
+        assert_eq!(elapsed_text(60_000_000), "1 min 0.0 s");
+        assert_eq!(elapsed_text(123_400_000), "2 min 3.4 s");
+        assert_eq!(elapsed_text(3_599_900_000), "59 min 59.9 s");
+        assert_eq!(elapsed_text(3_723_000_000), "1 h 2 min 3 s");
+        // A clock put back while the expression ran: no time, not a negative one.
+        assert_eq!(elapsed_text(-5_000_000), "0.000 s");
+    }
 
     #[test]
     fn floats_print_as_section_3_8_says() {

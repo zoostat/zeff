@@ -2792,6 +2792,25 @@ impl<'a> Interpreter<'a> {
                     }
                 }
             }
+            // `timer(expr)` (catalogue row 64): the run's clock read before and after the
+            // expression, and the time between noted. The clock is the run's, given through the
+            // file system as `today()` and `now()` have it, so a test with a fixed clock notes
+            // nought. An expression that fails ends the statement as it would have, and nothing
+            // is noted.
+            ExprKind::Timer(inner) => {
+                let Some(started) = self.files.now() else {
+                    return Err(
+                        self.internal(expr, "`timer` was called in a run that has no clock")
+                    );
+                };
+                let value = self.eval(inner, printed, messages)?;
+                let ended = self.files.now().unwrap_or(started);
+                messages.push(Diagnostic::plain_note(format!(
+                    "elapsed time {}",
+                    zeff_core::display::elapsed_text(ended - started)
+                )));
+                value
+            }
             ExprKind::Attempt(inner) => match self.eval(inner, printed, messages) {
                 Ok(value) => value,
                 Err(error) if error.code.starts_with("Z9") => return Err(error),

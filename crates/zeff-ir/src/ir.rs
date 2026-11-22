@@ -290,6 +290,10 @@ pub enum ExprKind {
     /// `attempt(expr)` (section 5.4): the expression evaluated under a catch, a script error
     /// becoming a `Failed` value; the type is the expression's.
     Attempt(Box<Expr>),
+    /// `timer(expr)` (catalogue row 64; release 0.9.0, step 16): the expression evaluated
+    /// between two readings of the run's clock, the time between them noted; the value and the
+    /// type are the expression's.
+    Timer(Box<Expr>),
     /// A named function as a value (section 3.7, "Functions as values"), where a parameter of
     /// type `Fn(...) -> R` takes it.
     FunctionValue(FunctionValue),

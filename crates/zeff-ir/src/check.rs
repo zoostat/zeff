@@ -5286,6 +5286,58 @@ impl Checker<'_> {
         }
     }
 
+    /// `timer(expr)` (catalogue row 64; release 0.9.0, step 16): one expression, whose value
+    /// and type are the result's; the time it takes is noted when the statement runs. It reads
+    /// the clock, so a function may not call it (section 3.7, "Effects"; Z0110). Unlike
+    /// `attempt`, it may time an expression that gives nothing, such as an `export`.
+    fn timer(
+        &mut self,
+        args: &[ast::Arg],
+        callee_span: Span,
+        span: Span,
+        expected: Option<&Ty>,
+    ) -> Expr {
+        if let Some(id) = self.current_function {
+            let function = self.signatures[id].name.clone();
+            self.report(
+                Diagnostic::error(
+                    "Z0110",
+                    format!("`timer` is allowed only in a script, not inside the function `{function}`"),
+                )
+                .primary(callee_span, "reads or writes outside the arguments")
+                .help("a function's result depends on its arguments alone, so it may be cached; time the call of the function in the script: `timer(f(x))`"),
+            );
+            return Expr::error(span);
+        }
+        let positional: Vec<&ast::Expr> = args
+            .iter()
+            .filter_map(|a| match a {
+                ast::Arg::Positional(e) => Some(e),
+                _ => None,
+            })
+            .collect();
+        if positional.len() != 1 || positional.len() != args.len() {
+            let code = if args.is_empty() { "Z0406" } else { "Z0407" };
+            let message = if args.is_empty() {
+                "`timer` needs `expr`".to_string()
+            } else {
+                "`timer` takes one expression and no options".to_string()
+            };
+            self.report(
+                Diagnostic::error(code, message)
+                    .primary(callee_span, "usage: `timer(expr)`")
+                    .help("write the expression to time inside the parentheses: `timer(d.reg(y ~ x))`"),
+            );
+            return Expr::error(span);
+        }
+        let inner = self.expr(positional[0], expected);
+        Expr {
+            ty: inner.ty.clone(),
+            span,
+            kind: ExprKind::Timer(Box::new(inner)),
+        }
+    }
+
     /// A named function where a parameter of type `Fn(...) -> R` takes one (section 3.7,
     /// "Functions as values"; section 5.3, "Values"): the script's function of that name, else
     /// the built-in; its signature must match the parameter's type exactly, defaults ignored
@@ -5990,6 +6042,20 @@ impl Checker<'_> {
         // `attempt(expr)` is the interpreter's: the expression under a catch (section 5.4).
         if receiver.is_none() && callee.segments.len() == 1 && name == "attempt" {
             return self.attempt(args, callee_span, span, expected);
+        }
+        // `timer(expr)` is the interpreter's too: the expression between two readings of the
+        // clock (catalogue row 64).
+        if receiver.is_none() && callee.segments.len() == 1 && name == "timer" {
+            return self.timer(args, callee_span, span, expected);
+        }
+        // Written as a method, `x.timer()` is `timer(x)` (section 3.1, "Methods").
+        if let Some(timed) = receiver
+            && callee.segments.len() == 1
+            && name == "timer"
+        {
+            let mut all = vec![ast::Arg::Positional(timed.clone())];
+            all.extend(args.iter().cloned());
+            return self.timer(&all, callee_span, span, expected);
         }
 
         // `dist.normal(...)`: `dist`, `power` and `spec` are namespaces, not values (section 3.7,

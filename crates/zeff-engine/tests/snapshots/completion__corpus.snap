@@ -4,15 +4,15 @@ expression: all
 ---
 > let d = import("data/small.csv")
 > d.|
-replace 1:2-1:2, 69 offered
+replace 1:2-1:2, 70 offered
   Method (66): add aggregate anova append bar boxplot chi2_test correlation covariance density describe distinct drop drop_missing duplicates fisher_test glm head heatmap histogram iqr is ivreg kruskal_test ks_test kurtosis label line mad max mean median merge min n_cols n_rows panel plot proportion_test qq_plot quantile recode reg rename sample save scatter sd select shapiro_test skewness sort sum summary t_test tabulate tail to to_long to_wide update variables variance variance_test where wilcoxon_test
-  Function (3): attempt print type_of
+  Function (4): attempt print timer type_of
 ----
 > let d = import("data/small.csv")
 > let m = d.where(a > 1).|
-replace 1:23-1:23, 69 offered
+replace 1:23-1:23, 70 offered
   Method (66): add aggregate anova append bar boxplot chi2_test correlation covariance density describe distinct drop drop_missing duplicates fisher_test glm head heatmap histogram iqr is ivreg kruskal_test ks_test kurtosis label line mad max mean median merge min n_cols n_rows panel plot proportion_test qq_plot quantile recode reg rename sample save scatter sd select shapiro_test skewness sort sum summary t_test tabulate tail to to_long to_wide update variables variance variance_test where wilcoxon_test
-  Function (3): attempt print type_of
+  Function (4): attempt print timer type_of
 ----
 > let d = import("data/small.csv")
 > d.me|
@@ -25,34 +25,34 @@ replace 1:2-1:4, 3 offered
 > let d = import("data/small.csv")
 > let m = d.mean(a)
 > m.|
-replace 2:2-2:2, 44 offered
+replace 2:2-2:2, 45 offered
   Method (2): is to
-  Function (42): abs acos asin atan atan2 attempt beta ceil clamp coalesce cos datetime div equal exp expm1 fill_missing floor format gamma inv_logit is_finite is_in is_missing log log10 log1p log2 log_gamma logit max min mod print round seq sign sin sqrt tan truncate type_of
+  Function (43): abs acos asin atan atan2 attempt beta ceil clamp coalesce cos datetime div equal exp expm1 fill_missing floor format gamma inv_logit is_finite is_in is_missing log log10 log1p log2 log_gamma logit max min mod print round seq sign sin sqrt tan timer truncate type_of
 ----
 > let s = "text"
 > s.|
-replace 1:2-1:2, 29 offered
+replace 1:2-1:2, 30 offered
   Method (2): is to
-  Function (27): attempt coalesce contains date datetime ends_with equal error extract fill_missing import is_in is_missing len lower note pad print replace slice split starts_with table trim type_of upper warn
+  Function (28): attempt coalesce contains date datetime ends_with equal error extract fill_missing import is_in is_missing len lower note pad print replace slice split starts_with table timer trim type_of upper warn
 ----
 > let day = date("2024-03-01")
 > day.|
-replace 1:4-1:4, 22 offered
+replace 1:4-1:4, 23 offered
   Method (2): is to
-  Function (20): add_time attempt coalesce day equal fill_missing format is_in is_missing max min month print quarter start_of time_between type_of week weekday year
+  Function (21): add_time attempt coalesce day equal fill_missing format is_in is_missing max min month print quarter start_of time_between timer type_of week weekday year
 ----
 > let xs = [1.0, 2, 3]
 > xs.|
-replace 1:3-1:3, 19 offered
+replace 1:3-1:3, 20 offered
   Method (2): is to
-  Function (17): append attempt equal filter first interact last len map n_missing p_adjust print reduce reversed sorted type_of unique
+  Function (18): append attempt equal filter first interact last len map n_missing p_adjust print reduce reversed sorted timer type_of unique
 ----
 > let r = {n: 3, name: "x"}
 > r.|
-replace 1:2-1:2, 10 offered
+replace 1:2-1:2, 11 offered
   Field (2): n name
   Method (2): is to
-  Function (6): attempt equal iterate keys print type_of
+  Function (7): attempt equal iterate keys print timer type_of
 ----
 > let r = {n: 3, name: "x"}
 > r.n|
@@ -63,53 +63,53 @@ replace 1:2-1:3, 2 offered
 ----
 > let d = import("data/small.csv")
 > d.add(k = a.|)
-replace 1:12-1:12, 68 offered
+replace 1:12-1:12, 69 offered
   Method (2): is to
-  Function (66): abs acos all any asin assert atan atan2 attempt base beta between bin category ceil center choose clamp coalesce cos diff div error exp expm1 factorial fill_missing floor gamma inv_logit is_finite is_in is_missing lag lead len levels log log10 log1p log2 log_gamma logit max min mod n_distinct n_missing note p_adjust print rank round running seed seq sign sin sqrt standardize table tan truncate type_of warn winsorize
+  Function (67): abs acos all any asin assert atan atan2 attempt base beta between bin category ceil center choose clamp coalesce cos diff div error exp expm1 factorial fill_missing floor gamma inv_logit is_finite is_in is_missing lag lead len levels log log10 log1p log2 log_gamma logit max min mod n_distinct n_missing note p_adjust print rank round running seed seq sign sin sqrt standardize table tan timer truncate type_of warn winsorize
 ----
 > let d = import("data/small.csv")
 > let col = d["b"]
 > col.|
-replace 2:4-2:4, 68 offered
+replace 2:4-2:4, 69 offered
   Method (2): is to
-  Function (66): abs acos all any asin assert atan atan2 attempt base beta between bin category ceil center choose clamp coalesce cos diff div error exp expm1 factorial fill_missing floor gamma inv_logit is_finite is_in is_missing lag lead len levels log log10 log1p log2 log_gamma logit max min mod n_distinct n_missing note p_adjust print rank round running seed seq sign sin sqrt standardize table tan truncate type_of warn winsorize
+  Function (67): abs acos all any asin assert atan atan2 attempt base beta between bin category ceil center choose clamp coalesce cos diff div error exp expm1 factorial fill_missing floor gamma inv_logit is_finite is_in is_missing lag lead len levels log log10 log1p log2 log_gamma logit max min mod n_distinct n_missing note p_adjust print rank round running seed seq sign sin sqrt standardize table tan timer truncate type_of warn winsorize
 ----
 > let d = import("data/small.csv")
 > let fit = d.reg(b ~ a)
 > fit.|
-replace 2:4-2:4, 28 offered
+replace 2:4-2:4, 29 offered
   Method (25): ci coef coef_plot compare derive design estimates export fit_measures fitted influence is margins n_obs p_values plot predict r_squared residuals std_errors summary test to vcov vif
-  Function (3): attempt print type_of
+  Function (4): attempt print timer type_of
 ----
 > let d = import("data/small.csv")
 > let fit = d.reg(b ~ a)
 > fit.coef().|
-replace 2:11-2:11, 8 offered
+replace 2:11-2:11, 9 offered
   Method (2): is to
-  Function (6): attempt equal keys len print type_of
+  Function (7): attempt equal keys len print timer type_of
 ----
 > let d = import("data/small.csv")
 > d.t_test(b, mu: 3).|
-replace 1:19-1:19, 30 offered
+replace 1:19-1:19, 31 offered
   Method (27): alternative ci coef coef_plot compare derive df effect_size estimates export fit_measures fitted h0 h1 is n_obs p_values plot posthoc predict residuals statistic std_errors summary test to vcov
-  Function (3): attempt print type_of
+  Function (4): attempt print timer type_of
 ----
 > let d = import("data/small.csv")
 > d.plot(x: a, y: b).|
-replace 1:19-1:19, 30 offered
+replace 1:19-1:19, 31 offered
   Method (27): annotate area bars boxplot coord density errorbars export facet histogram hline is labels legend lines points ribbon rug scale scale_x scale_y step text theme tile to vline
-  Function (3): attempt print type_of
+  Function (4): attempt print timer type_of
 ----
 > let z = dist.normal(0, 1)
 > z.|
-replace 1:2-1:2, 9 offered
+replace 1:2-1:2, 10 offered
   Method (6): cdf draw is pdf quantile to
-  Function (3): attempt print type_of
+  Function (4): attempt print timer type_of
 ----
 > nothing.|
-replace 0:8-0:8, 235 offered
+replace 0:8-0:8, 236 offered
   Method (122): add aggregate alternative annotate anova append ar_test area bar bars boxplot cdf chi2_test ci coef coef_plot compare confusion coord correlation covariance curve density derive describe design df distinct draw drop drop_missing duplicates effect_size errorbars estimates export facet first_stage fisher_test fit_measures fitted glm h0 h1 head heatmap histogram hline influence iqr is ivreg kruskal_test ks_test kurtosis label labels legend line lines mad margins max mean median merge min n_cols n_obs n_rows p_values panel pdf plot points posthoc predict proportion_test qq_plot quantile r_squared recode reg rename residuals ribbon rug sample save scale scale_x scale_y scatter sd select shapiro_test skewness sort statistic std_errors step sum summary t_test tabulate tail test text theme tile to to_long to_wide update variables variance variance_test vcov vif vline where wilcoxon_test
-  Function (113): abs acos add_time all any append asin assert atan atan2 attempt base beta between bin category ceil center choose clamp coalesce contains cos dataset date datetime day diff div ends_with equal error event exp expm1 extract factorial fill_missing filter first floor format gamma hour import interact inv_logit is_finite is_in is_missing iterate join keys lag last lead len levels log log10 log1p log2 log_gamma logit lower map max min minute mod month n_distinct n_missing name_of note p_adjust pad print quarter rank reduce replace report reversed round row running second seed seq sign sin slice sorted split sqrt standardize start_of starts_with table tan time_between trim truncate type_of unique upper vars warn week weekday winsorize year
+  Function (114): abs acos add_time all any append asin assert atan atan2 attempt base beta between bin category ceil center choose clamp coalesce contains cos dataset date datetime day diff div ends_with equal error event exp expm1 extract factorial fill_missing filter first floor format gamma hour import interact inv_logit is_finite is_in is_missing iterate join keys lag last lead len levels log log10 log1p log2 log_gamma logit lower map max min minute mod month n_distinct n_missing name_of note p_adjust pad print quarter rank reduce replace report reversed round row running second seed seq sign sin slice sorted split sqrt standardize start_of starts_with table tan time_between timer trim truncate type_of unique upper vars warn week weekday winsorize year
 ----
 > let d = import("data/small.csv")
 > d
@@ -259,9 +259,9 @@ replace 3:4-3:6, 5 offered
 ----
 > let top = 1
 > let moved = map([1.0, 2], fn(tick) tick + t|)
-replace 1:42-1:43, 19 offered
+replace 1:42-1:43, 20 offered
   Method (10): t_test tabulate tail test text theme tile to to_long to_wide
-  Function (7): table tan time_between today trim truncate type_of
+  Function (8): table tan time_between timer today trim truncate type_of
   Binding (2): tick top
 ----
 in /work/demo/functions/clean.zeff

@@ -1,0 +1,95 @@
+---
+source: crates/zeff-engine/tests/timer.rs
+expression: out
+---
+=== let wages = dataset(wages)
+let m = timer(wages.reg(log(wage) ~ educ + exper))
+m.n_obs()
+timer(sqrt(2))
+timer(m.export("output/timed.tex"))
+for k in [1, 2] {
+    timer(k * 2)
+}
+type_of(timer(1.5)) ===
+18179
+1.41421
+Float
+--- messages ---
+note: elapsed time 0.000 s (line 2)
+note: elapsed time 0.000 s (line 4)
+note: elapsed time 0.000 s (line 5)
+note: elapsed time 0.000 s; the same for each of 2 passes (line 6)
+note: elapsed time 0.000 s (line 9)
+[exit 0]
+
+=== /// Twice a number.
+fn twice(x: Float) -> Float {
+    timer(x * 2)
+}
+twice(2.0) ===
+--- messages ---
+error[Z0110]: `timer` is allowed only in a script, not inside the function `twice`
+ --> scripts/main.zeff:3:5
+  |
+3 |     timer(x * 2)
+  |     ^^^^^ reads or writes outside the arguments
+  |
+  = help: a function's result depends on its arguments alone, so it may be cached; time the call of the function in the script: `timer(f(x))`
+[exit 1]
+
+=== timer() ===
+--- messages ---
+error[Z0406]: `timer` needs `expr`
+ --> scripts/main.zeff:1:1
+  |
+1 | timer()
+  | ^^^^^ usage: `timer(expr)`
+  |
+  = help: write the expression to time inside the parentheses: `timer(d.reg(y ~ x))`
+[exit 1]
+
+=== timer(1, 2) ===
+--- messages ---
+error[Z0407]: `timer` takes one expression and no options
+ --> scripts/main.zeff:1:1
+  |
+1 | timer(1, 2)
+  | ^^^^^ usage: `timer(expr)`
+  |
+  = help: write the expression to time inside the parentheses: `timer(d.reg(y ~ x))`
+[exit 1]
+
+=== timer(expr: 1) ===
+--- messages ---
+error[Z0407]: `timer` takes one expression and no options
+ --> scripts/main.zeff:1:1
+  |
+1 | timer(expr: 1)
+  | ^^^^^ usage: `timer(expr)`
+  |
+  = help: write the expression to time inside the parentheses: `timer(d.reg(y ~ x))`
+[exit 1]
+
+=== timer(undefined_name) ===
+--- messages ---
+error[Z0101]: nothing is called `undefined_name` here
+ --> scripts/main.zeff:1:7
+  |
+1 | timer(undefined_name)
+  |       ^^^^^^^^^^^^^^ not a binding
+  |
+  = help: a bare name is a binding made with `let`; text is written in quotes, and a variable is named inside a frame's method, as in `wages.mean(wage)`
+[exit 1]
+
+=== let x = 3
+x.timer()
+(x + 1).timer(2) ===
+--- messages ---
+error[Z0407]: `timer` takes one expression and no options
+ --> scripts/main.zeff:3:9
+  |
+3 | (x + 1).timer(2)
+  |         ^^^^^ usage: `timer(expr)`
+  |
+  = help: write the expression to time inside the parentheses: `timer(d.reg(y ~ x))`
+[exit 1]

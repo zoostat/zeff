@@ -167,7 +167,8 @@ fn expr_walk<'p>(expr: &'p Expr, tell: &mut dyn FnMut(Found<'p>)) {
         ExprKind::Term(e)
         | ExprKind::TermExpr(e)
         | ExprKind::FrameExpr { expr: e, .. }
-        | ExprKind::Attempt(e) => expr_walk(e, tell),
+        | ExprKind::Attempt(e)
+        | ExprKind::Timer(e) => expr_walk(e, tell),
         ExprKind::List(items) => {
             for e in items {
                 expr_walk(e, tell);

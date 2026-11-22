@@ -151,6 +151,17 @@ fn iterate(ctx: &mut CallContext<'_>, _args: Args) -> Result<Value, Fail> {
     ))
 }
 
+fn timer(ctx: &mut CallContext<'_>, _args: Args) -> Result<Value, Fail> {
+    Err(fail(
+        Diagnostic::error(
+            "Z9001",
+            "internal error: this is a bug in Zeff, not in your script (`timer` reached a body)",
+        )
+        .in_file(ctx.script)
+        .primary(ctx.callee_span, "the call that failed"),
+    ))
+}
+
 fn attempt(ctx: &mut CallContext<'_>, _args: Args) -> Result<Value, Fail> {
     Err(fail(
         Diagnostic::error(
@@ -230,6 +241,26 @@ pub fn functions() -> Vec<Function> {
                 accuracy: None,
             },
             body: attempt,
+        },
+        // `timer(expr)` is run by the interpreter, which reads the run's clock before and after
+        // the expression (catalogue row 64; release 0.9.0, step 16); the entry here carries its
+        // page and signature.
+        Function {
+            spec: FunctionSpec {
+                name: "timer",
+                package: "core",
+                method: false,
+                params: vec![ParamSpec::required("expr", "Any")],
+                rest: None,
+                returns: "Any",
+                diagnostics: vec![
+                    DiagnosticDecl::note("the time the expression took"),
+                    DiagnosticDecl::new("Z0110", "called inside a function"),
+                ],
+                help: include_str!("../help/timer.md"),
+                accuracy: None,
+            },
+            body: timer,
         },
         // `iterate(start:, step:, done:, ...)` is run by the interpreter, which calls the step
         // and the stopping function it is given (Language Reference, section 5.5); the entry here
