@@ -1,0 +1,410 @@
+---
+source: crates/zeff-lsp/tests/server.rs
+expression: "serde_json::to_string_pretty(&answers[0]).unwrap()"
+---
+{
+  "id": 8,
+  "jsonrpc": "2.0",
+  "result": [
+    {
+      "children": [],
+      "kind": 15,
+      "name": "1. Import and clean",
+      "range": {
+        "end": {
+          "character": 0,
+          "line": 47
+        },
+        "start": {
+          "character": 0,
+          "line": 21
+        }
+      },
+      "selectionRange": {
+        "end": {
+          "character": 24,
+          "line": 21
+        },
+        "start": {
+          "character": 5,
+          "line": 21
+        }
+      }
+    },
+    {
+      "children": [],
+      "kind": 15,
+      "name": "2. Describe",
+      "range": {
+        "end": {
+          "character": 0,
+          "line": 58
+        },
+        "start": {
+          "character": 0,
+          "line": 48
+        }
+      },
+      "selectionRange": {
+        "end": {
+          "character": 16,
+          "line": 48
+        },
+        "start": {
+          "character": 5,
+          "line": 48
+        }
+      }
+    },
+    {
+      "children": [],
+      "kind": 15,
+      "name": "3. Reshape, merge, aggregate",
+      "range": {
+        "end": {
+          "character": 0,
+          "line": 73
+        },
+        "start": {
+          "character": 0,
+          "line": 59
+        }
+      },
+      "selectionRange": {
+        "end": {
+          "character": 33,
+          "line": 59
+        },
+        "start": {
+          "character": 5,
+          "line": 59
+        }
+      }
+    },
+    {
+      "children": [],
+      "kind": 15,
+      "name": "4. Panel variables",
+      "range": {
+        "end": {
+          "character": 0,
+          "line": 81
+        },
+        "start": {
+          "character": 0,
+          "line": 74
+        }
+      },
+      "selectionRange": {
+        "end": {
+          "character": 23,
+          "line": 74
+        },
+        "start": {
+          "character": 5,
+          "line": 74
+        }
+      }
+    },
+    {
+      "children": [],
+      "kind": 15,
+      "name": "5. Regression",
+      "range": {
+        "end": {
+          "character": 0,
+          "line": 103
+        },
+        "start": {
+          "character": 0,
+          "line": 82
+        }
+      },
+      "selectionRange": {
+        "end": {
+          "character": 18,
+          "line": 82
+        },
+        "start": {
+          "character": 5,
+          "line": 82
+        }
+      }
+    },
+    {
+      "children": [],
+      "kind": 15,
+      "name": "6. Loops and your own functions",
+      "range": {
+        "end": {
+          "character": 0,
+          "line": 136
+        },
+        "start": {
+          "character": 0,
+          "line": 104
+        }
+      },
+      "selectionRange": {
+        "end": {
+          "character": 36,
+          "line": 104
+        },
+        "start": {
+          "character": 5,
+          "line": 104
+        }
+      }
+    },
+    {
+      "children": [],
+      "kind": 15,
+      "name": "7. Instrumental variables",
+      "range": {
+        "end": {
+          "character": 0,
+          "line": 149
+        },
+        "start": {
+          "character": 0,
+          "line": 137
+        }
+      },
+      "selectionRange": {
+        "end": {
+          "character": 30,
+          "line": 137
+        },
+        "start": {
+          "character": 5,
+          "line": 137
+        }
+      }
+    },
+    {
+      "children": [],
+      "kind": 15,
+      "name": "8. Two-period difference-in-differences",
+      "range": {
+        "end": {
+          "character": 0,
+          "line": 156
+        },
+        "start": {
+          "character": 0,
+          "line": 150
+        }
+      },
+      "selectionRange": {
+        "end": {
+          "character": 44,
+          "line": 150
+        },
+        "start": {
+          "character": 5,
+          "line": 150
+        }
+      }
+    },
+    {
+      "children": [],
+      "kind": 15,
+      "name": "9. Classical tests",
+      "range": {
+        "end": {
+          "character": 0,
+          "line": 172
+        },
+        "start": {
+          "character": 0,
+          "line": 157
+        }
+      },
+      "selectionRange": {
+        "end": {
+          "character": 23,
+          "line": 157
+        },
+        "start": {
+          "character": 5,
+          "line": 157
+        }
+      }
+    },
+    {
+      "children": [],
+      "kind": 15,
+      "name": "10. Binary outcomes",
+      "range": {
+        "end": {
+          "character": 0,
+          "line": 186
+        },
+        "start": {
+          "character": 0,
+          "line": 173
+        }
+      },
+      "selectionRange": {
+        "end": {
+          "character": 24,
+          "line": 173
+        },
+        "start": {
+          "character": 5,
+          "line": 173
+        }
+      }
+    },
+    {
+      "children": [],
+      "kind": 15,
+      "name": "11. A small simulation, keeping going when a fit fails",
+      "range": {
+        "end": {
+          "character": 0,
+          "line": 203
+        },
+        "start": {
+          "character": 0,
+          "line": 187
+        }
+      },
+      "selectionRange": {
+        "end": {
+          "character": 59,
+          "line": 187
+        },
+        "start": {
+          "character": 5,
+          "line": 187
+        }
+      }
+    },
+    {
+      "children": [],
+      "kind": 15,
+      "name": "12. Reliability of a survey scale",
+      "range": {
+        "end": {
+          "character": 0,
+          "line": 210
+        },
+        "start": {
+          "character": 0,
+          "line": 204
+        }
+      },
+      "selectionRange": {
+        "end": {
+          "character": 38,
+          "line": 204
+        },
+        "start": {
+          "character": 5,
+          "line": 204
+        }
+      }
+    },
+    {
+      "children": [],
+      "kind": 15,
+      "name": "13. Causal graph: check the model against its assumptions",
+      "range": {
+        "end": {
+          "character": 0,
+          "line": 228
+        },
+        "start": {
+          "character": 0,
+          "line": 211
+        }
+      },
+      "selectionRange": {
+        "end": {
+          "character": 62,
+          "line": 211
+        },
+        "start": {
+          "character": 5,
+          "line": 211
+        }
+      }
+    },
+    {
+      "children": [],
+      "kind": 15,
+      "name": "14. Contrasts and nonlinear combinations",
+      "range": {
+        "end": {
+          "character": 0,
+          "line": 236
+        },
+        "start": {
+          "character": 0,
+          "line": 229
+        }
+      },
+      "selectionRange": {
+        "end": {
+          "character": 45,
+          "line": 229
+        },
+        "start": {
+          "character": 5,
+          "line": 229
+        }
+      }
+    },
+    {
+      "children": [],
+      "kind": 15,
+      "name": "15. Layered plots: the grammar behind the quick plots",
+      "range": {
+        "end": {
+          "character": 0,
+          "line": 255
+        },
+        "start": {
+          "character": 0,
+          "line": 237
+        }
+      },
+      "selectionRange": {
+        "end": {
+          "character": 58,
+          "line": 237
+        },
+        "start": {
+          "character": 5,
+          "line": 237
+        }
+      }
+    },
+    {
+      "children": [],
+      "kind": 15,
+      "name": "Previews: syntax fixed now, available from 1.x",
+      "range": {
+        "end": {
+          "character": 103,
+          "line": 296
+        },
+        "start": {
+          "character": 0,
+          "line": 256
+        }
+      },
+      "selectionRange": {
+        "end": {
+          "character": 51,
+          "line": 256
+        },
+        "start": {
+          "character": 5,
+          "line": 256
+        }
+      }
+    }
+  ]
+}

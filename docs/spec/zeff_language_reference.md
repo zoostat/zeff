@@ -71,7 +71,7 @@ report([m]).export("output/table1.docx")
 | Qualified names | `package::name` picks a function when two share a name: `functions::summary`, `data::summary` |
 | Bare words | The parameter decides: `cluster: firm` expects a variable, `se: robust` a value from a fixed list, `fe: firm + year` formula terms, `re: [school => 1 + x]` a mapping from groups to terms; all are checked before anything runs |
 | Names | Case-sensitive; ASCII letters, digits and `_`; file names that are not valid names in backticks (section 3.6) |
-| Comments | `//` to the end of the line; `///` directly before a function becomes its help text (section 5.3); `// zeff:` begins a pragma (section 11.1). There are no block comments |
+| Comments | `//` to the end of the line; `///` directly before a function becomes its help text (section 5.3); `// zeff:` begins a pragma (section 11.1); `// # Title` on a line of its own between two statements begins a section of the script, and `// ## Title` a subsection, for an editor's outline and folding (to the engine it is a comment like any other). There are no block comments |
 | Indexing | Positions start at 1: `fits[1]`, and `slice(s, 1, 3)` for text; a frame's column by name: `wages["lwage"]`; results by term name, never by position: `m.coef(educ)`, `m.std_errors(educ)`, `t.p_values()`; a record's field by name: `state.loglik` |
 | Reserved words | `let`, `fn`, `if`, `else`, `case`, `for`, `in`, `break`, `continue`, `return`, `use`, `model`, `dag`, `as`, `true`, `false`, `NA`, `Inf`; and, reserved for later use so that no edition is needed to add them, `type`, `while`, `match`, `mut`, `pub`, `loop`, `trait`, `impl` (section 3.6) |
 
@@ -222,7 +222,7 @@ DOC         = "///" to the end of the line, directly above the fn it describes (
 | `` ` `` | Quoted name | Column names that are not valid names (section 3.6) |
 | `( )`, `[ ]`, `{ }` | Grouping and calls; lists, indexing, mappings and `[for ...]`; records and blocks | |
 | `,` | Separator | Arguments, list items, arms |
-| `//`, `///`, `// zeff:` | Comment; help text; pragma | Anywhere; directly before `fn`; above or at the end of a statement (section 11.1) |
+| `//`, `///`, `// zeff:`, `// # Title` | Comment; help text; pragma; the heading of a section | Anywhere; directly before `fn`; above or at the end of a statement (section 11.1); on a line of its own between two statements |
 | `r"..."` | Raw string | Regular expressions and Windows paths (section 3.2) |
 
 ### 3.5 Style

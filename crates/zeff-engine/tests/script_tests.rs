@@ -330,10 +330,10 @@ const CARD: &[u8] = include_bytes!("../../../tests/reference/data/card.csv");
 fn the_instrumental_variables_of_the_sample_script() {
     let script = include_str!("../../../docs/spec/zeff_samples.zeff");
     let start = script
-        .find("// ── 7. Instrumental variables")
+        .find("// # 7. Instrumental variables")
         .expect("section 7 of the sample script");
     let end = script
-        .find("// ── 8. ")
+        .find("// # 8. ")
         .expect("section 8 of the sample script");
     let section = &script[start..end];
     for part in [

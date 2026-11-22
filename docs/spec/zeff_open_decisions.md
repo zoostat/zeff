@@ -3633,6 +3633,8 @@ Raised on 16 November 2026. A long script has no visible structure: nothing to o
 
 **In Zemp Lite 0.2.1 (21 November 2026, the owner's ruling; #203).** The outline and **Run section** come at Zemp Lite 0.2.1, on Zeff 0.8.0, in the interface's own reading of the comments `// # Title` and `// ## Title`; the interface takes the engine's sections (step 28 of Zeff 0.9.0) once Zemp moves to 0.9.0.
 
+**Status (22 November 2026).** Built at step 28 of Zeff 0.9.0. A heading is a `//` comment alone on its line, of one or two `#`, a space and a title, standing between two statements of the script; a section runs to the next heading of its level or above. The language server gives the sections as the document's outline (`textDocument/documentSymbol`, a subsection inside its section) and folds each; the formatter keeps every heading as written, and a formatted script has the sections it had. The sample script's headings are in the chosen form, and section 3 of the Language Reference and section 12 of the Engine and Project Specification say what a section is (`docs/spec_changes.md`). The engine's reading counts a heading by where it stands, between two statements, where Zemp Lite 0.2.1's own reading asks for the first column; they agree on every formatted script, and Zemp takes the engine's when it moves to 0.9.0.
+
 ### 179. The last run's output shown when a project is opened
 
 Raised on 16 November 2026. In the 0.1 prototype a reloaded project shows the script with no output until Run is pressed; a notebook keeps its outputs in the file.

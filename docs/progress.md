@@ -138,7 +138,9 @@ Step 26b `[engine]`: `print(...)` now keeps to `--width` wherever it stands (it 
 
 Step 27 `[engine]` (the owner's "Continue to 27"): an error's chain as fields (C22 of #175, for #183). Each call an error came through, with what it was given and where it was called, and, new, each pass of a loop with its number and what the loop variable held, are fields of the error's record; the statement that stopped a run carries that record in `zeff run --format json` and in the browser build's outcome. The printed message is the same to the character: a pass is a field and prints no line.
 
-**Next.** Step 28 `[engine]`: sections in a script (#178). Step 3, the weekly mutation run of Monday 23 November, when it has ended.
+Step 28 `[engine]` (the owner's "Continue to 28"): sections in a script (#178). A comment written as a heading between two statements, `// # Title` or `// ## Title`, begins a section; the language server gives the sections as the document's outline and folds each; the formatter keeps every heading as written and never makes or unmakes a section. The sample script's sixteen headings are in the chosen form, and the specification says what a section is (`docs/spec_changes.md`).
+
+**Next.** Step 29 `[function]`: Games–Howell in `posthoc` (#85). Step 3, the weekly mutation run of Monday 23 November, when it has ended.
 
 **For the owner.** The printed table of `margins` (#202 (d)), shown at step 11a, is yours to change; #202 (a) to (e) are taken as recommended. #198, #199 and #200 and #201 (a) (taken as recommended, yours to overturn before 1.0; #201 (b) is open and yours: which standardized coefficients a `glm` fit has, refused until you choose; #200: `predict` gives a probability and `residuals` the outcome less it unless `type:` says otherwise, where R gives log-odds and deviance residuals): on a `glm` fit, clustered errors carry the factor (N − 1)/(N − k) that Stata's `logit` and R's `vcovCL` left to itself omit; analytic weights are refused on a binary model, as in Stata.
 

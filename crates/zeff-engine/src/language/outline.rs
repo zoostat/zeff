@@ -2,7 +2,8 @@
 //! "Snippets"; open decision #86, release 0.8.0, step 8b): where it folds, the statement at a
 //! place or the statements a selection touches, which an interface runs, and the templates of
 //! common analyses. All of it is read from the text as typed, by the lexer and the parser the
-//! checker uses, and nothing is run.
+//! checker uses, and nothing is run. From release 0.9.0, step 28 (open decision #178): the
+//! sections of a script, which a comment written as a heading begins.
 
 use super::{Documents, Position, Range, Seen, offset, position};
 use crate::fs::FileSystem;
@@ -56,6 +57,115 @@ fn span_of(item: &Item) -> (Span, StatementKind) {
     }
 }
 
+/// A section of a script (open decision #178): the part a comment written as a heading
+/// begins, `// # Title`, or `// ## Title` for a subsection. It runs to the line before the
+/// next heading of its own level or above, or to the script's last line; a section holds its
+/// subsections. To the engine the comment is a comment like any other: sections are for an
+/// editor's outline and folding, and for an interface that runs a section.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct Section {
+    /// 1 for `// # Title`, 2 for `// ## Title`.
+    pub level: u8,
+    /// The title as written, without the spaces round it.
+    pub title: String,
+    /// The line of the comment and the section's last line, counted from 0.
+    pub line: u32,
+    pub end_line: u32,
+    /// The whole of the section: from the start of its comment's line to the end of its
+    /// last line.
+    pub range: Range,
+    /// Where the title is written.
+    pub title_range: Range,
+}
+
+/// The heading a line is, if it is one: its level and where its title begins and ends in
+/// the line. A heading is a `//` comment alone on its line (a `///` line is help text and a
+/// comment after code is not alone), of one or two `#`, a space, and a title.
+fn heading(line: &str) -> Option<(u8, usize, usize)> {
+    let comment = line.trim_start();
+    let indent = line.len() - comment.len();
+    let rest = comment.strip_prefix("//")?;
+    if rest.starts_with('/') {
+        return None;
+    }
+    let marks = rest.trim_start();
+    let level = marks.chars().take_while(|&c| c == '#').count();
+    if !(1..=2).contains(&level) {
+        return None;
+    }
+    let after = &marks[level..];
+    let title = after.trim();
+    if title.is_empty() || !after.starts_with(char::is_whitespace) {
+        return None;
+    }
+    let start = indent + (comment.len() - after.len()) + (after.len() - after.trim_start().len());
+    Some((level as u8, start, start + title.len()))
+}
+
+/// The sections of a text, in the order written. A heading counts where it stands between
+/// the statements of the script: a line of that look inside a statement that runs over
+/// several lines (between the arguments of a call, in the body of a loop or of a function)
+/// is a comment and no more. So the formatter, which sets a comment between two statements
+/// at the first column and one inside a statement further in, never makes or unmakes a
+/// section. A text that does not parse has the sections of the statements the parser could
+/// still read.
+pub fn sections_of(name: &str, text: &str) -> Vec<Section> {
+    let inside = statements(name, text);
+    // Each line with the byte it begins at; the last is left out where the text ends with a
+    // line break, which has no line after it.
+    let mut lines: Vec<(usize, &str)> = Vec::new();
+    let mut at = 0;
+    for line in text.split('\n') {
+        lines.push((at, line.strip_suffix('\r').unwrap_or(line)));
+        at += line.len() + 1;
+    }
+    if text.ends_with('\n') {
+        lines.pop();
+    }
+    let Some(last) = lines.len().checked_sub(1) else {
+        return Vec::new();
+    };
+    let found: Vec<(usize, u8, usize, usize)> = lines
+        .iter()
+        .enumerate()
+        .filter_map(|(number, (start, line))| {
+            let (level, from, to) = heading(line)?;
+            if inside
+                .iter()
+                .any(|(span, _)| span.start < *start && *start < span.end)
+            {
+                return None;
+            }
+            Some((number, level, start + from, start + to))
+        })
+        .collect();
+    found
+        .iter()
+        .enumerate()
+        .map(|(i, &(number, level, from, to))| {
+            let end = found[i + 1..]
+                .iter()
+                .find(|next| next.1 <= level)
+                .map_or(last, |next| next.0 - 1);
+            let (end_start, end_line) = lines[end];
+            Section {
+                level,
+                title: text[from..to].to_string(),
+                line: number as u32,
+                end_line: end as u32,
+                range: Range {
+                    start: position(text, lines[number].0),
+                    end: position(text, end_start + end_line.len()),
+                },
+                title_range: Range {
+                    start: position(text, from),
+                    end: position(text, to),
+                },
+            }
+        })
+        .collect()
+}
+
 /// The line (from 0) a byte of the text is on.
 fn line_of(text: &str, byte: usize) -> u32 {
     text[..byte.min(text.len())].matches('\n').count() as u32
@@ -65,8 +175,10 @@ fn line_of(text: &str, byte: usize) -> u32 {
 /// chain written a step to a line, a call broken after its commas), and every pair of braces
 /// that does (the body of a function or of a loop, the arms of a `case`, a model block, a
 /// record). A part inside another folds on its own; two parts never start on one line, the
-/// outer one being kept. A text that does not parse folds where it can still be read: by its
-/// braces, and by the statements the parser recovered.
+/// outer one being kept. A section folds too, from its heading to the last line of it with
+/// something written on it, so that the blank lines before the next heading stay in view.
+/// A text that does not parse folds where it can still be read: by its braces, and by the
+/// statements the parser recovered.
 pub fn folds_of(name: &str, text: &str) -> Vec<Fold> {
     let mut folds: Vec<Fold> = Vec::new();
     let mut add = |start: usize, end: usize| {
@@ -95,6 +207,24 @@ pub fn folds_of(name: &str, text: &str) -> Vec<Fold> {
                 }
             }
             _ => {}
+        }
+    }
+    // The sections: a heading is a line no statement begins on.
+    let written: Vec<&str> = text.split('\n').collect();
+    for section in sections_of(name, text) {
+        let last = (section.line..=section.end_line)
+            .rev()
+            .find(|&line| {
+                written
+                    .get(line as usize)
+                    .is_some_and(|l| !l.trim().is_empty())
+            })
+            .unwrap_or(section.line);
+        if last > section.line {
+            folds.push(Fold {
+                start_line: section.line,
+                end_line: last,
+            });
         }
     }
     folds.sort_by_key(|f| (f.start_line, f.end_line));
@@ -262,6 +392,11 @@ fn read(disk: &dyn FileSystem, open: &Documents, path: &Path) -> Option<(String,
 /// Where a document folds, as the editor has it; none for one that cannot be read.
 pub fn folding_ranges(disk: &dyn FileSystem, open: &Documents, path: &Path) -> Vec<Fold> {
     read(disk, open, path).map_or(Vec::new(), |(name, text)| folds_of(&name, &text))
+}
+
+/// The sections of a document, as the editor has it; none for one that cannot be read.
+pub fn sections(disk: &dyn FileSystem, open: &Documents, path: &Path) -> Vec<Section> {
+    read(disk, open, path).map_or(Vec::new(), |(name, text)| sections_of(&name, &text))
 }
 
 /// The statement at a place of a document, as the editor has it.

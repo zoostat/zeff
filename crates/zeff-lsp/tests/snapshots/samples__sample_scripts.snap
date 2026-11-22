@@ -36,6 +36,7 @@ expression: editor.told
       },
       "documentFormattingProvider": true,
       "documentRangeFormattingProvider": true,
+      "documentSymbolProvider": true,
       "experimental": {
         "zeffExplain": true,
         "zeffStatementRange": true

@@ -19,7 +19,7 @@ use functions::robustness                             // functions/robustness.ze
 seed(20261015)
 
 
-// ── 1. Import and clean ──────────────────────────────────────────────
+// # 1. Import and clean
 
 let wages = import("data/wages.csv",
                    na_values: [-99, -98],
@@ -46,7 +46,7 @@ assert(wages.n_rows() > 1000, "too few rows left after cleaning")
 let lfs = import("lfs:lfs_2024.parquet").select([region, wage, sector])
 
 
-// ── 2. Describe ──────────────────────────────────────────────────────
+// # 2. Describe
 
 wages.describe()
 wages.summary([lwage, educ, exper, hours], by: female)
@@ -57,7 +57,7 @@ wages.histogram(lwage, bins: 40, by: female).export("output/fig_lwage.pdf", size
 wages.scatter(educ, lwage, fit: linear, color: female).export("output/fig_educ.png")
 
 
-// ── 3. Reshape, merge, aggregate ─────────────────────────────────────
+// # 3. Reshape, merge, aggregate
 
 let firms = import("data/firms.csv")
 let firm_sales = import("data/sales_wide.csv")
@@ -72,7 +72,7 @@ let by_industry = firm_sales.aggregate(avg_sales = mean(sales),
 by_industry.sort([industry, year]).save("output/industry_year.csv")
 
 
-// ── 4. Panel variables ───────────────────────────────────────────────
+// # 4. Panel variables
 
 let wages = wages.add(wage_growth = diff(lwage),      // within each worker, in year order
                       lag_hours = lag(hours),
@@ -80,7 +80,7 @@ let wages = wages.add(wage_growth = diff(lwage),      // within each worker, in 
 let wages = wages.add(dev_firm = lwage - mean(lwage), by: firm)  // deviation from firm mean
 
 
-// ── 5. Regression ────────────────────────────────────────────────────
+// # 5. Regression
 
 let f = lwage ~ educ + exper + exper2 + female
 
@@ -102,7 +102,7 @@ report([m1, m2, m3, m4],
 m3.coef_plot().export("output/fig_coef.pdf", size: one_column)
 
 
-// ── 6. Loops and your own functions ──────────────────────────────────
+// # 6. Loops and your own functions
 
 // One model per outcome, collected into one table
 let fits = [for y in vars(lwage, hours, wage_growth) {
@@ -135,7 +135,7 @@ report(fits).export("output/table2.docx")
 report(wages.robustness(f, cluster: worker)).export("output/table3.docx")
 
 
-// ── 7. Instrumental variables ────────────────────────────────────────
+// # 7. Instrumental variables
 
 let card = import("data/card.csv")
 let iv = card.ivreg(lwage ~ exper + exper^2 + black + educ,
@@ -148,14 +148,14 @@ report([card.reg(lwage ~ exper + exper^2 + black + educ, fe: region, se: robust)
     .export("output/table_iv.tex")
 
 
-// ── 8. Two-period difference-in-differences ──────────────────────────
+// # 8. Two-period difference-in-differences
 
 let counties = import("data/counties.csv").panel(unit: county, time: year)
 let dd = counties.reg(emp ~ treated * post, fe: county + year, cluster: county)
 dd
 
 
-// ── 9. Classical tests ───────────────────────────────────────────────
+// # 9. Classical tests
 
 wages.t_test(lwage, group: female)                    // Welch, with Hedges' g
 wages.t_test(lwage, mu: 3)
@@ -171,7 +171,7 @@ let p = [for v in vars(lwage, hours, educ) {
 p_adjust(p, method: holm)
 
 
-// ── 10. Binary outcomes ──────────────────────────────────────────────
+// # 10. Binary outcomes
 
 let lg = wages.glm(union ~ educ + exper + female + industry, family: binomial, cluster: worker)
 let pr = wages.glm(union ~ educ + exper + female + industry,
@@ -185,7 +185,7 @@ lr1.compare(lr0)                                      // likelihood-ratio test o
 lg.test(female == 0)                                  // Wald test with clustered SEs
 
 
-// ── 11. A small simulation, keeping going when a fit fails ───────────
+// # 11. A small simulation, keeping going when a fit fails
 
 let size = 200
 let sims = [for s in 1..500 {
@@ -202,14 +202,14 @@ let slopes = [for m in sims {
 frame(b = slopes).summary([b])                        // sampling distribution of the slope
 
 
-// ── 12. Reliability of a survey scale ────────────────────────────────
+// # 12. Reliability of a survey scale
 
 let engage = import("data/engagement.csv")
 engage.reliability([eng1..eng6])                      // alpha and item-total statistics; omega from 1.12
 let engage = engage.add(engagement = row([eng1..eng6], stat: mean, min_valid: 5))
 
 
-// ── 13. Causal graph: check the model against its assumptions ────────
+// # 13. Causal graph: check the model against its assumptions
 
 let g = dag {
     ability -> training -> productivity
@@ -227,7 +227,7 @@ let mt = staff.reg(productivity ~ training + tenure + age + region, cluster: fir
 mt.check(g, exposure: training)                       // warns: tenure is a mediator
 
 
-// ── 14. Contrasts and nonlinear combinations ─────────────────────────
+// # 14. Contrasts and nonlinear combinations
 
 let wages = wages.add(industry = category(industry, contrast: sum))
 let m5 = wages.reg(lwage ~ educ + exper + exper2 + industry, se: robust)
@@ -235,7 +235,7 @@ m5.derive(peak_exper = -exper / (2 * exper2),         // experience at peak earn
           educ_vs_exper = educ / exper)               // delta-method SEs
 
 
-// ── 15. Layered plots: the grammar behind the quick plots ────────────
+// # 15. Layered plots: the grammar behind the quick plots
 
 wages.scatter(educ, lwage)                            // a shorthand: the same Plot value as below
 plot(wages, x: educ, y: lwage, color: female)         // a bare name maps a variable, a string sets a constant
@@ -254,7 +254,7 @@ plot(means, x: industry, y: mean_lwage, color: female)
     .errorbars(low: mean_lwage - 1.96 * se, high: mean_lwage + 1.96 * se)
     .legend(top)
 
-// ── Previews: syntax fixed now, available from 1.x ───────────────────
+// # Previews: syntax fixed now, available from 1.x
 
 // From 1.1: bootstrap SEs that tolerate failed draws (the engine release: threads, bootstrap, lazy chains)
 //     let b = wages.glm(union ~ educ, family: binomial, se: bootstrap, reps: 2000, on_fail: skip)

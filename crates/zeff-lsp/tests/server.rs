@@ -159,6 +159,7 @@ fn initialize_says_what_the_server_does() {
                     "documentFormattingProvider": true,
                     "documentRangeFormattingProvider": true,
                     "foldingRangeProvider": true,
+                    "documentSymbolProvider": true,
                     "experimental": {"zeffStatementRange": true, "zeffExplain": true},
                 },
                 "serverInfo": {"name": "zeff", "version": VERSION},
@@ -1153,6 +1154,175 @@ fn folding_is_answered_with_the_first_and_last_line_of_each_part() {
     }
 }
 
+/// A script in sections (open decision #178; release 0.9.0, step 28): two sections, the
+/// second with two subsections, and a heading-like comment inside a call.
+const IN_SECTIONS: &str = "// Returns to schooling.
+
+// # Sample
+let w = dataset(wages)
+    .where(year >= 2012)
+
+// # Models
+// ## Pooled
+let m1 = w.reg(log(wage) ~ educ,
+// # not a section
+    se: robust)
+// ## Fixed effects
+let m3 = w.reg(log(wage) ~ educ, fe: year)
+";
+
+#[test]
+fn the_outline_is_answered_with_the_sections_a_subsection_inside_its_section() {
+    let mut session = Session::started();
+    session.open(MAIN, IN_SECTIONS);
+    let place = |line: u32, character: u32| json!({"line": line, "character": character});
+    let answers = session.send(&json!({
+        "jsonrpc": "2.0", "id": 4, "method": "textDocument/documentSymbol",
+        "params": {"textDocument": {"uri": MAIN}},
+    }));
+    assert_eq!(
+        answers,
+        [json!({
+            "jsonrpc": "2.0",
+            "id": 4,
+            "result": [
+                {
+                    "name": "Sample",
+                    "kind": 15,
+                    "range": {"start": place(2, 0), "end": place(5, 0)},
+                    "selectionRange": {"start": place(2, 5), "end": place(2, 11)},
+                    "children": [],
+                },
+                {
+                    "name": "Models",
+                    "kind": 15,
+                    "range": {"start": place(6, 0), "end": place(12, 42)},
+                    "selectionRange": {"start": place(6, 5), "end": place(6, 11)},
+                    "children": [
+                        {
+                            "name": "Pooled",
+                            "kind": 15,
+                            "range": {"start": place(7, 0), "end": place(10, 15)},
+                            "selectionRange": {"start": place(7, 6), "end": place(7, 12)},
+                            "children": [],
+                        },
+                        {
+                            "name": "Fixed effects",
+                            "kind": 15,
+                            "range": {"start": place(11, 0), "end": place(12, 42)},
+                            "selectionRange": {"start": place(11, 6), "end": place(11, 19)},
+                            "children": [],
+                        },
+                    ],
+                },
+            ],
+        })]
+    );
+    // The sections fold with the chain and the call inside them.
+    let answers = session.send(&json!({
+        "jsonrpc": "2.0", "id": 5, "method": "textDocument/foldingRange",
+        "params": {"textDocument": {"uri": MAIN}},
+    }));
+    assert_eq!(
+        answers[0]["result"],
+        json!([
+            {"startLine": 2, "endLine": 4},
+            {"startLine": 3, "endLine": 4},
+            {"startLine": 6, "endLine": 12},
+            {"startLine": 7, "endLine": 10},
+            {"startLine": 8, "endLine": 10},
+            {"startLine": 11, "endLine": 12},
+        ])
+    );
+    // As the text is typed: a heading taken out, and the outline is what is left; a
+    // subsection with no section above it stands at the top.
+    session.change(MAIN, 2, &IN_SECTIONS.replace("// # Models\n", ""));
+    let answers = session.send(&json!({
+        "jsonrpc": "2.0", "id": 6, "method": "textDocument/documentSymbol",
+        "params": {"textDocument": {"uri": MAIN}},
+    }));
+    let names: Vec<(&str, usize)> = answers[0]["result"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .map(|symbol| {
+            (
+                symbol["name"].as_str().unwrap(),
+                symbol["children"].as_array().unwrap().len(),
+            )
+        })
+        .collect();
+    assert_eq!(names, [("Sample", 2)]);
+    // A script without headings, one on the disk that is not open, and one that is not
+    // there: each has an answer, the last two an empty one or the file's own.
+    session.close(MAIN);
+    session.fs.add_file(
+        "/work/demo/scripts/main.zeff",
+        "// # On the disk\nprint(1)\n",
+    );
+    for (uri, sections) in [
+        (MAIN, 1),
+        (CLEAN, 0),
+        ("file:///work/demo/scripts/none.zeff", 0),
+    ] {
+        let answers = session.send(&json!({
+            "jsonrpc": "2.0", "id": 7, "method": "textDocument/documentSymbol",
+            "params": {"textDocument": {"uri": uri}},
+        }));
+        assert_eq!(
+            answers[0]["result"].as_array().map(Vec::len),
+            Some(sections),
+            "{uri}"
+        );
+    }
+}
+
+#[test]
+fn the_outline_of_the_sample_script_shows_its_sections() {
+    // The specification's sample script, opened as an editor opens it.
+    let text = include_str!("../../../docs/spec/zeff_samples.zeff");
+    let mut session = Session::started();
+    session.open(MAIN, text);
+    let answers = session.send(&json!({
+        "jsonrpc": "2.0", "id": 8, "method": "textDocument/documentSymbol",
+        "params": {"textDocument": {"uri": MAIN}},
+    }));
+    let symbols = answers[0]["result"].as_array().expect("the outline");
+    assert_eq!(symbols.len(), 16);
+    // Each section with the lines it runs over, counted from 1 as an editor shows them.
+    let outline: String = symbols
+        .iter()
+        .map(|symbol| {
+            format!(
+                "{} (lines {} to {})\n",
+                symbol["name"].as_str().unwrap(),
+                symbol["range"]["start"]["line"].as_u64().unwrap() + 1,
+                symbol["range"]["end"]["line"].as_u64().unwrap() + 1
+            )
+        })
+        .collect();
+    insta::assert_snapshot!("outline_of_the_sample_script", outline);
+    // The whole answer, as the protocol has it.
+    insta::assert_snapshot!(
+        "outline_of_the_sample_script_answer",
+        serde_json::to_string_pretty(&answers[0]).unwrap()
+    );
+    // And where it folds: every section among the folds.
+    let answers = session.send(&json!({
+        "jsonrpc": "2.0", "id": 9, "method": "textDocument/foldingRange",
+        "params": {"textDocument": {"uri": MAIN}},
+    }));
+    let folds = answers[0]["result"].as_array().unwrap();
+    for symbol in symbols {
+        let line = &symbol["range"]["start"]["line"];
+        assert!(
+            folds.iter().any(|fold| &fold["startLine"] == line),
+            "{}",
+            symbol["name"]
+        );
+    }
+}
+
 #[test]
 fn the_statement_range_is_answered_for_a_place_and_for_a_selection() {
     let mut session = Session::started();
@@ -1322,6 +1492,11 @@ fn folding_and_the_statement_range_need_what_they_are_about() {
     for (method, needs, wrong) in [
         (
             "textDocument/foldingRange",
+            "a document",
+            vec![json!(null), json!({}), json!({"textDocument": {"uri": 7}})],
+        ),
+        (
+            "textDocument/documentSymbol",
             "a document",
             vec![json!(null), json!({}), json!({"textDocument": {"uri": 7}})],
         ),

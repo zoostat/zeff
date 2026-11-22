@@ -1,0 +1,20 @@
+---
+source: crates/zeff-lsp/tests/server.rs
+expression: outline
+---
+1. Import and clean (lines 22 to 48)
+2. Describe (lines 49 to 59)
+3. Reshape, merge, aggregate (lines 60 to 74)
+4. Panel variables (lines 75 to 82)
+5. Regression (lines 83 to 104)
+6. Loops and your own functions (lines 105 to 137)
+7. Instrumental variables (lines 138 to 150)
+8. Two-period difference-in-differences (lines 151 to 157)
+9. Classical tests (lines 158 to 173)
+10. Binary outcomes (lines 174 to 187)
+11. A small simulation, keeping going when a fit fails (lines 188 to 204)
+12. Reliability of a survey scale (lines 205 to 211)
+13. Causal graph: check the model against its assumptions (lines 212 to 229)
+14. Contrasts and nonlinear combinations (lines 230 to 237)
+15. Layered plots: the grammar behind the quick plots (lines 238 to 256)
+Previews: syntax fixed now, available from 1.x (lines 257 to 297)

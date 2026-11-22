@@ -27,8 +27,8 @@ pub use complete::{Completion, CompletionKind, Completions, VariableFacts, compl
 pub use formatting::{NotFormatted, TextEdit, applied, formatting};
 pub use hover::{BindingFacts, Hover, HoverKind, hover};
 pub use outline::{
-    Fold, Snippet, StatementKind, StatementRange, folding_ranges, snippets_at, statement_range,
-    statement_ranges,
+    Fold, Section, Snippet, StatementKind, StatementRange, folding_ranges, sections, snippets_at,
+    statement_range, statement_ranges,
 };
 pub use signature::{SignatureHelp, SignatureParameter, signature_help};
 

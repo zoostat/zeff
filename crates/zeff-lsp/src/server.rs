@@ -14,8 +14,9 @@ use std::path::{Path, PathBuf};
 use zeff_engine::fs::FileSystem;
 use zeff_engine::language::{
     Completion, CompletionKind, Documents, Finding, HoverKind, Level, NotFormatted, Position,
-    Range, SignatureHelp, Snippet, StatementRange, completions, diagnostics, folding_ranges,
-    formatting, hover, offset, signature_help, snippets_at, statement_range, statement_ranges,
+    Range, Section, SignatureHelp, Snippet, StatementRange, completions, diagnostics,
+    folding_ranges, formatting, hover, offset, sections, signature_help, snippets_at,
+    statement_range, statement_ranges,
 };
 
 /// The errors of JSON-RPC and of the protocol that this server gives.
@@ -84,6 +85,39 @@ fn position(at: Position) -> Value {
 
 fn range(range: Range) -> Value {
     json!({ "start": position(range.start), "end": position(range.end) })
+}
+
+/// The sections of a document as the protocol's `DocumentSymbol`s, a subsection among the
+/// children of the section it is in (open decision #178). The protocol has no kind for a
+/// heading; a section is given the kind editors give a heading of a text, `String` (15).
+fn section_symbols(sections: &[Section]) -> Vec<Value> {
+    const HEADING: u32 = 15;
+    let symbol = |section: &Section, children: Vec<Value>| {
+        json!({
+            "name": section.title,
+            "kind": HEADING,
+            "range": range(section.range),
+            "selectionRange": range(section.title_range),
+            "children": children,
+        })
+    };
+    let mut symbols = Vec::new();
+    let mut at = 0;
+    while at < sections.len() {
+        let outer = &sections[at];
+        // What follows inside it: the subsections up to its last line.
+        let inner = sections[at + 1..]
+            .iter()
+            .take_while(|next| next.level > outer.level && next.line <= outer.end_line)
+            .count();
+        let children = sections[at + 1..at + 1 + inner]
+            .iter()
+            .map(|section| symbol(section, Vec::new()))
+            .collect();
+        symbols.push(symbol(outer, children));
+        at += 1 + inner;
+    }
+    symbols
 }
 
 /// A place the editor sent, where it is one.
@@ -385,8 +419,11 @@ impl Server {
                             // the one style of the language.
                             "documentFormattingProvider": true,
                             "documentRangeFormattingProvider": true,
-                            // Chains, blocks and functions fold.
+                            // Chains, blocks, functions and sections fold.
                             "foldingRangeProvider": true,
+                            // The outline of a document: its sections, each begun by a
+                            // comment written as a heading, `// # Title`.
+                            "documentSymbolProvider": true,
                             // The statement at a place, or those a selection touches, for an
                             // interface that runs them: the request `zeff/statementRange`,
                             // which is this server's own.
@@ -442,7 +479,10 @@ impl Server {
                     ),
                 }
             }
-            (State::Running, "textDocument/foldingRange" | "zeff/statementRange") => {
+            (
+                State::Running,
+                "textDocument/foldingRange" | "textDocument/documentSymbol" | "zeff/statementRange",
+            ) => {
                 let uri = params
                     .get("textDocument")
                     .and_then(|d| d.get("uri"))
@@ -466,6 +506,9 @@ impl Server {
                 let path = path_of(uri);
                 let documents = &self.documents;
                 let result = catch_unwind(AssertUnwindSafe(|| {
+                    if method == "textDocument/documentSymbol" {
+                        return json!(section_symbols(&sections(fs, documents, &path)));
+                    }
                     if !asks {
                         // The protocol's `FoldingRange`: the first and the last line.
                         let folds: Vec<Value> = folding_ranges(fs, documents, &path)

@@ -786,7 +786,8 @@ Zeff ships a language server (`zeff lsp`, the Language Server Protocol), a forma
 | Rename (1.1) | Rename a binding or project function across the project |
 | Syntax highlighting | A tree-sitter grammar: keywords, formulas, model-block operators and bare option words each styled distinctly |
 | Run | Run the current statement or chain, the selection, or the whole script; results appear in the console and object panel |
-| Folding | Chains, model blocks, `case` blocks and functions fold |
+| Folding | Chains, model blocks, `case` blocks, functions and sections fold |
+| Sections | A comment written as a heading on a line of its own between two statements, `// # Title`, begins a section, and `// ## Title` a subsection; a section runs to the next heading of its level or above. The sections are the document's outline, and the formatter keeps each heading as it was written |
 | Snippets | Templates for common analyses (a regression table, an IV model with diagnostics, a two-period DiD, a logistic regression) |
 | Inlay hints (1.1) | Optional: the type of each `let` binding and the row count of each frame after a chain step |
 
