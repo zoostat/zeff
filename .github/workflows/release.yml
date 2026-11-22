@@ -1,0 +1,272 @@
+# The archives of a release (Engine and Project Specification, section 2.1; release 0.9.0, step
+# 23): on a tag, the engine and the launcher are built for each target, packed, listed
+# in SHA256SUMS, signed, checked on clean machines and attached to the release with the signed
+# index. Started by hand it does the same with a key made for the run and thrown away with it,
+# and publishes nothing: the trial of the whole path.
+name: release
+
+on:
+  push:
+    tags: ["v*"]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+env:
+  CARGO_TERM_COLOR: never
+
+jobs:
+  # A hand-started run signs with a key of its own. The launcher of such a run is built to
+  # trust that key and says it is a trial; nothing it builds is an official build.
+  key:
+    name: the key of this run
+    runs-on: ubuntu-latest
+    outputs:
+      public: ${{ steps.key.outputs.public }}
+      trial: ${{ steps.key.outputs.trial }}
+      version: ${{ steps.version.outputs.version }}
+    steps:
+      - name: Check out the repository
+        uses: actions/checkout@v4
+
+      - name: The version this run builds
+        id: version
+        run: |
+          version=$(sed -n 's/^version = "\(.*\)"/\1/p' Cargo.toml | head -1)
+          if [ "${GITHUB_REF_TYPE}" = "tag" ] && [ "v${version}" != "${GITHUB_REF_NAME}" ]; then
+            echo "the tag ${GITHUB_REF_NAME} is not the version ${version} of Cargo.toml" >&2
+            exit 1
+          fi
+          echo "version=${version}" >> "$GITHUB_OUTPUT"
+          echo "building Zeff ${version}"
+
+      - name: Install minisign
+        run: sudo apt-get update && sudo apt-get install -y minisign
+
+      - name: A throwaway key for a trial; none for a release
+        id: key
+        run: |
+          if [ "${GITHUB_REF_TYPE}" = "tag" ]; then
+            echo "trial=false" >> "$GITHUB_OUTPUT"
+            echo "public=" >> "$GITHUB_OUTPUT"
+            mkdir -p trial && echo "a release is signed with the publisher's key" > trial/readme.txt
+          else
+            mkdir -p trial
+            minisign -G -W -f -p trial/trial.pub -s trial/trial.key > /dev/null
+            echo "trial=true" >> "$GITHUB_OUTPUT"
+            echo "public=$(tail -1 trial/trial.pub)" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Hand the trial key to the signing job (kept for a day, and worth nothing)
+        uses: actions/upload-artifact@v4
+        with:
+          name: trial-key
+          path: trial/
+          retention-days: 1
+
+  build:
+    name: build (${{ matrix.target }})
+    needs: key
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - target: linux-x86-64
+            runner: ubuntu-latest
+            triple: x86_64-unknown-linux-musl
+          - target: linux-arm64
+            runner: ubuntu-24.04-arm
+            triple: aarch64-unknown-linux-musl
+          - target: macos-arm64
+            runner: macos-latest
+            triple: aarch64-apple-darwin
+    runs-on: ${{ matrix.runner }}
+    env:
+      # An official build only on a tag; a trial is built to trust the key of its own run.
+      ZEFF_OFFICIAL_BUILD: ${{ needs.key.outputs.trial == 'false' && '1' || '' }}
+      ZEFF_TRIAL_KEY: ${{ needs.key.outputs.public }}
+    steps:
+      - name: Check out the repository
+        uses: actions/checkout@v4
+
+      - name: Install the pinned Rust toolchain and the target
+        run: |
+          rustup toolchain install
+          rustup target add ${{ matrix.triple }}
+
+      - name: Install the musl C compiler and zstd (Linux)
+        if: runner.os == 'Linux'
+        run: sudo apt-get update && sudo apt-get install -y musl-tools zstd
+
+      - name: Install zstd (macOS)
+        if: runner.os == 'macOS'
+        run: command -v zstd || brew install zstd
+
+      - name: Build the engine and the launcher
+        run: cargo build --release --locked --target ${{ matrix.triple }} -p zeff-cli -p zeff-launcher
+
+      - name: Pack the archive
+        run: |
+          out=target/${{ matrix.triple }}/release
+          cargo run --release --locked --target ${{ matrix.triple }} -p xtask -- archive "$out/zeff" "${{ needs.key.outputs.version }}" "${{ matrix.target }}" dist "$out/zeff-launcher" --tar
+          tar=dist/zeff-${{ needs.key.outputs.version }}-${{ matrix.target }}.tar
+          zstd -19 --no-progress -f -o "$tar.zst" "$tar"
+          rm -f "$tar"
+          ls -l dist
+
+      - name: Keep the archive
+        uses: actions/upload-artifact@v4
+        with:
+          name: archive-${{ matrix.target }}
+          path: dist/
+          retention-days: 7
+
+  sign:
+    name: checksums, signature and index
+    needs: [key, build]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Install minisign
+        run: sudo apt-get update && sudo apt-get install -y minisign
+
+      - name: Fetch the archives
+        uses: actions/download-artifact@v4
+        with:
+          pattern: archive-*
+          path: dist
+          merge-multiple: true
+
+      - name: Fetch the trial key
+        uses: actions/download-artifact@v4
+        with:
+          name: trial-key
+          path: trial
+
+      - name: The checksums and the index
+        run: |
+          cd dist
+          sha256sum zeff-*.tar.zst > SHA256SUMS
+          cat SHA256SUMS
+          version="${{ needs.key.outputs.version }}"
+          targets=""
+          for file in zeff-"$version"-*.tar.zst; do
+            target=${file#zeff-"$version"-}
+            target=${target%.tar.zst}
+            targets="${targets:+$targets, }\"$target\""
+          done
+          printf 'format = 1\n\n[[engine]]\nversion = "%s"\nat = "engines/%s/"\ntargets = [%s]\n' "$version" "$version" "$targets" > index.toml
+          cat index.toml
+
+      - name: Sign with the publisher's key (a release)
+        if: needs.key.outputs.trial == 'false'
+        env:
+          ZEFF_SIGNING_KEY: ${{ secrets.ZEFF_SIGNING_KEY }}
+          ZEFF_SIGNING_PASSWORD: ${{ secrets.ZEFF_SIGNING_PASSWORD }}
+        run: |
+          if [ -z "$ZEFF_SIGNING_KEY" ]; then
+            echo "the secret ZEFF_SIGNING_KEY is not set: a release cannot be signed" >&2
+            exit 1
+          fi
+          umask 077
+          printf '%s\n' "$ZEFF_SIGNING_KEY" > "$RUNNER_TEMP/zeff.key"
+          cd dist
+          for file in SHA256SUMS index.toml; do
+            printf '%s\n' "$ZEFF_SIGNING_PASSWORD" | minisign -S -s "$RUNNER_TEMP/zeff.key" -m "$file" -t "Zeff ${GITHUB_REF_NAME}"
+          done
+          rm "$RUNNER_TEMP/zeff.key"
+
+      - name: Sign with the key of this run (a trial)
+        if: needs.key.outputs.trial == 'true'
+        run: |
+          cd dist
+          for file in SHA256SUMS index.toml; do
+            minisign -S -s ../trial/trial.key -m "$file" -t "a trial, not a release"
+          done
+
+      - name: Keep the signed release
+        uses: actions/upload-artifact@v4
+        with:
+          name: signed-release
+          path: dist/
+          retention-days: 7
+
+  # The finish line of step 23: on a machine of each target, the launcher of the archive
+  # refuses a copy with one byte changed and installs the archive itself.
+  installs:
+    name: the launcher installs it (${{ matrix.target }})
+    needs: sign
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - target: linux-x86-64
+            runner: ubuntu-latest
+          - target: linux-arm64
+            runner: ubuntu-24.04-arm
+          - target: macos-arm64
+            runner: macos-latest
+    runs-on: ${{ matrix.runner }}
+    steps:
+      - name: Fetch the signed release
+        uses: actions/download-artifact@v4
+        with:
+          name: signed-release
+          path: release
+
+      - name: Install zstd (macOS)
+        if: runner.os == 'macOS'
+        run: command -v zstd || brew install zstd
+
+      - name: Unpack the archive by hand, as a user does, for its launcher
+        run: |
+          archive=$(ls release/zeff-*-${{ matrix.target }}.tar.zst)
+          mkdir by-hand && zstd -dc "$archive" | tar -xf - -C by-hand
+          launcher=$(ls -d by-hand/zeff-*/bin/zeff)
+          echo "LAUNCHER=$PWD/$launcher" >> "$GITHUB_ENV"
+          echo "ARCHIVE=$PWD/$archive" >> "$GITHUB_ENV"
+          echo "ZEFF_HOME=$RUNNER_TEMP/zeff-home" >> "$GITHUB_ENV"
+
+      - name: A tampered archive is refused with Z0711, and nothing is installed
+        run: |
+          mkdir tampered && cp release/SHA256SUMS release/SHA256SUMS.minisig tampered/
+          copy=tampered/$(basename "$ARCHIVE")
+          cp "$ARCHIVE" "$copy"
+          size=$(wc -c < "$copy")
+          printf 'X' | dd of="$copy" bs=1 seek=$((size / 2)) conv=notrunc 2> /dev/null
+          if "$LAUNCHER" engine install --from "$copy" 2> refused.txt; then
+            echo "a tampered archive was installed" >&2
+            exit 1
+          fi
+          cat refused.txt
+          grep -q '^error\[Z0711\]' refused.txt
+          grep -q 'nothing was unpacked' refused.txt
+          "$LAUNCHER" engine list | grep -q 'no engine is installed'
+
+      - name: The launcher installs the engine from its archive
+        run: |
+          "$LAUNCHER" engine install --from "$ARCHIVE"
+          "$LAUNCHER" engine list
+          "$LAUNCHER" version --verbose
+
+  publish:
+    name: attach to the release
+    if: github.ref_type == 'tag'
+    needs: [sign, installs]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - name: Fetch the signed release
+        uses: actions/download-artifact@v4
+        with:
+          name: signed-release
+          path: release
+
+      - name: Attach the archives, the checksums, the signatures and the index
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release view "${GITHUB_REF_NAME}" --repo "${GITHUB_REPOSITORY}" > /dev/null 2>&1 \
+            || gh release create "${GITHUB_REF_NAME}" --repo "${GITHUB_REPOSITORY}" --draft --title "${GITHUB_REF_NAME}" --notes "The notes are in docs/releases."
+          gh release upload "${GITHUB_REF_NAME}" release/* --repo "${GITHUB_REPOSITORY}" --clobber

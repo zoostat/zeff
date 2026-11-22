@@ -21,6 +21,8 @@ fn main() {
     // The release workflow sets this for the builds it signs; every other build is a source
     // build and says so.
     println!("cargo:rerun-if-env-changed=ZEFF_OFFICIAL_BUILD");
+    // The key of a trial of the release workflow, compiled into the launcher of that trial.
+    println!("cargo:rerun-if-env-changed=ZEFF_TRIAL_KEY");
     // Built again when the commit changes: the head of the repository and the branch it names.
     if let Some(folder) = said("git", &["rev-parse", "--git-dir"]) {
         let folder = std::path::PathBuf::from(folder);

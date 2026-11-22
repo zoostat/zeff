@@ -196,30 +196,39 @@ fn files<'a>(name: &ArchiveName, contents: &Contents<'a>) -> Vec<(String, &'a [u
     files
 }
 
+/// The files as a tar, with nothing in it that differs from one making to the next.
+fn tar_of(files: &[(String, &[u8], bool)]) -> std::io::Result<Vec<u8>> {
+    let mut tar = tar::Builder::new(Vec::new());
+    tar.mode(tar::HeaderMode::Deterministic);
+    for (path, bytes, run) in files {
+        let mut header = tar::Header::new_ustar();
+        header.set_entry_type(tar::EntryType::Regular);
+        header.set_size(bytes.len() as u64);
+        header.set_mode(if *run { 0o755 } else { 0o644 });
+        header.set_mtime(0);
+        header.set_uid(0);
+        header.set_gid(0);
+        tar.append_data(&mut header, path, *bytes)?;
+    }
+    tar.into_inner()
+}
+
+/// The archive `name` of `contents` before it is compressed: the tar alone, for a release,
+/// which compresses it with the `zstd` program at a level the launcher's own packer does not
+/// have. `None` for an archive that is not a tar.
+pub fn pack_tar(name: &ArchiveName, contents: &Contents<'_>) -> Option<std::io::Result<Vec<u8>>> {
+    (name.kind == Kind::TarZst).then(|| tar_of(&files(name, contents)))
+}
+
 /// Make the archive `name` of `contents`. The same contents give the same bytes: the files in
 /// a fixed order, no owner and no time of day.
 pub fn pack(name: &ArchiveName, contents: &Contents<'_>) -> std::io::Result<Vec<u8>> {
     let files = files(name, contents);
     match name.kind {
-        Kind::TarZst => {
-            let mut tar = tar::Builder::new(Vec::new());
-            tar.mode(tar::HeaderMode::Deterministic);
-            for (path, bytes, run) in &files {
-                let mut header = tar::Header::new_ustar();
-                header.set_entry_type(tar::EntryType::Regular);
-                header.set_size(bytes.len() as u64);
-                header.set_mode(if *run { 0o755 } else { 0o644 });
-                header.set_mtime(0);
-                header.set_uid(0);
-                header.set_gid(0);
-                tar.append_data(&mut header, path, *bytes)?;
-            }
-            let tar = tar.into_inner()?;
-            Ok(ruzstd::encoding::compress_to_vec(
-                tar.as_slice(),
-                ruzstd::encoding::CompressionLevel::Fastest,
-            ))
-        }
+        Kind::TarZst => Ok(ruzstd::encoding::compress_to_vec(
+            tar_of(&files)?.as_slice(),
+            ruzstd::encoding::CompressionLevel::Fastest,
+        )),
         Kind::Zip => {
             let failed = |e: rawzip::Error| std::io::Error::other(e.to_string());
             let mut zip = rawzip::ZipArchiveWriter::new(Vec::new());

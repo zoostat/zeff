@@ -26,7 +26,7 @@ fn main() -> ExitCode {
                  cargo run -p xtask -- grammar-words\n       \
                  cargo run -p xtask -- build-datasets\n       \
                  cargo run -p xtask -- export-samples\n       \
-                 cargo run -p xtask -- archive <engine> <version> <target> <folder> [<launcher>]\n       \
+                 cargo run -p xtask -- archive <engine> <version> <target> <folder> [<launcher>] [--tar]\n       \
                  cargo run -p xtask -- compare-identity <folder> <number of reports>"
             );
             ExitCode::from(2)
@@ -65,13 +65,44 @@ fn archive() -> ExitCode {
     let Ok(engine) = read(engine) else {
         return ExitCode::from(1);
     };
-    let launcher = match args.get(4).map(read) {
+    // `--tar`, last: the tar alone, which the release workflow compresses with `zstd -19`.
+    let tar_alone = args.last().is_some_and(|last| last == "--tar");
+    let launcher = match args.get(4).filter(|path| *path != "--tar").map(read) {
         Some(Ok(bytes)) => Some(bytes),
         Some(Err(())) => return ExitCode::from(1),
         None => None,
     };
     let name = ArchiveName::of(&version, target);
     let folder = std::path::Path::new(folder);
+    if tar_alone {
+        let contents = Contents {
+            engine: &engine,
+            launcher: launcher.as_deref(),
+            beside: &[],
+        };
+        let Some(tar) = zeff_launcher::archive::pack_tar(&name, &contents) else {
+            eprintln!(
+                "the archive for {} is a zip, which has no tar",
+                target.name()
+            );
+            return ExitCode::from(2);
+        };
+        let path = folder.join(format!("{}.tar", name.top()));
+        let written = tar.and_then(|bytes| {
+            std::fs::create_dir_all(folder)?;
+            std::fs::write(&path, bytes)
+        });
+        return match written {
+            Ok(()) => {
+                println!("wrote {}", path.display());
+                ExitCode::SUCCESS
+            }
+            Err(error) => {
+                eprintln!("cannot write the tar: {error}");
+                ExitCode::from(1)
+            }
+        };
+    }
     let written = pack(
         &name,
         &Contents {

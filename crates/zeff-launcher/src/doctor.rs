@@ -481,6 +481,11 @@ pub fn lines(asked: &Asked, machine: &Machine<'_>, around: &Around<'_>) -> Vec<L
             "signing key",
             "none is built into this launcher, a source build: it can prove no archive and installs no engine",
         ));
+    } else if crate::trust::TRIAL_KEY.is_some() {
+        report.push(fine(
+            "signing key",
+            "a trial key, given when this launcher was built: it proves the archives of that trial and none of the publisher's",
+        ));
     }
     report
 }

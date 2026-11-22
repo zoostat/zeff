@@ -35,10 +35,25 @@ pub const KEY_LIST: &str = "keys/list.txt";
 /// Under [`HOST`]: the signed index of engines, with its signature beside it.
 pub const ENGINE_INDEX: &str = "engines/index.toml";
 
-/// The public key official archives are signed with, in minisign's base64 form. None is built
-/// in before the release workflow has its key (release 0.9.0, step 23): a launcher without one
-/// can verify nothing and installs nothing.
-pub const BUILT_IN_KEY: Option<&str> = None;
+/// The public key official archives are signed with, in minisign's base64 form. None is
+/// written here before the owner has made the key (release 0.9.0, step 23): a launcher
+/// without one can verify nothing and installs nothing.
+pub const PUBLISHERS_KEY: Option<&str> = None;
+
+/// A key given when the launcher is compiled (`ZEFF_TRIAL_KEY`), for a trial of the release
+/// workflow, which signs with a key made for the run and thrown away with it. A launcher built
+/// with one trusts that key and no other, says so, and is never an official build.
+pub const TRIAL_KEY: Option<&str> = match option_env!("ZEFF_TRIAL_KEY") {
+    Some(key) if !key.is_empty() => Some(key),
+    _ => None,
+};
+
+/// The key built into this launcher: the trial's when it was built for one, else the
+/// publisher's.
+pub const BUILT_IN_KEY: Option<&str> = match TRIAL_KEY {
+    Some(key) => Some(key),
+    None => PUBLISHERS_KEY,
+};
 
 /// The file of checksums of a release, and what its signature's name adds to a file's name.
 pub const SUMS: &str = "SHA256SUMS";
