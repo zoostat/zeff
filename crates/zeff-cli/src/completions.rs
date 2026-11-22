@@ -66,6 +66,11 @@ pub const COMMANDS: &[(&str, After, &str)] = &[
         After::Script,
         "build a report of a failure for you to read",
     ),
+    (
+        "engine",
+        After::Nothing,
+        "list, install, remove or choose the engines installed",
+    ),
     ("version", After::Nothing, "print the version of Zeff"),
     (
         "selftest",
@@ -130,6 +135,25 @@ pub const OPTIONS: &[(&str, Option<&str>, Takes, &str)] = &[
         Takes::Value,
         "the memory budget of the run, as in 2GB",
     ),
+    (
+        "--frozen",
+        None,
+        Takes::Nothing,
+        "nothing is downloaded: no engine is fetched",
+    ),
+    (
+        "--offline",
+        None,
+        Takes::Nothing,
+        "no request is made: no engine is fetched",
+    ),
+    (
+        "--install",
+        Some("-y"),
+        Takes::Nothing,
+        "install the engine the project pins without asking",
+    ),
+    ("--yes", None, Takes::Nothing, "the same as --install"),
     (
         "--deny-warnings",
         None,

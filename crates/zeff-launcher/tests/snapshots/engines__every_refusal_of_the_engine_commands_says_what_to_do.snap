@@ -22,11 +22,6 @@ error: `--format yaml` is not a format: write `--format text` or `--format json`
 
 run `zeff help` to see the commands
 
------ install with nothing [exit 1]
-error: `zeff engine install` installs from an archive on this machine: `zeff engine install --from <file>`
-
-run `zeff help` to see the commands
-
 ----- install with a version and a file [exit 1]
 error: `zeff engine install --from <file>` takes no version: the archive's name carries it
 

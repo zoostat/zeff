@@ -1,0 +1,20 @@
+---
+source: crates/zeff-launcher/tests/remote.rs
+expression: out
+---
+----- frozen: exit 4
+error[Z0710]: Zeff 0.9.0 is not installed, and nothing is fetched under `--frozen`
+  = help: `zeff engine install --from <file>` installs an archive that is already on this machine
+
+----- offline, with `--install`: exit 4
+error[Z0710]: Zeff 0.9.0 is not installed, and nothing is fetched under `--offline`
+  = help: `zeff engine install --from <file>` installs an archive that is already on this machine
+
+----- offline by the environment: exit 4
+error[Z0710]: Zeff 0.9.0 is not installed, and nothing is fetched under `ZEFF_OFFLINE`
+  = help: `zeff engine install --from <file>` installs an archive that is already on this machine
+
+----- `--install` after `--` is the script's: not asked for
+
+----- `--install`: installed
+installed Zeff 0.9.0

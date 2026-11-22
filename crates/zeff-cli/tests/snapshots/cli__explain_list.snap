@@ -2,7 +2,7 @@
 source: crates/zeff-cli/tests/cli.rs
 expression: list
 ---
-147 codes are explained; `zeff explain <code>` prints a code's page.
+148 codes are explained; `zeff explain <code>` prints a code's page.
 
 Z00xx  Errors a script raises itself
     Z0001  the script stopped itself with error()
@@ -119,6 +119,7 @@ Z07xx  Projects, paths, data roots, versions, resources and reproducibility
     Z0705  the run was cancelled
     Z0706  an edition this engine does not know
     Z0707  a file cannot be written
+    Z0708  a file could not be fetched over the network
     Z0709  not inside a project
     Z0710  the project's engine is not the one at hand
     Z0711  an engine's archive is not proved to be the publisher's

@@ -453,7 +453,15 @@ fn unknown_and_later_commands() {
     let o = zeff(dir.path(), &["frobnicate"]);
     assert_eq!(code(&o), 1);
     assert!(err(&o).contains("unknown command `frobnicate`") && err(&o).contains("zeff help"));
-    for later in ["doctor", "engine", "verify"] {
+    // The launcher's command, asked of an engine run on its own.
+    let o = zeff(dir.path(), &["engine", "list"]);
+    assert_eq!(code(&o), 1);
+    assert!(
+        err(&o).contains("`zeff engine` is answered by the launcher"),
+        "{}",
+        err(&o)
+    );
+    for later in ["doctor", "runs", "verify"] {
         let o = zeff(dir.path(), &[later]);
         assert_eq!(code(&o), 1);
         assert!(
@@ -1240,10 +1248,10 @@ fn colour_quiet_verbose_and_project_options() {
     assert_eq!(code(&o), 1);
     assert!(err(&o).contains("is not a folder"), "{}", err(&o));
     // Options of later releases and unknown ones are refused by name.
-    let o = zeff(&project, &["run", "--frozen"]);
+    let o = zeff(&project, &["run", "--threads", "2"]);
     assert_eq!(code(&o), 1);
     assert!(
-        err(&o).contains("`--frozen` is not available in this release yet"),
+        err(&o).contains("`--threads` is not available in this release yet"),
         "{}",
         err(&o)
     );

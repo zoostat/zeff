@@ -643,6 +643,11 @@ fn every_address_the_launcher_holds_is_under_the_one_host() {
         read += 1;
         let file = entry.file_name().to_string_lossy().into_owned();
         for (at, _) in text.match_indices("://") {
+            // An address names a host: `://` with a letter or a digit after it. The bare
+            // beginning of one, as in the test of what a mirror is written as, names nothing.
+            if !text[at + 3..].starts_with(|c: char| c.is_ascii_alphanumeric()) {
+                continue;
+            }
             let from = text[..at]
                 .rfind(|c: char| !c.is_ascii_alphabetic())
                 .map_or(0, |i| i + 1);
@@ -662,7 +667,7 @@ fn every_address_the_launcher_holds_is_under_the_one_host() {
             "{file}: `zeff-lang` other than as the domain"
         );
     }
-    assert!(read >= 5, "the launcher's sources were read: {read} files");
+    assert!(read >= 8, "the launcher's sources were read: {read} files");
     let binary = std::fs::read(env!("CARGO_BIN_EXE_zeff-launcher")).unwrap();
     for forbidden in forbidden_names() {
         assert!(

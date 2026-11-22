@@ -28,6 +28,10 @@ tar = { version = "=0.4.46", default-features = false }
 ruzstd = "=0.9.1"
 rawzip = "=0.5.3"
 flate2 = { version = "=1.1.11", default-features = false, features = ["rust_backend"] }
+# Fetching the index, the key list and an archive (step 19b): HTTP over rustls with the
+# system's own certificates; what is fetched is trusted for its signature, not for its host.
+ureq = { version = "=3.5.2", default-features = false, features = ["rustls-no-provider", "platform-verifier"] }
+rustls = { version = "=0.23.46", default-features = false, features = ["ring", "std", "tls12"] }
 
 [dev-dependencies]
 tempfile = "=3.27.0"

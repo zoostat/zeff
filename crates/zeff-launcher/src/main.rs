@@ -58,6 +58,7 @@ fn main() -> ExitCode {
                     platform: Platform::host(),
                     host: zeff_launcher::archive::Target::host(),
                     key: zeff_launcher::trust::BUILT_IN_KEY,
+                    fetch: None,
                 },
                 &mut out,
                 &mut err,
@@ -72,8 +73,47 @@ fn main() -> ExitCode {
         &|name| std::env::var(name).ok(),
         Platform::host(),
     );
+    let args = zeff_launcher::engines::for_the_engine(&args);
     match &choice {
         Choice::Run { version, engine } => hand_over(engine, version, &args),
+        Choice::PinMissing { version, .. } => {
+            use std::io::IsTerminal;
+            let mut err = std::io::stderr();
+            let mut ask = |question: &str| {
+                eprint!("{question}");
+                let mut answer = String::new();
+                // No answer, as at the end of the input, is no.
+                match std::io::stdin().read_line(&mut answer) {
+                    Ok(read) if read > 0 => answer,
+                    _ => "n".to_string(),
+                }
+            };
+            let on_a_terminal = std::io::stdin().is_terminal() && err.is_terminal();
+            let installed = zeff_launcher::engines::install_pinned(
+                version,
+                &readable,
+                &zeff_launcher::engines::Machine {
+                    env: &|name| std::env::var(name).ok(),
+                    cwd: &cwd,
+                    platform: Platform::host(),
+                    host: zeff_launcher::archive::Target::host(),
+                    key: zeff_launcher::trust::BUILT_IN_KEY,
+                    fetch: None,
+                },
+                if on_a_terminal { Some(&mut ask) } else { None },
+                &mut err,
+            );
+            match installed {
+                Ok(Some(engine)) => hand_over(&engine, version, &args),
+                Ok(None) => {
+                    if let Some(diagnostic) = refusal(&choice) {
+                        say(&diagnostic);
+                    }
+                    ExitCode::from(EXIT_ENGINE)
+                }
+                Err(code) => ExitCode::from(code),
+            }
+        }
         refused => {
             if let Some(diagnostic) = refusal(refused) {
                 say(&diagnostic);

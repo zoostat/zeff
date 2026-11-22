@@ -108,7 +108,9 @@ Step 18 `[engine]`: archives and their signatures. An engine arrives as an archi
 
 Step 19a `[engine]` (step 19 split in two): the launcher answers `zeff engine` itself: `list` (with `--format json`), `install --from <file>`, `remove <version>` and `default [<version>]`, the default kept in `config.toml` with every other line as it was. The launcher's tests now run on each target in CI.
 
-**Next.** Step 19b `[engine]`: engines from the signed index (`install <version>`, the key list kept, a mirror, `--frozen` and `--offline`, a missing pinned engine installed after a question), with the HTTPS crate. Step 3, the weekly run of 23 November, when it has ended.
+Step 19b `[engine]`: engines from the signed index: `install 0.9.1`, `install 0.9`, `install`; the key list fetched and kept; a mirror (`ZEFF_MIRROR`); `--frozen` and `--offline`; a missing pinned engine installed after one question, or under `--install`. Z0708 for a failed request. `ureq` on `rustls` and `ring` with the system's certificates, recorded with their licences. Nothing is on `zeff-lang.dev` before 1.0 and no key is built in before step 23, so the binary fetches nothing yet; the tests fetch from a server on the test machine with their own key.
+
+**Next.** Step 20 `[engine]`: `zeff engine use <version>`. Step 3, the weekly run of 23 November, when it has ended.
 
 **For the owner.** The printed table of `margins` (#202 (d)), shown at step 11a, is yours to change; #202 (a) to (e) are taken as recommended. #198, #199 and #200 and #201 (a) (taken as recommended, yours to overturn before 1.0; #201 (b) is open and yours: which standardized coefficients a `glm` fit has, refused until you choose; #200: `predict` gives a probability and `residuals` the outcome less it unless `type:` says otherwise, where R gives log-odds and deviance residuals): on a `glm` fit, clustered errors carry the factor (N − 1)/(N − k) that Stata's `logit` and R's `vcovCL` left to itself omit; analytic weights are refused on a binary model, as in Stata.
 

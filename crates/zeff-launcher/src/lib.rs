@@ -17,6 +17,8 @@
 pub mod archive;
 pub mod engines;
 pub mod install;
+pub mod net;
+pub mod remote;
 pub mod trust;
 
 use std::cmp::Ordering;
@@ -228,7 +230,7 @@ pub fn pin(manifest: &str) -> Option<String> {
 
 /// The text at `[table] key = "..."` of a TOML file, read as the engine reads its own
 /// `zeff.toml`; `None` when the file is not TOML or has no such text.
-fn text_at(file: &str, table: &str, key: &str) -> Option<String> {
+pub(crate) fn text_at(file: &str, table: &str, key: &str) -> Option<String> {
     let document = DeTable::parse(file).ok()?;
     let (_, inner) = document.get_ref().get_key_value(table)?;
     let DeValue::Table(inner) = inner.get_ref() else {

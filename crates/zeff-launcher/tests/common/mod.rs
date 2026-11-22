@@ -71,3 +71,116 @@ pub fn release(folder: &Path, version_text: &str, target: Target, signer: &Signe
     .unwrap();
     folder.join(&name.file)
 }
+
+/// A web server on this machine that serves the files of a folder, for the launcher to fetch
+/// from as it would from a mirror. Beside a file, `<file>.status` holding a number makes the
+/// server answer with that status, and `<file>.cut` makes it promise the whole file and send
+/// half. Every request is kept as it arrived.
+pub struct Server {
+    /// `http://127.0.0.1:<port>/`.
+    pub base: String,
+    requests: std::sync::Arc<std::sync::Mutex<Vec<String>>>,
+}
+
+impl Server {
+    pub fn start(root: &Path) -> Server {
+        use std::io::{Read, Write};
+        let listener = std::net::TcpListener::bind("127.0.0.1:0").expect("a port");
+        let base = format!("http://{}/", listener.local_addr().unwrap());
+        let requests = std::sync::Arc::new(std::sync::Mutex::new(Vec::new()));
+        let (root, kept) = (root.to_path_buf(), requests.clone());
+        std::thread::spawn(move || {
+            for stream in listener.incoming() {
+                let Ok(mut stream) = stream else { continue };
+                let mut head = Vec::new();
+                let mut byte = [0_u8; 1];
+                while !head.ends_with(b"\r\n\r\n") {
+                    match stream.read(&mut byte) {
+                        Ok(1) => head.push(byte[0]),
+                        _ => break,
+                    }
+                }
+                let head = String::from_utf8_lossy(&head).into_owned();
+                let path = head
+                    .split_whitespace()
+                    .nth(1)
+                    .unwrap_or("/")
+                    .trim_start_matches('/')
+                    .to_string();
+                kept.lock().unwrap().push(head);
+                let file = root.join(&path);
+                let marked = |mark: &str| {
+                    let mut name = file.clone().into_os_string();
+                    name.push(mark);
+                    PathBuf::from(name)
+                };
+                let status = std::fs::read_to_string(marked(".status"))
+                    .ok()
+                    .and_then(|status| status.trim().parse::<u16>().ok());
+                let answer = |status: u16, length: usize| {
+                    format!(
+                        "HTTP/1.1 {status} X\r\nContent-Length: {length}\r\nConnection: close\r\n\r\n"
+                    )
+                };
+                let _ = match (status, std::fs::read(&file)) {
+                    (Some(status), _) => stream.write_all(answer(status, 0).as_bytes()),
+                    (None, Ok(bytes)) if marked(".cut").exists() => stream
+                        .write_all(answer(200, bytes.len()).as_bytes())
+                        .and_then(|()| stream.write_all(&bytes[..bytes.len() / 2])),
+                    (None, Ok(bytes)) => stream
+                        .write_all(answer(200, bytes.len()).as_bytes())
+                        .and_then(|()| stream.write_all(&bytes)),
+                    (None, Err(_)) => stream.write_all(answer(404, 0).as_bytes()),
+                };
+            }
+        });
+        Server { base, requests }
+    }
+
+    /// The paths asked for since the last call, in order.
+    pub fn asked(&self) -> Vec<String> {
+        std::mem::take(&mut *self.requests.lock().unwrap())
+            .iter()
+            .map(|head| {
+                head.split_whitespace()
+                    .nth(1)
+                    .unwrap_or_default()
+                    .to_string()
+            })
+            .collect()
+    }
+
+    /// The requests since the last call, whole.
+    pub fn heads(&self) -> Vec<String> {
+        std::mem::take(&mut *self.requests.lock().unwrap())
+    }
+}
+
+/// The publisher's files as a mirror serves them: `engines/index.toml` with its signature,
+/// and for each version `engines/<version>/` with the archive for `target`, `SHA256SUMS` and
+/// its signature, all signed by `signer`.
+pub fn site(root: &Path, versions: &[&str], target: Target, signer: &Signer) {
+    let mut index = String::from("format = 1\n");
+    for version_text in versions {
+        release(
+            &root.join("engines").join(version_text),
+            version_text,
+            target,
+            signer,
+        );
+        index.push_str(&format!(
+            "\n[[engine]]\nversion = \"{version_text}\"\nat = \"engines/{version_text}/\"\ntargets = [\"{}\"]\n",
+            target.name()
+        ));
+    }
+    write_signed(&root.join("engines").join("index.toml"), &index, signer);
+}
+
+/// `text` at `path` and its signature beside it.
+pub fn write_signed(path: &Path, text: &str, signer: &Signer) {
+    std::fs::create_dir_all(path.parent().unwrap()).unwrap();
+    std::fs::write(path, text).unwrap();
+    let mut signature = path.to_path_buf().into_os_string();
+    signature.push(".minisig");
+    std::fs::write(signature, signer.sign(text.as_bytes())).unwrap();
+}

@@ -1,0 +1,35 @@
+---
+source: crates/zeff-launcher/tests/remote.rs
+expression: out
+---
+----- a version [exit 0]
+installed Zeff 0.9.0 in `<tmp>/home/engines/0.9.0`
+
+  fetched: /keys/list.txt /engines/index.toml /engines/index.toml.minisig /engines/0.9.0/SHA256SUMS /engines/0.9.0/SHA256SUMS.minisig /engines/0.9.0/zeff-0.9.0-linux-x86-64.tar.zst
+
+----- a series: the newest 0.9.x [exit 0]
+installed Zeff 0.9.1 in `<tmp>/home/engines/0.9.1`
+
+  fetched: /keys/list.txt /engines/index.toml /engines/index.toml.minisig /engines/0.9.1/SHA256SUMS /engines/0.9.1/SHA256SUMS.minisig /engines/0.9.1/zeff-0.9.1-linux-x86-64.tar.zst
+
+----- nothing named: the newest release [exit 0]
+installed Zeff 0.10.0 in `<tmp>/home/engines/0.10.0`
+
+  fetched: /keys/list.txt /engines/index.toml /engines/index.toml.minisig /engines/0.10.0/SHA256SUMS /engines/0.10.0/SHA256SUMS.minisig /engines/0.10.0/zeff-0.10.0-linux-x86-64.tar.zst
+
+----- one before its release, named in full [exit 0]
+installed Zeff 0.11.0-rc.1 in `<tmp>/home/engines/0.11.0-rc.1`
+
+  fetched: /keys/list.txt /engines/index.toml /engines/index.toml.minisig /engines/0.11.0-rc.1/SHA256SUMS /engines/0.11.0-rc.1/SHA256SUMS.minisig /engines/0.11.0-rc.1/zeff-0.11.0-rc.1-linux-x86-64.tar.zst
+
+----- one that is installed: no archive is fetched [exit 0]
+Zeff 0.9.1 is already installed in `<tmp>/home/engines/0.9.1`
+
+  fetched: /keys/list.txt /engines/index.toml /engines/index.toml.minisig
+
+----- list [exit 0]
+Zeff engines in `<tmp>/home/engines`
+  0.9.0             46 B
+  0.9.1             46 B
+  0.10.0            47 B   the default: the newest, none is set
+  0.11.0-rc.1       52 B

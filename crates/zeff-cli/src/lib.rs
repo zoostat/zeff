@@ -48,6 +48,10 @@ Commands:
                     for you to read before you attach it to an issue: the error, the failing
                     statement and the statements it depends on, and the names and types of
                     the variables. It holds no data, and nothing is sent anywhere
+  engine <command>  the engines installed, which the launcher keeps: `list` them, `install`
+                    one (a version, `0.9` for the newest 0.9.x, nothing for the newest, or
+                    `--from <file>` for an archive on this machine), `remove` one, or say and
+                    set the `default`, which runs outside a project
   version           print the version of Zeff
   selftest          run the conformance cases shipped with the engine against their published
                     results and say whether this installation is conformant
@@ -66,6 +70,12 @@ Options:
   --width <n>             the width frames and tables wrap at (default 118, at least 40)
   --memory <size>         the memory budget of the run, as in 2GB (default: `memory` in zeff.toml,
                           or none); a statement that would pass it is not started
+  --frozen                nothing is downloaded: an engine the project pins and that is not
+                          installed is not fetched (exit code 4)
+  --offline               no request is made over the network: for an engine, as above
+  -y, --install           install the engine the project pins when it is missing, without the
+                          question a terminal is asked
+  --yes                   the same as --install
   --deny-warnings         for `run`, `check` and `test`: a warning that no
                           `// zeff: allow(CODE) reason` pragma allows is an error (exit code 3)
   --check                 for `fmt`: write nothing; exit code 1 if a script would change
@@ -98,13 +108,12 @@ line ending with an operator, continues on the next line.
 ";
 
 /// Commands the specification names that this release does not have yet.
-const LATER: [&str; 9] = [
-    "selftest", "engine", "runs", "export", "verify", "doctor", "app", "self", "dataset",
+const LATER: [&str; 8] = [
+    "selftest", "runs", "export", "verify", "doctor", "app", "self", "dataset",
 ];
 
 /// Options the specification names that this release does not have yet.
-const LATER_OPTIONS: [&str; 10] = [
-    "--frozen",
+const LATER_OPTIONS: [&str; 8] = [
     "--install",
     "-y",
     "--yes",
@@ -113,7 +122,6 @@ const LATER_OPTIONS: [&str; 10] = [
     "--replay",
     "--no-external",
     "--refresh",
-    "--offline",
 ];
 
 /// What the command line finds around it: the Zeff folder, the terminal and the input.
@@ -271,6 +279,10 @@ fn take_options<'a>(words: &[&'a str]) -> Result<(Vec<&'a str>, Settings), Strin
                 }
             }
             "--ascii" => settings.ascii = true,
+            // Nothing is downloaded and no request is made by this engine, which has no
+            // package, dataset or source to fetch yet: the promise is kept as it stands. The
+            // launcher is the one that fetches, and it reads these before the engine does.
+            "--frozen" | "--offline" => {}
             "-q" | "--quiet" => settings.quiet = true,
             "-v" | "--verbose" => settings.verbose = true,
             "--deny-warnings" => settings.deny_warnings = true,
@@ -614,6 +626,10 @@ pub fn run(
         ["test", ..] => usage_error(
             &mut err,
             "`zeff test` takes no script: it runs every test of the project",
+        ),
+        ["engine", ..] => usage_error(
+            &mut err,
+            "`zeff engine` is answered by the launcher, and this is an engine run on its own; run the `zeff` that was installed with it",
         ),
         [word, ..] if LATER.contains(word) => usage_error(
             &mut err,
@@ -2136,10 +2152,14 @@ mod tests {
         assert!(take_options(&["--width", "20"]).is_err());
         assert!(take_options(&["--width"]).is_err());
         assert!(
-            take_options(&["--frozen"])
+            take_options(&["--threads", "2"])
                 .unwrap_err()
                 .contains("not available")
         );
+        // Nothing is fetched by this engine, so the two that forbid fetching are taken as
+        // they stand.
+        let (rest, _) = take_options(&["--frozen", "run", "--offline"]).unwrap();
+        assert_eq!(rest, ["run"]);
         assert!(
             take_options(&["--bogus"])
                 .unwrap_err()

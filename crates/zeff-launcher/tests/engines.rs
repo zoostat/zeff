@@ -88,6 +88,7 @@ impl World {
                     },
                     host: Some(self.host),
                     key,
+                    fetch: None,
                 },
                 &mut out,
                 &mut err,
@@ -150,7 +151,8 @@ fn only_the_engine_command_is_the_launchers() {
         Asked {
             words: strings(&["list"]),
             json: false,
-            from: None
+            from: None,
+            nothing_fetched: None
         }
     );
     // Options before, between and after; a value in the next word or after `=`.
@@ -159,7 +161,8 @@ fn only_the_engine_command_is_the_launchers() {
         Asked {
             words: strings(&["list"]),
             json: true,
-            from: None
+            from: None,
+            nothing_fetched: None
         }
     );
     assert_eq!(
@@ -167,7 +170,8 @@ fn only_the_engine_command_is_the_launchers() {
         Asked {
             words: strings(&["install"]),
             json: false,
-            from: Some(PathBuf::from("a b/zeff.zip"))
+            from: Some(PathBuf::from("a b/zeff.zip")),
+            nothing_fetched: None
         }
     );
     assert_eq!(
@@ -387,11 +391,6 @@ fn every_refusal_of_the_engine_commands_says_what_to_do() {
     step(
         "a format there is not",
         world.zeff(&["engine", "list", "--format", "yaml"]),
-        1,
-    );
-    step(
-        "install with nothing",
-        world.zeff(&["engine", "install"]),
         1,
     );
     step(

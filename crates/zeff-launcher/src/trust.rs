@@ -156,6 +156,12 @@ impl Trust {
         })
     }
 
+    /// Prove that `bytes`, which a message calls `of`, are signed by a trusted key: the index
+    /// of engines, as the checksums of a release are.
+    pub fn vouches(&self, bytes: &[u8], signature: &str, of: &str) -> Result<(), Refusal> {
+        self.check(bytes, signature, of, self.serial.is_some())
+    }
+
     /// The serial of the key list these keys were read from.
     pub fn serial(&self) -> Option<u64> {
         self.serial
