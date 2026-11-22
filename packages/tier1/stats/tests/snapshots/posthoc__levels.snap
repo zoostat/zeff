@@ -90,6 +90,6 @@ Benjamini–Hochberg over 3 comparisons of 3 groups: p-values adjusted for the f
 pooled within-group variance on 11 degrees of freedom; N = 14
 ---
 note[W0401]: `level:` changes nothing here: Holm adjusts the p-values step by step and has no intervals (line 10)
-  = help: the methods with intervals at the level asked are tukey, scheffe, bonferroni, sidak and none
+  = help: the methods with intervals at the level asked are tukey, games_howell, scheffe, bonferroni, sidak and none
 note[W0401]: `level:` changes nothing here: Benjamini–Hochberg adjusts the p-values step by step and has no intervals (line 11)
-  = help: the methods with intervals at the level asked are tukey, scheffe, bonferroni, sidak and none
+  = help: the methods with intervals at the level asked are tukey, games_howell, scheffe, bonferroni, sidak and none

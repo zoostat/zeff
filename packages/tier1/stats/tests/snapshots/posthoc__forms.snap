@@ -346,7 +346,7 @@ each row tests H0: the two population means are equal, against H1: they differ
 Holm over 3 comparisons of 3 groups: p-values adjusted family-wise; step-wise, so no intervals
 Welch's t-test of each pair, the variances not assumed equal; N = 14
 ---
-note: `tukey` pools the variances of the groups, which the `anova` did not assume equal; `method: holm` compares the pairs by Welch's t-tests (line 14)
+note: `tukey` pools the variances of the groups, which the `anova` did not assume equal; `method: games_howell` compares the pairs without that assumption (line 14)
 note: `scheffe` pools the variances of the groups, which the `anova` did not assume equal; `method: holm` compares the pairs by Welch's t-tests (line 15)
 note: 2 rows with NA in x or g dropped (line 26)
 note: 35 rows with NA in hours or industry dropped (line 29)

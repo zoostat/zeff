@@ -1738,6 +1738,13 @@ fn panel_cases() -> Vec<Line> {
     // experience in the model; and the refusal after another test.
     let comparisons = "let g = frame(s = [2.9, 3.0, 2.5, 2.6, 3.2, 3.8, 2.7, 4.0, 2.4, 2.8, 3.4, 3.7, 2.2, 2.0], site = [1, 1, 1, 1, 1, 2, 2, 2, 2, 3, 3, 3, 3, 3])\ng.anova(s, group: site).posthoc()\ng.anova(s, group: site, equal_var: true).posthoc(method: scheffe)\ng.anova(s, group: site).posthoc(method: holm)\ng.anova(s, group: site).posthoc(method: sidak)\ng.anova(s, group: site, equal_var: true).posthoc(method: hommel)\ng.anova(s, group: site).posthoc(method: by)\ng.where(site < 3).anova(s, group: site).posthoc(method: none)\nlet t = frame(v = [3, 1, 4, 1, 5, 9, 2, 6, 5, 3, 5, 8, 9, 7, 9], k = [\"a\", \"b\", \"c\", \"a\", \"b\", \"c\", \"a\", \"b\", \"c\", \"a\", \"b\", \"c\", \"a\", \"b\", \"c\"], w = [1, 2, 1, 1, 1, 3, 1, 1, 1, 2, 1, 1, 1, 1, 1])\nt.anova(v, group: k, weights: w, weight_type: frequency).posthoc(method: hochberg)\nt.anova(v, group: k, weights: w, weight_type: analytic, equal_var: true).posthoc(method: bonferroni)\nframe(x = [1.5, 2.5, 3.5, 4.5, 9.0], g = [1, 1, 2, 2, 3]).anova(x, group: g, equal_var: true).posthoc()\nlet wages = dataset(wages).add(lwage = log(wage))\nwages.anova(lwage, group: industry, equal_var: true).posthoc()\nwages.anova(lwage, group: industry).posthoc(method: bh)\nlet p = g.anova(s, group: site, equal_var: true).posthoc(method: bonferroni)\np.estimates()\np.ci()\np.statistic()\np.df()\np.p_values()\nlet f = frame(gain = [4.2, 3.9, 4.6, 4.1, 4.4, 5.1, 5.6, 4.9, 5.4, 5.8, 4.5, 4.0, 4.8, 4.3, 5.0, 4.7], dose = [\"low\", \"low\", \"low\", \"low\", \"mid\", \"mid\", \"mid\", \"mid\", \"mid\", \"high\", \"high\", \"high\", \"high\", \"high\", \"low\", \"mid\"], diet = [\"a\", \"b\", \"a\", \"b\", \"a\", \"b\", \"a\", \"b\", \"a\", \"b\", \"a\", \"b\", \"a\", \"b\", \"b\", \"b\"], age = [3, 5, 4, 6, 5, 7, 6, 4, 5, 3, 6, 4, 7, 5, 4, 6]).add(dose = category(dose, levels: [\"low\", \"mid\", \"high\"]), diet = category(diet))\nlet m = f.anova(gain ~ dose * diet + age)\nm.posthoc(term: dose)\nm.posthoc(term: diet, method: scheffe)\nm.posthoc(term: \"dose:diet\", method: holm)\nf.anova(gain ~ dose * log(age)).posthoc(method: sidak)\nf.where(!(dose == \"high\" && diet == \"a\")).anova(gain ~ dose * diet).posthoc(term: \"dose:diet\", method: bonferroni)\nwages.anova(lwage ~ industry * category(union) + exper).posthoc(term: industry)\nwages.anova(lwage ~ industry * exper).posthoc(method: by)\ng.kruskal_test(s, group: site).posthoc()\n";
     let comparisons_outcome = run_script(&fs, &project, "scripts/main.zeff", comparisons);
+    // The Games–Howell comparison (release 0.9.0, step 29; open decision #85): after Welch's
+    // `anova` and, with its note, after the classical form at another level; two groups, which
+    // is Welch's test; frequency weights; the 66 comparisons of the shipped wages by industry
+    // with their figures at six digits, the studentized range on each pair's own degrees of
+    // freedom; and the result read by `estimates` and `ci`.
+    let games_howell = "let g = frame(s = [2.9, 3.0, 2.5, 2.6, 3.2, 3.8, 2.7, 4.0, 2.4, 2.8, 3.4, 3.7, 2.2, 2.0], site = [1, 1, 1, 1, 1, 2, 2, 2, 2, 3, 3, 3, 3, 3])\ng.anova(s, group: site).posthoc(method: games_howell)\ng.anova(s, group: site, equal_var: true).posthoc(method: games_howell, level: 0.99)\ng.where(site < 3).anova(s, group: site).posthoc(method: games_howell)\nlet t = frame(v = [3, 1, 4, 1, 5, 9, 2, 6, 5, 3, 5, 8, 9, 7, 9], k = [\"a\", \"b\", \"c\", \"a\", \"b\", \"c\", \"a\", \"b\", \"c\", \"a\", \"b\", \"c\", \"a\", \"b\", \"c\"], w = [1, 2, 1, 1, 1, 3, 1, 1, 1, 2, 1, 1, 1, 1, 1])\nt.anova(v, group: k, weights: w, weight_type: frequency).posthoc(method: games_howell)\nlet wages = dataset(wages).add(lwage = log(wage))\nlet by_industry = wages.anova(lwage, group: industry).posthoc(method: games_howell)\nby_industry\nby_industry.estimates()\nlet p = g.anova(s, group: site).posthoc(method: games_howell)\np.estimates()\np.ci()\n";
+    let games_howell_outcome = run_script(&fs, &project, "scripts/main.zeff", games_howell);
     // `save` (step 15): the sample table of every type as CSV and TSV, with a byte-order mark
     // and with codes, and the refusals; the bytes of the files are part of the report.
     let saved = "let s = frame(id = [1, 2, 3], x = [1.5, -0.0, NA], flag = [true, false, NA], note = [\"plain\", \"with, comma\", \"two\\nlines\"], day = [date(\"2024-01-01\"), date(\"1970-01-01\"), NA], level = [\"low\", \"high\", \"mid\"]).add(level = category(level, levels: [\"low\", \"mid\", \"high\"]))\ns.save(\"sample.csv\")\ns.save(\"output/sample.tsv\")\ns.save(\"output/sample_bom.csv\", bom: true, codes: true)\ns.save(\"output/sample.parquet\")\ns.save(\"output/sample\")\n";
@@ -1805,6 +1812,14 @@ fn panel_cases() -> Vec<Line> {
         ),
         text("tests/posthoc/stdout", &comparisons_outcome.output.stdout),
         text("tests/posthoc/stderr", &comparisons_outcome.output.stderr),
+        text(
+            "tests/posthoc_games_howell/stdout",
+            &games_howell_outcome.output.stdout,
+        ),
+        text(
+            "tests/posthoc_games_howell/stderr",
+            &games_howell_outcome.output.stderr,
+        ),
         text("verbs/save/stdout", &saved_outcome.output.stdout),
         text("verbs/save/stderr", &saved_outcome.output.stderr),
         bytes("verbs/save/sample.csv", &saved_file("sample.csv")),

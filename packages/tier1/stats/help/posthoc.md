@@ -20,9 +20,12 @@ of this level be if the other factors were balanced", which the plain mean of an
 table does not. `term: "a:b"`, in quotes, names an interaction and compares every pair of its
 cells. `term:` may be left out when the model has one term made of categories.
 
-`method:` chooses among ten methods. `tukey`, the default, is Tukey's honestly significant
+`method:` chooses among eleven methods. `tukey`, the default, is Tukey's honestly significant
 difference, in the Tukey–Kramer form when the groups differ in size, and `scheffe` is Scheffé's
-method; both rest on one pooled variance. The other eight take the t-test of each pair and
+method; both rest on one pooled variance. `games_howell` is Tukey's comparison without that
+pooling: each pair is judged on the variances of its own two groups, so it does not need
+the groups to share one variance, and it follows the one-way form alone. The other eight take the
+t-test of each pair and
 adjust its p-value as `p_adjust` does: `bonferroni`, `holm`, `hochberg`, `hommel` and `sidak`
 for the chance of any false rejection, `bh` and `by` for the false discovery rate, and `none`
 for no adjustment. After the one-way form their t-tests follow the `anova`: Welch's test of
@@ -31,11 +34,14 @@ after `equal_var: true`. After a formula every method uses the residual variance
 and its degrees of freedom, and the family is the pairs of the one term compared.
 
 `tukey` and `scheffe` pool the variance whichever F the `anova` computed, as R and Stata do.
-After Welch's `anova`, which did not assume equal variances, a note says so and names
-`method: holm`, which compares the pairs by Welch's t-tests.
+After Welch's `anova`, which did not assume equal variances, a note says so: for `tukey` it
+names `method: games_howell`, the same comparison without the assumption, and for `scheffe`
+`method: holm`, which compares the pairs by Welch's t-tests. `games_howell` in turn takes each
+group's own variance whichever F was computed; after `equal_var: true` a note says that the
+`anova` assumed what the comparison does not.
 
-Intervals for the differences come with the single-step methods: `tukey`, `scheffe`,
-`bonferroni`, `sidak` and `none`. They are at the level `level:` asks for, 95% unless given, as
+Intervals for the differences come with the single-step methods: `tukey`, `games_howell`,
+`scheffe`, `bonferroni`, `sidak` and `none`. They are at the level `level:` asks for, 95% unless given, as
 R's `TukeyHSD(conf.level = )` and Stata's `pwcompare, level(#)` take it; the p-values do not
 depend on the level. The step-wise methods, `holm`, `hochberg`, `hommel`, `bh` and `by`, adjust
 each p-value by its place among the others and have no intervals to match, so their table has
@@ -48,7 +54,9 @@ none, and `level:` written out with one of them changes nothing, which a note sa
   `equal_var:` and `weights:`, or the form with a formula, `d.anova(y ~ a * b)`, of any `type:`.
 - method: `tukey` and `scheffe` control the chance of any false rejection on the pooled
   variance: Tukey's over the pairs, Scheffé's over every contrast of the means, so it is the
-  more cautious of the two for pairs. `bonferroni`, `holm`, `hochberg`, `hommel`, `sidak`, `bh`,
+  more cautious of the two for pairs. `games_howell` controls it over the pairs without
+  pooling, on each pair's own variances and degrees of freedom; it needs two values with some
+  variation in every group, and after a formula it is an error (Z0401). `bonferroni`, `holm`, `hochberg`, `hommel`, `sidak`, `bh`,
   `by` and `none` adjust the p-values of the pairwise t-tests and are described under
   `p_adjust`; `holm` is never less powerful than `bonferroni`.
 - term: After a formula, the term whose levels are compared: a category of the model,
@@ -58,15 +66,16 @@ none, and `level:` written out with one of them changes nothing, which a note sa
   be left out when the formula has one such term and is required when it has several (Z0401).
   After the one-way form there is nothing to choose and `term:` is an error (Z0401).
 - level: The confidence level of the intervals, between 0 and 1; 0.95 unless given. It is the
-  level that holds jointly over the comparisons under `tukey`, `scheffe`, `bonferroni` and
-  `sidak`, and of each interval on its own under `none`.
+  level that holds jointly over the comparisons under `tukey`, `games_howell`, `scheffe`,
+  `bonferroni` and `sidak`, and of each interval on its own under `none`.
 
 ## Value
 A `TestResult`, with the result interface (`summary`, `estimates`, `p_values`, `ci`, `n_obs`,
 `export`, `report`). Its table has a row for each pair of the groups of the `anova`, or of the
 levels or cells of the term, in the order (1, 2), (1, 3), …, (2, 3), …: the comparison, the
 difference, its standard error, t, the degrees of freedom when each pair has its own (Welch's
-tests), the p-value under the method, and the interval when the method has one. A cell of an
+tests and `games_howell`), the p-value under the method, and the interval when the method has
+one. A cell of an
 interaction is named by its levels joined by a colon, `low:a`, and a level that is a number
 carries the name of its category, `lot=2`. Under the table of a formula's comparisons a line
 says what each mean averages over and the value at which each numeric part is held.
@@ -97,6 +106,17 @@ the level, 95% unless `level:` says otherwise. With groups of one size the inter
 jointly at exactly the level; with unequal sizes this is the Tukey–Kramer form, which is
 conservative (Hayter 1984).
 
+Games–Howell. The standard error and the degrees of freedom are Welch's for the pair,
+se = √(sᵢ²/nᵢ + sⱼ²/nⱼ) and ν = (sᵢ²/nᵢ + sⱼ²/nⱼ)² / ((sᵢ²/nᵢ)²/(nᵢ − 1) + (sⱼ²/nⱼ)²/(nⱼ − 1)),
+and the range takes the place of t: the p-value is P(Q > |t|·√2) with Q the studentized range
+of k means on ν degrees of freedom, and the interval is d ± q·se/√2 with q its quantile at the
+level. Each pair has its own ν, between the smaller of nᵢ − 1 and nⱼ − 1 and nᵢ + nⱼ − 2, so
+the table prints it. The level holds approximately, not exactly: in simulations (Games and
+Howell 1976; Dunnett 1980) it is close in most layouts, and the comparison can reject somewhat
+too often when the groups are small, for which six or more values in each group is the usual
+advice. Where the groups do have one variance, Tukey's comparison has more degrees of freedom
+and so more power.
+
 Scheffé. The p-value is P(F > t²/(k − 1)), with F on k − 1 and N − k degrees of freedom, and
 the interval is d ± se·√((k − 1)·f), with f the quantile of that F at the level. The level
 holds jointly
@@ -113,13 +133,15 @@ Hochberg, Hommel, Benjamini–Hochberg and Benjamini–Yekutieli are computed ov
 as in `p_adjust`. No p-value is above 1.
 
 With two groups there is one comparison, and every method gives the p-value of the t-test of
-the two groups: on the pooled variance for `tukey` and `scheffe`, and as the `anova` was made
-for the others.
+the two groups: on the pooled variance for `tukey` and `scheffe`, Welch's for `games_howell`,
+and as the `anova` was made for the others.
 
 After an `anova` with `weights:` the comparisons use its weighted sizes, means and variances.
 After `equal_var: true` a group of a single value is compared with the others on the pooled
 variance; Welch's comparisons need two values with some variation in every group, which
-Welch's `anova` requires already.
+Welch's `anova` requires already. `games_howell` needs the same after either `anova`, and
+after `equal_var: true` with a group of one value, or of equal values, it is an error (Z0401)
+that names the group.
 
 After a formula. Write the fitted model as y = Xb + e, with one column of X for the intercept,
 for each numeric part and for each contrast of a category and their products. A marginal mean
@@ -130,7 +152,9 @@ levels. The difference of two marginal means is d = (l₁ − l₂)'b, its stand
 se = s·√((l₁ − l₂)'(X'X)⁻¹(l₁ − l₂)) with s² the residual mean square, and t = d/se has the
 residual degrees of freedom of the model. The methods then apply as above with k the number of
 means compared and c = k(k − 1)/2: Tukey's range is of k means, Scheffé's F has k − 1 numerator
-degrees of freedom, and the adjusted methods work on the c p-values of the t-tests. The
+degrees of freedom, and the adjusted methods work on the c p-values of the t-tests.
+`games_howell` has no place here: a marginal mean is a combination of the coefficients with the
+model's one residual variance, and has no variance of a group of its own. The
 comparisons do not depend on `type:`, which changes the table of the `anova` alone, nor on the
 order of the terms in the formula.
 
@@ -179,8 +203,12 @@ adjust = "sidak")`. In Stata, `pwmean y, over(g) mcompare(tukey) effects` and `p
 `anova` give `tukey`, `scheffe`, `bonferroni`, `sidak` and, as `noadjust`, `none`, always on the
 pooled variance, and `oneway y g, bonferroni scheffe sidak` prints the same p-values.
 `TukeyHSD`, `ScheffeTest` and Stata write each comparison as the second group minus the first,
-so their differences and limits have the opposite sign. Stata's `snk`, `duncan` and `dunnett`
-and the Games–Howell comparison are not given.
+so their differences and limits have the opposite sign. `games_howell` is
+`rstatix::games_howell_test(d, y ~ g)` in R, which also writes the second group minus the
+first, prints the absolute value of t and rounds its p-values to three decimals, and it is the
+Games–Howell choice among the post hoc tests of SPSS; Stata has no command of its own for it.
+Stata's
+`snk`, `duncan` and `dunnett` are not given.
 
 The differences, standard errors, t statistics, and the p-values and limits of every method but
 Tukey's agree with R to nine significant digits, after either form of `anova`. Tukey's come
@@ -188,7 +216,12 @@ from `dist.tukey`, which is
 accurate to a relative 1e-12, while R's `ptukey` and `qtukey` are less so (the page of
 `dist.tukey` gives the figures): R's Tukey p-values agree with these to six decimals on 20 or
 more degrees of freedom and to four below, and R's limits to a thousandth of the standard
-error.
+error. The same holds for `games_howell`, whose standard errors, t statistics and degrees of
+freedom agree with R to nine digits and whose p-values and limits come from `dist.tukey` at
+each pair's own degrees of freedom: R's agree to six decimals on 20 or more degrees of
+freedom, to four from 5, and to two below, where `ptukey` is at its least accurate. Below 2
+degrees of freedom, which only a pair of groups of two values has, R gives no value and Zeff
+gives the range's.
 
 ## References
 Tukey (1949), Comparing individual means in the analysis of variance, Biometrics 5, 99–114.
@@ -198,6 +231,10 @@ Hayter (1984), A proof of the conjecture that the Tukey–Kramer multiple compar
 is conservative, Annals of Statistics 12, 61–75.
 Scheffé (1953), A method for judging all contrasts in the analysis of variance, Biometrika 40,
 87–104.
+Games and Howell (1976), Pairwise multiple comparison procedures with unequal n's and/or
+variances: a Monte Carlo study, Journal of Educational Statistics 1, 113–125.
+Dunnett (1980), Pairwise multiple comparisons in the unequal variance case, Journal of the
+American Statistical Association 75, 796–800.
 Dunn (1961), Multiple comparisons among means, Journal of the American Statistical Association
 56, 52–64.
 Šidák (1967), Rectangular confidence regions for the means of multivariate normal
@@ -249,7 +286,18 @@ each row tests H0: the two population means are equal, against H1: they differ
 
 Tukey's HSD over 3 comparisons of 3 groups: p-values and intervals from the studentized range, family-wise
 pooled within-group variance on 11 degrees of freedom; N = 14
-note: `tukey` pools the variances of the groups, which the `anova` did not assume equal; `method: holm` compares the pairs by Welch's t-tests (line 4)
+note: `tukey` pools the variances of the groups, which the `anova` did not assume equal; `method: games_howell` compares the pairs without that assumption (line 4)
+> d.anova(gain, group: diet).posthoc(method: games_howell)
+posthoc · Games–Howell · gain by diet
+each row tests H0: the two population means are equal, against H1: they differ
+
+  comparison   difference   std.error   t value    df   p value   95% CI
+  a − b            -1.120       0.203     -5.52   7.4     0.002   [-1.710, -0.530]
+  a − c            -0.160       0.207     -0.77   5.7     0.733   [-0.804, 0.484]
+  b − c             0.960       0.234      4.10   6.8     0.012   [0.264, 1.656]
+
+Games–Howell over 3 comparisons of 3 groups: p-values and intervals from the studentized range on each pair's own degrees of freedom, family-wise
+each pair on its two groups' own variances and Welch's degrees of freedom; N = 14
 > let b = d.anova(gain, group: diet, equal_var: true).posthoc(method: bonferroni)
 > b.estimates()
 frame · 3 rows × 9 variables
@@ -279,7 +327,7 @@ each row tests H0: the two marginal means of the population are equal, against H
 Tukey's HSD over 3 comparisons of 3 marginal means: p-values and intervals from the studentized range, family-wise
 each mean is the model's prediction for a level of dose, averaged with equal weight over the levels of diet, with the numeric variables at their means (age = 5)
 residual variance of the model on 11 degrees of freedom; N = 18
-note: `dose` is also part of `dose:diet`: its differences are averages over the levels of `diet` and may not be the same at each level (line 10)
+note: `dose` is also part of `dose:diet`: its differences are averages over the levels of `diet` and may not be the same at each level (line 11)
 > m.posthoc(term: "dose:diet", method: holm)
 posthoc · Holm · dose:diet · gain ~ category(dose) * category(diet) + age
 each row tests H0: the two marginal means of the population are equal, against H1: they differ

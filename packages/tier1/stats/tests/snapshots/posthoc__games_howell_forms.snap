@@ -1,0 +1,190 @@
+---
+source: packages/tier1/stats/tests/posthoc.rs
+expression: "format!(\"{stdout}---\\n{stderr}\")"
+---
+posthoc · Games–Howell · s by site
+each row tests H0: the two population means are equal, against H1: they differ
+
+  comparison        difference   std.error   t value    df   p value   95% CI
+  site=1 − site=2       -0.385       0.417     -0.92   3.6     0.659   [-1.942, 1.172]
+  site=1 − site=3        0.020       0.354      0.06   5.2     0.998   [-1.115, 1.155]
+  site=2 − site=3        0.405       0.515      0.79   6.3     0.724   [-1.154, 1.964]
+
+Games–Howell over 3 comparisons of 3 groups: p-values and intervals from the studentized range on each pair's own degrees of freedom, family-wise
+each pair on its two groups' own variances and Welch's degrees of freedom; N = 14
+posthoc · Tukey HSD · s by site
+each row tests H0: the two population means are equal, against H1: they differ
+
+  comparison        difference   std.error   t value   p value   95% CI
+  site=1 − site=2       -0.385       0.424     -0.91     0.646   [-1.529, 0.759]
+  site=1 − site=3        0.020       0.399      0.05     0.999   [-1.059, 1.099]
+  site=2 − site=3        0.405       0.424      0.96     0.618   [-0.739, 1.549]
+
+Tukey's HSD over 3 comparisons of 3 groups: p-values and intervals from the studentized range, family-wise
+pooled within-group variance on 11 degrees of freedom; N = 14
+posthoc · Games–Howell · s by site
+each row tests H0: the two population means are equal, against H1: they differ
+
+  comparison        difference   std.error   t value    df   p value   99% CI
+  site=1 − site=2       -0.385       0.417     -0.92   3.6     0.659   [-2.975, 2.205]
+  site=1 − site=3        0.020       0.354      0.06   5.2     0.998   [-1.685, 1.725]
+  site=2 − site=3        0.405       0.515      0.79   6.3     0.724   [-1.849, 2.659]
+
+Games–Howell over 3 comparisons of 3 groups: p-values and intervals from the studentized range on each pair's own degrees of freedom, family-wise
+each pair on its two groups' own variances and Welch's degrees of freedom; N = 14
+posthoc · Games–Howell · s by site
+each row tests H0: the two population means are equal, against H1: they differ
+
+  comparison        difference   std.error   t value    df   p value   95% CI
+  site=1 − site=2       -0.385       0.417     -0.92   3.6     0.659   [-1.942, 1.172]
+  site=1 − site=3        0.020       0.354      0.06   5.2     0.998   [-1.115, 1.155]
+  site=2 − site=3        0.405       0.515      0.79   6.3     0.724   [-1.154, 1.964]
+
+Games–Howell over 3 comparisons of 3 groups: p-values and intervals from the studentized range on each pair's own degrees of freedom, family-wise
+each pair on its two groups' own variances and Welch's degrees of freedom; N = 14
+posthoc · Games–Howell · s by site
+each row tests H0: the two population means are equal, against H1: they differ
+
+  comparison        difference   std.error   t value    df   p value   95% CI
+  site=1 − site=2       -0.385       0.417     -0.92   3.6     0.413   [-1.590, 0.820]
+
+Games–Howell over 1 comparison of 2 groups: p-values and intervals from the studentized range on each pair's own degrees of freedom, family-wise
+each pair on its two groups' own variances and Welch's degrees of freedom; N = 9
+t_test · Welch two-sample · s by site
+  H0: the population means of s are equal in site=1 and site=2        μ(site=1) − μ(site=2) = 0
+  H1: the population means of s differ between site=1 and site=2      μ(site=1) − μ(site=2) ≠ 0
+
+  group    N    mean      sd
+  site=1   5   2.840   0.288
+  site=2   4   3.225   0.793
+
+difference (site=1 − site=2) = -0.385   95% CI [-1.590, 0.820]
+t = -0.92   df = 3.6   p = 0.413
+Hedges' g = -0.61   95% CI [-1.81, 0.59]
+decision at α = 0.05: fail to reject H0 (p = 0.413)
+posthoc · Games–Howell · v by k
+each row tests H0: the two population means are equal, against H1: they differ
+
+  comparison   difference   std.error   t value    df   p value   95% CI
+  a − b            -0.667       1.553     -0.43   9.9     0.904   [-4.929, 3.596]
+  a − c            -4.071       1.406     -2.90   9.3     0.041   [-7.972, -0.171]
+  b − c            -3.405       1.325     -2.57   9.9     0.067   [-7.044, 0.235]
+
+Games–Howell over 3 comparisons of 3 groups: p-values and intervals from the studentized range on each pair's own degrees of freedom, family-wise
+each pair on its two groups' own variances and Welch's degrees of freedom; N = 19
+posthoc · Games–Howell · x by g
+each row tests H0: the two population means are equal, against H1: they differ
+
+  comparison   difference   std.error   t value    df   p value   95% CI
+  g=1 − g=2        -2.000       0.707     -2.83   2.0     0.186   [-6.165, 2.165]
+  g=1 − g=3        -3.000       2.082     -1.44   2.2     0.456   [-13.964, 7.964]
+  g=2 − g=3        -1.000       2.082     -0.48   2.2     0.887   [-11.964, 9.964]
+
+Games–Howell over 3 comparisons of 3 groups: p-values and intervals from the studentized range on each pair's own degrees of freedom, family-wise
+each pair on its two groups' own variances and Welch's degrees of freedom; N = 7
+posthoc · Games–Howell · hours by industry
+each row tests H0: the two population means are equal, against H1: they differ
+
+  comparison                              difference   std.error   t value       df   p value   95% CI
+  Agriculture − Mining                        -0.655       0.694     -0.94    369.5     0.999   [-2.937, 1.626]
+  Agriculture − Utilities                     -0.743       0.571     -1.30    808.5     0.979   [-2.615, 1.130]
+  Agriculture − Construction                  -0.212       0.426     -0.50    887.9     1.000   [-1.609, 1.184]
+  Agriculture − Manufacturing                 -0.384       0.405     -0.95    744.0     0.999   [-1.712, 0.944]
+  Agriculture − Retail                         0.118       0.401      0.29    720.1     1.000   [-1.198, 1.434]
+  Agriculture − Transport                      0.036       0.453      0.08   1042.4     1.000   [-1.449, 1.521]
+  Agriculture − Finance                        0.097       0.425      0.23    878.5     1.000   [-1.295, 1.488]
+  Agriculture − Services                      -0.056       0.404     -0.14    740.6     1.000   [-1.382, 1.270]
+  Agriculture − Education                     -0.074       0.421     -0.18    851.7     1.000   [-1.453, 1.304]
+  Agriculture − Health                        -0.047       0.415     -0.11    810.6     1.000   [-1.405, 1.312]
+  Agriculture − Public administration          0.166       0.431      0.39    918.0     1.000   [-1.245, 1.577]
+  Mining − Utilities                          -0.087       0.729     -0.12    410.6     1.000   [-2.482, 2.308]
+  Mining − Construction                        0.443       0.621      0.71    251.9     1.000   [-1.607, 2.494]
+  Mining − Manufacturing                       0.271       0.607      0.45    229.8     1.000   [-1.733, 2.276]
+  Mining − Retail                              0.774       0.605      1.28    226.4     0.981   [-1.224, 2.771]
+  Mining − Transport                           0.691       0.640      1.08    282.5     0.995   [-1.419, 2.802]
+  Mining − Finance                             0.752       0.620      1.21    250.3     0.988   [-1.295, 2.799]
+  Mining − Services                            0.600       0.607      0.99    229.3     0.998   [-1.404, 2.603]
+  Mining − Education                           0.581       0.618      0.94    246.1     0.999   [-1.457, 2.619]
+  Mining − Health                              0.609       0.614      0.99    239.6     0.998   [-1.416, 2.634]
+  Mining − Public administration               0.821       0.625      1.32    256.8     0.977   [-1.239, 2.881]
+  Utilities − Construction                     0.530       0.481      1.10    551.4     0.995   [-1.049, 2.109]
+  Utilities − Manufacturing                    0.359       0.462      0.78    475.4     1.000   [-1.160, 1.877]
+  Utilities − Retail                           0.861       0.459      1.87    463.3     0.775   [-0.648, 2.369]
+  Utilities − Transport                        0.779       0.505      1.54    648.6     0.929   [-0.879, 2.436]
+  Utilities − Finance                          0.839       0.480      1.75    545.9     0.844   [-0.735, 2.414]
+  Utilities − Services                         0.687       0.462      1.49    473.7     0.944   [-0.830, 2.204]
+  Utilities − Education                        0.668       0.476      1.40    531.4     0.963   [-0.895, 2.231]
+  Utilities − Health                           0.696       0.471      1.48    509.4     0.946   [-0.850, 2.241]
+  Utilities − Public administration            0.909       0.485      1.87    567.8     0.775   [-0.683, 2.500]
+  Construction − Manufacturing                -0.172       0.263     -0.65   3108.9     1.000   [-1.031, 0.687]
+  Construction − Retail                        0.330       0.257      1.28   3006.5     0.981   [-0.511, 1.172]
+  Construction − Transport                     0.248       0.333      0.75   2066.7     1.000   [-0.840, 1.336]
+  Construction − Finance                       0.309       0.292      1.06   3026.2     0.996   [-0.647, 1.265]
+  Construction − Services                      0.157       0.262      0.60   3102.2     1.000   [-0.700, 1.013]
+  Construction − Education                     0.138       0.286      0.48   3111.4     1.000   [-0.799, 1.074]
+  Construction − Health                        0.165       0.277      0.60   3258.8     1.000   [-0.741, 1.072]
+  Construction − Public administration         0.378       0.301      1.26   2877.0     0.984   [-0.606, 1.362]
+  Manufacturing − Retail                       0.502       0.220      2.28   5362.8     0.492   [-0.218, 1.222]
+  Manufacturing − Transport                    0.420       0.305      1.38   1762.4     0.968   [-0.578, 1.417]
+  Manufacturing − Finance                      0.481       0.260      1.85   3297.9     0.791   [-0.370, 1.332]
+  Manufacturing − Services                     0.328       0.226      1.45   5199.7     0.952   [-0.410, 1.066]
+  Manufacturing − Education                    0.310       0.254      1.22   3621.5     0.987   [-0.520, 1.139]
+  Manufacturing − Health                       0.337       0.243      1.39   4410.8     0.966   [-0.458, 1.133]
+  Manufacturing − Public administration        0.550       0.270      2.04   2902.1     0.667   [-0.332, 1.432]
+  Retail − Transport                          -0.082       0.300     -0.27   1682.8     1.000   [-1.065, 0.900]
+  Retail − Finance                            -0.021       0.255     -0.08   3200.7     1.000   [-0.855, 0.812]
+  Retail − Services                           -0.174       0.219     -0.79   5453.0     1.000   [-0.891, 0.544]
+  Retail − Education                          -0.193       0.248     -0.78   3542.1     1.000   [-1.004, 0.619]
+  Retail − Health                             -0.165       0.237     -0.69   4414.4     1.000   [-0.941, 0.612]
+  Retail − Public administration               0.048       0.265      0.18   2795.9     1.000   [-0.817, 0.913]
+  Transport − Finance                          0.061       0.331      0.18   2067.6     1.000   [-1.021, 1.142]
+  Transport − Services                        -0.092       0.304     -0.30   1752.4     1.000   [-1.087, 0.904]
+  Transport − Education                       -0.110       0.325     -0.34   2029.1     1.000   [-1.175, 0.954]
+  Transport − Health                          -0.083       0.317     -0.26   1960.3     1.000   [-1.121, 0.956]
+  Transport − Public administration            0.130       0.338      0.38   2105.7     1.000   [-0.976, 1.236]
+  Finance − Services                          -0.152       0.259     -0.59   3293.2     1.000   [-1.001, 0.696]
+  Finance − Education                         -0.171       0.284     -0.60   3224.8     1.000   [-1.100, 0.758]
+  Finance − Health                            -0.144       0.275     -0.52   3416.4     1.000   [-1.042, 0.755]
+  Finance − Public administration              0.069       0.299      0.23   2941.2     1.000   [-0.907, 1.046]
+  Services − Education                        -0.019       0.253     -0.07   3622.3     1.000   [-0.846, 0.808]
+  Services − Health                            0.009       0.242      0.04   4431.6     1.000   [-0.784, 0.802]
+  Services − Public administration             0.222       0.269      0.82   2893.1     1.000   [-0.658, 1.102]
+  Education − Health                           0.028       0.269      0.10   3659.7     1.000   [-0.851, 0.906]
+  Education − Public administration            0.240       0.293      0.82   2997.3     1.000   [-0.718, 1.198]
+  Health − Public administration               0.213       0.284      0.75   3086.8     1.000   [-0.716, 1.142]
+
+Games–Howell over 66 comparisons of 12 groups: p-values and intervals from the studentized range on each pair's own degrees of freedom, family-wise
+each pair on its two groups' own variances and Welch's degrees of freedom; N = 18,377
+frame · 3 rows × 9 variables
+
+      term              estimate   std_error   statistic        df   df2    p_value   ci_lower   ci_upper
+  1   site=1 − site=2     -0.385    0.417003   -0.923254   3.63626    NA     0.6589    -1.9424     1.1724
+  2   site=1 − site=3       0.02    0.353553   0.0565685   5.19702    NA   0.998238   -1.11501    1.15501
+  3   site=2 − site=3      0.405    0.515453    0.785717   6.31158    NA   0.724148   -1.15416    1.96416
+ci · 95%
+
+  term               lower   upper
+  site=1 − site=2   -1.942   1.172
+  site=1 − site=3   -1.115   1.155
+  site=2 − site=3   -1.154   1.964
+0.391905
+2
+5.5187
+0.693185
+0.6589
+3.63626
+posthoc · Games–Howell · s by site
+each row tests H0: the two population means are equal, against H1: they differ
+
+  comparison        difference   std.error   t value    df   p value   95% CI
+  site=1 − site=2       -0.385       0.417     -0.92   3.6     0.659   [-1.942, 1.172]
+  site=1 − site=3        0.020       0.354      0.06   5.2     0.998   [-1.115, 1.155]
+  site=2 − site=3        0.405       0.515      0.79   6.3     0.724   [-1.154, 1.964]
+
+Games–Howell over 3 comparisons of 3 groups: p-values and intervals from the studentized range on each pair's own degrees of freedom, family-wise
+each pair on its two groups' own variances and Welch's degrees of freedom; N = 14
+---
+note: `tukey` pools the variances of the groups, which the `anova` did not assume equal; `method: games_howell` compares the pairs without that assumption (line 4)
+note: `games_howell` takes each group's own variance, where the `anova` assumed them equal; `method: tukey` compares the pairs on the pooled variance (line 7)
+note: 2 rows with NA in x or g dropped (line 13)
+note: 35 rows with NA in hours or industry dropped (line 15)

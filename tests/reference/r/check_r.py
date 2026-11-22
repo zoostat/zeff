@@ -13,7 +13,7 @@ relative 1e-12, the class tolerance of the distribution functions, since R's `pg
 carry errors of that order in their far tails on some platforms. `frames.json` holds only row
 numbers and is compared byte for byte by the workflow itself.
 
-Usage: python3 -I tests/reference/r/check_r.py maths|descriptive|special|distributions|association|kernels|types|design|regression|fixed_effects|event|dates|time|format|text|text_regex|panel|running|quantile_group|distinct|aggregate|merge|reshape|tabulate|t_test|counts|wilcoxon|kruskal|variance|iv|ar|fisher|shapiro|ks|anova|tukey|posthoc|posthoc_level|binary|separation|margins|margins_binary|curve|confusion <committed.json> <regenerated.json>
+Usage: python3 -I tests/reference/r/check_r.py maths|descriptive|special|distributions|association|kernels|types|design|regression|fixed_effects|event|dates|time|format|text|text_regex|panel|running|quantile_group|distinct|aggregate|merge|reshape|tabulate|t_test|counts|wilcoxon|kruskal|variance|iv|ar|fisher|shapiro|ks|anova|tukey|posthoc|posthoc_level|posthoc_games_howell|binary|separation|margins|margins_binary|curve|confusion <committed.json> <regenerated.json>
 
 `dates.json`, `time.json`, `format.json`, `text.json` and `text_regex.json` hold day counts, texts, seconds, date parts and ISO texts, which are exact on every platform, and are compared exactly apart from the software line.
 
@@ -27,7 +27,7 @@ import json
 import math
 import sys
 
-TOLERANCE = {"maths": 1e-13, "descriptive": 1e-12, "special": 1e-12, "distributions": 1e-12, "association": 1e-12, "kernels": 1e-12, "types": 1e-12, "design": 1e-12, "regression": 1e-10, "fixed_effects": 1e-9, "event": 1e-9, "dates": 0.0, "time": 0.0, "format": 0.0, "text": 0.0, "text_regex": 0.0, "panel": 0.0, "running": 0.0, "quantile_group": 0.0, "distinct": 0.0, "aggregate": 1e-12, "merge": 0.0, "reshape": 0.0, "tabulate": 1e-12, "t_test": 1e-6, "counts": 1e-6, "wilcoxon": 1e-12, "kruskal": 1e-9, "variance": 1e-9, "iv": 1e-8, "ar": 1e-7, "fisher": 1e-3, "shapiro": 1e-9, "ks": 1e-9, "anova": 1e-9, "tukey": 1e-9, "posthoc": 1e-9, "posthoc_level": 1e-9, "binary": 1e-9, "separation": 0.0, "margins": 1e-9, "margins_binary": 1e-8, "curve": 1e-9, "confusion": 1e-9}
+TOLERANCE = {"maths": 1e-13, "descriptive": 1e-12, "special": 1e-12, "distributions": 1e-12, "association": 1e-12, "kernels": 1e-12, "types": 1e-12, "design": 1e-12, "regression": 1e-10, "fixed_effects": 1e-9, "event": 1e-9, "dates": 0.0, "time": 0.0, "format": 0.0, "text": 0.0, "text_regex": 0.0, "panel": 0.0, "running": 0.0, "quantile_group": 0.0, "distinct": 0.0, "aggregate": 1e-12, "merge": 0.0, "reshape": 0.0, "tabulate": 1e-12, "t_test": 1e-6, "counts": 1e-6, "wilcoxon": 1e-12, "kruskal": 1e-9, "variance": 1e-9, "iv": 1e-8, "ar": 1e-7, "fisher": 1e-3, "shapiro": 1e-9, "ks": 1e-9, "anova": 1e-9, "tukey": 1e-9, "posthoc": 1e-9, "posthoc_level": 1e-9, "posthoc_games_howell": 1e-9, "binary": 1e-9, "separation": 0.0, "margins": 1e-9, "margins_binary": 1e-8, "curve": 1e-9, "confusion": 1e-9}
 
 
 def number(text):
@@ -108,7 +108,7 @@ def check_descriptive(committed, regenerated, problems):
 # model (`margins_binary`) come from fits iterated to their maximum, whose last digits differ
 # between platforms more than a regression's, and an effect near nought (a few 1e-4 beside a
 # standard error of 1e-3) is compared on an absolute floor far below its standard error.
-ABSOLUTE = {"association": 1e-15, "tukey": 1e-12, "posthoc": 1e-12, "posthoc_level": 1e-12, "margins": 1e-15, "margins_binary": 1e-10}
+ABSOLUTE = {"association": 1e-15, "tukey": 1e-12, "posthoc": 1e-12, "posthoc_level": 1e-12, "posthoc_games_howell": 1e-12, "margins": 1e-15, "margins_binary": 1e-10}
 
 
 def check_special(committed, regenerated, problems, which="special"):

@@ -1,0 +1,49 @@
+---
+source: packages/tier1/stats/tests/posthoc.rs
+expression: all
+---
+error[Z0401]: `games_howell` compares group means, each on its own group's variance, but after `anova` of a formula the means compared are the model's, on its one residual variance
+ --> scripts/main.zeff:2:42
+  |
+2 | d.anova(y ~ category(a)).posthoc(method: games_howell)
+  |                                          ^^^^^^^^^^^^ not after the form with a formula
+  |
+  = help: after one category alone, the form `d.anova(y, group: g).posthoc(method: games_howell)` has each group's variance; here `tukey` and the other methods compare the marginal means
+
+error[Z0401]: `games_howell` compares group means, each on its own group's variance, but after `anova` of a formula the means compared are the model's, on its one residual variance
+ --> scripts/main.zeff:2:56
+  |
+2 | d.anova(y ~ category(a) * category(b)).posthoc(method: games_howell, term: a)
+  |                                                        ^^^^^^^^^^^^ not after the form with a formula
+  |
+  = help: after one category alone, the form `d.anova(y, group: g).posthoc(method: games_howell)` has each group's variance; here `tukey` and the other methods compare the marginal means
+
+error[Z0401]: `games_howell` takes each group's own variance, which needs at least two values of `x` in every group, but g=3 has one
+ --> scripts/main.zeff:2:55
+  |
+2 | d.anova(x, group: g, equal_var: true).posthoc(method: games_howell)
+  |                                                       ^^^^^^^^^^^^ a group of one
+  |
+  = help: `method: tukey` compares the pairs on the variance pooled across the groups, which admits such a group; or leave the group out with `where`
+
+error[Z0401]: `games_howell` takes each group's own variance, but the values of `x` in b are all equal
+ --> scripts/main.zeff:2:55
+  |
+2 | d.anova(x, group: g, equal_var: true).posthoc(method: games_howell)
+  |                                                       ^^^^^^^^^^^^ no variation in one group
+  |
+  = help: `method: tukey` compares the pairs on the variance pooled across the groups, which admits such a group; or leave the group out with `where`
+
+error[Z0401]: Welch's `anova` needs at least two values of `x` in every group, but g=3 has one
+ --> scripts/main.zeff:2:9
+  |
+2 | d.anova(x, group: g).posthoc(method: games_howell)
+  |         ^ a group of one
+  |
+  = help: `equal_var: true` pools the variance across the groups and admits a group of one; or leave the group out with `where`
+
+error[Z0402]: `games` is not one of the allowed words
+ --> scripts/main.zeff:2:38
+  |
+2 | d.anova(x, group: g).posthoc(method: games)
+  |                                      ^^^^^ expected one of tukey, games_howell, bonferroni, holm, hochberg, hommel, bh, by, sidak, scheffe, none

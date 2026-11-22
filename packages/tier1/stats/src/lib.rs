@@ -917,7 +917,7 @@ pub fn functions() -> Vec<Function> {
                     ParamSpec::required("fit", "TestResult"),
                     ParamSpec::option_with_default(
                         "method",
-                        "tukey | bonferroni | holm | hochberg | hommel | bh | by | sidak | scheffe | none",
+                        "tukey | games_howell | bonferroni | holm | hochberg | hommel | bh | by | sidak | scheffe | none",
                         "tukey",
                     ),
                     ParamSpec::option("term", "Term"),
@@ -928,6 +928,9 @@ pub fn functions() -> Vec<Function> {
                 diagnostics: vec![
                     DiagnosticDecl::note(
                         "after Welch's anova, method: tukey or scheffe pools the variances that the anova did not assume equal",
+                    ),
+                    DiagnosticDecl::note(
+                        "after anova with equal_var: true, method: games_howell takes each group's own variance, which the anova assumed equal",
                     ),
                     DiagnosticDecl::new(
                         "W0401",
@@ -941,7 +944,7 @@ pub fn functions() -> Vec<Function> {
                     ),
                     DiagnosticDecl::new(
                         "Z0401",
-                        "a receiver that is not the result of an anova; a level outside 0 to 1; term: after the one-way form, left out when the formula has several terms of categories, or naming a term with a numeric part; a formula with no category",
+                        "a receiver that is not the result of an anova; a level outside 0 to 1; term: after the one-way form, left out when the formula has several terms of categories, or naming a term with a numeric part; a formula with no category; method: games_howell after an anova of a formula, or with a group of one value or of equal values",
                     ),
                     DiagnosticDecl::new("Z0414", "term: naming no term of the model"),
                     DiagnosticDecl::new(
@@ -951,7 +954,7 @@ pub fn functions() -> Vec<Function> {
                 ],
                 help: include_str!("../help/posthoc.md"),
                 accuracy: Some(AccuracyRecord {
-                    reference: "R 4.6.0 TukeyHSD(), pairwise.t.test() and t.test(), DescTools 0.99.60 ScheffeTest(), emmeans 2.0.3 emmeans(), pairs() and confint() (tests/reference/r/posthoc.R)"
+                    reference: "R 4.6.0 TukeyHSD(), pairwise.t.test() and t.test(), DescTools 0.99.60 ScheffeTest(), emmeans 2.0.3 emmeans(), pairs() and confint() (tests/reference/r/posthoc.R); the Games–Howell comparison by its formula with R's ptukey() and qtukey() (tests/reference/r/posthoc_games_howell.R)"
                         .to_string(),
                     last_run: None,
                 }),

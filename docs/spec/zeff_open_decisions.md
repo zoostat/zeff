@@ -1432,6 +1432,8 @@ Raised on 6 November 2026. Catalogue row 195 gives `fit.posthoc(method: tukey | 
 
 **The owner's decision (21 November 2026, at the opening of release 0.9.0).** The owner said "go" to the checklist of `docs/releases/0.9.0.md` without changing its answers, so its recommendation is taken under his standing instruction of 12 November 2026, his to overturn. Option A: `games_howell` joins `method:` of `posthoc`, the default staying `tukey`; built at step 29.
 
+**Status (23 November 2026).** Built at step 29 of Zeff 0.9.0, as decided. `method: games_howell` follows the one-way form of `anova` and takes each group's own variance whichever F was computed; after an `anova` of a formula, whose means have one residual variance, it is refused in words. The note that `tukey` prints after Welch's `anova` now names it. The reference is the formula in base R, checked against `rstatix::games_howell_test` where that package is installed; the package is not added to the reference library. Deadline for the owner to overturn: 1.0, when the names freeze.
+
 ### 86. Folding, snippets and the statement ranges behind **Run** in the language server
 
 Raised on 6 November 2026. Section 12 of the Engine and Project Specification says 1.0 ships completion, signature help, hover, live diagnostics, formatting, highlighting, running and folding, with snippets in its table; the row of 0.7.0 in section 14 names completion, signature help, hover and live diagnostics, and no later row names the rest. Formatting through the server is `zeff fmt` and is built at 0.7.0 by the owner's word of 6 November. Folding, snippets and the ranges of the current statement or chain, which **Run** needs, have no release.

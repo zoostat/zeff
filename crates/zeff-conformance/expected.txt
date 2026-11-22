@@ -261,7 +261,9 @@ tests/anova_oneway/stderr 44b8e20762fa68d7
 tests/anova_factorial/stdout b41156ba0a74efa4
 tests/anova_factorial/stderr 9c735bc3dbfdcd45
 tests/posthoc/stdout 4d8225870839674e
-tests/posthoc/stderr 25910651d8ab3498
+tests/posthoc/stderr cc9c0390ee16eae3
+tests/posthoc_games_howell/stdout 5bb54c57785c00c9
+tests/posthoc_games_howell/stderr 8ce96fcbc149db93
 verbs/save/stdout cbf29ce484222325
 verbs/save/stderr f0b9f97ee401dc01
 verbs/save/sample.csv 3ad16a99ddfbc0aa

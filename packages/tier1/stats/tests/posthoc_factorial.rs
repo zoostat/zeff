@@ -207,6 +207,18 @@ fn strings(v: &Json) -> Vec<String> {
         .collect()
 }
 
+/// The methods that follow an `anova` of a formula: every word of `method:` but
+/// `games_howell`, which takes each group's own variance and is refused where the means
+/// compared have the model's one residual variance (open decision #85; release 0.9.0, step 29).
+fn after_a_formula() -> Vec<&'static str> {
+    let words: Vec<&'static str> = Method::WORDS
+        .into_iter()
+        .filter(|word| *word != "games_howell")
+        .collect();
+    assert_eq!(words.len(), 10);
+    words
+}
+
 fn reference() -> Json {
     let text = std::fs::read_to_string(root().join("tests/reference/r/posthoc.json")).unwrap();
     serde_json::from_str(&text).unwrap()
@@ -338,7 +350,7 @@ fn every_method_agrees_with_emmeans_on_thirty_models() {
         let difference = values(&case["difference"]);
         let se = values(&case["se"]);
         let t = values(&case["t"]);
-        for word in Method::WORDS {
+        for word in after_a_formula() {
             let mut against = Against {
                 label: format!("{label}, {word}"),
                 problems: &mut problems,
@@ -658,7 +670,7 @@ proptest! {
         let Ok((one_way, _)) = invoke(anova, values, "d.anova(y, group: a, equal_var: true)") else {
             return Ok(());
         };
-        for word in Method::WORDS {
+        for word in after_a_formula() {
             // `term:` may be left out: the model has one term of categories.
             let after_formula = follow(&model, None, Some(word)).unwrap().0;
             let after_groups = follow(&one_way, None, Some(word)).unwrap().0;
@@ -669,7 +681,7 @@ proptest! {
     #[test]
     fn neither_the_order_of_the_terms_nor_the_type_changes_a_row(
         lines in lines(),
-        word in prop::sample::select(Method::WORDS.to_vec()),
+        word in prop::sample::select(after_a_formula()),
     ) {
         let frame = layout(&lines);
         let Ok(written) = fit(&frame, "y ~ a * b + x", Vec::new()) else {
@@ -803,7 +815,7 @@ proptest! {
         }
         let by = |word: &str| rows_of(&model, "a", word);
         let none = by("none");
-        for word in Method::WORDS {
+        for word in after_a_formula() {
             let rows = by(word);
             prop_assert_eq!(rows.len(), none.len());
             let single_step = matches!(word, "tukey" | "scheffe" | "bonferroni" | "sidak" | "none");
@@ -883,7 +895,7 @@ fn small() -> Frame {
 #[test]
 fn a_factor_of_two_levels_gives_one_comparison_whose_square_is_the_type_3_f() {
     let fitted = fit(&small(), "y ~ a * b + x", vec![(TYPE, Value::Int(3))]).unwrap();
-    for word in Method::WORDS {
+    for word in after_a_formula() {
         let (rows, _, result) = follow(&fitted, Some("a"), Some(word)).unwrap();
         assert_eq!(rows.len(), 1);
         assert_eq!(rows[0].term, "p − q");
@@ -1034,6 +1046,33 @@ fn the_term_is_checked_against_the_model() {
         failed.message,
         "`term:` chooses among the terms of a formula, but this `anova` compares the groups of `b` alone"
     );
+}
+
+#[test]
+fn games_howell_is_refused_after_a_formula() {
+    // One category alone, where `term:` may be left out, and two with `term:` given: the
+    // refusal is the same, and says which form of `anova` has each group's own variance.
+    for (formula, term) in [
+        ("y ~ a", None),
+        ("y ~ a * b", Some("a")),
+        ("y ~ a * b", None),
+    ] {
+        let fitted = fit(&small(), formula, Vec::new()).unwrap();
+        let failed = follow(&fitted, term, Some("games_howell")).unwrap_err();
+        assert_eq!(failed.code, "Z0401", "{formula}");
+        assert_eq!(
+            failed.message,
+            "`games_howell` compares group means, each on its own group's variance, but after `anova` of a formula the means compared are the model's, on its one residual variance",
+            "{formula}"
+        );
+        assert!(
+            failed.help[0].contains("`d.anova(y, group: g).posthoc(method: games_howell)`"),
+            "{:?}",
+            failed.help
+        );
+        // Tukey's, its counterpart on one variance, goes through on the same fit.
+        assert!(follow(&fitted, term.or(Some("a")), Some("tukey")).is_ok());
+    }
 }
 
 #[test]

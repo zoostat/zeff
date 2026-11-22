@@ -6,15 +6,15 @@ error[Z0402]: `dunnett` is not one of the allowed words
  --> scripts/main.zeff:2:38
   |
 2 | d.anova(x, group: g).posthoc(method: dunnett)
-  |                                      ^^^^^^^ expected one of tukey, bonferroni, holm, hochberg, hommel, bh, by, sidak, scheffe, none
+  |                                      ^^^^^^^ expected one of tukey, games_howell, bonferroni, holm, hochberg, hommel, bh, by, sidak, scheffe, none
 
-error[Z0401]: `method` of `posthoc` must be a tukey | bonferroni | holm | hochberg | hommel | bh | by | sidak | scheffe | none, but this is an Int
+error[Z0401]: `method` of `posthoc` must be a tukey | games_howell | bonferroni | holm | hochberg | hommel | bh | by | sidak | scheffe | none, but this is an Int
  --> scripts/main.zeff:2:38
   |
 2 | d.anova(x, group: g).posthoc(method: 2)
   |                                      ^ an Int
   |
-  = help: usage: `fit.posthoc(method: tukey | bonferroni | holm | hochberg | hommel | bh | by | sidak | scheffe | none = tukey, term: Term, level: Float = 0.95)`
+  = help: usage: `fit.posthoc(method: tukey | games_howell | bonferroni | holm | hochberg | hommel | bh | by | sidak | scheffe | none = tukey, term: Term, level: Float = 0.95)`
 
 error[Z0401]: `posthoc` compares the group means of an `anova`, but this is the result of `kruskal_test`
  --> scripts/main.zeff:2:1
@@ -57,7 +57,7 @@ error[Z0401]: `posthoc` cannot be called on a RegFit
   |
   = help: `posthoc` takes a TestResult first; `x.posthoc(...)` is `posthoc(x, ...)`
 
-note: `tukey` pools the variances of the groups, which the `anova` did not assume equal; `method: holm` compares the pairs by Welch's t-tests (line 2)
+note: `tukey` pools the variances of the groups, which the `anova` did not assume equal; `method: games_howell` compares the pairs without that assumption (line 2)
 error[Z0401]: `posthoc` compares the group means of an `anova`, but this is the result of `posthoc`
  --> scripts/main.zeff:2:1
   |
@@ -88,9 +88,9 @@ error[Z0401]: `level` of `posthoc` must be a Float, but this is a Str
 2 | d.anova(x, group: g).posthoc(level: "high")
   |                                     ^^^^^^ a Str
   |
-  = help: usage: `fit.posthoc(method: tukey | bonferroni | holm | hochberg | hommel | bh | by | sidak | scheffe | none = tukey, term: Term, level: Float = 0.95)`
+  = help: usage: `fit.posthoc(method: tukey | games_howell | bonferroni | holm | hochberg | hommel | bh | by | sidak | scheffe | none = tukey, term: Term, level: Float = 0.95)`
 
-note: `tukey` pools the variances of the groups, which the `anova` did not assume equal; `method: holm` compares the pairs by Welch's t-tests (line 2)
+note: `tukey` pools the variances of the groups, which the `anova` did not assume equal; `method: games_howell` compares the pairs without that assumption (line 2)
 error[Z0401]: `ci` of a test's result gives the intervals the test was made at, 90%, not at 95%
  --> scripts/main.zeff:2:52
   |

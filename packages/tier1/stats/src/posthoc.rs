@@ -1,5 +1,6 @@
 //! `posthoc` (release 0.7.0, steps 19 and 19b; Language Reference, section 4; open decisions
-//! #97, #98 and #104): the pairwise comparisons that follow an `anova`, by any of ten methods.
+//! #97, #98 and #104; Games–Howell at release 0.9.0, step 29, open decision #85): the pairwise
+//! comparisons that follow an `anova`, by any of eleven methods.
 //! Each row is one pair, the first minus the second, with its difference, its standard error,
 //! its t statistic and its p-value under the method.
 //!
@@ -13,6 +14,15 @@
 //! pooled variance after `equal_var: true`, as R's `pairwise.t.test` with `pool.sd` false and
 //! true.
 //!
+//! `games_howell` is Tukey's comparison without the pooled variance (Games and Howell, 1976):
+//! each pair on its two groups' own variances and the Welch–Satterthwaite degrees of freedom,
+//! as Welch's test of the pair, its p-value the upper tail of the studentized range for k
+//! groups on those degrees of freedom at |t|·√2, and its interval from the quantile of that
+//! range. It takes the groups' own variances whichever F the `anova` computed, as `tukey`
+//! pools whichever it computed; it is what `rstatix::games_howell_test` of R gives. It
+//! follows the one-way form alone: the marginal means of a formula have one residual variance
+//! and no variance of their own.
+//!
 //! After the factorial form (step 19b) the pairs are of the estimated marginal means of the
 //! term that `term:` names (the module `marginal`), as R's `pairs(emmeans(fit, ~ a))` and
 //! Stata's `pwcompare`: every method on the residual variance and the residual degrees of
@@ -20,8 +30,8 @@
 //! compared. A mean the rows do not determine is left out with a note, and the family is the
 //! means that remain.
 //!
-//! Intervals come with the single-step methods alone: Tukey's from the quantile of the
-//! studentized range, Scheffé's from the quantile of F, Bonferroni's and Šidák's from the t
+//! Intervals come with the single-step methods alone: Tukey's and Games–Howell's from the
+//! quantile of the studentized range, Scheffé's from the quantile of F, Bonferroni's and Šidák's from the t
 //! quantile at each comparison's adjusted level, and `none` at the level itself. The step-wise
 //! methods (Holm, Hochberg, Hommel, Benjamini–Hochberg, Benjamini–Yekutieli) have no
 //! simultaneous intervals and print none. The level is `level:`, 95% unless given (open decision
@@ -50,11 +60,14 @@ const METHOD: usize = 1;
 const TERM: usize = 2;
 const LEVEL: usize = 3;
 
-/// The ten methods of the catalogue's usage line.
+/// The eleven methods of the catalogue's usage line.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum Method {
     /// Tukey's honestly significant difference, on the pooled variance.
     Tukey,
+    /// The Games–Howell comparison: Tukey's on each pair's own variances and Welch's degrees
+    /// of freedom.
+    GamesHowell,
     /// Scheffé's method, on the pooled variance.
     Scheffe,
     /// The pairwise t-tests with their p-values adjusted by a method of `p_adjust`.
@@ -63,8 +76,9 @@ pub enum Method {
 
 impl Method {
     /// The words of `method:`, in the order of the usage line.
-    pub const WORDS: [&'static str; 10] = [
+    pub const WORDS: [&'static str; 11] = [
         "tukey",
+        "games_howell",
         "bonferroni",
         "holm",
         "hochberg",
@@ -80,6 +94,7 @@ impl Method {
     pub fn from_word(word: &str) -> Option<Method> {
         match word {
             "tukey" => Some(Method::Tukey),
+            "games_howell" => Some(Method::GamesHowell),
             "scheffe" => Some(Method::Scheffe),
             other => p_adjust::Method::from_word(other).map(Method::Adjusted),
         }
@@ -89,6 +104,7 @@ impl Method {
     pub fn name(self) -> &'static str {
         match self {
             Method::Tukey => "Tukey HSD",
+            Method::GamesHowell => "Games–Howell",
             Method::Scheffe => "Scheffé",
             Method::Adjusted(how) => match how {
                 p_adjust::Method::Holm => "Holm",
@@ -108,10 +124,15 @@ impl Method {
         matches!(self, Method::Tukey | Method::Scheffe)
     }
 
+    /// Whether the method takes each group's own variance whichever F the `anova` computed.
+    pub fn own_variances(self) -> bool {
+        self == Method::GamesHowell
+    }
+
     /// Whether the method gives an interval for each comparison: the single-step methods do.
     pub fn has_intervals(self) -> bool {
         match self {
-            Method::Tukey | Method::Scheffe => true,
+            Method::Tukey | Method::GamesHowell | Method::Scheffe => true,
             Method::Adjusted(how) => matches!(
                 how,
                 p_adjust::Method::Bonferroni
@@ -167,7 +188,8 @@ fn two_sided(t: f64, df: f64) -> f64 {
 /// `welch` says that the `anova` did not assume equal variances: the pairwise tests are then
 /// Welch's, each on the two groups' own variances and the Welch–Satterthwaite degrees of
 /// freedom, unless the method pools (`tukey`, `scheffe`). Otherwise every standard error is
-/// √(MS within · (1/nᵢ + 1/nⱼ)) on N − k degrees of freedom.
+/// √(MS within · (1/nᵢ + 1/nⱼ)) on N − k degrees of freedom, unless the method takes the
+/// groups' own variances whatever the `anova` assumed (`games_howell`).
 pub fn compare(
     groups: &[GroupSummary],
     welch: bool,
@@ -178,7 +200,7 @@ pub fn compare(
     if k < 2 {
         return Err(Undefined::TooFewGroups);
     }
-    let pooled = if welch && !method.pools() {
+    let pooled = if method.own_variances() || (welch && !method.pools()) {
         for (i, g) in groups.iter().enumerate() {
             if g.n < 2.0 {
                 return Err(Undefined::GroupOfOne(i));
@@ -258,6 +280,32 @@ pub fn finish(
                 row.ci = around(row, half);
             }
         }
+        (Method::GamesHowell, None) => {
+            // Tukey's on each pair's own degrees of freedom: q = |t|·√2 on the studentized
+            // range for k groups. Pairs that share their degrees of freedom share the
+            // quantile.
+            let mut last: Option<(f64, f64)> = None;
+            for row in &mut rows {
+                let range = Distribution::Family {
+                    name: "tukey",
+                    params: vec![("groups", k as f64), ("df", row.df)],
+                };
+                row.p = if row.t.is_nan() {
+                    f64::NAN
+                } else {
+                    families::cdf(&range, row.t.abs() * SQRT_2).upper
+                };
+                let half = match last {
+                    Some((df, half)) if df == row.df => half,
+                    _ => {
+                        let half = families::quantile(&range, level) / SQRT_2;
+                        last = Some((row.df, half));
+                        half
+                    }
+                };
+                row.ci = around(row, half);
+            }
+        }
         (Method::Scheffe, Some(df)) => {
             let df1 = k as f64 - 1.0;
             let f = Distribution::Family {
@@ -308,6 +356,9 @@ pub fn finish(
         }
         // `tukey` and `scheffe` always pool, so `pooled` is `Some` for them.
         (Method::Tukey | Method::Scheffe, None) => return Err(Undefined::NoPooledVariance),
+        // `games_howell` never pools: there is no variance of its own for a mean that comes
+        // with one shared variance, and the caller refuses it before this.
+        (Method::GamesHowell, Some(_)) => return Err(Undefined::NoPooledVariance),
     }
     Ok(Comparisons { rows, pooled_df })
 }
@@ -368,6 +419,9 @@ fn method_line(
         Method::Tukey => format!(
             "Tukey's HSD over {over}: p-values and intervals from the studentized range, family-wise"
         ),
+        Method::GamesHowell => format!(
+            "Games–Howell over {over}: p-values and intervals from the studentized range on each pair's own degrees of freedom, family-wise"
+        ),
         Method::Scheffe => format!(
             "Scheffé over {over}: p-values and intervals from F({}, {}), family-wise over every contrast",
             count(k as u64 - 1),
@@ -411,8 +465,8 @@ fn not_followed(ctx: &CallContext<'_>, message: String, label: &str, help: &str)
     )
 }
 
-/// `fit.posthoc(method: tukey | bonferroni | holm | hochberg | hommel | bh | by | sidak |
-/// scheffe | none = tukey, term:)`, after either form of `anova`.
+/// `fit.posthoc(method: tukey | games_howell | bonferroni | holm | hochberg | hommel | bh | by |
+/// sidak | scheffe | none = tukey, term:)`, after either form of `anova`.
 pub fn posthoc(ctx: &mut CallContext<'_>, args: Args) -> Result<Value, Fail> {
     let test = match args.get(FIT) {
         Some(Value::TestResult(test)) => Rc::clone(test),
@@ -453,7 +507,7 @@ pub fn posthoc(ctx: &mut CallContext<'_>, args: Args) -> Result<Value, Fail> {
                     )
                     .in_file(ctx.script)
                     .primary(ctx.span_of(METHOD), "not a method")
-                    .help("tukey compares every pair of means on the pooled variance; holm adjusts the pairwise t-tests without assuming more"),
+                    .help("tukey compares every pair of means on the pooled variance and games_howell on each pair's own variances; holm adjusts the pairwise t-tests without assuming more"),
                 ));
             }
         },
@@ -477,7 +531,7 @@ pub fn posthoc(ctx: &mut CallContext<'_>, args: Args) -> Result<Value, Fail> {
                     method.name()
                 ),
             )
-            .help("the methods with intervals at the level asked are tukey, scheffe, bonferroni, sidak and none"),
+            .help("the methods with intervals at the level asked are tukey, games_howell, scheffe, bonferroni, sidak and none"),
         );
     }
     match test.follow_up.as_deref() {
@@ -511,6 +565,17 @@ pub fn posthoc(ctx: &mut CallContext<'_>, args: Args) -> Result<Value, Fail> {
             )
         }
         Some(FollowUp::Factorial(fit)) => {
+            if method.own_variances() {
+                return Err(fail(
+                    Diagnostic::error(
+                        "Z0401",
+                        "`games_howell` compares group means, each on its own group's variance, but after `anova` of a formula the means compared are the model's, on its one residual variance",
+                    )
+                    .in_file(ctx.script)
+                    .primary(ctx.span_of(METHOD), "not after the form with a formula")
+                    .help("after one category alone, the form `d.anova(y, group: g).posthoc(method: games_howell)` has each group's variance; here `tukey` and the other methods compare the marginal means"),
+                ));
+            }
             factorial(ctx, &test, (method, level), fit, term.as_deref())
         }
         Some(FollowUp::Margins { .. } | FollowUp::Curve { .. }) | None => Err(testing::internal(
@@ -658,18 +723,58 @@ fn one_way(
             variance: g.variance,
         })
         .collect();
-    let result = compare(&summaries, !pooled, method, level).map_err(|_| {
-        testing::internal(
+    let result = compare(&summaries, !pooled, method, level).map_err(|why| match why {
+        // After `equal_var: true` a group may hold one value, or values all equal, and the
+        // pooled variance still stands; a method on each group's own variance has none there.
+        Undefined::GroupOfOne(i) | Undefined::GroupWithoutSpread(i) if method.own_variances() => {
+            let one = matches!(why, Undefined::GroupOfOne(_));
+            fail(
+                Diagnostic::error(
+                    "Z0401",
+                    if one {
+                        format!(
+                            "`games_howell` takes each group's own variance, which needs at least two values of `{outcome}` in every group, but {} has {}",
+                            groups[i].label,
+                            if summaries[i].n == 1.0 {
+                                "one".to_string()
+                            } else {
+                                count_text(summaries[i].n)
+                            }
+                        )
+                    } else {
+                        format!(
+                            "`games_howell` takes each group's own variance, but the values of `{outcome}` in {} are all equal",
+                            groups[i].label
+                        )
+                    },
+                )
+                .in_file(ctx.script)
+                .primary(
+                    ctx.span_of(METHOD),
+                    if one { "a group of one" } else { "no variation in one group" },
+                )
+                .help("`method: tukey` compares the pairs on the variance pooled across the groups, which admits such a group; or leave the group out with `where`"),
+            )
+        }
+        _ => testing::internal(
             ctx,
             "comparisons undefined after an `anova` that was defined",
-        )
+        ),
     })?;
-    // After Welch's F, a method that pools assumes what the `anova` did not.
+    // After Welch's F, a method that pools assumes what the `anova` did not; after the F on
+    // the pooled variance, a method on each group's own variance does not assume what the
+    // `anova` did.
     if !pooled && method.pools() {
-        ctx.message(Diagnostic::plain_note(format!(
-            "`{}` pools the variances of the groups, which the `anova` did not assume equal; `method: holm` compares the pairs by Welch's t-tests",
-            if method == Method::Tukey { "tukey" } else { "scheffe" }
-        )));
+        ctx.message(Diagnostic::plain_note(if method == Method::Tukey {
+            "`tukey` pools the variances of the groups, which the `anova` did not assume equal; `method: games_howell` compares the pairs without that assumption".to_string()
+        } else {
+            "`scheffe` pools the variances of the groups, which the `anova` did not assume equal; `method: holm` compares the pairs by Welch's t-tests".to_string()
+        }));
+    }
+    if pooled && method.own_variances() {
+        ctx.message(Diagnostic::plain_note(
+            "`games_howell` takes each group's own variance, where the `anova` assumed them equal; `method: tukey` compares the pairs on the pooled variance".to_string(),
+        ));
     }
     let k = summaries.len();
     let m = result.rows.len();
@@ -678,6 +783,10 @@ fn one_way(
         Some(df) => format!(
             "pooled within-group variance on {} degrees of freedom; N = {}",
             degrees_text(df),
+            count_text(n)
+        ),
+        None if method.own_variances() => format!(
+            "each pair on its two groups' own variances and Welch's degrees of freedom; N = {}",
             count_text(n)
         ),
         None => format!(

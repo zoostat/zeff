@@ -9,7 +9,10 @@
 //! does not depend on the order of the rows, and frequency weights repeat rows); the edge cases
 //! of the checklist (two groups, groups of unequal sizes, a group of one after `equal_var:
 //! true`); the refusals; and snapshots of every form and every message. The form after a
-//! factorial `anova` (step 19b) has its own file, `posthoc_factorial.rs`.
+//! factorial `anova` (step 19b) has its own file, `posthoc_factorial.rs`. The Games–Howell
+//! comparison (release 0.9.0, step 29; open decision #85) is held to
+//! `tests/reference/r/posthoc_games_howell.json`, its formula written out in base R and checked
+//! there against `rstatix::games_howell_test`, at the end of this file.
 
 use std::collections::BTreeMap;
 use std::f64::consts::SQRT_2;
@@ -897,8 +900,8 @@ fn two_groups_give_the_t_test_under_every_method() {
         ("x", Column::floats(x.iter().chain(&y).map(|v| Some(*v))).0),
         ("g", Column::ints((0..15).map(|i| Some(i64::from(i >= 10))))),
     ]);
-    for pooled in [true, false] {
-        // `t_test` by slot: var 1, group 4, equal_var 5.
+    // `t_test` by slot: var 1, group 4, equal_var 5.
+    let t_test_of = |pooled: bool| {
         let mut values: Vec<Option<Value>> = vec![None; 12];
         values[0] = Some(Value::Frame(frame.clone()));
         values[1] = Some(var("x"));
@@ -906,16 +909,20 @@ fn two_groups_give_the_t_test_under_every_method() {
         if pooled {
             values[5] = Some(Value::Bool(true));
         }
-        let (test, _) = invoke(t_test, values, "d.t_test(x, group: g)").unwrap();
-        let interval = test.estimate.as_ref().unwrap().ci.unwrap();
+        invoke(t_test, values, "d.t_test(x, group: g)").unwrap().0
+    };
+    for pooled in [true, false] {
         let fitted = one_way(&frame, "x", "g", pooled).unwrap();
         for word in Method::WORDS {
+            let method = Method::from_word(word).unwrap();
+            // Games–Howell is Welch's test of the pair whichever `anova` it follows.
+            let test = t_test_of(pooled && !method.own_variances());
+            let interval = test.estimate.as_ref().unwrap().ci.unwrap();
             let rows = follow(&fitted, word);
             assert_eq!(rows.len(), 1, "{word}");
             let row = &rows[0];
             assert_eq!(row.term, "g=0 − g=1");
             assert!((row.difference - test.estimate.as_ref().unwrap().value).abs() < 1e-14);
-            let method = Method::from_word(word).unwrap();
             if !pooled && method.pools() {
                 // After Welch's `anova` Tukey and Scheffé give the pooled test, not Welch's.
                 assert_eq!(row.df, 13.0);
@@ -925,7 +932,11 @@ fn two_groups_give_the_t_test_under_every_method() {
             assert!((row.df - test.statistic.df[0]).abs() < 1e-12, "{word}");
             // One comparison: no method has anything to adjust for. The range of two values is
             // |t|·√2 and F on 1 and N − 2 is t², each from its own integral or series.
-            let slack = if method.pools() { 1e-11 } else { 1e-15 };
+            let slack = if method.pools() || method.own_variances() {
+                1e-11
+            } else {
+                1e-15
+            };
             assert!(
                 (row.p - test.p_value).abs() <= slack,
                 "{word}: {} against {}",
@@ -1146,11 +1157,22 @@ fn a_group_of_one_is_compared_on_the_pooled_variance() {
     let (exit, _, stderr) = go(&format!("{data}d.anova(x, group: g).posthoc()\n"));
     assert_eq!(exit, 1);
     assert!(stderr.contains("g=3 has one"), "{stderr}");
-    // After the classical form every method compares the three pairs on 2 degrees of freedom.
+    // After the classical form every method but one compares the three pairs on 2 degrees of
+    // freedom. Games–Howell takes each group's own variance, and a group of one has none: it
+    // is refused in words that name the group and the method that admits it.
     for word in Method::WORDS {
         let (exit, stdout, stderr) = go(&format!(
             "{data}d.anova(x, group: g, equal_var: true).posthoc(method: {word})\n"
         ));
+        if word == "games_howell" {
+            assert_eq!(exit, 1, "{stdout}");
+            assert!(
+                stderr.contains("error[Z0401]: `games_howell` takes each group's own variance, which needs at least two values of `x` in every group, but g=3 has one"),
+                "{stderr}"
+            );
+            assert!(stderr.contains("`method: tukey`"), "{stderr}");
+            continue;
+        }
         assert_eq!(exit, 0, "{word}: {stderr}");
         assert!(stderr.is_empty(), "{word}: {stderr}");
         assert!(stdout.contains("g=1 − g=3"), "{word}: {stdout}");
@@ -1200,7 +1222,7 @@ fn what_is_not_a_one_way_anova_is_refused() {
     assert_eq!(failed.code, "Z0401");
     assert_eq!(
         failed.message,
-        "`method:` of `posthoc` is one of tukey, bonferroni, holm, hochberg, hommel, bh, by, sidak, scheffe, none, not `dunnett`"
+        "`method:` of `posthoc` is one of tukey, games_howell, bonferroni, holm, hochberg, hommel, bh, by, sidak, scheffe, none, not `dunnett`"
     );
     // A result of another test.
     let mut other = test.clone();
@@ -1336,4 +1358,398 @@ fn every_form_and_every_message() {
         all.push('\n');
     }
     insta::assert_snapshot!("messages", all);
+}
+
+// ----- the Games–Howell comparison (open decision #85; release 0.9.0, step 29) -----
+
+const GAMES_HOWELL: Method = Method::GamesHowell;
+
+fn games_howell_reference() -> Json {
+    let text = std::fs::read_to_string(root().join("tests/reference/r/posthoc_games_howell.json"))
+        .unwrap();
+    serde_json::from_str(&text).unwrap()
+}
+
+/// One case against R: the difference, the standard error, t and the degrees of freedom to
+/// nine digits; the p-value within the accuracy of R's `ptukey` on those degrees of freedom;
+/// the limits at three levels within that of `qtukey`, and held exactly by the tail the range
+/// leaves above each interval's edge. After either form of `anova` the rows are the same to
+/// the bit. Gives the problems and the number of p-values and of intervals compared with R.
+fn check_games_howell(
+    label: &str,
+    case: &Json,
+    frame: &Frame,
+    x: &str,
+    g: &str,
+    prefix: &str,
+) -> (Vec<String>, usize, usize) {
+    let mut problems = Vec::new();
+    let k = case["groups"].as_u64().unwrap() as usize;
+    let names = |key: &str| -> Vec<String> {
+        case[key]
+            .as_array()
+            .unwrap()
+            .iter()
+            .map(|v| v.as_str().unwrap().to_string())
+            .collect()
+    };
+    let (first, second) = (names("first"), names("second"));
+    let m = k * (k - 1) / 2;
+    assert_eq!(first.len(), m, "{label}");
+    let difference = values(&case["difference"]);
+    let se = values(&case["se"]);
+    let t = values(&case["t"]);
+    let df = values(&case["df"]);
+    // R has no value below two degrees of freedom.
+    let p = floats(&case["p"]);
+    let (mut p_compared, mut intervals_compared) = (0, 0);
+    let welch = one_way(frame, x, g, false).unwrap();
+    let classical = one_way(frame, x, g, true).unwrap();
+    let (rows, notes) = follow_with_notes(&welch, Some("games_howell")).unwrap();
+    // After Welch's `anova` nothing is said: the comparison assumes what the `anova` did.
+    assert!(notes.is_empty(), "{label}: {:?}", notes[0].message);
+    // After the classical form the rows are the same to the bit, and a note says that the
+    // `anova` assumed equal variances.
+    let (after_classical, notes) = follow_with_notes(&classical, Some("games_howell")).unwrap();
+    assert_eq!(notes.len(), 1, "{label}");
+    assert!(
+        notes[0].message.starts_with(
+            "`games_howell` takes each group's own variance, where the `anova` assumed them equal"
+        ),
+        "{}",
+        notes[0].message
+    );
+    assert_eq!(rows.len(), m, "{label}");
+    for (row, same) in rows.iter().zip(&after_classical) {
+        assert_eq!(row.term, same.term, "{label}");
+        for (a, b) in [
+            (row.difference, same.difference),
+            (row.std_error, same.std_error),
+            (row.t, same.t),
+            (row.df, same.df),
+            (row.p, same.p),
+            (row.ci.unwrap().0, same.ci.unwrap().0),
+            (row.ci.unwrap().1, same.ci.unwrap().1),
+        ] {
+            assert_eq!(a.to_bits(), b.to_bits(), "{label} {}", row.term);
+        }
+    }
+    {
+        let mut against = Against {
+            label: format!("{label} games_howell"),
+            problems: &mut problems,
+        };
+        for (i, row) in rows.iter().enumerate() {
+            assert_eq!(
+                row.term,
+                format!("{prefix}{} − {prefix}{}", first[i], second[i]),
+                "{label}"
+            );
+            against.close("difference", row.difference, difference[i], 1e-9, 1e-12);
+            against.close("std.error", row.std_error, se[i], 1e-9, 0.0);
+            against.close("t", row.t, t[i], 1e-9, 1e-12);
+            against.close("df", row.df, df[i], 1e-9, 0.0);
+            assert!((0.0..=1.0).contains(&row.p), "{label} {}", row.p);
+            match p[i] {
+                // R's `ptukey` is out by up to 5e-3 on 2 degrees of freedom, 3e-5 on 5 and
+                // 1e-7 on 20 (the help page of `dist.tukey`).
+                Some(theirs) => {
+                    let p_error = if row.df >= 20.0 {
+                        1e-6
+                    } else if row.df >= 5.0 {
+                        1e-4
+                    } else {
+                        5e-3
+                    };
+                    against.close("p", row.p, theirs, 0.0, p_error);
+                    p_compared += 1;
+                }
+                None => assert!(row.df < 2.0, "{label}: R has no p-value on {}", row.df),
+            }
+        }
+    }
+    for at in case["levels"].as_array().unwrap() {
+        let level = number(&at["level"]).unwrap();
+        let lower = floats(&at["lower"]);
+        let upper = floats(&at["upper"]);
+        let (at_level, _) = follow_at(&welch, Some("games_howell"), Some(level)).unwrap();
+        let mut against = Against {
+            label: format!("{label} games_howell at {level}"),
+            problems: &mut problems,
+        };
+        for (i, row) in at_level.iter().enumerate() {
+            // The level moves the interval alone.
+            assert_eq!(row.p.to_bits(), rows[i].p.to_bits());
+            assert_eq!(row.t.to_bits(), rows[i].t.to_bits());
+            let (lo, hi) = row.ci.unwrap();
+            assert!(lo < row.difference && row.difference < hi, "{label}");
+            // The interval is the difference with the same reach on both sides, and the
+            // range on the pair's own degrees of freedom leaves 1 − level above its edge.
+            against.close(
+                "the centre",
+                (lo + hi) / 2.0,
+                row.difference,
+                1e-9,
+                1e-9 * row.std_error,
+            );
+            let edge = (hi - row.difference) / row.std_error * SQRT_2;
+            let tail = families::cdf(&range(k, row.df), edge).upper;
+            against.close("the tail at the edge", tail, 1.0 - level, 1e-9, 0.0);
+            if let (Some(theirs_lower), Some(theirs_upper)) = (lower[i], upper[i]) {
+                // R's `qtukey` stops at about four digits, and at fewer on few degrees of
+                // freedom, where the quantile is large and its search stops early.
+                let reach = if row.df >= 5.0 { 1e-3 } else { 2e-2 } * (hi - lo);
+                against.close("lower", lo, theirs_lower, 0.0, reach);
+                against.close("upper", hi, theirs_upper, 0.0, reach);
+                intervals_compared += 1;
+            } else {
+                assert!(row.df < 2.0, "{label}: R has no interval on {}", row.df);
+            }
+        }
+    }
+    (problems, p_compared, intervals_compared)
+}
+
+#[test]
+fn games_howell_agrees_with_r_on_seventeen_sets_of_groups() {
+    let r = games_howell_reference();
+    let cases = r["cases"].as_array().unwrap();
+    assert_eq!(cases.len(), 17);
+    let mut problems = Vec::new();
+    let (mut p_compared, mut intervals_compared) = (0, 0);
+    for (i, case) in cases.iter().enumerate() {
+        let frame = frame_of(vec![
+            ("x", Column::floats(floats(&case["x"])).0),
+            ("g", group_column(case)),
+        ]);
+        let prefix = if case["text_groups"].as_bool().unwrap() {
+            ""
+        } else {
+            "g="
+        };
+        let (found, p, intervals) =
+            check_games_howell(&format!("cases[{i}]"), case, &frame, "x", "g", prefix);
+        problems.extend(found);
+        p_compared += p;
+        intervals_compared += intervals;
+    }
+    // Every pair but the six of the groups of two values, where R has none.
+    assert_eq!(p_compared, 82);
+    assert_eq!(intervals_compared, 3 * 82);
+    assert!(problems.is_empty(), "\n{}", problems.join("\n"));
+}
+
+#[test]
+fn games_howell_agrees_with_r_on_hours_by_industry() {
+    let r = games_howell_reference();
+    let case = &r["wages"];
+    assert_eq!(case["groups"].as_u64(), Some(12));
+    let frame = wages(case["x"].as_str().unwrap(), case["g"].as_str().unwrap());
+    let (problems, p_compared, intervals_compared) =
+        check_games_howell("wages", case, &frame, "hours", "industry", "");
+    assert_eq!((p_compared, intervals_compared), (66, 198));
+    assert!(problems.is_empty(), "\n{}", problems.join("\n"));
+}
+
+#[test]
+fn the_games_howell_kernel_follows_its_closed_form_and_what_it_cannot_compute_is_refused() {
+    let groups = summaries(&[
+        vec![2.9, 3.0, 2.5, 2.6, 3.2],
+        vec![3.8, 2.7, 4.0, 2.4],
+        vec![2.8, 3.4, 3.7, 2.2, 2.0, 5.5],
+    ]);
+    // Whichever F the `anova` computed, the comparison is the same.
+    let result = compare(&groups, true, GAMES_HOWELL, 0.95).unwrap();
+    assert_eq!(result, compare(&groups, false, GAMES_HOWELL, 0.95).unwrap());
+    assert_eq!(result.pooled_df, None);
+    assert_eq!(result.rows.len(), 3);
+    let welch = compare(&groups, true, NONE, 0.95).unwrap();
+    for (row, pair) in result.rows.iter().zip(&welch.rows) {
+        let (a, b) = (groups[row.first], groups[row.second]);
+        let (u, v) = (a.variance / a.n, b.variance / b.n);
+        let df = (u + v) * (u + v) / (u * u / (a.n - 1.0) + v * v / (b.n - 1.0));
+        assert!((row.difference - (a.mean - b.mean)).abs() < 1e-15);
+        assert!((row.std_error - (u + v).sqrt()).abs() < 1e-15);
+        assert!((row.df - df).abs() < 1e-12);
+        // The standard error, t and the degrees of freedom are Welch's test of the pair.
+        assert_eq!(row.std_error.to_bits(), pair.std_error.to_bits());
+        assert_eq!(row.t.to_bits(), pair.t.to_bits());
+        assert_eq!(row.df.to_bits(), pair.df.to_bits());
+        // The p-value and the interval are the range's, for three groups, on those degrees
+        // of freedom.
+        let p = families::cdf(&range(3, row.df), row.t.abs() * SQRT_2).upper;
+        assert!((row.p - p).abs() < 1e-15);
+        let q = families::quantile(&range(3, row.df), 0.95) / SQRT_2;
+        let (lo, hi) = row.ci.unwrap();
+        assert!((lo - (row.difference - q * row.std_error)).abs() < 1e-12);
+        assert!((hi - (row.difference + q * row.std_error)).abs() < 1e-12);
+        // Of three means the range asks more than the t-test of the pair alone, and no more
+        // than Bonferroni's three times its p-value.
+        assert!(row.p > pair.p, "{} against {}", row.p, pair.p);
+        assert!(row.p <= (3.0 * pair.p).min(1.0));
+        let (welch_lo, welch_hi) = pair.ci.unwrap();
+        assert!(lo < welch_lo && welch_hi < hi);
+    }
+    // Groups of one size and one variance: the standard errors are Tukey's, the degrees of
+    // freedom 2(n − 1) for each pair against Tukey's k(n − 1), so the p-values are larger and
+    // the intervals wider.
+    let equal = summaries(&[
+        vec![1.0, 2.0, 3.0, 4.0],
+        vec![2.5, 3.5, 4.5, 5.5],
+        vec![0.0, 1.0, 2.0, 3.0],
+    ]);
+    let ours = compare(&equal, true, GAMES_HOWELL, 0.95).unwrap();
+    let tukey = compare(&equal, true, Method::Tukey, 0.95).unwrap();
+    for (row, pooled) in ours.rows.iter().zip(&tukey.rows) {
+        assert!((row.std_error - pooled.std_error).abs() < 1e-14);
+        assert!((row.t - pooled.t).abs() < 1e-12);
+        assert!((row.df - 6.0).abs() < 1e-12);
+        assert_eq!(pooled.df, 9.0);
+        assert!(row.p > pooled.p);
+        assert!(row.ci.unwrap().0 < pooled.ci.unwrap().0);
+    }
+    // A group of one value, or of equal values, has no variance of its own: refused whichever
+    // `anova` came before, where Tukey's on the pooled variance goes through.
+    let with_one = summaries(&[vec![1.5, 2.5], vec![3.5, 4.5], vec![9.0]]);
+    for welch in [true, false] {
+        assert_eq!(
+            compare(&with_one, welch, GAMES_HOWELL, 0.95),
+            Err(Undefined::GroupOfOne(2))
+        );
+    }
+    assert!(compare(&with_one, false, Method::Tukey, 0.95).is_ok());
+    let flat = summaries(&[vec![1.5, 2.5], vec![4.0, 4.0, 4.0], vec![9.0, 7.0]]);
+    for welch in [true, false] {
+        assert_eq!(
+            compare(&flat, welch, GAMES_HOWELL, 0.95),
+            Err(Undefined::GroupWithoutSpread(1))
+        );
+    }
+    assert_eq!(
+        compare(&groups[..1], true, GAMES_HOWELL, 0.95),
+        Err(Undefined::TooFewGroups)
+    );
+    // The word, the name and what the method is.
+    assert_eq!(Method::from_word("games_howell"), Some(GAMES_HOWELL));
+    assert_eq!(GAMES_HOWELL.name(), "Games–Howell");
+    assert!(GAMES_HOWELL.has_intervals() && GAMES_HOWELL.own_variances() && !GAMES_HOWELL.pools());
+    assert!(!Method::Tukey.own_variances() && !HOLM.own_variances());
+    assert_eq!(Method::WORDS.len(), 11);
+    assert_eq!(Method::WORDS[1], "games_howell");
+}
+
+proptest! {
+    #![proptest_config(ProptestConfig::with_cases(property_cases()))]
+
+    /// On any groups of two values or more with some spread: every p-value lies in [0, 1], is
+    /// no smaller than that of Welch's test of the pair and no larger than Bonferroni's over
+    /// the pairs; an interval at 95% leaves out zero exactly when the p-value is below 0.05;
+    /// a higher level gives a wider interval round the same difference; and the answer does
+    /// not depend on the order of the rows, nor on the form of the `anova` it follows.
+    #[test]
+    fn games_howell_keeps_its_bounds_and_its_intervals_agree_with_its_p_values(
+        groups in prop::collection::vec(
+            prop::collection::vec(-50i32..50, 2..9),
+            2..6,
+        ),
+        scales in prop::collection::vec(1u32..40, 6),
+    ) {
+        // Values on a grid, each group on its own scale: variances that differ a great deal.
+        let values: Vec<Vec<f64>> = groups
+            .iter()
+            .enumerate()
+            .map(|(i, g)| g.iter().map(|v| f64::from(*v) * f64::from(scales[i]) / 8.0).collect())
+            .collect();
+        prop_assume!(values.iter().all(|g| g.iter().any(|v| *v != g[0])));
+        let k = values.len();
+        let m = (k * (k - 1) / 2) as f64;
+        let s = summaries(&values);
+        let ours = compare(&s, true, GAMES_HOWELL, 0.95).unwrap();
+        let welch = compare(&s, true, NONE, 0.95).unwrap();
+        let wider = compare(&s, false, GAMES_HOWELL, 0.99).unwrap();
+        for ((row, pair), wide) in ours.rows.iter().zip(&welch.rows).zip(&wider.rows) {
+            prop_assert!((0.0..=1.0).contains(&row.p), "{}", row.p);
+            prop_assert!(row.p >= pair.p - 1e-9, "{} below Welch's {}", row.p, pair.p);
+            prop_assert!(row.p <= (m * pair.p).min(1.0) + 1e-9, "{} above Bonferroni's", row.p);
+            prop_assert!(row.df >= 1.0 - 1e-9);
+            let (lo, hi) = row.ci.unwrap();
+            // Away from the edge, where the two could differ by rounding.
+            if (row.p - 0.05).abs() > 1e-7 {
+                prop_assert_eq!(lo > 0.0 || hi < 0.0, row.p < 0.05, "p = {}, [{}, {}]", row.p, lo, hi);
+            }
+            prop_assert_eq!(wide.p.to_bits(), row.p.to_bits());
+            let (wide_lo, wide_hi) = wide.ci.unwrap();
+            prop_assert!(wide_lo < lo && hi < wide_hi);
+        }
+        // The groups in the reverse order: each pair has its figures, with the sign turned.
+        let reversed: Vec<GroupSummary> = s.iter().rev().copied().collect();
+        let back = compare(&reversed, true, GAMES_HOWELL, 0.95).unwrap();
+        for row in &ours.rows {
+            let same = back
+                .rows
+                .iter()
+                .find(|r| r.first == k - 1 - row.second && r.second == k - 1 - row.first)
+                .unwrap();
+            prop_assert!((same.difference + row.difference).abs() <= 1e-12 * (1.0 + row.difference.abs()));
+            prop_assert!((same.p - row.p).abs() <= 1e-12);
+            prop_assert!((same.df - row.df).abs() <= 1e-9 * row.df);
+        }
+    }
+}
+
+/// Every form of the Games–Howell comparison through a script, and every message.
+#[test]
+fn games_howell_in_every_form_and_every_message() {
+    let (exit, stdout, stderr) = go(
+        "let g = frame(s = [2.9, 3.0, 2.5, 2.6, 3.2, 3.8, 2.7, 4.0, 2.4, 2.8, 3.4, 3.7, 2.2, 2.0], site = [1, 1, 1, 1, 1, 2, 2, 2, 2, 3, 3, 3, 3, 3])\nlet w = g.anova(s, group: site)\nw.posthoc(method: games_howell)\nw.posthoc()\nw.posthoc(method: games_howell, level: 0.99)\nlet a = g.anova(s, group: site, equal_var: true)\na.posthoc(method: games_howell)\ng.where(site < 3).anova(s, group: site).posthoc(method: games_howell)\ng.where(site < 3).t_test(s, group: site)\nlet t = frame(v = [3, 1, 4, 1, 5, 9, 2, 6, 5, 3, 5, 8, 9, 7, 9], k = [\"a\", \"b\", \"c\", \"a\", \"b\", \"c\", \"a\", \"b\", \"c\", \"a\", \"b\", \"c\", \"a\", \"b\", \"c\"], w = [1, 2, 1, 1, 1, 3, 1, 1, 1, 2, 1, 1, 1, 1, 1])\nt.anova(v, group: k, weights: w, weight_type: frequency).posthoc(method: games_howell)\nlet m = frame(x = [1.5, 2.5, NA, 4.5, 5.5, 6.5, 7.5, 3.5, 1.0], g = [1, 1, 2, 2, NA, 3, 3, 2, 3])\nm.anova(x, group: g).posthoc(method: games_howell)\nlet wages = dataset(wages)\nwages.anova(hours, group: industry).posthoc(method: games_howell)\nlet p = w.posthoc(method: games_howell)\np.estimates()\np.ci()\np.statistic()\np.df()\np.p_values()\np.p_values(\"site=1 - site=2\")\np.df(\"site=1 - site=2\")\np.summary()\n",
+    );
+    assert_eq!(exit, 0, "{stderr}");
+    insta::assert_snapshot!("games_howell_forms", format!("{stdout}---\n{stderr}"));
+    // The table has the degrees of freedom of each pair, and the lines under it say what the
+    // comparison rests on.
+    for said in [
+        "posthoc · Games–Howell · s by site\n",
+        "t value    df   p value   95% CI\n",
+        "p value   99% CI\n",
+        "Games–Howell over 3 comparisons of 3 groups: p-values and intervals from the studentized range on each pair's own degrees of freedom, family-wise\n",
+        "each pair on its two groups' own variances and Welch's degrees of freedom; N = 14\n",
+        "Games–Howell over 66 comparisons of 12 groups",
+    ] {
+        assert!(stdout.contains(said), "{said}\n{stdout}");
+    }
+    // After Welch's `anova`, Tukey's note names the comparison that does not pool; after the
+    // classical form Games–Howell says what the `anova` assumed; the only other notes are of
+    // the rows dropped for `NA`.
+    let notes: Vec<&str> = stderr.lines().collect();
+    assert_eq!(
+        notes[..2],
+        [
+            "note: `tukey` pools the variances of the groups, which the `anova` did not assume equal; `method: games_howell` compares the pairs without that assumption (line 4)",
+            "note: `games_howell` takes each group's own variance, where the `anova` assumed them equal; `method: tukey` compares the pairs on the pooled variance (line 7)",
+        ]
+    );
+    assert_eq!(notes.len(), 4, "{stderr}");
+    assert!(
+        notes[2..].iter().all(|note| note.contains("dropped")),
+        "{stderr}"
+    );
+    let mut all = String::new();
+    for script in [
+        // After a formula the means compared have one residual variance.
+        "let d = frame(y = [1, 2, 4, 3, 5.5, 7, 6, 8], a = [1, 1, 2, 2, 1, 1, 2, 2])\nd.anova(y ~ category(a)).posthoc(method: games_howell)\n",
+        "let d = frame(y = [1, 2, 4, 3, 5.5, 7, 6, 8], a = [1, 1, 2, 2, 1, 1, 2, 2], b = [1, 2, 1, 2, 1, 2, 1, 2])\nd.anova(y ~ category(a) * category(b)).posthoc(method: games_howell, term: a)\n",
+        // After the classical form: a group of one value, and a group of equal values.
+        "let d = frame(x = [1.5, 2.5, 3.5, 4.5, 9.0], g = [1, 1, 2, 2, 3])\nd.anova(x, group: g, equal_var: true).posthoc(method: games_howell)\n",
+        "let d = frame(x = [1.5, 2.5, 4.0, 4.0, 4.0, 9.0, 7.0], g = [\"a\", \"a\", \"b\", \"b\", \"b\", \"c\", \"c\"])\nd.anova(x, group: g, equal_var: true).posthoc(method: games_howell)\n",
+        // After Welch's form such a group stops the `anova` itself.
+        "let d = frame(x = [1.5, 2.5, 3.5, 4.5, 9.0], g = [1, 1, 2, 2, 3])\nd.anova(x, group: g).posthoc(method: games_howell)\n",
+        // A word near it.
+        "let d = frame(x = [1, 2, 4, 3, 5.5, 7], g = [1, 1, 1, 2, 2, 2])\nd.anova(x, group: g).posthoc(method: games)\n",
+    ] {
+        let (exit, _, stderr) = go(script);
+        assert_eq!(exit, 1, "{script}");
+        all.push_str(&stderr);
+        all.push('\n');
+    }
+    insta::assert_snapshot!("games_howell_messages", all);
 }
