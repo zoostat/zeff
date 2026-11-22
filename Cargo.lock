@@ -2739,8 +2739,10 @@ version = "0.9.0-dev"
 dependencies = [
  "wasm-bindgen",
  "zeff-columns",
+ "zeff-core",
  "zeff-diagnostics",
  "zeff-engine",
+ "zeff-plot",
 ]
 
 [[package]]

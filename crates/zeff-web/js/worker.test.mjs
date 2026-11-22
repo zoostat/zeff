@@ -169,6 +169,52 @@ test("a frame of the last run is passed to the interface as an Arrow stream, not
   await worker.terminate();
 });
 
+test("a plot of the last run is drawn at a size without a new run, and given as its scene", async () => {
+  const { worker, said, next } = await opened(0);
+  worker.postMessage({
+    type: "run",
+    script: "scripts/main.zeff",
+    text: 'let d = frame(x = [1.0, 2, 3, 4, 5, 6], y = [2.0, 1, 4, 3, 6, 5])\nlet p = d.scatter(x, y)\nd.histogram(x, bins: 3)\nlet n = d.n_rows()\n',
+  });
+  const done = await next("done");
+  assert.equal(done.exit_code, 0, done.stderr);
+  // The outcome lists the plots the statements made: one a `let` binds, one a statement gives.
+  assert.deepEqual(done.plots, [
+    { index: 0, name: "p", line: 2, kind: "points", theme: "journal" },
+    { index: 1, name: null, line: 3, kind: "bars", theme: "journal" },
+  ]);
+  const before = said.length;
+  // The pane's size in points, twice: each answer is the plot at that size, and no run is made.
+  worker.postMessage({ type: "plot", index: 0, width: 420, height: 300 });
+  const small = await next("plot");
+  assert.deepEqual([small.index, small.width, small.height, small.theme], [0, 420, 300, "journal"]);
+  assert.ok(small.svg.includes("<svg ") && small.svg.trimEnd().endsWith("</svg>"), small.svg.slice(0, 80));
+  worker.postMessage({ type: "plot", index: 0, width: 840, height: 600, theme: "minimal" });
+  const large = await next("plot");
+  assert.deepEqual([large.width, large.height, large.theme], [840, 600, "minimal"]);
+  assert.notEqual(large.svg, small.svg);
+  // The same plot as data: its scales, and the marks of its layer in the units of the data.
+  worker.postMessage({ type: "scene", index: 0 });
+  const scene = await next("scene");
+  assert.equal(scene.index, 0);
+  assert.equal(typeof scene.scene.zeff_scene, "number");
+  assert.ok(Array.isArray(scene.scene.scales) && scene.scene.scales.length >= 2);
+  assert.ok(Array.isArray(scene.scene.panels) && scene.scene.panels.length === 1);
+  // A pane too small for the plot's labels, a theme there is not, a plot there is not: each
+  // is answered, and the size is said to be at fault where it is.
+  worker.postMessage({ type: "plot", index: 0, width: 40, height: 30 });
+  const tiny = await next("error");
+  assert.equal(tiny.of_size, true);
+  assert.match(tiny.message, /too small for this plot/);
+  worker.postMessage({ type: "plot", index: 0, width: 420, height: 300, theme: "dark" });
+  assert.match((await next("error")).message, /is no theme of a plot/);
+  worker.postMessage({ type: "scene", index: 5 });
+  assert.match((await next("error")).message, /no plot numbered 5/);
+  // Nothing was run for any of it: no step of a run was told.
+  assert.equal(said.slice(before).filter((message) => ["started", "finished", "done"].includes(message.type)).length, 0);
+  await worker.terminate();
+});
+
 test("a message the worker cannot act on is answered, not passed over", async () => {
   const { worker, said, next } = started(0);
   await next("ready");

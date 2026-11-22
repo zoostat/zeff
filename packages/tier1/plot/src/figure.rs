@@ -12,8 +12,11 @@
 //! and a page of more dots than a PNG of Zeff holds.
 
 use zeff_core::display::format_float;
-use zeff_core::value::{FigureFormat, FigureProblem, FigureRequest, FigureSize, Plot};
+use zeff_core::value::{
+    FigureFormat, FigureProblem, FigureRequest, FigureSize, Plot, PlotTheme, ThemeName,
+};
 
+use crate::drawing::Drawing;
 use crate::layout::{LayoutError, MM, SMALLEST_PANEL, Size, Theme, layout, layout_with_notes};
 use crate::raster::{DOTS, MOST_DOTS, RasterError, render};
 use crate::scene::{Scene, scene};
@@ -34,42 +37,62 @@ fn all_in_dots(scene: &mut Scene) {
     }
 }
 
-/// The bytes of `plot` as the figure `request` asks for.
-pub fn write(plot: &Plot, request: &FigureRequest) -> Result<Vec<u8>, FigureProblem> {
-    let size = match request.size {
-        FigureSize::OneColumn => Size::OneColumn,
-        FigureSize::TwoColumn => Size::TwoColumn,
-        FigureSize::Slide => Size::Slide,
-        FigureSize::Millimetres(width, height) => Size::Millimetres(width, height),
-    };
-    let mut drawn = scene(plot);
-    if request.format == FigureFormat::Png {
-        all_in_dots(&mut drawn);
+/// The width and the height of a page as a message writes them, in millimetres: as written
+/// for a page given in millimetres, to a tenth for one given in points.
+fn page(size: Size) -> (String, String) {
+    let (wide, high) = size.millimetres();
+    match size {
+        Size::Points(..) => (mm(wide * MM), mm(high * MM)),
+        _ => (format_float(wide), format_float(high)),
     }
-    // The theme the script gives the plot: `journal` where it says nothing.
-    let theme = Theme::of(&drawn.theme);
-    let laid = if request.notes {
-        layout_with_notes(&drawn, size, &theme)
-    } else {
-        layout(&drawn, size, &theme)
-    };
-    let not_a_size = || {
-        FigureProblem {
+}
+
+/// A size that is none.
+fn not_a_size() -> FigureProblem {
+    FigureProblem {
         message: "the size of a figure is a width and a height above 0, in millimetres".to_string(),
         label: "not a width and a height".to_string(),
         help: "write `size: [89, 66]` for 89 mm by 66 mm, or one of `one_column`, `two_column` and `slide`".to_string(),
         of_size: true,
     }
+}
+
+/// `plot` laid out on a page of `size`, under its own theme or the one asked for; what cannot
+/// be laid out is said in this package's words.
+fn laid_out(
+    plot: &Plot,
+    size: Size,
+    theme: Option<ThemeName>,
+    notes: bool,
+    in_dots: bool,
+) -> Result<Drawing, FigureProblem> {
+    let mut drawn = scene(plot);
+    if in_dots {
+        all_in_dots(&mut drawn);
+    }
+    // The theme the script gives the plot, `journal` where it says nothing, unless another
+    // is asked for.
+    let theme = Theme::of(&match theme {
+        Some(name) => PlotTheme {
+            name,
+            base_size: None,
+        },
+        None => drawn.theme,
+    });
+    let laid = if notes {
+        layout_with_notes(&drawn, size, &theme)
+    } else {
+        layout(&drawn, size, &theme)
     };
-    let drawing = laid.map_err(|why| match why {
+    laid.map_err(|why| match why {
         LayoutError::NotASize => not_a_size(),
         LayoutError::TooSmall { panel } => {
-            let (wide, high) = size.millimetres();
+            let (wide, high) = page(size);
             FigureProblem {
                 message: format!(
                     "a page of {} by {} mm is too small for this plot: its labels, never set below 8 points, leave {} by {} mm for the panel",
-                    format_float(wide),
-                    format_float(high),
+                    wide,
+                    high,
                     mm(panel.0.max(0.0)),
                     mm(panel.1.max(0.0))
                 ),
@@ -82,12 +105,12 @@ pub fn write(plot: &Plot, request: &FigureRequest) -> Result<Vec<u8>, FigureProb
             }
         }
         LayoutError::TooMany { panel, panels } => {
-            let (wide, high) = size.millimetres();
+            let (wide, high) = page(size);
             FigureProblem {
                 message: format!(
                     "a page of {} by {} mm is too small for the {} panels of this plot: however they are laid, it leaves each {} by {} mm",
-                    format_float(wide),
-                    format_float(high),
+                    wide,
+                    high,
                     zeff_diagnostics::count(panels as u64),
                     mm(panel.0.max(0.0)),
                     mm(panel.1.max(0.0))
@@ -101,7 +124,7 @@ pub fn write(plot: &Plot, request: &FigureRequest) -> Result<Vec<u8>, FigureProb
             }
         }
         LayoutError::TooThin { panel, filling } => {
-            let (wide, high) = size.millimetres();
+            let (wide, high) = page(size);
             // A number to two figures, as a message says it.
             let rounded = |x: f64| {
                 format!("{x:.1e}")
@@ -122,8 +145,8 @@ pub fn write(plot: &Plot, request: &FigureRequest) -> Result<Vec<u8>, FigureProb
             FigureProblem {
                 message: format!(
                     "fixed coordinates make the panel of this plot {shape}: on a page of {} by {} mm that is {} by {} mm",
-                    format_float(wide),
-                    format_float(high),
+                    wide,
+                    high,
                     mm(panel.0.max(0.0)),
                     mm(panel.1.max(0.0))
                 ),
@@ -148,7 +171,38 @@ pub fn write(plot: &Plot, request: &FigureRequest) -> Result<Vec<u8>, FigureProb
             help: "write the figure with the version of Zeff that made the plot".to_string(),
             of_size: false,
         },
-    })?;
+    })
+}
+
+/// `plot` as an SVG on a page of `width` by `height` points, for an interface that draws a
+/// plot of a run at the size of its pane (open decision #197): the same layout and the same
+/// writer as `export`, so that at the points of a page `export` writes, the text is the same
+/// byte for byte. `theme` is the plot's own where none is given.
+pub fn svg_at(
+    plot: &Plot,
+    width: f64,
+    height: f64,
+    theme: Option<ThemeName>,
+) -> Result<String, FigureProblem> {
+    let drawing = laid_out(plot, Size::Points(width, height), theme, false, false)?;
+    Ok(svg::write(&drawing))
+}
+
+/// The bytes of `plot` as the figure `request` asks for.
+pub fn write(plot: &Plot, request: &FigureRequest) -> Result<Vec<u8>, FigureProblem> {
+    let size = match request.size {
+        FigureSize::OneColumn => Size::OneColumn,
+        FigureSize::TwoColumn => Size::TwoColumn,
+        FigureSize::Slide => Size::Slide,
+        FigureSize::Millimetres(width, height) => Size::Millimetres(width, height),
+    };
+    let drawing = laid_out(
+        plot,
+        size,
+        None,
+        request.notes,
+        request.format == FigureFormat::Png,
+    )?;
     let (wide, high) = size.millimetres();
     match request.format {
         FigureFormat::Svg => Ok(svg::write(&drawing).into_bytes()),

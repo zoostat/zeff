@@ -144,6 +144,21 @@ pub struct Interpreter<'a> {
     /// Where the frames the run's bindings hold at its end are put, where someone wants
     /// them: the interface of a worker, which shows them (step 33e2).
     kept: Option<&'a std::cell::RefCell<Vec<(String, Frame)>>>,
+    /// Where each plot a statement of the script makes is put, where someone wants them: an
+    /// interface, which draws them at the size of its pane (open decision #197).
+    plots: Option<&'a std::cell::RefCell<Vec<PlotMade>>>,
+}
+
+/// A plot a statement of a run made (open decision #197): the value of a `let`, by its name,
+/// or of a statement that is an expression, with the line of the statement. A plot handed to
+/// `print(...)` is not one: the statement's value is then nothing, and the plot it printed is
+/// listed where it was made.
+#[derive(Debug, Clone)]
+pub struct PlotMade {
+    /// The binding that holds it, when the statement is a `let`.
+    pub name: Option<String>,
+    pub line: u32,
+    pub plot: std::rc::Rc<zeff_core::value::Plot>,
 }
 
 #[derive(Debug, Clone, PartialEq)]
@@ -237,6 +252,7 @@ impl<'a> Interpreter<'a> {
             line: 0,
             budget: None,
             kept: None,
+            plots: None,
         }
     }
 
@@ -257,6 +273,13 @@ impl<'a> Interpreter<'a> {
     /// the order the bindings were made.
     pub fn with_kept(mut self, kept: Option<&'a std::cell::RefCell<Vec<(String, Frame)>>>) -> Self {
         self.kept = kept;
+        self
+    }
+
+    /// The plots the statements of the run make are put here as each is made, in the order of
+    /// the statements; a run that starts empties it.
+    pub fn with_plots(mut self, plots: Option<&'a std::cell::RefCell<Vec<PlotMade>>>) -> Self {
+        self.plots = plots;
         self
     }
 
@@ -564,6 +587,8 @@ impl<'a> Interpreter<'a> {
             }
             // A failure inside the engine never crashes the run: it is Z9001 at the statement,
             // and the run stops as it would at any error (Language Reference, section 11.1).
+            // The plot a statement that is an expression or a `print` gives, for an interface.
+            let mut shown_plot = None;
             let evaluation = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
                 if let Some(budget) = self.budget
                     && !cancelled
@@ -586,11 +611,20 @@ impl<'a> Interpreter<'a> {
                     Statement::Let { binding, value, .. } => self
                         .eval(value, &mut printed, &mut messages)
                         .map(|v| self.bind(*binding, v)),
-                    Statement::Print { value, .. } => self
-                        .eval(value, &mut printed, &mut messages)
-                        .map(|v| printed.push_str(&show_width(&v, self.width))),
+                    Statement::Print { value, .. } => {
+                        self.eval(value, &mut printed, &mut messages).map(|v| {
+                            printed.push_str(&show_width(&v, self.width));
+                            if let Value::Plot(plot) = &v {
+                                shown_plot = Some(plot.clone());
+                            }
+                        })
+                    }
                     Statement::Expr { value, .. } => {
-                        self.eval(value, &mut printed, &mut messages).map(|_| ())
+                        self.eval(value, &mut printed, &mut messages).map(|v| {
+                            if let Value::Plot(plot) = &v {
+                                shown_plot = Some(plot.clone());
+                            }
+                        })
                     }
                     Statement::For {
                         binding,
@@ -692,6 +726,24 @@ impl<'a> Interpreter<'a> {
                 stdout: printed,
                 stderr: statement_errors,
             });
+            if let Some(plots) = self.plots {
+                let made = match statement {
+                    Statement::Let { binding, .. } => match self.env.get(binding) {
+                        Some(Value::Plot(plot)) if !failed => Some(PlotMade {
+                            name: Some(self.program.bindings[*binding].name.clone()),
+                            line,
+                            plot: plot.clone(),
+                        }),
+                        _ => None,
+                    },
+                    _ => shown_plot.take().map(|plot| PlotMade {
+                        name: None,
+                        line,
+                        plot,
+                    }),
+                };
+                plots.borrow_mut().extend(made);
+            }
             if let Statement::Let { binding, span, .. } = statement
                 && let Some(Value::Frame(frame)) = self.env.get(binding)
                 && let Some((_, hash)) =

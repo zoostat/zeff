@@ -42,7 +42,7 @@ fn a_run_tells_each_event_as_a_line_of_json_and_gives_its_outcome() {
     );
     assert_eq!(
         done,
-        r#"{"type": "done", "exit_code": 0, "stdout": "one\n", "stderr": "", "frames": []}"#
+        r#"{"type": "done", "exit_code": 0, "stdout": "one\n", "stderr": "", "plots": [], "frames": []}"#
     );
     // A pass of a loop, with its total where the loop knows it and `null` where it does not.
     assert_eq!(
@@ -320,4 +320,225 @@ fn a_problem_is_reported_as_a_line_of_json_and_nothing_is_written() {
     // Nothing was written into the project's reports.
     assert!(host.holds("data/pay.csv"));
     assert!(!host.holds(".zeff/reports"));
+}
+
+// ----- the plots of a run (open decision #197; release 0.9.0, step 25) -----
+
+const PLOTS: &str = "let d = frame(x = [1.0, 2, 3, 4, 5, 6], y = [2.0, 1, 4, 3, 6, 5], g = [\"a\", \"b\", \"a\", \"b\", \"a\", \"b\"])\nlet p = d.scatter(x, y, color: g)\nlet n = d.n_rows()\nd.histogram(x, bins: 3)\nd.plot(x: x, y: y).lines().points().theme(minimal)\nprint(p)\nlet q = p\n";
+
+/// The list of plots in a run's outcome.
+fn plots_of(done: &str) -> &str {
+    let from = done
+        .find("\"plots\": [")
+        .expect("the outcome lists its plots");
+    let to = done.find("], \"frames\"").expect("the frames follow");
+    &done[from..=to]
+}
+
+#[test]
+fn the_outcome_of_a_run_lists_the_plots_its_statements_made() {
+    let host = Host::new("demo");
+    let (_, done) = run(&host, PLOTS, None, never);
+    assert!(done.contains(r#""exit_code": 0"#), "{done}");
+    // A plot a `let` binds, by its name; one a statement gives, by its line; a number is no
+    // plot; a plot that is printed is listed where it was made and not again; a second name
+    // for a plot is a plot.
+    assert_eq!(
+        plots_of(&done),
+        r#""plots": [{"index": 0, "name": "p", "line": 2, "kind": "points", "theme": "journal"}, {"index": 1, "name": null, "line": 4, "kind": "bars", "theme": "journal"}, {"index": 2, "name": null, "line": 5, "kind": "lines, points", "theme": "minimal"}, {"index": 3, "name": "q", "line": 7, "kind": "points", "theme": "journal"}]"#
+    );
+    // The frames are listed as before, after them.
+    assert!(
+        done.ends_with(r#""frames": [{"name": "d", "rows": 6, "variables": 3}]}"#),
+        "{done}"
+    );
+    // A run with no plot lists none, and the plots are those of the last run.
+    let (_, done) = run(&host, "let n = 1\n", None, never);
+    assert_eq!(plots_of(&done), r#""plots": []"#);
+    assert!(
+        host.plot_svg(0, 400.0, 300.0, None)
+            .contains("the last run made no plot")
+    );
+    // A run that stops keeps the plots made before it stopped.
+    let (_, done) = run(
+        &host,
+        "let d = frame(x = [1.0, 2, 3], y = [3.0, 1, 2])\nlet p = d.scatter(x, y)\nassert(d.n_rows() > 5, \"three rows are too few\")\nlet late = d.scatter(y, x)\n",
+        None,
+        never,
+    );
+    assert!(done.contains(r#""exit_code": 1"#), "{done}");
+    assert_eq!(
+        plots_of(&done),
+        r#""plots": [{"index": 0, "name": "p", "line": 2, "kind": "points", "theme": "journal"}]"#
+    );
+}
+
+/// The SVG text of a line of JSON of type `plot`.
+fn svg_of(line: &str) -> String {
+    assert!(line.starts_with(r#"{"type": "plot", "#), "{line}");
+    let from = line.find("\"svg\": \"").expect("an svg") + 8;
+    let escaped = &line[from..line.len() - 2];
+    // The few escapes a JSON string of an SVG has.
+    escaped
+        .replace("\\n", "\n")
+        .replace("\\\"", "\"")
+        .replace("\\\\", "\\")
+}
+
+/// The finish line of the step: a plot laid out again at the size of a page is, byte for
+/// byte, the file `export` writes at that size, with no `export` in the script that made it.
+#[test]
+fn a_plot_laid_out_again_is_the_file_export_writes_at_that_size() {
+    let host = Host::new("demo");
+    let exporting = format!(
+        "{PLOTS}p.export(\"output/one.svg\", size: one_column)\np.export(\"output/two.svg\", size: two_column)\np.export(\"output/slide.svg\", size: slide)\np.export(\"output/own.svg\", size: [120, 80])\n"
+    );
+    let (_, done) = run(&host, &exporting, None, never);
+    assert!(done.contains(r#""exit_code": 0"#), "{done}");
+    // The same plot from a run that exports nothing.
+    let plain = Host::new("demo");
+    let (_, done) = run(&plain, PLOTS, None, never);
+    assert!(done.contains(r#""exit_code": 0"#), "{done}");
+    for (file, wide, high) in [
+        ("output/one.svg", 89.0, 66.0),
+        ("output/two.svg", 183.0, 110.0),
+        ("output/slide.svg", 254.0, 143.0),
+        ("output/own.svg", 120.0, 80.0),
+    ] {
+        let exported = String::from_utf8(host.file(file).expect("the exported file")).unwrap();
+        // Millimetres to points as the layout has it: multiplied before it is divided.
+        let (width, height) = (wide * 72.0 / 25.4, high * 72.0 / 25.4);
+        let laid = svg_of(&plain.plot_svg(0, width, height, None));
+        assert!(
+            exported.starts_with("<svg") || exported.starts_with("<?xml"),
+            "{file}"
+        );
+        assert_eq!(laid, exported, "{file}: not the same bytes");
+        // The second name of the same plot gives the same picture.
+        assert_eq!(
+            svg_of(&plain.plot_svg(3, width, height, None)),
+            exported,
+            "{file}"
+        );
+    }
+    assert!(host.file("output/nothing.svg").is_none());
+}
+
+#[test]
+fn a_plot_is_drawn_at_any_size_and_theme_without_a_new_run() {
+    let host = Host::new("demo");
+    let (told, done) = run(&host, PLOTS, None, never);
+    assert!(done.contains(r#""exit_code": 0"#), "{done}");
+    let events = told.len();
+    // Three sizes of a pane, one after another: each is a page of that size, and no run is
+    // made for it.
+    let mut seen = Vec::new();
+    for (width, height) in [(320.0, 240.0), (640.5, 480.25), (1280.0, 720.0)] {
+        let line = host.plot_svg(0, width, height, None);
+        assert!(
+            line.starts_with(&format!(
+                r#"{{"type": "plot", "index": 0, "width": {width}, "height": {height}, "theme": "journal", "svg": "#
+            )),
+            "{}",
+            &line[..line.len().min(160)]
+        );
+        let svg = svg_of(&line);
+        assert!(
+            svg.contains(&format!("width=\"{width}\""))
+                || svg.contains(&format!("0 0 {width} {height}")),
+            "{}",
+            &svg[..svg.len().min(300)]
+        );
+        assert!(svg.trim_end().ends_with("</svg>"));
+        seen.push(svg);
+    }
+    assert!(seen[0] != seen[1] && seen[1] != seen[2]);
+    // The same size twice is the same bytes.
+    assert_eq!(svg_of(&host.plot_svg(0, 320.0, 240.0, None)), seen[0]);
+    // Another theme than the plot's own, and the plot's own named.
+    let minimal = svg_of(&host.plot_svg(0, 320.0, 240.0, Some("minimal")));
+    assert_ne!(minimal, seen[0]);
+    assert_eq!(
+        svg_of(&host.plot_svg(0, 320.0, 240.0, Some("journal"))),
+        seen[0]
+    );
+    assert!(
+        host.plot_svg(0, 320.0, 240.0, Some("slide")).starts_with(
+            r#"{"type": "plot", "index": 0, "width": 320, "height": 240, "theme": "slide""#
+        ) || host
+            .plot_svg(0, 320.0, 240.0, Some("slide"))
+            .contains("\"of_size\": true")
+    );
+    // The plot whose script gave it a theme keeps it where none is asked for.
+    assert!(
+        host.plot_svg(2, 400.0, 300.0, None)
+            .contains(r#""theme": "minimal""#)
+    );
+    // What cannot be given is said, and whether the size is at fault.
+    let small = host.plot_svg(0, 40.0, 30.0, None);
+    assert!(
+        small.starts_with(
+            r#"{"type": "error", "message": "a page of 14.1 by 10.6 mm is too small for this plot"#
+        ),
+        "{small}"
+    );
+    assert!(small.ends_with(r#""of_size": true}"#), "{small}");
+    assert!(
+        host.plot_svg(0, 0.0, 300.0, None)
+            .contains(r#""of_size": true"#)
+    );
+    assert!(
+        host.plot_svg(0, f64::NAN, 300.0, None)
+            .contains(r#""type": "error""#)
+    );
+    assert_eq!(
+        host.plot_svg(0, 400.0, 300.0, Some("dark")),
+        r#"{"type": "error", "message": "`dark` is no theme of a plot: `journal`, `minimal` or `slide`"}"#
+    );
+    assert_eq!(
+        host.plot_svg(9, 400.0, 300.0, None),
+        r#"{"type": "error", "message": "the last run made 4 plots, numbered 0 to 3, and none is numbered 9"}"#
+    );
+    // No run was made for any of it: nothing more was told.
+    assert_eq!(told.len(), events);
+}
+
+#[test]
+fn a_plot_is_given_as_its_scene() {
+    let host = Host::new("demo");
+    let (_, done) = run(&host, PLOTS, None, never);
+    assert!(done.contains(r#""exit_code": 0"#), "{done}");
+    let line = host.plot_scene(0);
+    assert!(
+        line.starts_with(r#"{"type": "scene", "index": 0, "scene": {"zeff_scene": "#),
+        "{}",
+        &line[..200]
+    );
+    // The scene holds what an interface reads a mark by: the scales with their limits and
+    // breaks, and the values of the layer in the units of the data.
+    for part in [
+        r#""scales": ["#,
+        r#""id": "x""#,
+        r#""limits": ["#,
+        r#""breaks": ["#,
+        r#""panels": ["#,
+        r#""layers": ["#,
+    ] {
+        assert!(
+            line.contains(part),
+            "{part} in {}",
+            &line[..line.len().min(600)]
+        );
+    }
+    assert!(line.ends_with("}}"));
+    // The plot of two layers has two.
+    assert!(
+        host.plot_scene(2).matches(r#""mark": "#).count() >= 2,
+        "{}",
+        host.plot_scene(2)
+    );
+    assert_eq!(
+        host.plot_scene(7),
+        r#"{"type": "error", "message": "the last run made no plot numbered 7"}"#
+    );
 }

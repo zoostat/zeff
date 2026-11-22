@@ -48,6 +48,43 @@ impl Json {
         out
     }
 
+    /// The value as one line of text, with no line break in it or after it: for a message
+    /// that is one line, as an engine's worker sends them. It reads back to the same value as
+    /// [`Json::write`] gives.
+    pub fn write_line(&self) -> String {
+        let mut out = String::new();
+        self.write_line_into(&mut out);
+        out
+    }
+
+    fn write_line_into(&self, out: &mut String) {
+        match self {
+            Json::List(items) => {
+                out.push('[');
+                for (i, item) in items.iter().enumerate() {
+                    if i > 0 {
+                        out.push_str(", ");
+                    }
+                    item.write_line_into(out);
+                }
+                out.push(']');
+            }
+            Json::Object(fields) => {
+                out.push('{');
+                for (i, (key, value)) in fields.iter().enumerate() {
+                    if i > 0 {
+                        out.push_str(", ");
+                    }
+                    out.push_str(&string(key));
+                    out.push_str(": ");
+                    value.write_line_into(out);
+                }
+                out.push('}');
+            }
+            scalar => scalar.write_into(out, 0),
+        }
+    }
+
     fn is_scalar(&self) -> bool {
         !matches!(self, Json::List(_) | Json::Object(_))
     }

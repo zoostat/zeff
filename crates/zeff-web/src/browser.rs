@@ -96,6 +96,26 @@ impl Engine {
 
 /// The version of the engine in the worker.
 #[wasm_bindgen]
+impl Engine {
+    /// A plot of the last run laid out at a size in points, as a line of JSON holding its SVG
+    /// (`Host::plot_svg`); `theme` is left out for the plot's own.
+    pub fn plot(&self, index: u32, width: f64, height: f64, theme: Option<String>) -> String {
+        self.host
+            .plot_svg(index as usize, width, height, theme.as_deref())
+    }
+
+    /// A plot of the last run as its scene, a line of JSON (`Host::plot_scene`).
+    pub fn scene(&self, index: u32) -> String {
+        self.host.plot_scene(index as usize)
+    }
+
+    /// A file of the project read back (`Host::file`).
+    pub fn file(&self, path: &str) -> Option<Vec<u8>> {
+        self.host.file(path)
+    }
+}
+
+#[wasm_bindgen]
 pub fn version() -> String {
     zeff_engine::VERSION.to_string()
 }

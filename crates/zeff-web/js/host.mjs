@@ -8,6 +8,12 @@
 //   { type: "file", path, bytes }       a file of the project, as a Uint8Array
 //   { type: "run", script, text }       run the text of a script of the project
 //   { type: "frame", name }             a frame of the last run, by the name of its binding
+//   { type: "plot", index, width, height, theme? }
+//                                       a plot of the last run, by its number in the outcome's
+//                                       list, laid out on a page of `width` by `height` points
+//                                       without a new run; `theme` is journal, minimal or
+//                                       slide, and the plot's own when it is left out
+//   { type: "scene", index }            the same plot as its scene, the engine's data of it
 //   { type: "report", script, text, line?, reference? }
 //                                       "Report a problem": the bug report of a script as it
 //                                       stands; for a result believed wrong, `line` is a line
@@ -19,8 +25,12 @@
 //   { type: "ready", version }          once, when the engine is loaded
 //   { type: "opened", name }
 //   { type: "started" | "finished" | "pass" | "output", ... }   while a run goes
-//   { type: "done", exit_code, stdout, stderr, frames }         its outcome, with the frames
-//                                       its bindings hold: [{ name, rows, variables }]
+//   { type: "done", exit_code, stdout, stderr, plots, frames }  its outcome, with the plots
+//                                       its statements made: [{ index, name, line, kind,
+//                                       theme }], and the frames its bindings hold:
+//                                       [{ name, rows, variables }]
+//   { type: "plot", index, width, height, theme, svg }          the plot as an SVG at that size
+//   { type: "scene", index, scene }     the plot's scene: scales, panels, layers and marks
 //   { type: "frame", name, bytes }      the frame as an Arrow stream, in a Uint8Array whose
 //                                       buffer is passed to the interface and not copied
 //   { type: "report", name, kind, code, kept, of, reduced, files, text }
@@ -83,6 +93,20 @@ export function serve(engine, port, deviceBytes) {
         }
         break;
       }
+      case "plot":
+        if (project === null) {
+          port.postMessage({ type: "error", message: "a plot was asked for before a project was opened" });
+          break;
+        }
+        port.postMessage(JSON.parse(project.plot(said.index, said.width, said.height, said.theme)));
+        break;
+      case "scene":
+        if (project === null) {
+          port.postMessage({ type: "error", message: "a scene was asked for before a project was opened" });
+          break;
+        }
+        port.postMessage(JSON.parse(project.scene(said.index)));
+        break;
       case "report":
         if (project === null) {
           port.postMessage({ type: "error", message: "a report was asked for before a project was opened" });

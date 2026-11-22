@@ -16,7 +16,7 @@ use zeff_diagnostics::json_string;
 use zeff_engine::control::{Control, Event};
 use zeff_engine::fs::MemoryFileSystem;
 use zeff_engine::project::Project;
-use zeff_engine::run::{Frames, RunOptions, run_script_keeping};
+use zeff_engine::run::{Frames, Plots, RunOptions, run_script_showing};
 
 #[cfg(target_arch = "wasm32")]
 mod browser;
@@ -122,6 +122,17 @@ pub struct Host {
     fs: MemoryFileSystem,
     /// The frames the bindings of the last run held when it ended, for the interface to show.
     frames: std::cell::RefCell<Frames>,
+    /// The plots the statements of the last run made, for the interface to draw at the size
+    /// of its pane (open decision #197).
+    plots: std::cell::RefCell<Plots>,
+}
+
+/// A line of JSON of type `error`, for something asked of the host that it cannot give.
+fn refused(message: &str) -> String {
+    format!(
+        "{{\"type\": \"error\", \"message\": {}}}",
+        json_string(message)
+    )
 }
 
 impl Host {
@@ -139,6 +150,7 @@ impl Host {
         Host {
             fs,
             frames: std::cell::RefCell::default(),
+            plots: std::cell::RefCell::default(),
         }
     }
 
@@ -150,6 +162,80 @@ impl Host {
         let frames = self.frames.borrow();
         let (_, frame) = frames.iter().find(|(bound, _)| bound == name)?;
         zeff_columns::write_ipc(&frame.table).ok()
+    }
+
+    /// A file of the project read back, by its path from the project's folder: what a script
+    /// wrote with `export` or `save`, or what the interface put in. `None` where there is none.
+    pub fn file(&self, path: &str) -> Option<Vec<u8>> {
+        use zeff_engine::fs::FileSystem;
+        let at = format!("{ROOT}/{}", path.trim_start_matches('/'));
+        self.fs.read(Path::new(&at)).ok()
+    }
+
+    /// A plot of the last run as an SVG, laid out on a page of `width` by `height` points
+    /// without a new run (open decision #197; Zemp Specification, section 7, "Redraw to
+    /// fit"): the interface gives the size of its pane and is given the plot at that size,
+    /// its text at the sizes of the theme, never stretched. `index` is the plot's place in the
+    /// list the run's outcome gave. `theme` is `journal`, `minimal` or `slide`; without one
+    /// the plot has the theme its script gave it. The layout and the writer are those of
+    /// `export`, so at the points of a page `export` writes, the text is the same byte for
+    /// byte. What comes back is a line of JSON of type `plot`, or of type `error` with
+    /// `of_size` saying whether the size is at fault (a pane too small for the plot's labels)
+    /// or the plot.
+    pub fn plot_svg(&self, index: usize, width: f64, height: f64, theme: Option<&str>) -> String {
+        use zeff_core::value::ThemeName;
+        let plots = self.plots.borrow();
+        let Some(made) = plots.get(index) else {
+            return refused(&format!(
+                "the last run made {}, and none is numbered {index}",
+                match plots.len() {
+                    0 => "no plot".to_string(),
+                    1 => "1 plot, numbered 0".to_string(),
+                    n => format!("{n} plots, numbered 0 to {}", n - 1),
+                }
+            ));
+        };
+        let named = match theme {
+            None => None,
+            Some("journal") => Some(ThemeName::Journal),
+            Some("minimal") => Some(ThemeName::Minimal),
+            Some("slide") => Some(ThemeName::Slide),
+            Some(other) => {
+                return refused(&format!(
+                    "`{other}` is no theme of a plot: `journal`, `minimal` or `slide`"
+                ));
+            }
+        };
+        match zeff_plot::figure::svg_at(&made.plot, width, height, named) {
+            Ok(svg) => format!(
+                "{{\"type\": \"plot\", \"index\": {index}, \"width\": {}, \"height\": {}, \"theme\": {}, \"svg\": {}}}",
+                zeff_plot::json::number(width),
+                zeff_plot::json::number(height),
+                json_string(named.unwrap_or(made.plot.theme.name).name()),
+                json_string(&svg)
+            ),
+            Err(problem) => format!(
+                "{{\"type\": \"error\", \"message\": {}, \"of_size\": {}}}",
+                json_string(&problem.message),
+                problem.of_size
+            ),
+        }
+    }
+
+    /// A plot of the last run as its scene (section 8.3, point 5; Zemp Specification, section
+    /// 7): the scales with their breaks and labels, the panels, and every layer's marks in the
+    /// units of the data, as the engine's own JSON of a scene, for an interface that reads the
+    /// values under the pointer, shows one panel alone, or sets two plots on shared axes. A
+    /// line of JSON of type `scene`, or of type `error`.
+    pub fn plot_scene(&self, index: usize) -> String {
+        let plots = self.plots.borrow();
+        match plots.get(index) {
+            Some(made) => format!(
+                "{{\"type\": \"scene\", \"index\": {index}, \"scene\": {}}}",
+                zeff_plot::scene::scene(&made.plot).json().write_line()
+            ),
+            None => refused(&format!("the last run made no plot numbered {index}")),
+        }
     }
 
     /// Whether the project holds a file or a folder at this path from its folder.
@@ -182,6 +268,7 @@ impl Host {
             Ok(project) => project,
             Err(_) => {
                 self.frames.borrow_mut().clear();
+                self.plots.borrow_mut().clear();
                 return self.done(
                     1,
                     "",
@@ -200,7 +287,7 @@ impl Host {
         };
         let control = Control::asking(cancelled);
         let listener = |event: &Event| tell(&event_json(event));
-        let (outcome, frames) = run_script_keeping(
+        let (outcome, frames, plots) = run_script_showing(
             &self.fs,
             &project,
             script,
@@ -210,6 +297,7 @@ impl Host {
             Some(&listener),
         );
         *self.frames.borrow_mut() = frames;
+        *self.plots.borrow_mut() = plots;
         self.done(
             outcome.exit_code,
             &outcome.output.stdout,
@@ -288,9 +376,10 @@ impl Host {
         }
     }
 
-    /// The outcome of a run as a line of JSON, with the frames its bindings hold: each by
-    /// name with its rows and variables, which is what an interface lists before it asks for
-    /// one.
+    /// The outcome of a run as a line of JSON, with the plots its statements made, each with
+    /// its number, the name that binds it where one does, the line of its statement, its kind
+    /// (the marks of its layers) and its theme, and the frames its bindings hold, each by
+    /// name with its rows and variables: what an interface lists before it asks for one.
     fn done(&self, exit_code: i32, stdout: &str, stderr: &str) -> String {
         let frames: Vec<String> = self
             .frames
@@ -305,10 +394,33 @@ impl Host {
                 )
             })
             .collect();
+        let plots: Vec<String> = self
+            .plots
+            .borrow()
+            .iter()
+            .enumerate()
+            .map(|(index, made)| {
+                let mut marks: Vec<&str> = Vec::new();
+                for layer in &made.plot.layers {
+                    let mark = layer.mark.name();
+                    if !marks.contains(&mark) {
+                        marks.push(mark);
+                    }
+                }
+                format!(
+                    "{{\"index\": {index}, \"name\": {}, \"line\": {}, \"kind\": {}, \"theme\": {}}}",
+                    made.name.as_deref().map_or("null".to_string(), json_string),
+                    made.line,
+                    json_string(&marks.join(", ")),
+                    json_string(made.plot.theme.name.name())
+                )
+            })
+            .collect();
         format!(
-            "{{\"type\": \"done\", \"exit_code\": {exit_code}, \"stdout\": {}, \"stderr\": {}, \"frames\": [{}]}}",
+            "{{\"type\": \"done\", \"exit_code\": {exit_code}, \"stdout\": {}, \"stderr\": {}, \"plots\": [{}], \"frames\": [{}]}}",
             json_string(stdout),
             json_string(stderr),
+            plots.join(", "),
             frames.join(", ")
         )
     }

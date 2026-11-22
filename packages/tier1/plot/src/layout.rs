@@ -62,6 +62,10 @@ pub enum Size {
     Slide,
     /// A width and a height in millimetres.
     Millimetres(f64, f64),
+    /// A width and a height in points, as an interface gives the size of its pane: taken as
+    /// they are, with no passage through millimetres, so that a plot laid out at the points of
+    /// a named page is that page to the last bit.
+    Points(f64, f64),
 }
 
 impl Size {
@@ -72,12 +76,16 @@ impl Size {
             Size::TwoColumn => (183.0, 110.0),
             Size::Slide => (254.0, 143.0),
             Size::Millimetres(width, height) => (width, height),
+            Size::Points(width, height) => (width * 25.4 / 72.0, height * 25.4 / 72.0),
         }
     }
 
     /// The width and the height, in points: 72 to the inch of 25.4 mm, multiplied before it
     /// is divided, so that 254 mm is 720 points exactly.
     pub fn points(self) -> (f64, f64) {
+        if let Size::Points(width, height) = self {
+            return (width, height);
+        }
         let (width, height) = self.millimetres();
         (width * 72.0 / 25.4, height * 72.0 / 25.4)
     }
