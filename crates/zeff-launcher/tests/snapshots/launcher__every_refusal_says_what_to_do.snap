@@ -1,0 +1,16 @@
+---
+source: crates/zeff-launcher/tests/launcher.rs
+expression: out
+---
+error[Z0710]: no Zeff engine is installed
+  = help: `zeff engine install` installs the newest into `<tmp>/home/engines`
+error[Z0710]: this project needs Zeff 0.9.2, which is not installed
+  = help: `zeff engine install 0.9.2` installs it; no engine is installed; the pin is in `<tmp>/study/zeff.toml`
+error[Z0710]: this project needs Zeff 0.9.2, which is not installed
+  = help: `zeff engine install 0.9.2` installs it; the engine installed is 0.9.0; the pin is in `<tmp>/study/zeff.toml`
+error[Z0710]: this project needs Zeff 0.9.2, which is not installed
+  = help: `zeff engine install 0.9.2` installs it; the engines installed are 0.9.0, 0.9.1 and 0.10.0; the pin is in `<tmp>/study/zeff.toml`
+error[Z0710]: the default engine, Zeff 0.8.0, is not installed
+  = help: `zeff engine install 0.8.0` installs it, and `zeff engine default <version>` chooses another; the engines installed are 0.9.0, 0.9.1 and 0.10.0
+error[Z0710]: no Zeff engine can be found: this user has no home folder
+  = help: set `ZEFF_HOME` to the folder that holds `engines/`

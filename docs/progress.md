@@ -102,7 +102,9 @@ Step 15 `[function]`: `fit.confusion(newdata:, cutoff: 0.5)`, the classification
 
 Step 16 `[function]`: `timer(expr)`, run by the interpreter between two readings of the run's clock, the value given back and the time noted; scripts only (Z0110). Block D is done: five of the release's five functions are implemented (`glm`, `margins`, `curve`, `confusion`, `timer`).
 
-**Next.** Step 17 `[engine]`, the first of block E (the launcher, the engines and patch releases). Step 3, the weekly run of 23 November, when it has ended.
+Step 17 `[engine]`: the launcher, a new crate `zeff-launcher`: it finds the project's pin and the engine store (the user's, then the system's), hands the command over unchanged, and says Z0710 (exit code 4) when the engine is not there; two projects pinned to two engines each run on their own.
+
+**Next.** Step 18 `[engine]`: archives and their signatures. Step 3, the weekly run of 23 November, when it has ended.
 
 **For the owner.** The printed table of `margins` (#202 (d)), shown at step 11a, is yours to change; #202 (a) to (e) are taken as recommended. #198, #199 and #200 and #201 (a) (taken as recommended, yours to overturn before 1.0; #201 (b) is open and yours: which standardized coefficients a `glm` fit has, refused until you choose; #200: `predict` gives a probability and `residuals` the outcome less it unless `type:` says otherwise, where R gives log-odds and deviance residuals): on a `glm` fit, clustered errors carry the factor (N − 1)/(N − k) that Stata's `logit` and R's `vcovCL` left to itself omit; analytic weights are refused on a binary model, as in Stata.
 

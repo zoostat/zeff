@@ -1,0 +1,26 @@
+[package]
+name = "zeff-launcher"
+description = "The zeff launcher: finds the engine a project pins in the engine store and hands the command over."
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+publish = false
+
+[lints]
+workspace = true
+
+[lib]
+path = "src/lib.rs"
+
+# Installed as `bin/zeff`; named apart in the workspace, where `zeff` is the engine's own binary.
+[[bin]]
+name = "zeff-launcher"
+path = "src/main.rs"
+
+[dependencies]
+zeff-diagnostics.workspace = true
+toml = { version = "=1.1.8", default-features = false, features = ["parse", "std"] }
+
+[dev-dependencies]
+tempfile = "=3.27.0"
+insta = "=1.49.0"

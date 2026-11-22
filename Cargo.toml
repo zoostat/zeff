@@ -23,6 +23,7 @@ members = [
     "crates/zeff-ir",
     "crates/zeff-engine",
     "crates/zeff-cli",
+    "crates/zeff-launcher",
     "crates/zeff-conformance",
     "crates/zeff-web",
     "crates/zeff-lsp",

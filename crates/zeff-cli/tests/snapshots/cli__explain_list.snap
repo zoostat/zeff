@@ -120,7 +120,7 @@ Z07xx  Projects, paths, data roots, versions, resources and reproducibility
     Z0706  an edition this engine does not know
     Z0707  a file cannot be written
     Z0709  not inside a project
-    Z0710  the project pins another engine
+    Z0710  the project's engine is not the one at hand
     Z0712  zeff.toml is not valid TOML
     Z0713  zeff.toml is wrong for Zeff
     Z0714  no such script in the project

@@ -1973,6 +1973,16 @@ dependencies = [
 ]
 
 [[package]]
+name = "zeff-launcher"
+version = "0.9.0-dev"
+dependencies = [
+ "insta",
+ "tempfile",
+ "toml",
+ "zeff-diagnostics",
+]
+
+[[package]]
 name = "zeff-lsp"
 version = "0.9.0-dev"
 dependencies = [
