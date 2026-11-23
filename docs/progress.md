@@ -162,7 +162,11 @@ Step 34 `[function]`: the six printed layouts of #171: a coefficient of `report`
 
 Step 35 `[engine]`: the messages an R user meets (#196 A). Inside a formula `I(exper^2)` is answered with the term without it and `poly(exper, 2)` with its powers written out, the sentence on R's fitted values held to R; a function the catalogue has for a later release is named with its release and package, where `did` was offered `div`; a name of one letter is offered no near name. Two questions recorded and not built: #212 (a small estimate in a fit's own table) and #213 (R's names for Zeff's functions, `factor(x)` first), each recommended for 0.10.0.
 
-**Next.** Step 36 `[engine]`: the NIST Statistical Reference Datasets (#153 A). Step 3, the weekly mutation run of Monday 23 November: GitHub queued a scheduled run at 13:39 UTC, which had not started when this entry was written.
+Step 36a `[engine]`: NIST's Statistical Reference Datasets, part 1 (#153 A; step 36 split in three). The thirty-one files are in `tests/reference/nist` with a source note; the eleven linear-regression problems run through the whole engine as conformance cases, each certified value with its log relative error stored. Ten are solved, nine to within 0.3 of a digit of R's `lm` and Longley to 11.7 digits against R's 13.0; Filip's tenth power is dropped as collinear, as R's default does, and Wampler5 is at the edge of its class: two known issues, and #214 for the owner.
+
+**Next.** Step 36b `[engine]`: the nine univariate and eleven analysis-of-variance problems. Step 3, the weekly mutation run of Monday 23 November: GitHub queued a scheduled run at 13:39 UTC, which had not started when this entry was written.
+
+**For the owner, from step 36a.** #214: what the article says of Filip, the one NIST regression problem the engine declines (with a warning, as R does by default). Recommended: leave the rule as it is at 1.0 and say so.
 
 **For the owner, from step 34.** The readings taken with the six layouts are listed under #171 in the register and are his to change: among them, that a standard error is printed to its coefficient's decimals, and that the rule for small coefficients holds at any `digits:`.
 

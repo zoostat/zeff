@@ -1,0 +1,253 @@
+---
+source: crates/zeff-conformance/tests/nist.rs
+expression: record()
+---
+## lls · Norris
+  certified value                                       NIST                      Zeff   LRE
+  B0 estimate                           -2.62323073774029e-1     -2.623230737741172e-1  12.5
+  B0 standard deviation                  2.32818234301152e-1      2.328182343011545e-1  14.0
+  B1 estimate                             1.00211681802045e0      1.0021168180204545e0  14.4
+  B1 standard deviation                  4.29796848199937e-4      4.297968481999406e-4  14.1
+  residual standard deviation            8.84796396144373e-1      8.847963961443802e-1  14.1
+  R-squared                              9.99993745883712e-1      9.999937458837117e-1  15.0
+  regression sum of squares               4.25595413232369e6      4.2559541323236935e6  15.0
+  regression mean square                  4.25595413232369e6      4.2559541323236935e6  15.0
+  F statistic                             5.43638554079785e6       5.436385540797752e6  13.7
+  residual sum of squares                 2.66173985294224e1      2.6617398529422818e1  13.8
+  residual mean square                   7.82864662630069e-1      7.828646626300829e-1  13.8
+  least: estimates 12.5, standard deviations 14.0, all 12.5
+
+## lls · Pontius
+  certified value                                       NIST                      Zeff   LRE
+  B0 estimate                            6.73565789473684e-4      6.735657894733944e-4  12.4
+  B0 standard deviation                  1.07938612033077e-4     1.0793861203307444e-4  13.6
+  B1 estimate                            7.32059160401003e-7       7.32059160401003e-7  15.0
+  B1 standard deviation                 1.57817399981659e-10    1.5781739998165502e-10  13.6
+  B2 estimate                          -3.16081871345029e-15   -3.1608187134504285e-15  13.4
+  B2 standard deviation                 4.86652849992036e-17     4.866528499920247e-17  13.6
+  residual standard deviation            2.05177424076185e-4      2.051774240761799e-4  13.6
+  R-squared                              9.99999900178537e-1      9.999999001785371e-1  15.0
+  regression sum of squares               1.56040343244198e1      1.5604034324419816e1  15.0
+  regression mean square                  7.80201716220991e0       7.802017162209908e0  15.0
+  F statistic                             1.85330865995752e8      1.8533086599576017e8  13.4
+  residual sum of squares                1.55761768796992e-6      1.557617687969853e-6  13.4
+  residual mean square                   4.20977753505385e-8      4.209777535053657e-8  13.3
+  least: estimates 12.4, standard deviations 13.6, all 12.4
+
+## lls · NoInt1
+  certified value                                       NIST                      Zeff   LRE
+  B1 estimate                             2.07438016528926e0       2.074380165289256e0  14.7
+  B1 standard deviation                  1.65289256198347e-2     1.6528925619834704e-2  15.0
+  residual standard deviation             3.56753034006338e0       3.567530340063377e0  15.0
+  R-squared                              9.99365492298663e-1      9.993654922986628e-1  15.0
+  regression sum of squares               2.00457727272727e5      2.0045772727272726e5  14.9
+  regression mean square                  2.00457727272727e5      2.0045772727272726e5  14.9
+  F statistic                                     1.575025e4      1.5750250000000013e4  15.0
+  residual sum of squares                 1.27272727272727e2      1.2727272727272717e2  14.9
+  residual mean square                    1.27272727272727e1      1.2727272727272716e1  14.9
+  least: estimates 14.7, standard deviations 15.0, all 14.7
+
+## lls · NoInt2
+  | warning[W1006]: 2 observations drive a coefficient: removing one moves an estimate by more than its standard error (rows 2, 3) (line 2)
+  |   = help: check the row's values; `influence()` lists leverage, Cook's distance and studentized residuals by row
+  certified value                                       NIST                      Zeff   LRE
+  B1 estimate                            7.27272727272727e-1      7.272727272727274e-1  15.0
+  B1 standard deviation                  4.20827318078432e-2     4.2082731807843235e-2  15.0
+  residual standard deviation            3.69274472937998e-1     3.6927447293799803e-1  15.0
+  R-squared                              9.93348115299335e-1      9.933481152993349e-1  15.0
+  regression sum of squares               4.07272727272727e1       4.072727272727274e1  15.0
+  regression mean square                  4.07272727272727e1       4.072727272727274e1  15.0
+  F statistic                            2.986666666666667e2        2.98666666666667e2  14.9
+  residual sum of squares                2.72727272727273e-1      2.727272727272725e-1  14.7
+  residual mean square                   1.36363636363636e-1     1.3636363636363624e-1  14.7
+  least: estimates 15.0, standard deviations 15.0, all 14.7
+
+## lls · Filip
+  | note: `x^10` is collinear with the columns before it and was dropped (line 2)
+  | warning[W1001]: near-singular regressors: the condition number of the scaled design is 5.402e8 (line 2)
+  |   = help: two regressors are almost the same column; drop one, or combine them
+  | warning[W1006]: 2 observations drive a coefficient: removing one moves an estimate by more than its standard error (rows 40, 62) (line 2)
+  |   = help: check the row's values; `influence()` lists leverage, Cook's distance and studentized residuals by row
+  certified value                                       NIST                      Zeff   LRE
+  B0 estimate                             -1.4674896142298e3     -1.7428044125776725e2   0.1
+  B0 standard deviation                   2.98084530995537e2       8.756116252161821e1   0.2
+  B1 estimate                            -2.77217959193342e3      -3.268822026956065e2   0.1
+  B1 standard deviation                    5.5977986547495e2      1.4804961872775465e2   0.1
+  B2 estimate                            -2.31637108160893e3      -2.660565352608912e2   0.1
+  B2 standard deviation                   4.66477572127796e2       1.095120849778193e2   0.1
+  B3 estimate                            -1.12797394098372e3     -1.2392161226021871e2   0.1
+  B3 standard deviation                   2.27204274477751e2       4.652471493760459e1   0.1
+  B4 estimate                            -3.54478233703349e2      -3.638167037975437e1   0.0
+  B4 standard deviation                   7.16478660875927e1      1.2514520116949303e1   0.1
+  B5 estimate                            -7.51242017393757e1      -6.979188282174111e0   0.0
+  B5 standard deviation                     1.528971787474e1      2.2111661108065443e0   0.1
+  B6 estimate                            -1.08753180355343e1     -8.746601675449297e-1   0.0
+  B6 standard deviation                   2.23691159816033e0     2.5674490971690583e-1   0.1
+  B7 estimate                            -1.06221498588947e0     -6.906009660826426e-2   0.0
+  B7 standard deviation                  2.21624321934227e-1     1.8900562960061262e-2   0.0
+  B8 estimate                           -6.70191154593408e-2    -3.1183218686780703e-3   0.0
+  B8 standard deviation                  1.42363763154724e-2      8.008789898189945e-4   0.0
+  B9 estimate                           -2.46781078275479e-3     -6.138670774037143e-5   0.0
+  B9 standard deviation                  5.35617408889821e-4     1.4890516969307393e-5   0.0
+  B10 estimate                          -4.02962525080404e-5                 not given   0.0
+  B10 standard deviation                 8.96632837373868e-6                 not given   0.0
+  residual standard deviation            3.34801051324544e-3      3.794454708841661e-3   0.9
+  R-squared                               9.9672741618562e-1       9.95796453086038e-1   3.0
+  regression sum of squares              2.42391619837339e-1     2.4216522127178636e-1   3.0
+  regression mean square                 2.42391619837339e-2     2.4216522127178636e-2   3.0
+  F statistic                             2.16243954511489e3      1.6819497822953747e3   0.7
+  residual sum of squares                7.95851382172941e-4     1.0222499441589965e-3   0.5
+  residual mean square                    1.1209174396802e-5     1.4397886537450655e-5   0.5
+  least: estimates 0.0, standard deviations 0.0, all 0.0
+
+## lls · Longley
+  | warning[W1006]: 2 observations drive a coefficient: removing one moves an estimate by more than its standard error (rows 5, 10) (line 2)
+  |   = help: check the row's values; `influence()` lists leverage, Cook's distance and studentized residuals by row
+  certified value                                       NIST                      Zeff   LRE
+  B0 estimate                            -3.48225863459582e6      -3.482258634596618e6  12.6
+  B0 standard deviation                   8.90420383607373e5       8.904203836075126e5  12.8
+  B1 estimate                             1.50618722713733e1      1.5061872271395828e1  11.8
+  B1 standard deviation                   8.49149257747669e1        8.49149257747704e1  13.4
+  B2 estimate                            -3.5819179292591e-2     -3.581917929261616e-2  12.2
+  B2 standard deviation                  3.34910077722432e-2      3.349100777224699e-2  12.9
+  B3 estimate                            -2.02022980381683e0      -2.020229803817409e0  12.5
+  B3 standard deviation                  4.88399681651699e-1      4.883996816517994e-1  12.7
+  B4 estimate                            -1.03322686717359e0     -1.0332268671738394e0  12.6
+  B4 standard deviation                  2.14274163161675e-1     2.1427416316170908e-1  12.8
+  B5 estimate                           -5.11041056535807e-2     -5.110410565348244e-2  11.7
+  B5 standard deviation                   2.2607320006937e-1     2.2607320006938175e-1  13.3
+  B6 estimate                             1.82915146461355e3      1.8291514646139601e3  12.6
+  B6 standard deviation                   4.55478499142212e2       4.554784991422835e2  12.8
+  residual standard deviation             3.04854073561965e2       3.048540735619739e2  13.5
+  R-squared                              9.95479004577296e-1      9.954790045772953e-1  15.0
+  regression sum of squares               1.84172401944494e8      1.8417240194449252e8  14.1
+  regression mean square                  3.06954003240823e7      3.0695400324082088e7  14.2
+  F statistic                             3.30285339234588e2       3.302853392345658e2  13.2
+  residual sum of squares                 8.36424055505915e5       8.364240555059644e5  13.2
+  residual mean square                    9.29360061673238e4       9.293600616732938e4  13.2
+  least: estimates 11.7, standard deviations 12.7, all 11.7
+
+## lls · Wampler1
+  | warning[W1006]: 1 observation drives a coefficient: removing it moves an estimate by more than its standard error (row 21) (line 2)
+  |   = help: check the row's values; `influence()` lists leverage, Cook's distance and studentized residuals by row
+  | note: the fit is essentially perfect, so the standard errors and t values say nothing (line 2)
+  certified value                                       NIST                      Zeff   LRE
+  B0 estimate                                            1e0      9.999999992236666e-1   9.1
+  B0 standard deviation                                  0e0      2.78788206868419e-10   9.6
+  B1 estimate                                            1e0      1.0000000007134198e0   9.1
+  B1 standard deviation                                  0e0     3.061479879930562e-10   9.5
+  B2 estimate                                            1e0      9.999999997929695e-1   9.7
+  B2 standard deviation                                  0e0    1.0094742096268785e-10  10.0
+  B3 estimate                                            1e0      1.0000000000250033e0  10.6
+  B3 standard deviation                                  0e0    1.3143999351086118e-11  10.9
+  B4 estimate                                            1e0      9.999999999986546e-1  11.9
+  B4 standard deviation                                  0e0     7.312761521232432e-13  12.1
+  B5 estimate                                            1e0      1.0000000000000266e0  13.6
+  B5 standard deviation                                  0e0     1.454930211886997e-14  13.8
+  residual standard deviation                            0e0    3.0570672086372715e-10   9.5
+  R-squared                                              1e0                       1e0  15.0
+  regression sum of squares              1.88143172081167e13      1.881431720811667e13  14.8
+  regression mean square                 3.76286344162333e12     3.7628634416233345e12  14.9
+  F statistic                                            inf      4.026321816317662e31   n/a
+  residual sum of squares                                0e0     1.401848987718792e-18  15.0
+  residual mean square                                   0e0      9.34565991812528e-20  15.0
+  least: estimates 9.1, standard deviations 9.5, all 9.1
+
+## lls · Wampler2
+  | note: the fit is essentially perfect, so the standard errors and t values say nothing (line 2)
+  certified value                                       NIST                      Zeff   LRE
+  B0 estimate                                            1e0      9.999999999999867e-1  13.9
+  B0 standard deviation                                  0e0     4.817740772623598e-15  14.3
+  B1 estimate                                           1e-1     1.0000000000000499e-1  13.3
+  B1 standard deviation                                  0e0    5.2905453239166676e-15  14.3
+  B2 estimate                                           1e-2      9.999999999998793e-3  12.9
+  B2 standard deviation                                  0e0    1.7444730224642494e-15  14.8
+  B3 estimate                                           1e-3     1.0000000000001566e-3  12.8
+  B3 standard deviation                                  0e0    2.2714153622342145e-16  15.0
+  B4 estimate                                           1e-4      9.999999999999067e-5  13.0
+  B4 standard deviation                                  0e0    1.2637187826937957e-17  15.0
+  B5 estimate                                           1e-5       1.00000000000002e-5  13.7
+  B5 standard deviation                                  0e0    2.5142658227427005e-19  15.0
+  residual standard deviation                            0e0     5.282919783853595e-15  14.3
+  R-squared                                              1e0                       1e0  15.0
+  regression sum of squares               6.60291858365167e3       6.602918583651667e3  15.0
+  regression mean square                  1.32058371673033e3      1.3205837167303334e3  14.6
+  F statistic                                            inf      4.731707665523024e31   n/a
+  residual sum of squares                                0e0     4.186386216394757e-28  15.0
+  residual mean square                                   0e0    2.7909241442631716e-29  15.0
+  least: estimates 12.8, standard deviations 14.3, all 12.8
+
+## lls · Wampler3
+  | warning[W1006]: 1 observation drives a coefficient: removing it moves an estimate by more than its standard error (row 1) (line 2)
+  |   = help: check the row's values; `influence()` lists leverage, Cook's distance and studentized residuals by row
+  certified value                                       NIST                      Zeff   LRE
+  B0 estimate                                            1e0      9.999999998333603e-1   9.8
+  B0 standard deviation                    2.1523262467817e3       2.152326246781769e3  13.5
+  B1 estimate                                            1e0       1.000000000478482e0   9.3
+  B1 standard deviation                   2.36355173469681e3      2.3635517346968813e3  13.5
+  B2 estimate                                            1e0      9.999999998271693e-1   9.8
+  B2 standard deviation                   7.79343524331583e2       7.793435243316013e2  13.6
+  B3 estimate                                            1e0       1.000000000022791e0  10.6
+  B3 standard deviation                    1.0147550755035e2      1.0147550755035144e2  13.8
+  B4 estimate                                            1e0      9.999999999987256e-1  11.9
+  B4 standard deviation                   5.64566512170752e0       5.645665121707592e0  13.9
+  B5 estimate                                            1e0      1.0000000000000255e0  13.6
+  B5 standard deviation                  1.12324854679312e-1      1.123248546793131e-1  14.0
+  residual standard deviation             2.36014502379268e3       2.360145023792696e3  14.2
+  R-squared                               9.9999555902582e-1      9.999955590258199e-1  15.0
+  regression sum of squares              1.88143172081167e13     1.8814317208116664e13  14.7
+  regression mean square                 3.76286344162333e12      3.762863441623333e12  15.0
+  F statistic                             6.75524458240122e5       6.755244582401112e5  13.8
+  residual sum of squares                        8.3554268e7       8.355426800000139e7  13.8
+  residual mean square                    5.57028453333333e6       5.570284533333425e6  13.8
+  least: estimates 9.3, standard deviations 13.5, all 9.3
+
+## lls · Wampler4
+  | warning[W1006]: 1 observation drives a coefficient: removing it moves an estimate by more than its standard error (row 1) (line 2)
+  |   = help: check the row's values; `influence()` lists leverage, Cook's distance and studentized residuals by row
+  certified value                                       NIST                      Zeff   LRE
+  B0 estimate                                            1e0      9.999999913992635e-1   8.1
+  B0 standard deviation                    2.1523262467817e5      2.1523262467817514e5  13.6
+  B1 estimate                                            1e0       1.000000016705968e0   7.8
+  B1 standard deviation                   2.36355173469681e5      2.3635517346968618e5  13.7
+  B2 estimate                                            1e0       9.99999993898184e-1   8.2
+  B2 standard deviation                   7.79343524331583e4       7.793435243315948e4  13.8
+  B3 estimate                                            1e0      1.0000000008145318e0   9.1
+  B3 standard deviation                    1.0147550755035e4       1.014755075503506e4  14.2
+  B4 estimate                                            1e0      9.999999999547515e-1  10.3
+  B4 standard deviation                   5.64566512170752e2       5.645665121707544e2  14.4
+  B5 estimate                                            1e0      1.0000000000008888e0  12.1
+  B5 standard deviation                   1.12324854679312e1      1.1232485467931216e1  14.8
+  residual standard deviation             2.36014502379268e5      2.3601450237926762e5  14.8
+  R-squared                              9.57478440825662e-1      9.574784408256621e-1  15.0
+  regression sum of squares              1.88143172081167e13      1.881431720811667e13  14.8
+  regression mean square                 3.76286344162333e12     3.7628634416233345e12  14.9
+  F statistic                             6.75524458240122e1       6.755244582401227e1  15.0
+  residual sum of squares                       8.3554268e11      8.355426799999999e11  15.0
+  residual mean square                   5.57028453333333e10      5.570284533333333e10  15.0
+  least: estimates 7.8, standard deviations 13.6, all 7.8
+
+## lls · Wampler5
+  | warning[W1006]: 1 observation drives a coefficient: removing it moves an estimate by more than its standard error (row 1) (line 2)
+  |   = help: check the row's values; `influence()` lists leverage, Cook's distance and studentized residuals by row
+  certified value                                       NIST                      Zeff   LRE
+  B0 estimate                                            1e0      9.999992089589612e-1   6.1
+  B0 standard deviation                    2.1523262467817e7       2.152326246781751e7  13.6
+  B1 estimate                                            1e0      1.0000016535004996e0   5.8
+  B1 standard deviation                   2.36355173469681e7       2.363551734696862e7  13.7
+  B2 estimate                                            1e0      9.999993915014598e-1   6.2
+  B2 standard deviation                   7.79343524331583e6       7.793435243315949e6  13.8
+  B3 estimate                                            1e0       1.000000081282872e0   7.1
+  B3 standard deviation                    1.0147550755035e6       1.014755075503506e6  14.2
+  B4 estimate                                            1e0      9.999999954879121e-1   8.3
+  B4 standard deviation                   5.64566512170752e4       5.645665121707545e4  14.4
+  B5 estimate                                            1e0       1.000000000088535e0  10.1
+  B5 standard deviation                   1.12324854679312e3      1.1232485467931217e3  14.8
+  residual standard deviation             2.36014502379268e7      2.3601450237926763e7  14.8
+  R-squared                               2.2466892157494e-3     2.2466892157494422e-3  13.7
+  regression sum of squares              1.88143172081167e13     1.8814317208116668e13  14.8
+  regression mean square                 3.76286344162333e12     3.7628634416233335e12  15.0
+  F statistic                           6.755244582401224e-3      6.755244582401225e-3  15.0
+  residual sum of squares                       8.3554268e15              8.3554268e15  15.0
+  residual mean square                   5.57028453333333e14      5.570284533333333e14  15.0
+  least: estimates 5.8, standard deviations 13.6, all 5.8

@@ -14,6 +14,7 @@ use zeff_numeric::{mean, sd, sum, variance};
 
 #[cfg(target_arch = "wasm32")]
 mod browser;
+pub mod nist;
 
 const UNIT: f64 = 1.0 / 9_007_199_254_740_992.0; // 2^-53, exact
 const POWERS_OF_TEN: [f64; 17] = [
@@ -3447,6 +3448,7 @@ fn all_cases() -> Vec<Line> {
     lines.extend(milestone_cases());
     lines.extend(sample_cases());
     lines.extend(help_cases());
+    lines.extend(nist::cases());
     lines
 }
 

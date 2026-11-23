@@ -50,6 +50,22 @@ is never listed here as accepted: it is fixed or the function is withdrawn.
 - **`dist.truncated` refuses equal bounds.** A count distribution cannot be cut to one number by
   writing it twice, `lower: 2, upper: 2`; `lower: 2, upper: 2.5` does it, since a truncated
   count distribution keeps the whole numbers of its interval. (Since 0.3.0.)
+- **NIST's Filip problem is not solved: the tenth power is dropped as collinear.** The problem
+  fits a polynomial of degree ten in one variable, the hardest of NIST's linear-regression
+  problems. The collinearity rule of the Language Reference (section 7.2: a pivot below 1e-7
+  of its column's norm) drops `x^10`, with a note and the warning of near-singular regressors,
+  so the certified values are not reproduced (a log relative error of 0). R's `lm` drops the
+  same term at its default tolerance, which is the same number, and reaches 7 digits when the
+  tolerance is lowered to 1e-10; Zeff has no such option (open decision #214). Every other
+  linear-regression problem of NIST is solved to within 0.3 of a digit of what R reaches,
+  but Longley (11.7 digits against R's 13.0). (Since 0.4.0; found at
+  0.9.0.)
+- **On NIST's Wampler5 problem three coefficients agree to 5.8 to 6.2 digits, at the edge of
+  the class.** The class of `reg` asks for 1e-6 relative. The certified coefficients are 1 and
+  their certified standard deviations are up to 2.4e7, so the difference is 7e-14 of a standard
+  error; the standard errors themselves agree to 13 digits, and R's `lm` reaches the same 5.8.
+  The digits are what sixteen-digit arithmetic leaves on that design. (Since 0.4.0; found at
+  0.9.0.)
 - **A warning is said once for a statement, not once for a script.** The same observation
   driving three fits made in one statement is one warning with a count (W1006, since 0.8.0);
   three fits on three lines are three warnings. The passes of a loop are counted as one since

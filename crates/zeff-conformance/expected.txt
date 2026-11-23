@@ -606,3 +606,25 @@ instruments/exit_code a8c7f832281a39c5
 # instruments/exit_code bits 0000000000000000
 instruments/output/table_iv.tex 63b49f63950010d9
 help/examples cbf29ce484222325
+nist/lls/Norris/stdout 33354fb215beecb1
+nist/lls/Norris/lre ff6f9ad861ecbacb
+nist/lls/Pontius/stdout 9bf3b25a86bce28a
+nist/lls/Pontius/lre 54e0e40ecebfe20c
+nist/lls/NoInt1/stdout 7686cd5a79a2202a
+nist/lls/NoInt1/lre 1908542aed27670a
+nist/lls/NoInt2/stdout d459719db5157052
+nist/lls/NoInt2/lre 9d5b450ed559e1d8
+nist/lls/Filip/stdout 8071f061437e6f1e
+nist/lls/Filip/lre b4546a99b3bccd5d
+nist/lls/Longley/stdout 27dcff0280a00c37
+nist/lls/Longley/lre 30b10f7f95ef4507
+nist/lls/Wampler1/stdout 694e078f9e44a2c3
+nist/lls/Wampler1/lre 9796d44c708a588d
+nist/lls/Wampler2/stdout 9e714a5ef7d6f135
+nist/lls/Wampler2/lre 21629856e54e307a
+nist/lls/Wampler3/stdout d13f1b0218c9a663
+nist/lls/Wampler3/lre eb27be1ba542a461
+nist/lls/Wampler4/stdout dde35b12f3b439f6
+nist/lls/Wampler4/lre 68dc6b7fdc0e6514
+nist/lls/Wampler5/stdout fc22b86c0c4fd7fe
+nist/lls/Wampler5/lre 68a07eebdbc20204
