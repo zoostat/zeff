@@ -160,7 +160,9 @@ Step 33 `[function]`: the six smaller refusals of #170 lifted: `equal` on two co
 
 Step 34 `[function]`: the six printed layouts of #171: a coefficient of `report` that printed as `0.000` written to two significant digits with its sign, its standard error to the same decimals, the column's decimal points kept one under another; `labels:` on the parts of an interaction; thousands separators in the df column of the comparisons; a facet of a number titled `kids = 0`; hypotheses too long for the page with their symbols under their words; the standard error of a t-test among its estimates, held to R. The known-issues entry on the review's gaps is resolved. Printed output changed: three sample projects and nine conformance digests renewed and read.
 
-**Next.** Step 35 `[engine]`: the messages an R user meets (#196 A). Step 3, the weekly mutation run of Monday 23 November: on that day GitHub started the nightly jobs alone (10:43 UTC), and the weekly ones had not started when this entry was written.
+Step 35 `[engine]`: the messages an R user meets (#196 A). Inside a formula `I(exper^2)` is answered with the term without it and `poly(exper, 2)` with its powers written out, the sentence on R's fitted values held to R; a function the catalogue has for a later release is named with its release and package, where `did` was offered `div`; a name of one letter is offered no near name. Two questions recorded and not built: #212 (a small estimate in a fit's own table) and #213 (R's names for Zeff's functions, `factor(x)` first), each recommended for 0.10.0.
+
+**Next.** Step 36 `[engine]`: the NIST Statistical Reference Datasets (#153 A). Step 3, the weekly mutation run of Monday 23 November: GitHub queued a scheduled run at 13:39 UTC, which had not started when this entry was written.
 
 **For the owner, from step 34.** The readings taken with the six layouts are listed under #171 in the register and are his to change: among them, that a standard error is printed to its coefficient's decimals, and that the rule for small coefficients holds at any `digits:`.
 

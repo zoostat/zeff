@@ -24,7 +24,7 @@ error[Z0101]: no variable `z` in `f`
 2 | f.correlation([x, z])
   |               ^^^^^^ not a variable of f
   |
-  = help: did you mean `x`? If you meant a category level, write it in quotes: `"x"`
+  = help: the variables of `f` are: x, y, s
 
 error[Z0402]: `cosine` is not one of the allowed words
  --> scripts/main.zeff:2:31

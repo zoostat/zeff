@@ -189,7 +189,7 @@ error[Z0414]: `c` is not a row of this table
 2 | d.anova(y ~ a * b).p_values("c")
   |                             ^^^ unknown row
   |
-  = help: did you mean `a`? the rows are `a`, `b`, `a:b`; without a name the method gives the figure of the whole test
+  = help: the rows are `a`, `b`, `a:b`; without a name the method gives the figure of the whole test
 
 note: `a` replaced the variable of that name (line 1)
 note: `b` replaced the variable of that name (line 1)

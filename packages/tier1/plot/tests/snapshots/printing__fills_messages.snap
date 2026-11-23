@@ -146,7 +146,7 @@ error[Z0404]: `ribbon` has no argument called `y`
 2 | d.plot(x: t, y: v).ribbon(y: v, low: lo, high: hi)
   |                           ^ unknown argument
   |
-  = help: did you mean `x:`?
+  = help: usage: `p.ribbon(data: Frame, x: Var | Expr, low: Var | Expr, high: Var | Expr, fill: Var | Str, group: Var, alpha: Float = 0.3)`
 
 == a_frame_without_the_fill
 error[Z0101]: no variable `g` in `the frame`
@@ -156,7 +156,7 @@ error[Z0101]: no variable `g` in `the frame`
   |                             ---- this layer draws `g`, which the plot maps to `fill`
   |                                        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ not a variable of the frame
   |
-  = help: did you mean `t`? If you meant a category level, write it in quotes: `"t"`
+  = help: the variables of `the frame` are: t, v
 
 == area_of_a_frame
 error[Z0401]: `area` cannot be called on a Frame

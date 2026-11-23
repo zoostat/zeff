@@ -80,4 +80,4 @@ error[Z0101]: no variable `c` in `the frame`
 1 | frame(a = [1, 2, 1, 2], b = [1, 2, 2, 1]).fisher_test(a, c)
   |                                                          ^ not a variable of the frame
   |
-  = help: did you mean `a`? If you meant a category level, write it in quotes: `"a"`
+  = help: the variables of `the frame` are: a, b

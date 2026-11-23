@@ -230,6 +230,8 @@ Date: 17 October 2026 · Source: Zeff Specification section 15, Zemp Specificati
 | 209 | What the Variables pane shows for each kind of variable, beyond a number, a category and a date (Zemp) | Recommended A: long text shown by its length (a histogram of `n_chars`), its empty and missing rows, five values in full and the values that repeat; text of few values counted as a category is, with a line naming `category()`; a variable whose every value differs said to look like an identifier, with no chart; an ordered category in its levels' order with the cumulative share and the median level; a number on an interval scale as any number, with its unit; an opaque column counted and its first values shown as printed; every figure the engine's | open; raised by the owner on 23 November 2026; due at the plan of Zemp 0.3, on Zeff 0.9.0 |
 | 210 | Symbolic data: interval-, set-, histogram- and distribution-valued variables (Billard and Diday) | Recommended A: a package after 1.0 whose column types carry symbolic values through the interface of section 4.3, rule 1 (intervals, sets of numbers and of categories, histograms, quantiles and distributions, modal categories), made first by aggregating classical rows, with its descriptive statistics, regression, clustering and principal components; nothing before 1.0 | open; raised by the owner on 23 November 2026; due when the roadmap after 1.0 is drawn, at 1.0.0 |
 | 211 | The Help place redesigned: a home page of methods, a page for each method, moving about, and search as one types (Zemp) | Recommended A: in two stages. Stage 1 (Zemp alone, on the engine it has): **Home**, **Back** and **Forward** with a trail of where one is, the left pane listing the pages around the one open, and search that suggests from the second character (names, titles, R and Stata names, codes). Stage 2 (the engine and Zemp): a methods index held in the engine, each method with a few sentences, a minimal example on a shipped dataset and the output the engine printed, checked at every build; the home page lists the methods by area, as a statistics package's features page does | the design decided on 23 November 2026 (the owner, on the mockup: "Yes as drawn, except …"): Home is the **Index of methods**, the left pane **Topics** with five sections (methods, the language, packages, errors and warnings, using Zemp Lite), a page for each package, search in the bar's field; stage 1 placed at Zemp Lite 0.2.3, on Zeff 0.8.0, by the owner on 23 November 2026 ("Yes, enter 0.2.3"), with Home an **Index of functions** until the methods arrive; stage 2 recommended at Zeff 0.10.0, shown by Zemp 0.4, to be put to the owner at the opening of Zeff 0.10.0 |
+| 212 | A small estimate in a fit's own table | Recommended A: the rule #171 gave `report` in every table of estimates: two significant digits where the table's decimals would print a number that is not zero as zeros, its standard error and interval to the same decimals; B: as now, and the page's advice to rescale the variable; C: a note under the table naming the terms below its precision | open; deadline 0.10.0 |
+| 213 | R's names for Zeff's functions, `factor(x)` in a formula first | Recommended A: where a call names no function and the name is the R or Stata equivalent the catalogue records for one, Z0103 names the Zeff function (`factor` is `category`); B: `factor` alone, inside a formula; C: as now | open; deadline 0.10.0 |
 | 204 | `curve`: `type:` required, how the result is read, weights | Recommended A for each: `type:` has no default; the area by `statistic()`, the points by `estimates()`, the figure by `plot()`; rows counted by their weights, frequency or sampling | decided at 0.9.0, step 14, under the standing instruction (A); the owner's to overturn before 1.0 |
 | 203 | One layout of three panes on every page (Zemp Lite) | Every place (Script, Data, Plots, Help) has a left pane, the place in the middle and a right pane, each pane opened and closed by its own link; the Panes layout, the Margin link and the Objects panel are removed; Run unfolds every output; revises #174 and #176 (R2) | decided 21 November 2026 (the owner's ruling, given in the Zemp Lite session, passed on in the shared notes and confirmed by him in the Zeff session on 22 November 2026); Zemp Lite 0.2.1, on Zeff 0.8.0 |
 | 202 | `margins`: the average under weights, the call with no variable, the reference distribution, the printed table, a category under `type: mem` | Recommended A for each: the average weighted by the fit's weights; with no variable named, the adjusted prediction; Student's t on the fit's degrees of freedom after `reg`; the table of step 11a; a category held at the shares of its levels | (a), (c) and (d) decided at 0.9.0, step 11a, under the standing instruction (A), (d) shown to the owner; (b) and (e) built at step 11b (22 November 2026); the owner's to overturn before 1.0 |
@@ -3922,6 +3924,8 @@ The first is the commonest line an R user types for a quadratic, and the suggest
 
 **The owner's answer (21 November 2026, given in the Zemp Lite session at step 1 of its release 0.2 and passed on in the shared notes; entered from a Zeff session, which alone edits this register).** His words to the seventeen questions of that checklist, each put with a recommendation: "Go, as recommended." Option A, confirmed in the same answer.
 
+**Status (23 November 2026).** Built at step 35 of Zeff 0.9.0, as decided. The three messages quoted above now read: for `I(exper^2)`, "arithmetic in a formula is worked out before fitting, so `I()` is not needed: write `exper^2`"; for `poly(exper, 2)`, "write the powers out: `exper + exper^2`; in a model with an intercept the fitted values are those of R's `poly`, and the coefficients those of `raw = TRUE`", with a second line naming `category(x, contrast: poly)`; and a catalogued function of a later release, "`did` arrives with a release after 1.0, in the `quasi` package; `zeff help did` says what it will do". Readings taken on the way, the owner's to overturn: (1) the advice is made from what the script wrote, and a term whose operators would be the formula's own outside brackets is shown in brackets, `I(exper * hours)` as `(exper * hours)`; (2) the degree of `poly` is read from its second argument or from `degree:`, two where it cannot be read; the sentence on the fitted values is held to R's `lm` with `poly` in the regression reference; the release of `poly` is not named, #164 being open; (3) a name the catalogue has only as an option of a function (`poisson`, a family of `glm`) is said to arrive as an option; a name a release took out keeps its rewrite, and a function of the project not brought in keeps its advice, both before this; (4) a name of one letter is offered no near name anywhere the engine offers one (functions, variables, bindings, the words of options, `zeff help`), and the same letter in the other case is still offered. Two questions met on the way are #212 and #213. Deadline for the owner to overturn: 1.0.
+
 ### 197. The plots of a run handed to an interface
 
 Raised on 15 November 2026 by the Zemp Lite session at the start of its release 0.1, and entered on 20 November 2026. The browser build of the engine (`zeff-web`) returns what a run printed and said and the frames it kept; it keeps no plot, and nothing draws one at a size. This was so at 0.7.0 and is still so at 0.8.0. Zemp 0.1 works round it: it adds an `export` of each plot to the text it sends and reads the file back from its own file system, so that a redraw at another size is a new run of the script. No step of the checklist of 0.8.0 named the proper hand-over, and no row of section 14 names it.
@@ -4324,3 +4328,43 @@ Raised by the owner on 23 November 2026 in a Zeff session: the Help place of Zem
 
 **The size of the download (23 November 2026, asked by the owner).** Measured on the engine of 0.9.0 under development: the 257 function pages and 148 explained codes the engine already carries are 1.30 MB of text, about 260 kB with brotli, inside the worker that Zemp Lite downloads at 2.92 MB with brotli (Zemp Lite 0.2.2; the limit of risk R4 is 5 MB). The two pages drawn in the mockup are 2.1 and 2.3 kB of text each, about 1 kB each compressed alone; the 111 new pages (80 methods, 18 of the language, 13 of the app) would add between 50 and 110 kB, under 4 per cent of the download, which the browser keeps after the first visit and fetches again only when the engine changes. Two rules follow, taken as engineering: (a) the pictures of the **Using Zemp Lite** pages are not part of the first download: each is drawn small (SVG where the screen can be drawn so) and fetched the first time its page is opened, then kept by the browser; (b) each release of Zemp Lite and of the engine reports the help's share of the download beside the worker's size, and the help text moves into a file of its own, fetched when Help is first opened, if the download comes within 1 MB of the limit.
 
+### 212. A small estimate in a fit's own table
+
+Raised on 23 November 2026 at step 34 of release 0.9.0. Decision #171 settled how `report` prints a coefficient too small for its decimals. The table a fit prints of itself has the same fault and was not in that decision. Seen on the shipped wages of 2019:
+
+```
+w.reg(log(wage) ~ educ + exper + exper^2 + exper^3)
+  term          estimate   std.error   t value   p value   95% CI
+  exper^2        -0.0011      0.0016     -0.74     0.462   [-0.0042, 0.0019]
+  exper^3         0.0000      0.0000      0.27     0.788   [0.0000, 0.0001]
+```
+
+The row of `exper^3` gives neither the size nor the sign of the coefficient; section 3.8 of the Language Reference rounds the estimates, standard errors and limits of such a table to four decimals. The other tables of estimates round to a fixed number of decimals too.
+
+| Option | For | Against |
+| --- | --- | --- |
+| A. **The rule of `report` in every table of estimates: a number that is not zero and would print as zeros is written to two significant digits with its sign; its standard error and the limits of its interval follow its decimals; the column keeps its decimal points one under another** | One rule for every table; a reader never meets `0.0000` for a coefficient that is not zero; R's `summary` does as much by its exponents | Printed output changes in every table that has such a row; the row is wider than the others |
+| B. As now, with the advice already on the pages to rescale the variable (`exper / 10`) | No change | The sign and the size stay hidden in the commonest table of the engine |
+| C. A note under the table naming the terms below its precision | The table keeps its width | The number is still not shown |
+
+*Recommendation.* A, at 0.10.0, when the help pages of `regress` and `results` are revised and their printed examples are renewed in any case. Deadline: 0.10.0.
+
+### 213. R's names for Zeff's functions, `factor(x)` in a formula first
+
+Raised on 23 November 2026 at step 35 of release 0.9.0, where decision #196 gave `I(...)` and `poly(...)` their own advice. The third call an R user writes inside a formula was not in that decision:
+
+```
+w.reg(log(wage) ~ educ + factor(industry))
+error[Z0103]: no function is called `factor`
+  = help: `zeff help` lists the functions of this release
+```
+
+Zeff's form is `category(industry)`. The catalogue records, for most functions, the name R or Stata gives the same thing (its column of equivalents), so the engine already holds what is needed to answer.
+
+| Option | For | Against |
+| --- | --- | --- |
+| A. **Where a call names no function and the name is the R or Stata equivalent the catalogue records for exactly one Zeff function, Z0103 names that function: "R's `factor` is `category` in Zeff"; a test holds every such line to a function that exists** | The R and Stata user is answered from the catalogue, with nothing to keep by hand; no name is added | The column of equivalents was written for readers and must be read through first: some entries are phrases, some name several functions |
+| B. `factor(x)` alone, inside a formula, as #196 did for two names | Smallest | The next name needs the next decision |
+| C. As now | No work | The commonest R line for a categorical regressor is answered with a list of functions |
+
+*Recommendation.* A, at 0.10.0. Deadline: 0.10.0.

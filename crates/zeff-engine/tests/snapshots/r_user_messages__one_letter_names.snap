@@ -1,0 +1,82 @@
+---
+source: crates/zeff-engine/tests/r_user_messages.rs
+expression: text
+---
+let t = I(3)
+---- exit code 1
+error[Z0103]: no function is called `I`
+ --> scripts/main.zeff:1:9
+  |
+1 | let t = I(3)
+  |         ^ not a function of Zeff
+  |
+  = help: `zeff help` lists the functions of this release
+
+====
+let t = N(3)
+---- exit code 1
+error[Z0103]: no function is called `N`
+ --> scripts/main.zeff:1:9
+  |
+1 | let t = N(3)
+  |         ^ not a function of Zeff
+  |
+  = help: did you mean `n`?
+
+====
+let pi = 3
+let y = p + 1
+---- exit code 1
+error[Z0101]: nothing is called `p` here
+ --> scripts/main.zeff:2:9
+  |
+2 | let y = p + 1
+  |         ^ not a binding
+  |
+  = help: a bare name is a binding made with `let`; text is written in quotes, and a variable is named inside a frame's method, as in `wages.mean(wage)`
+
+====
+let d = frame(x = [1, 2], yy = [3, 4])
+d.mean(y)
+---- exit code 1
+error[Z0101]: no variable `y` in `d`
+ --> scripts/main.zeff:2:8
+  |
+2 | d.mean(y)
+  |        ^ not a variable of d
+  |
+  = help: the variables of `d` are: x, yy
+
+====
+let d = frame(x = [1, 2], yy = [3, 4])
+d.mean(X)
+---- exit code 1
+error[Z0102]: no variable `X` in `d`; names are case-sensitive
+ --> scripts/main.zeff:2:8
+  |
+2 | d.mean(X)
+  |        ^ differs only in case from `x`
+  |
+  = help: write `x`
+
+====
+let q = dataset(wages).maen(wage)
+---- exit code 1
+error[Z0103]: no function is called `maen`
+ --> scripts/main.zeff:1:24
+  |
+1 | let q = dataset(wages).maen(wage)
+  |                        ^^^^ not a function of Zeff
+  |
+  = help: did you mean `mean`?
+
+====
+let r = Pi * 2
+---- exit code 1
+error[Z0101]: nothing is called `Pi` here
+ --> scripts/main.zeff:1:9
+  |
+1 | let r = Pi * 2
+  |         ^^ not a binding
+  |
+  = help: a bare name is a binding made with `let`; text is written in quotes, and a variable is named inside a frame's method, as in `wages.mean(wage)`

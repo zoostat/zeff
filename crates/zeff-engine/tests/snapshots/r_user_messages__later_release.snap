@@ -1,0 +1,74 @@
+---
+source: crates/zeff-engine/tests/r_user_messages.rs
+expression: text
+---
+let w = dataset(wages).where(year == 2019)
+w.did(wage, treat: union)
+---- exit code 1
+error[Z0103]: no function is called `did`
+ --> scripts/main.zeff:2:3
+  |
+2 | w.did(wage, treat: union)
+  |   ^^^ not a function of Zeff
+  |
+  = help: `did` arrives with a release after 1.0, in the `quasi` package; `zeff help did` says what it will do
+
+====
+let w = dataset(wages).where(year == 2019)
+w.poisson(union ~ educ)
+---- exit code 1
+error[Z0103]: no function is called `poisson`
+ --> scripts/main.zeff:2:3
+  |
+2 | w.poisson(union ~ educ)
+  |   ^^^^^^^ not a function of Zeff
+  |
+  = help: `poisson` arrives with a release after 1.0, in the `glm` package, as an option and not a function of its own; `zeff help poisson` says what it will do
+
+====
+let w = dataset(wages).where(year == 2019)
+let c = w.reg(wage ~ educ).contrasts("educ = 0")
+---- exit code 1
+error[Z0103]: no function is called `contrasts`
+ --> scripts/main.zeff:2:28
+  |
+2 | let c = w.reg(wage ~ educ).contrasts("educ = 0")
+  |                            ^^^^^^^^^ not a function of Zeff
+  |
+  = help: `contrasts` arrives with a release after 1.0, in the `results` package; `zeff help contrasts` says what it will do
+
+====
+let f = map([1, 2], did)
+---- exit code 1
+error[Z0103]: no function is called `did`
+ --> scripts/main.zeff:1:21
+  |
+1 | let f = map([1, 2], did)
+  |                     ^^^ not a function
+  |
+  = help: `did` arrives with a release after 1.0, in the `quasi` package; `zeff help did` says what it will do
+  = help: a parameter of type `Fn(Int) -> ?` takes the bare name of a function with that signature
+
+====
+let w = dataset(wages).where(year == 2019)
+w.logistic(union ~ educ)
+---- exit code 1
+error[Z0103]: no function is called `logistic`
+ --> scripts/main.zeff:2:3
+  |
+2 | w.logistic(union ~ educ)
+  |   ^^^^^^^^ not a function of Zeff
+  |
+  = help: a logistic regression is `data.glm(y ~ x, family: binomial)` since release 0.9.0
+
+====
+let w = dataset(wages).where(year == 2019)
+w.nosuchthing(wage)
+---- exit code 1
+error[Z0103]: no function is called `nosuchthing`
+ --> scripts/main.zeff:2:3
+  |
+2 | w.nosuchthing(wage)
+  |   ^^^^^^^^^^^ not a function of Zeff
+  |
+  = help: `zeff help` lists the functions of this release

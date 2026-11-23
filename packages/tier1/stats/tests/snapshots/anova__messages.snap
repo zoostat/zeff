@@ -16,7 +16,7 @@ error[Z0101]: no variable `y` in `the frame`
 1 | frame(x = [1, 2, 3]).anova(y, group: x)
   |                            ^ not a variable of the frame
   |
-  = help: did you mean `x`? If you meant a category level, write it in quotes: `"x"`
+  = help: the variables of `the frame` are: x
 
 error[Z0401]: `group:` of `anova` has one level, but the test compares two or more
  --> scripts/main.zeff:1:53

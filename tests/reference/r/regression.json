@@ -10696,5 +10696,17 @@
     "upper": "10.655160197870305"
    }
   ]
+ },
+ "poly": {
+  "formula": "log(wage) ~ educ + exper + exper^2 + female",
+  "r_formula": "log(wage) ~ educ + poly(exper, 2) + female",
+  "data": "wages",
+  "nobs": 18179,
+  "df_residual": 18174,
+  "r_squared": "0.210238358545175",
+  "sigma": "0.430676937658499",
+  "rss": "3370.96122004203",
+  "educ": "0.0758111960233812",
+  "female": "-0.131935827205352"
  }
 }

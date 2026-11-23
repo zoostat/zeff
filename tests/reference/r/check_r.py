@@ -256,6 +256,14 @@ def check_regression(committed, regenerated, problems):
         for key in ("r_squared", "adj_r_squared", "sigma", "rss", "log_likelihood"):
             if not close(case[key], other[key], tolerance, 1e-14):
                 problems.append(f"cases.{name}.{key}: committed {case[key]}, regenerated {other[key]}")
+    # R's fit with `poly`, which the message for `poly` in a formula is held to (step 35 of 0.9.0).
+    ours, theirs = committed["poly"], regenerated.get("poly", {})
+    for key in ("formula", "r_formula", "data", "nobs", "df_residual"):
+        if ours[key] != theirs.get(key):
+            problems.append(f"poly.{key}: committed {ours[key]}, regenerated {theirs.get(key)}")
+    for key in ("r_squared", "sigma", "rss", "educ", "female"):
+        if theirs.get(key) is None or not close(ours[key], theirs[key], tolerance, 1e-14):
+            problems.append(f"poly.{key}: committed {ours[key]}, regenerated {theirs.get(key)}")
 
 
 def check_fixed_effects(committed, regenerated, problems):

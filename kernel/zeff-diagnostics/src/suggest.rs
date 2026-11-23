@@ -26,7 +26,8 @@ fn distance(a: &str, b: &str) -> usize {
 
 /// The candidate that is the best guess for what `word` was meant to be, if any is close enough:
 /// the same letters in another case first, then the nearest by distance, within a third of the
-/// word's length (at least one change). Ties go to the candidate listed first.
+/// word's length (at least one change). Ties go to the candidate listed first. A word of one
+/// letter is offered its other case and nothing else.
 pub fn did_you_mean<'a>(
     word: &str,
     candidates: impl IntoIterator<Item = &'a str>,
@@ -37,6 +38,12 @@ pub fn did_you_mean<'a>(
         .find(|c| **c != word && c.eq_ignore_ascii_case(word))
     {
         return Some(same);
+    }
+    // A name of one letter is one edit from every other name of one or two letters, so the
+    // nearest would be chance: `I` is not a misspelt `PI` (open decision #196; release 0.9.0,
+    // step 35). The same letter in the other case, above, is not chance and is still offered.
+    if word.chars().count() < 2 {
+        return None;
     }
     let limit = (word.chars().count().max(3)) / 3;
     candidates
@@ -81,6 +88,18 @@ mod tests {
             did_you_mean("Edition", ["editions", "edition"]),
             Some("edition")
         );
+    }
+
+    /// A name of one letter is offered its other case and no neighbour (open decision #196):
+    /// `I` was offered `PI`, which is one edit away as every short name is.
+    #[test]
+    fn a_word_of_one_letter_is_offered_its_other_case_alone() {
+        assert_eq!(did_you_mean("I", ["PI", "E", "if"]), None);
+        assert_eq!(did_you_mean("x", ["y", "xs", "ax"]), None);
+        assert_eq!(did_you_mean("N", ["PI", "n"]), Some("n"));
+        // Two letters are a word: one edit is still a guess worth making.
+        assert_eq!(did_you_mean("Pi", ["PI", "E"]), Some("PI"));
+        assert_eq!(did_you_mean("sd", ["se", "mean"]), Some("se"));
     }
 
     #[test]

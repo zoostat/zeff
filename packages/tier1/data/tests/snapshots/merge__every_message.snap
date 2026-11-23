@@ -1,6 +1,5 @@
 ---
 source: packages/tier1/data/tests/merge.rs
-assertion_line: 182
 expression: out
 ---
 frame(k = [1, 1], v = [1, 2]).merge(frame(k = [1, 1], w = [3, 4]), on: k)
@@ -104,7 +103,7 @@ error[Z0101]: no variable `k` in `the frame`
 1 | frame(k = [1, 2], v = [1, 2]).merge(frame(j = [1, 2], w = [3, 4]), on: k)
   |                                                                        ^ not a variable of the frame
   |
-  = help: did you mean `j`? If you meant a category level, write it in quotes: `"j"`
+  = help: the variables of `the frame` are: j, w
 
 frame(j = [1, 2], v = [1, 2]).merge(frame(k = [1, 2], w = [3, 4]), on: k)
 ---
@@ -114,7 +113,7 @@ error[Z0101]: no variable `k` in `the frame`
 1 | frame(j = [1, 2], v = [1, 2]).merge(frame(k = [1, 2], w = [3, 4]), on: k)
   |                                                                        ^ not a variable of the frame
   |
-  = help: did you mean `j`? If you meant a category level, write it in quotes: `"j"`
+  = help: the variables of `the frame` are: j, v
 
 frame(k = [1, 2], v = [1, 2]).merge(frame(k = ["1", "2"], w = [3, 4]), on: k)
 ---

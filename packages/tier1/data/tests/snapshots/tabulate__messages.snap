@@ -38,7 +38,7 @@ error[Z0101]: no variable `b` in `f`
 2 | f.tabulate(b)
   |            ^ not a variable of f
   |
-  = help: did you mean `a`? If you meant a category level, write it in quotes: `"a"`
+  = help: the variables of `f` are: a
 
 error[Z0102]: no variable `age` in `f`; names are case-sensitive
  --> scripts/main.zeff:2:12

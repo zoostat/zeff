@@ -1,0 +1,74 @@
+---
+source: crates/zeff-engine/tests/r_user_messages.rs
+expression: text
+---
+let w = dataset(wages).where(year == 2019)
+w.reg(log(wage) ~ educ + exper + I(exper^2))
+---- exit code 1
+error[Z0103]: no function is called `I`
+ --> scripts/main.zeff:2:34
+  |
+2 | w.reg(log(wage) ~ educ + exper + I(exper^2))
+  |                                  ^ not a function of Zeff
+  |
+  = help: arithmetic in a formula is worked out before fitting, so `I()` is not needed: write `exper^2`
+
+====
+let w = dataset(wages).where(year == 2019)
+w.reg(log(wage) ~ educ + I(exper * hours))
+---- exit code 1
+error[Z0103]: no function is called `I`
+ --> scripts/main.zeff:2:26
+  |
+2 | w.reg(log(wage) ~ educ + I(exper * hours))
+  |                          ^ not a function of Zeff
+  |
+  = help: arithmetic in a formula is worked out before fitting, so `I()` is not needed: write `(exper * hours)`, since operators inside brackets are arithmetic
+
+====
+let w = dataset(wages).where(year == 2019)
+w.reg(log(wage) ~ educ + I(log(hours)))
+---- exit code 1
+error[Z0103]: no function is called `I`
+ --> scripts/main.zeff:2:26
+  |
+2 | w.reg(log(wage) ~ educ + I(log(hours)))
+  |                          ^ not a function of Zeff
+  |
+  = help: arithmetic in a formula is worked out before fitting, so `I()` is not needed: write `log(hours)`
+
+====
+let w = dataset(wages).where(year == 2019)
+w.reg(log(wage) ~ educ + I((exper - 10)^2))
+---- exit code 1
+error[Z0103]: no function is called `I`
+ --> scripts/main.zeff:2:26
+  |
+2 | w.reg(log(wage) ~ educ + I((exper - 10)^2))
+  |                          ^ not a function of Zeff
+  |
+  = help: arithmetic in a formula is worked out before fitting, so `I()` is not needed: write `(exper - 10)^2`
+
+====
+let w = dataset(wages).where(year == 2019)
+w.reg(log(wage) ~ educ + I(exper / 10))
+---- exit code 1
+error[Z0103]: no function is called `I`
+ --> scripts/main.zeff:2:26
+  |
+2 | w.reg(log(wage) ~ educ + I(exper / 10))
+  |                          ^ not a function of Zeff
+  |
+  = help: arithmetic in a formula is worked out before fitting, so `I()` is not needed: write `(exper / 10)`, since operators inside brackets are arithmetic
+
+====
+let w = dataset(wages).where(year == 2019)
+w.reg(log(wage) ~ educ + I())
+---- exit code 1
+error[Z0103]: no function is called `I`
+ --> scripts/main.zeff:2:26
+  |
+2 | w.reg(log(wage) ~ educ + I())
+  |                          ^ not a function of Zeff
+  |
+  = help: arithmetic in a formula is worked out before fitting, so `I()` is not needed: write the term as it is, `exper^2`

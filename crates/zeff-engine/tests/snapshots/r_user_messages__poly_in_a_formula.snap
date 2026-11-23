@@ -1,0 +1,80 @@
+---
+source: crates/zeff-engine/tests/r_user_messages.rs
+expression: text
+---
+let w = dataset(wages).where(year == 2019)
+w.reg(log(wage) ~ educ + poly(exper, 2))
+---- exit code 1
+error[Z0103]: no function is called `poly`
+ --> scripts/main.zeff:2:26
+  |
+2 | w.reg(log(wage) ~ educ + poly(exper, 2))
+  |                          ^^^^ not a function of Zeff
+  |
+  = help: write the powers out: `exper + exper^2`; in a model with an intercept the fitted values are those of R's `poly`, and the coefficients those of `raw = TRUE`
+  = help: for an ordered category, `category(x, contrast: poly)` gives the polynomial contrasts
+
+====
+let w = dataset(wages).where(year == 2019)
+w.reg(log(wage) ~ educ + poly(exper, 3))
+---- exit code 1
+error[Z0103]: no function is called `poly`
+ --> scripts/main.zeff:2:26
+  |
+2 | w.reg(log(wage) ~ educ + poly(exper, 3))
+  |                          ^^^^ not a function of Zeff
+  |
+  = help: write the powers out: `exper + exper^2 + exper^3`; in a model with an intercept the fitted values are those of R's `poly`, and the coefficients those of `raw = TRUE`
+  = help: for an ordered category, `category(x, contrast: poly)` gives the polynomial contrasts
+
+====
+let w = dataset(wages).where(year == 2019)
+w.reg(log(wage) ~ educ + poly(exper))
+---- exit code 1
+error[Z0103]: no function is called `poly`
+ --> scripts/main.zeff:2:26
+  |
+2 | w.reg(log(wage) ~ educ + poly(exper))
+  |                          ^^^^ not a function of Zeff
+  |
+  = help: write the powers out: `exper + exper^2`; in a model with an intercept the fitted values are those of R's `poly`, and the coefficients those of `raw = TRUE`
+  = help: for an ordered category, `category(x, contrast: poly)` gives the polynomial contrasts
+
+====
+let w = dataset(wages).where(year == 2019)
+w.reg(log(wage) ~ educ + poly(log(hours), degree: 7))
+---- exit code 1
+error[Z0103]: no function is called `poly`
+ --> scripts/main.zeff:2:26
+  |
+2 | w.reg(log(wage) ~ educ + poly(log(hours), degree: 7))
+  |                          ^^^^ not a function of Zeff
+  |
+  = help: write the powers out: `log(hours) + log(hours)^2 + log(hours)^3`, and so on up to `log(hours)^7`; in a model with an intercept the fitted values are those of R's `poly`, and the coefficients those of `raw = TRUE`
+  = help: for an ordered category, `category(x, contrast: poly)` gives the polynomial contrasts
+
+====
+let w = dataset(wages).where(year == 2019)
+w.reg(log(wage) ~ educ + poly(exper - 10, 2))
+---- exit code 1
+error[Z0103]: no function is called `poly`
+ --> scripts/main.zeff:2:26
+  |
+2 | w.reg(log(wage) ~ educ + poly(exper - 10, 2))
+  |                          ^^^^ not a function of Zeff
+  |
+  = help: write the powers out: `(exper - 10) + (exper - 10)^2`; in a model with an intercept the fitted values are those of R's `poly`, and the coefficients those of `raw = TRUE`
+  = help: for an ordered category, `category(x, contrast: poly)` gives the polynomial contrasts
+
+====
+let w = dataset(wages).where(year == 2019)
+w.reg(log(wage) ~ educ + poly(exper, 1))
+---- exit code 1
+error[Z0103]: no function is called `poly`
+ --> scripts/main.zeff:2:26
+  |
+2 | w.reg(log(wage) ~ educ + poly(exper, 1))
+  |                          ^^^^ not a function of Zeff
+  |
+  = help: write the powers out: `exper`; in a model with an intercept the fitted values are those of R's `poly`, and the coefficients those of `raw = TRUE`
+  = help: for an ordered category, `category(x, contrast: poly)` gives the polynomial contrasts

@@ -43,7 +43,7 @@ error[Z0101]: no variable `y` in `the frame`
 1 | frame(x = [1, 2]).mad(y)
   |                       ^ not a variable of the frame
   |
-  = help: did you mean `x`? If you meant a category level, write it in quotes: `"x"`
+  = help: the variables of `the frame` are: x
 
 ## not_a_frame (exit 1)
 error[Z0401]: `iqr` cannot be called on an Int

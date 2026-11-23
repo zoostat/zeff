@@ -1,6 +1,5 @@
 ---
 source: packages/tier1/data/tests/import.rs
-assertion_line: 451
 expression: all
 ---
 ## bom_removed (exit 0)
@@ -128,7 +127,7 @@ error[Z0101]: no column `y` in `data/f.csv`
 1 | let d = import("data/f.csv", types: {y: Int})
   |                ^^^^^^^^^^^^ named in `types:`, but not in the file
   |
-  = help: did you mean `x`?
+  = help: the file has: x
 
 ## bad_delim (exit 1)
 error[Z0401]: `delim:` takes one character, not "ab"

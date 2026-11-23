@@ -331,7 +331,14 @@ fn a_module_is_checked_and_the_script_sees_it_as_it_is_typed() {
     assert_eq!(found.len(), 1, "{}", shown(&found));
     assert_eq!(found[0].code, "Z0101");
     assert_eq!(found[0].message, "nothing is called `y` here");
-    assert_eq!(found[0].help, ["did you mean `x`?"]);
+    // No near name for a name of one letter (open decision #196; release 0.9.0, step 35):
+    // `y` is as near every other short name as it is `x`.
+    assert_eq!(
+        found[0].help,
+        [
+            "a bare name is a binding made with `let`; text is written in quotes, and a variable is named inside a frame's method, as in `wages.mean(wage)`"
+        ]
+    );
     assert_eq!(
         found[0].range,
         Range {

@@ -178,7 +178,7 @@ error[Z0101]: no variable `y` in `the frame`
 1 | frame(x = [1, 2, 3, 4], g = [1, 1, 2, 2]).variance_test(y, group: g)
   |                                                         ^ not a variable of the frame
   |
-  = help: did you mean `x`? If you meant a category level, write it in quotes: `"x"`
+  = help: the variables of `the frame` are: x, g
 
 frame(x = [1, 2, 3, 4], g = [1, 1, 2, 2]).variance_test(x, group: h)
 error[Z0101]: no variable `h` in `the frame`
@@ -187,4 +187,4 @@ error[Z0101]: no variable `h` in `the frame`
 1 | frame(x = [1, 2, 3, 4], g = [1, 1, 2, 2]).variance_test(x, group: h)
   |                                                                   ^ not a variable of the frame
   |
-  = help: did you mean `x`? If you meant a category level, write it in quotes: `"x"`
+  = help: the variables of `the frame` are: x, g

@@ -1,0 +1,20 @@
+---
+source: crates/zeff-engine/tests/r_user_messages.rs
+expression: fits
+---
+let w = dataset(wages).where(year == 2019)
+w.reg(log(wage) ~ educ + exper + exper^2).coef(`exper^2`)
+---- exit code 0
+-0.00072927
+
+====
+let w = dataset(wages).where(year == 2019)
+w.reg(log(wage) ~ educ + (exper * hours)).coef(`(exper * hours)`)
+---- exit code 0
+0.000274019
+
+====
+let w = dataset(wages).where(year == 2019)
+w.reg(log(wage) ~ educ + (exper / 10)).coef(`(exper / 10)`)
+---- exit code 0
+0.139659

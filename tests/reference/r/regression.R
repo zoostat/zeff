@@ -398,5 +398,19 @@ inference <- list(
   tests = tests, compare = comparisons, derive = derivations
 )
 
-out <- list(reference = reference_block(), cases = cases, inference = inference)
+# What the message for `poly(x, k)` in a formula says (release 0.9.0, step 35; open decision
+# #196): in a model with an intercept, the powers written out give the fitted values of R's
+# orthogonal `poly`. The formula of the case `hc1` with `poly(exper, 2)` in the place of the two
+# powers, on the rows that case uses (`poly` refuses a missing value): its measures of fit, and
+# the coefficients of the terms outside the polynomial, which the two forms share.
+poly_rows <- wages[complete.cases(wages[, c("wage", "educ", "exper", "female")]), ]
+poly_fit <- lm(log(wage) ~ educ + poly(exper, 2) + female, data = poly_rows)
+poly_block <- list(
+  formula = arith_text, r_formula = "log(wage) ~ educ + poly(exper, 2) + female", data = "wages",
+  nobs = nrow(poly_rows), df_residual = df.residual(poly_fit),
+  r_squared = num(summary(poly_fit)$r.squared), sigma = num(summary(poly_fit)$sigma),
+  rss = num(sum(residuals(poly_fit)^2)),
+  educ = num(unname(coef(poly_fit)["educ"])), female = num(unname(coef(poly_fit)["female"])))
+
+out <- list(reference = reference_block(), cases = cases, inference = inference, poly = poly_block)
 write_json(out, file.path(here(), "regression.json"))

@@ -72,7 +72,7 @@ error[Z0401]: the `x` axis has no category called "c": it holds the categories o
 4 | c.annotate(text: "here", x: "c", y: 1)
   |                             ^^^ not a category of the axis
   |
-  = help: did you mean "a"?
+  = help: the categories are a, b
 
 == a_number_on_dates
 error[Z0401]: `x:` of `annotate` is an Int, but the `x` axis of this plot holds the dates of `day`

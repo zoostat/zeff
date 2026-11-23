@@ -278,6 +278,40 @@ fn fits_agree_with_r() {
     }
 }
 
+/// The powers written out fit what R fits with `poly` (release 0.9.0, step 35; open decision
+/// #196). The message for `poly(exper, 2)` in a formula says to write `exper + exper^2` and
+/// that, in a model with an intercept, the fitted values are those of R's orthogonal `poly`:
+/// so the measures of fit are R's, and so are the coefficients of the terms outside the
+/// polynomial. R's figures are of `lm(log(wage) ~ educ + poly(exper, 2) + female)`.
+#[test]
+fn the_powers_written_out_fit_what_r_fits_with_poly() {
+    let reference = json("r/regression.json");
+    let r = &reference["poly"];
+    assert!(r["r_formula"].as_str().unwrap().contains("poly(exper, 2)"));
+    let table = table_of(r["data"].as_str().unwrap());
+    let (fit, _) = fit_with(&table, r["formula"].as_str().unwrap(), &Options::default()).unwrap();
+    assert_eq!(fit.n as u64, r["nobs"].as_u64().unwrap());
+    assert_eq!(fit.df_residual as u64, r["df_residual"].as_u64().unwrap());
+    let same = |what: &str, zeff: f64, key: &str| {
+        let r_value = number(&r[key]);
+        assert!(
+            close(zeff, r_value, 1e-10, 1e-14),
+            "{what}: Zeff {zeff:e}, R with poly {r_value:e}"
+        );
+    };
+    same("R²", fit.r_squared.unwrap(), "r_squared");
+    same("sigma", fit.sigma, "sigma");
+    same(
+        "residual sum of squares",
+        fit.residual_sum_of_squares,
+        "rss",
+    );
+    for term in ["educ", "female"] {
+        let at = fit.terms.iter().position(|t| t == term).unwrap();
+        same(term, fit.estimates[at], term);
+    }
+}
+
 /// The generating model of the shipped `wages` (its generating script; the testing handbook,
 /// section 1.2): the return to schooling of 0.074 inside the 95 per cent interval of the pooled
 /// regression with errors clustered by worker, and the other coefficients inside their 99 per

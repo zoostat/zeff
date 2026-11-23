@@ -27,7 +27,7 @@ error[Z0404]: `newton` has no parameter `b`
 5 | iterate(start: {x: 1.0}, step: newton, args: {a: 2.0, b: 1}, done: close)
   |                                                          ^ not a parameter of `step`
   |
-  = help: did you mean `a`?
+  = help: after the state, `newton` takes `a`
 
 ## args_wrong_type (exit 1)
 error[Z0401]: `a` of `newton` takes a Float, but `args:` gives a Str
@@ -48,7 +48,7 @@ error[Z0209]: `newton` reads `s.x`, which `start:` does not have
 5 | iterate(start: {y: 1.0}, step: newton, args: {a: 2.0}, done: close)
   |                ^^^^^^^^ its fields are y
   |
-  = help: did you mean `y`?
+  = help: every pass keeps the fields of `start:`; add `x` to it
 
 ## max_below_one (exit 1)
 error[Z0401]: `max:` of `iterate` cannot be 0

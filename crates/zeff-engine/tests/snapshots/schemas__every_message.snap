@@ -1,6 +1,5 @@
 ---
 source: crates/zeff-engine/tests/schemas.rs
-assertion_line: 167
 expression: all
 ---
 > let d = import("data/small.csv")
@@ -45,14 +44,14 @@ error[Z0101]: no variable `z` in `d`
 6 | d.where(z > 1)
   |         ^ not a variable of d
   |
-  = help: did you mean `a`? If you meant a category level, write it in quotes: `"a"`
+  = help: the variables of `d` are: a, b, c
 error[Z0101]: no variable `q` in `d`
  --> scripts/main.zeff:7:15
   |
 7 | d.add(k = a + q, m = k * 2)
   |               ^ not a variable of d
   |
-  = help: did you mean `a`? If you meant a category level, write it in quotes: `"a"`
+  = help: the variables of `d` are: a, b, c
 error[Z0102]: no variable `A` in `d`; names are case-sensitive
  --> scripts/main.zeff:8:8
   |
@@ -102,7 +101,7 @@ error[Z0101]: no variable `q` in `f`
 6 | f.where(q > 1)
   |         ^ not a variable of f
   |
-  = help: did you mean `x`? If you meant a category level, write it in quotes: `"x"`
+  = help: the variables of `f` are: x, y
 error[Z0101]: no variable `xx` in `the frame`
  --> scripts/main.zeff:7:24
   |
@@ -199,21 +198,21 @@ error[Z0101]: no variable `a` in `the frame`
 6 | d.rename(z = a).mean(a)
   |                      ^ not a variable of the frame
   |
-  = help: did you mean `z`? If you meant a category level, write it in quotes: `"z"`
+  = help: the variables of `the frame` are: z, b, c
 error[Z0101]: no variable `a` in `the frame`
  --> scripts/main.zeff:7:18
   |
 7 | d.drop([a]).mean(a)
   |                  ^ not a variable of the frame
   |
-  = help: did you mean `b`? If you meant a category level, write it in quotes: `"b"`
+  = help: the variables of `the frame` are: b, c
 error[Z0101]: no variable `a` in `the frame`
  --> scripts/main.zeff:8:38
   |
 8 | d.aggregate(m = mean(b), by: c).mean(a)
   |                                      ^ not a variable of the frame
   |
-  = help: did you mean `c`? If you meant a category level, write it in quotes: `"c"`
+  = help: the variables of `the frame` are: c, m
 error[Z0101]: no variable `a_x` in `the frame`
  --> scripts/main.zeff:10:67
    |

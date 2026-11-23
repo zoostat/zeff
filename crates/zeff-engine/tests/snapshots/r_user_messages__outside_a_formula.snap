@@ -1,0 +1,24 @@
+---
+source: crates/zeff-engine/tests/r_user_messages.rs
+expression: text
+---
+let x = I(3)
+---- exit code 1
+error[Z0103]: no function is called `I`
+ --> scripts/main.zeff:1:9
+  |
+1 | let x = I(3)
+  |         ^ not a function of Zeff
+  |
+  = help: `zeff help` lists the functions of this release
+
+====
+let p = poly(3, 2)
+---- exit code 1
+error[Z0103]: no function is called `poly`
+ --> scripts/main.zeff:1:9
+  |
+1 | let p = poly(3, 2)
+  |         ^^^^ not a function of Zeff
+  |
+  = help: `zeff help` lists the functions of this release

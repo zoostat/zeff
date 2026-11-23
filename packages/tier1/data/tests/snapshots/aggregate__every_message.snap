@@ -1,6 +1,5 @@
 ---
 source: packages/tier1/data/tests/aggregate.rs
-assertion_line: 183
 expression: out
 ---
 frame(g = [1, 2], x = [1.0, 2]).aggregate(y = x + 1, by: g)
@@ -51,7 +50,7 @@ error[Z0101]: no variable `h` in `the frame`
 1 | frame(g = [1, 2], x = [1.0, 2]).aggregate(m = mean(x), by: h)
   |                                                            ^ not a variable of the frame
   |
-  = help: did you mean `g`? If you meant a category level, write it in quotes: `"g"`
+  = help: the variables of `the frame` are: g, x
 
 frame(g = [1, 2], x = [1.0, 2]).aggregate(m: mean(x), by: g)
 ---

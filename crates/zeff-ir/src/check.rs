@@ -2136,6 +2136,11 @@ impl Checker<'_> {
                 "`{name}` is private to `functions/{module}.zeff`: a name starting with `_` is seen in its own file only"
             ));
         }
+        // A function the catalogue has for a later release, by the name written: when it
+        // arrives, before any near name (`did` is not a misspelt `div`).
+        if let Some(later) = arrives_later(name) {
+            return Some(later);
+        }
         let mut names: Vec<&str> = self
             .signatures
             .iter()
@@ -6293,6 +6298,19 @@ impl Checker<'_> {
                         "not a function of Zeff"
                     },
                 );
+            // What an R user writes inside a formula (open decision #196; release 0.9.0, step
+            // 35): the Zeff form of the term, and no near name, which could only mislead.
+            if bare
+                && receiver.is_none()
+                && self.formula_depth > 0
+                && let Some(advice) = r_formula_idiom(&name, args)
+            {
+                for line in advice {
+                    d = d.help(line);
+                }
+                self.report(d);
+                return Expr::error(span);
+            }
             let near = if bare {
                 self.near_function(&name)
             } else {
@@ -9309,6 +9327,158 @@ const RESERVED_CORE_NAMES: &[&str] = &[
     "power",
     "spec",
 ];
+
+/// What Z0103 says of a name the catalogue has for a later release (open decision #196;
+/// release 0.9.0, step 35): the release and the package, as `zeff help <name>` says them, and
+/// that command for the rest. A name the catalogue has in two packages is given both. A name
+/// it has only as an option of a function (`poisson`, a family of `glm`) is said to be one.
+/// Constants and blocks are not called and are left out.
+fn arrives_later(name: &str) -> Option<String> {
+    let catalogue = zeff_registry::Catalogue::compiled().ok()?;
+    let rows = catalogue.rows_named(name);
+    let places = |function: bool| {
+        let mut places: Vec<String> = Vec::new();
+        for row in &rows {
+            let is_function = matches!(
+                row.kind.as_str(),
+                "function" | "frame method" | "result method"
+            );
+            if is_function != function || (!function && row.kind != "option") {
+                continue;
+            }
+            let when = if row.status == "roadmap" {
+                "a release after 1.0".to_string()
+            } else {
+                format!("release {}", row.release)
+            };
+            let place = format!("with {when}, in the `{}` package", row.package);
+            if !places.contains(&place) {
+                places.push(place);
+            }
+        }
+        places
+    };
+    let functions = places(true);
+    if !functions.is_empty() {
+        return Some(format!(
+            "`{name}` arrives {}; `zeff help {name}` says what it will do",
+            functions.join(", and ")
+        ));
+    }
+    let options = places(false);
+    if options.is_empty() {
+        return None;
+    }
+    Some(format!(
+        "`{name}` arrives {}, as an option and not a function of its own; `zeff help {name}` says what it will do",
+        options.join(", and ")
+    ))
+}
+
+/// The advice of Z0103 for the two calls an R user writes inside a formula and Zeff does not
+/// have (open decision #196, option A; release 0.9.0, step 35), with the term as Zeff writes
+/// it, made from what the script wrote:
+///
+/// - `I(exper^2)`: arithmetic in a formula is worked out before fitting (Language Reference,
+///   section 7.2), so the term stands without `I()`. A power, a call and a name stand as they
+///   are; anything else goes in brackets, where the operators are arithmetic and not the
+///   formula's own (`I(a * b)` is `(a * b)`, since a bare `a * b` crosses the two).
+/// - `poly(exper, 2)`: the powers written out, and the polynomial contrasts of an ordered
+///   category, which is the other thing R's `poly` is used for.
+fn r_formula_idiom(name: &str, args: &[ast::Arg]) -> Option<Vec<String>> {
+    let mut positional = args.iter().filter_map(|a| match a {
+        ast::Arg::Positional(e) => Some(e),
+        _ => None,
+    });
+    let first = positional.next();
+    // Whether a term can take a power, or stand in a formula, without brackets of its own.
+    let stands = |e: &ast::Expr| {
+        matches!(
+            e.kind,
+            ast::ExprKind::Name(_)
+                | ast::ExprKind::Call { .. }
+                | ast::ExprKind::Paren(_)
+                | ast::ExprKind::Int(_)
+                | ast::ExprKind::Float(_)
+        )
+    };
+    match name {
+        "I" => {
+            let advice = match first {
+                Some(e)
+                    if stands(e)
+                        || matches!(
+                            &e.kind,
+                            ast::ExprKind::Binary {
+                                op: ast::BinaryOp::Pow,
+                                ..
+                            }
+                        ) =>
+                {
+                    format!("write `{}`", written(e))
+                }
+                Some(e) => format!(
+                    "write `({})`, since operators inside brackets are arithmetic",
+                    written(e)
+                ),
+                None => "write the term as it is, `exper^2`".to_string(),
+            };
+            Some(vec![format!(
+                "arithmetic in a formula is worked out before fitting, so `I()` is not needed: {advice}"
+            )])
+        }
+        "poly" => {
+            let x = match first {
+                Some(e) if stands(e) => written(e),
+                Some(e) => format!("({})", written(e)),
+                None => "x".to_string(),
+            };
+            // The degree: the second argument, or `degree:`, where it is a whole number written
+            // out; two where it cannot be read.
+            let degree = positional
+                .next()
+                .or_else(|| {
+                    args.iter().find_map(|a| match a {
+                        ast::Arg::Named { name, value } if name.text == "degree" => Some(value),
+                        _ => None,
+                    })
+                })
+                .and_then(|e| match e.kind {
+                    ast::ExprKind::Int(k) if k >= 1 => Some(k),
+                    _ => None,
+                })
+                .unwrap_or(2);
+            let power = |k: i64| {
+                if k == 1 {
+                    x.clone()
+                } else {
+                    format!("{x}^{k}")
+                }
+            };
+            let powers = if degree <= 5 {
+                format!(
+                    "`{}`",
+                    (1..=degree).map(power).collect::<Vec<_>>().join(" + ")
+                )
+            } else {
+                format!(
+                    "`{} + {} + {}`, and so on up to `{}`",
+                    power(1),
+                    power(2),
+                    power(3),
+                    power(degree)
+                )
+            };
+            Some(vec![
+                format!(
+                    "write the powers out: {powers}; in a model with an intercept the fitted values are those of R's `poly`, and the coefficients those of `raw = TRUE`"
+                ),
+                "for an ordered category, `category(x, contrast: poly)` gives the polynomial contrasts".to_string(),
+            ])
+        }
+        _ => None,
+    }
+}
 
 /// A type as written in a signature, for a message.
 fn written_type(ty: &ast::Type) -> String {

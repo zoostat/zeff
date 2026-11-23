@@ -1,6 +1,5 @@
 ---
 source: packages/tier1/data/tests/distinct.rs
-assertion_line: 175
 expression: out
 ---
 frame(x = [1, 2]).sample()
@@ -81,7 +80,7 @@ error[Z0101]: no variable `y` in `the frame`
 1 | frame(x = [1, 2]).distinct(y)
   |                            ^ not a variable of the frame
   |
-  = help: did you mean `x`? If you meant a category level, write it in quotes: `"x"`
+  = help: the variables of `the frame` are: x
 
 frame(x = [1, 2]).duplicates([x, y])
 ---
@@ -91,7 +90,7 @@ error[Z0101]: no variable `y` in `the frame`
 1 | frame(x = [1, 2]).duplicates([x, y])
   |                              ^^^^^^ not a variable of the frame
   |
-  = help: did you mean `x`? If you meant a category level, write it in quotes: `"x"`
+  = help: the variables of `the frame` are: x
 
 frame(x = [1, 2]).distinct()
 ---

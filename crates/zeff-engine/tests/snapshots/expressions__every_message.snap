@@ -162,8 +162,6 @@ error[Z0209]: the record has no field `b`
   |
 1 | {a: 1, bb: 2}.b
   |               ^ its fields are a, bb
-  |
-  = help: did you mean `a`?
 
 ## field_of_a_number (exit 1)
 warning[W0101]: `n` hides the function `data::n`
