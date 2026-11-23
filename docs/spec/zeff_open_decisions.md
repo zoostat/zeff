@@ -4345,6 +4345,8 @@ Raised by the owner on 23 November 2026 in a Zeff session: the Help place of Zem
 
 13. The right pane of the Help place is **On this page**: the open page's sections, the one in view marked, a click going to it (on a function's, a method's or a language page; on a list, such as a package's page or Home, the pane says the page has no sections). **Related functions** is removed: the page's own **See also** keeps the links it gave. **Topics**, the left pane, keeps the page's neighbours and **‹ All topics**, and no longer holds the page's sections. The search field stands at the right end of the Help place's bar, after **Back**, **Forward**, **Home** and the trail, with nothing after it but the right pane's link. Each pane is still opened and closed by its own link (#203). In Zemp Lite 0.2.3, before the pictures of its pages are made final, so that the pictures show this layout.
 
+The same day the owner added: "Also I want to remove "Help" from right to "Home"". So the trail beside **Home** no longer begins with the word **Help**: it begins with the first step under Home (_Packages › plot › bars_, _Using Zemp Lite › Finding help_, _Errors and warnings › Z01xx › Z0103_), and on Home itself there is no trail, **Home** being marked as the page open.
+
 ### 212. A small estimate in a fit's own table
 
 Raised on 23 November 2026 at step 34 of release 0.9.0. Decision #171 settled how `report` prints a coefficient too small for its decimals. The table a fit prints of itself has the same fault and was not in that decision. Seen on the shipped wages of 2019:

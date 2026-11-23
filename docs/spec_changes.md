@@ -894,3 +894,7 @@ The owner's standing rule of 24 November 2026: "you must update the help pages (
 ## 24 November 2026 — zemp_specification.md, section 15; zeff_open_decisions.md, entry #211
 
 The owner's decision of 24 November 2026 on the running 0.2.3: "remove "related functions" move search bar to right end, Move "on this pane" to the right pane". Open decision #211 gains item 13, and the row of 0.2.3 in section 15 of the Zemp Specification now says that the search field stands at the right end of the Help place's bar and that the right pane is **On this page**, the open page's sections with the one in view marked, in place of **Related functions**; the page's own See also keeps its links.
+
+## 24 November 2026 — zeff_open_decisions.md, entry #211, item 13
+
+The owner's addition the same day: "Also I want to remove "Help" from right to "Home"". The trail of the Help place no longer begins with the word Help; it begins with the first step under Home, and on Home there is none. The row of 0.2.3 in the Zemp Specification ("a trail saying where a page stands") needs no change.
