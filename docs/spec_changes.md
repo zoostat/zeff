@@ -906,3 +906,7 @@ The owner's decision of 24 November 2026, on five designs: "Soft panel is final 
 ## 24 November 2026 — zemp_specification.md, section 15; zeff_open_decisions.md, new entry #215
 
 The owner's decision of 24 November 2026 ("Yes, option A") on a name with two functions in the help, such as `histogram`. Open decision #215 is entered, decided. The row of 0.2.3 in section 15 of the Zemp Specification now says that such a name has a page for each function, titled by what it is called on, and that the bare name opens a short chooser of the two. The engine's part, `zeff help` printing the chooser, is left to Zeff 0.10.0; no normative text of the engine changed.
+
+## 24 November 2026 — zeff_open_decisions.md, entry #215
+
+Corrected the words of #215 for `plot`, whose second function is called on a `Result`, not only a fit, as Zemp Lite found when building it (step 9g of 0.2.3); added what was built and what the engine's part at 0.10.0 must give. No normative text changed.
