@@ -3430,6 +3430,9 @@ Raised on 19 November 2026 by the review against R. `add(id = seq(1, n()))` is r
 
 **The owner's decision (21 November 2026, at the opening of release 0.9.0).** The owner said "go" to the checklist of `docs/releases/0.9.0.md` without changing its answers, so its recommendation is taken under his standing instruction of 12 November 2026, his to overturn. Option A with the name `row_number()` in `data`, within each group under `by:`; built at step 31 with its catalogue row.
 
+**Status (23 November 2026).** Built at step 31b of Zeff 0.9.0, as decided: `row_number()` in `data`, within each group under `by:`, in the order the rows stand; it stands in `add`, `update` and `where`. Held exactly to base R. Catalogue row 699. Deadline for the owner to overturn the name: 1.0.
+
+
 ### 168. One value out of a column
 
 Raised on 19 November 2026 by the review against R. `first(col)`, `last(col)` and `col[1]` are refused for a column, and `to(col, List)` converts each value and gives a Column<List>. One prediction had to be read as `frame(p = m.predict(newdata: b.head(1))).mean(p)`.

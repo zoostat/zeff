@@ -146,7 +146,9 @@ Step 30 `[engine]` (on the owner's renewed word of 23 November, "immediately sta
 
 Step 31a `[function]` (step 31 split in three): `n_chars(s)`, the length of each text value (#165), held to R's `nchar(type = "chars")`; and a note from `add` when `len` of a text variable, which is the number of its rows, is written as a whole definition. The catalogue gains a row: 278 functions in 1.0, 672 rows. Continuous integration failed once on step 29, in the job that rebuilds R's references on Linux, where one far-tail p-value of R's own `ptukey` differed from the Mac's by 1.4e-12; the check's absolute floor for that file was widened with the reason beside it (a0f6411), and CI is green.
 
-**Next.** Step 31b `[function]`: `row_number` (#167); then 31c, `row(stat: n_missing)` (#166). Step 3, the weekly mutation run of Monday 23 November, when it has ended.
+Step 31b `[function]`: `row_number()`, the position of each row from 1 in the order the rows stand, within each group under `by:` (#167), held exactly to base R's `seq_len` and `ave(seq_along(g), g, FUN = seq_along)`. It stands in `add`, `update` and `where`. The catalogue gains a row: 279 functions in 1.0, 673 rows.
+
+**Next.** Step 31c `[function]`: `row(stat: n_missing)` (#166). Step 3, the weekly mutation run of Monday 23 November, when it has ended.
 
 **For the owner.** The printed table of `margins` (#202 (d)), shown at step 11a, is yours to change; #202 (a) to (e) are taken as recommended. #198, #199 and #200 and #201 (a) (taken as recommended, yours to overturn before 1.0; #201 (b) is open and yours: which standardized coefficients a `glm` fit has, refused until you choose; #200: `predict` gives a probability and `residuals` the outcome less it unless `type:` says otherwise, where R gives log-odds and deviance residuals): on a `glm` fit, clustered errors carry the factor (N − 1)/(N − k) that Stata's `logit` and R's `vcovCL` left to itself omit; analytic weights are refused on a binary model, as in Stata.
 

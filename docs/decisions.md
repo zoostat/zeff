@@ -7306,3 +7306,14 @@ Step 31 names three functions; it is split in three in the checklist, each funct
 
 **Held by.** `packages/tier1/text/tests/n_chars.rs`: the three references; `NA`, the empty text, white space, a flag of two code points, a combining accent; the column forms under `where`, `by:` and `aggregate`; the note, where it is given and the six places it is not; every refusal; two properties (of one text it is `len`, unchanged by `upper` and `lower`, adding over `join`; each row has the length of its own value). The page of `n_chars`, and a line each on the pages of `len` and `add`.
 
+## 23 November 2026 — release 0.9.0, step 31b: `row_number`
+
+- *`row_number()`* in `data` (open decision #167, option A; the name as decided): a column of Ints, the position of each row from 1 in the frame a definition is evaluated for, in the order the rows stand. It takes no argument. Under `by:` each group is numbered on its own, its rows in the order they have in the frame; a missing value of the grouping variable is a group, as in every grouped verb.
+- *Where it stands:* in `add` and `update`, in `where` (`where(row_number() <= 100)` keeps the first hundred rows), and inside an expression (`row_number() / n()`). Outside a frame method there are no rows to number: Z0401, with the form to write. In `aggregate`, which wants one value for each group, it is refused by `aggregate`'s own message.
+- *The order is the rows'.* On a declared panel the numbers follow the rows as they stand, not the panel's time: to number by a variable the frame is sorted first, as with `running`. The page says so and shows it.
+- *The reference* is base R, as the checklist names it: `seq_len(nrow)` and `ave(seq_along(g), g, FUN = seq_along)`, in `tests/reference/r/row_number.R`: nine layouts of groups, two grouping variables, rows sorted first, and the shipped wages by worker (in the file's order and from the latest year) and by industry. `ave` leaves a row with a missing group out of every group; the script writes the missing value as a level first, so that R groups as the engine does. Every value is a whole number and the comparison is exact.
+- *A message mended on the way.* `d.row_number()`, and `d.n()` before it, were refused with the help "`n` takes  first", naming nothing, since the function takes no argument; it now reads "`row_number` takes no argument and is written `row_number()`, with nothing before it".
+- *The catalogue* gains row 699, and the counts follow (`docs/spec_changes.md`): `data` has 57 functions, the engine 279 in 1.0, the catalogue 673 rows.
+
+**Held by.** `packages/tier1/data/tests/row_number.rs`: the references; an empty frame, one row, a missing group, every row its own group; `add`, `update`, `where` and expressions; a panel out of time order; every message; a property over random groups (1 to the size of each group, rising, the last equal to `n()`, equal to a running sum of ones, whatever the rows hold). The page of `row_number`.
+

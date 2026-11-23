@@ -850,3 +850,7 @@ Open decision #178, decided by the owner on 21 November 2026 (option A, with the
 
 Open decision #165 (decided 21 November 2026, option A, with the name `n_chars`), applied as step 31a of release 0.9.0. One row is new: `n_chars(s)` in `text`, the number of Unicode scalar values of a text, which applied row by row to a column is the length of each value. The row "Unit" of section 3.8 of the Language Reference says that `len` of a column is the number of its rows and that `n_chars` gives the length of each value. The counts follow: `text` has 14 functions in 1.0, the engine 278 (264 written in Rust, 184 in tier 1), the catalogue 672 rows; the Zemp Specification's scale reads 278, of which 185 are tagged `general` alone, and 672 in all. Additions only.
 
+## 23 November 2026 — zeff_functions.csv (row 699 added), zeff_engine_specification.md, sections 8.2, 9.2 and 14 (`data`, and the totals), and zemp_specification.md, section 11 (the scale)
+
+Open decision #167 (decided 21 November 2026, option A, with the name `row_number`), applied as step 31b of release 0.9.0. One row is new: `row_number()` in `data`, the position of each row from 1 in the order the rows stand, within each group under `by:`. The counts follow: `data` has 57 functions in 1.0 and `row_number` joins its column functions, the engine 279 (265 written in Rust, 185 in tier 1), the catalogue 673 rows; the Zemp Specification's scale reads 279, of which 186 are tagged `general` alone, and 673 in all. Additions only.
+

@@ -1015,6 +1015,23 @@ pub fn functions() -> Vec<Function> {
         },
         Function {
             spec: FunctionSpec {
+                name: "row_number",
+                package: "data",
+                method: false,
+                params: vec![],
+                rest: None,
+                returns: "Column<Int>",
+                diagnostics: vec![DiagnosticDecl::new(
+                    "Z0401",
+                    "row_number() stands outside a frame method",
+                )],
+                help: include_str!("../help/row_number.md"),
+                accuracy: None,
+            },
+            body: column_functions::row_number,
+        },
+        Function {
+            spec: FunctionSpec {
                 name: "running",
                 package: "data",
                 method: false,

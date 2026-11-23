@@ -103,6 +103,28 @@ fn float_column(
     column
 }
 
+/// `row_number()`: the position of each row, from 1, in the frame a definition is evaluated
+/// for: the whole frame inside `add`, `update` or `where`, or each group under `by:`, in the
+/// order the rows stand
+/// (open decision #167; release 0.9.0, step 31b). dplyr's `row_number()` and Stata's `_n`.
+/// Outside a frame method there are no rows to number (Z0401).
+pub fn row_number(ctx: &mut CallContext<'_>, _args: Args) -> Result<Value, Fail> {
+    match &ctx.frame {
+        Some(frame) => Ok(Value::Column(Column::ints(
+            (1..=frame.table.rows() as i64).map(Some),
+        ))),
+        None => Err(fail(
+            Diagnostic::error(
+                "Z0401",
+                "`row_number()` numbers the rows of a frame and stands inside `add`, `update` or `where`",
+            )
+            .in_file(ctx.script)
+            .primary(ctx.callee_span, "no frame here")
+            .help("write `wages.add(id = row_number())` for a row number, or `wages.add(k = row_number(), by: worker)` to number the rows of each worker; `seq(1, 5)` is a list of numbers"),
+        )),
+    }
+}
+
 /// `running(x, stat: sum | product)` (open decision #99, question 4; release 0.8.0, step 8k,
 /// where it took the place of `running_sum` and `running_product`): the sum or the product of
 /// the values so far, in the current row order. `stat:` has no default: the call says which.

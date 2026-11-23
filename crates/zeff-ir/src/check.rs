@@ -6299,6 +6299,12 @@ impl Checker<'_> {
                             // `d.logit(y ~ x)` means a model (open decision #112): the maths
                             // function keeps its name, and the help names the model's.
                             "`logit(p)` is the log-odds of a number; a logistic regression is `data.glm(y ~ x, family: binomial)`".to_string()
+                        } else if takes.is_empty() {
+                            // A function of no argument (`n`, `row_number`) has nothing to
+                            // take a receiver: the help said "takes  first", naming nothing.
+                            format!(
+                                "`{name}` takes no argument and is written `{name}()`, with nothing before it"
+                            )
                         } else {
                             format!(
                                 "`{name}` takes {takes} first; `x.{name}(...)` is `{name}(x, ...)`"

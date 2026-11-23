@@ -1,0 +1,88 @@
+---
+source: packages/tier1/data/tests/row_number.rs
+expression: out
+---
+row_number()
+---
+error[Z0401]: `row_number()` numbers the rows of a frame and stands inside `add`, `update` or `where`
+ --> scripts/main.zeff:1:1
+  |
+1 | row_number()
+  | ^^^^^^^^^^ no frame here
+  |
+  = help: write `wages.add(id = row_number())` for a row number, or `wages.add(k = row_number(), by: worker)` to number the rows of each worker; `seq(1, 5)` is a list of numbers
+
+let k = row_number()
+---
+error[Z0401]: `row_number()` numbers the rows of a frame and stands inside `add`, `update` or `where`
+ --> scripts/main.zeff:1:9
+  |
+1 | let k = row_number()
+  |         ^^^^^^^^^^ no frame here
+  |
+  = help: write `wages.add(id = row_number())` for a row number, or `wages.add(k = row_number(), by: worker)` to number the rows of each worker; `seq(1, 5)` is a list of numbers
+
+print(row_number() + 1)
+---
+error[Z0401]: `row_number()` numbers the rows of a frame and stands inside `add`, `update` or `where`
+ --> scripts/main.zeff:1:7
+  |
+1 | print(row_number() + 1)
+  |       ^^^^^^^^^^ no frame here
+  |
+  = help: write `wages.add(id = row_number())` for a row number, or `wages.add(k = row_number(), by: worker)` to number the rows of each worker; `seq(1, 5)` is a list of numbers
+
+let d = frame(x = [1.5, 2.5])
+d.add(k = row_number(x))
+---
+error[Z0407]: `row_number` takes 0 arguments, but more were given
+ --> scripts/main.zeff:2:22
+  |
+2 | d.add(k = row_number(x))
+  |                      ^ one too many
+  |
+  = help: usage: `row_number()`
+
+let d = frame(x = [1.5, 2.5])
+d.add(k = row_number(by: x))
+---
+error[Z0404]: `row_number` has no argument called `by`
+ --> scripts/main.zeff:2:22
+  |
+2 | d.add(k = row_number(by: x))
+  |                      ^^ unknown argument
+  |
+  = help: usage: `row_number()`
+
+let d = frame(x = [1.5, 2.5])
+d.row_number()
+---
+error[Z0401]: `row_number` cannot be called on a Frame
+ --> scripts/main.zeff:2:1
+  |
+2 | d.row_number()
+  | ^ this is a Frame
+  |
+  = help: `row_number` takes no argument and is written `row_number()`, with nothing before it
+
+let d = frame(x = [1.5, 2.5])
+d.aggregate(k = row_number())
+---
+error[Z0401]: `k` of `aggregate` gives a Column<Int>, not one value per group
+ --> scripts/main.zeff:2:17
+  |
+2 | d.aggregate(k = row_number())
+  |                 ^^^^^^^^^^^^ a Column<Int>
+  |
+  = help: a definition reduces the group to one value, as `mean(wage)` or `sd(wage) / sqrt(n())` do; `add` keeps a value per row
+
+let d = frame(x = [1.5, 2.5])
+d.sort(row_number())
+---
+error[Z0401]: `vars` of `sort` must be a Vars, but this is a Column<Int>
+ --> scripts/main.zeff:2:8
+  |
+2 | d.sort(row_number())
+  |        ^^^^^^^^^^^^ a Column<Int>
+  |
+  = help: name the variables in a list, as in `[lwage, educ]`
