@@ -7435,3 +7435,13 @@ Open decision #153, option A. Step 36 is split in three in the checklist: the re
 - *The values below their class are closed as known issues*, three entries in `docs/known_issues.md`: Filip (declined with a warning, as R's default; #214 for the owner), Wampler5 (three coefficients at 5.8 to 6.2 digits, as R), and SmLs07 to SmLs09 (F at 3.1 to 3.3 digits, where the stored numbers allow 4.2 to 4.4 and R's `oneway.test` gives 3.3). No value is below its class without an entry. Every other certified value of the thirty-one problems agrees to 7.8 digits and more.
 
 **Step 36 is complete**: thirty-one problems, 62 conformance lines, one stored record of every certified value.
+
+## 24 November 2026 — release 0.9.0, step 37: a citation file
+
+- *The file.* `CITATION.cff` at the top of the repository, in the Citation File Format 1.2.0, which the repository's page reads to offer a citation: the title "Zeff: a statistics language for empirical and causal research"; an abstract in the words of the README; one author, as the copyright notice names him; the licence of the workspace; the repository; five keywords; and the version and date of the last release. No address of a website is given, the site being held until 1.0, and no identifier of an archive, which exists once the owner has linked the repository to one.
+- *Which version it names.* The last one released: 0.8.0 of 20 November 2026 today. A citation of a development version would cite something no reader can obtain. When the workspace is set to 0.9.0 at "Release 0.9.0", the test fails until the file says 0.9.0 with its date, so the release's own commit carries the citation of the release.
+- *"In the release"* is read as: in the repository at the release's tag, where the citation is offered. The engine's archives are programs and do not carry it.
+- *No YAML reader is added* for the test: the file's top-level keys are read line by line, which is all the format's required fields need. The file was read whole by R's `yaml` on this machine, outside the suite.
+- *The owner's*, none blocking: the form of his name, an affiliation and an ORCID if he wants them, the wording, and the archive's link (question 7c of the checklist), whose identifier goes into the file as `doi`.
+
+**Held by.** `crates/zeff-engine/tests/citation.rs`: the fields the format requires, the licence and repository of the workspace, no key twice and nothing left to fill in; the version rule in both states of the workspace, and the date as a date.

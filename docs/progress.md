@@ -168,7 +168,11 @@ Step 36b `[engine]`: NIST's nine univariate and eleven analysis-of-variance prob
 
 Step 36c `[engine]`: the testing handbook has the kind of test ("Certified-value tests", logged); R's figures on the thirty-one problems are in `tests/reference/r/nist.json` for the release notes, a comparison that no test reads; the three values below their class are known issues. Step 36 is complete.
 
-**Next.** Step 37 `[function]`: a citation file (#161 A). Step 3, the weekly mutation run of Monday 23 November: GitHub queued a scheduled run at 13:39 UTC on that day, which had not started when this entry was written.
+Step 37 `[function]`: `CITATION.cff` at the top of the repository (#161 A), naming the last release (0.8.0); a test makes "Release 0.9.0" bring it to 0.9.0 with its date.
+
+**Next.** Step 38a `[function]`: the help pages of `data`, part 1 (the frame verbs), to the contract of 0.8.0. Step 3, the weekly mutation run of Monday 23 November: GitHub queued a scheduled run at 13:39 UTC on that day, which had not started when this entry was written.
+
+**For the owner, from step 37.** The citation file takes your name as family name Patra, given name Sabyasachi, with no affiliation and no ORCID; say if any of these should change. The archive's link (question 7c) is still yours to make.
 
 **For the owner, from step 36a.** #214: what the article says of Filip, the one NIST regression problem the engine declines (with a warning, as R does by default). Recommended: leave the rule as it is at 1.0 and say so.
 

@@ -1,0 +1,18 @@
+cff-version: 1.2.0
+message: "If you use Zeff in your work, please cite it as below."
+type: software
+title: "Zeff: a statistics language for empirical and causal research"
+abstract: "Zeff is a statistics language for empirical and causal research. Statistics are built in: frames, formulas, model blocks and results are language types, and every model is one statement. A project re-runs to identical numbers on any machine. The language and its engine are written in Rust and compiled to WebAssembly for the browser and to native code for the command line."
+authors:
+  - family-names: "Patra"
+    given-names: "Sabyasachi"
+version: "0.8.0"
+date-released: "2026-11-20"
+license: Apache-2.0
+repository-code: "https://github.com/zoostat/zeff"
+keywords:
+  - statistics
+  - econometrics
+  - causal inference
+  - reproducible research
+  - programming language
