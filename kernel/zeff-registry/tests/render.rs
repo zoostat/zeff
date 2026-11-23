@@ -167,6 +167,10 @@ fn merge_spec() -> FunctionSpec {
 ## Summary
 Join two frames on key variables
 
+## In brief
+- `a.merge(b, on: id)`: every row of `a`, with the columns of `b` where the key matches.
+- `a.merge(b, on: firm, relation: many_to_one)`: the key structure stated, and checked before joining.
+
 ## Description
 Joins `data` (the left frame) with `frame` (the right) on the key variables in `on:`, which must exist
 in both with the same type. Every merge prints how many rows matched and how many did not on each side,
@@ -190,16 +194,36 @@ lists the columns, unless `suffixes:` gives the two suffixes that tell them apar
 A `Frame` with the left frame's columns, then the right frame's non-key columns; labels, categories and
 a panel declaration on other keys are kept.
 
+## Missing values
+A key that is `NA` matches nothing, on either side: its row is counted as unmatched.
+
+## A common mistake
+Joining on one variable when the frames share another, which cannot be one column of the result:
+
+> wages.merge(firms, on: firm)
+error[Z0604]: columns `size` exist in both frames and are not keys
+  = help: give suffixes: [\"_w\", \"_f\"], or drop one of them first
+
+Give the suffixes, or drop the column from one frame first.
+
+## Coming from R or Stata
+| a.merge(b, on: id) | dplyr::left_join(a, b, by = \"id\") | merge 1:1 id using b, keep(master match) |
+
+dplyr matches a key that is `NA` with another that is `NA`; here `NA` matches nothing. Stata's `merge`
+asks for the relation and adds `_merge`; here the note counts the matched and unmatched rows.
+
 ## See also
 append, to_long, to_wide, aggregate, rename
 
 ## Examples
+// Many rows of wages to one firm; the note counts the rows matched and unmatched.
 > let firms = import(\"zeff:firms.csv\")
 > let wages = import(\"zeff:wages.csv\").merge(firms, on: firm, relation: many_to_one)
 merge: 18,201 rows matched; 0 left rows unmatched; 3 right rows unmatched (firms with no workers)
-> wages.merge(firms, on: firm)
-error[Z0604]: columns `size` exist in both frames and are not keys
-  = help: give suffixes: [\"_w\", \"_f\"], or drop one of them first
+
+// The matched rows alone, with a column that both frames have told apart by its suffixes.
+> wages.merge(firms, on: firm, join: inner, suffixes: [\"_w\", \"_f\"]).n_rows()
+18201
 ",
         accuracy: Some(AccuracyRecord {
             reference: "the same rows and values as dplyr 1.1 joins with NA keys excluded, in the order stated above".into(),

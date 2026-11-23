@@ -100,7 +100,9 @@ Step 38a1 `[function]`: nine help pages of `data` to the contract of 0.8.0 (`fra
 
 Step 38a2 `[function]`: seven more help pages of `data` to the contract (`where`, `select`, `drop`, `rename`, `update`, `sort`, `sample`); the specification's example page of `where` brought with them, logged. A fault met and given its own step, 38e: `update` refuses `to(NA, Float)`, which its own message advises; the page shows the form that works, `wage * NA`.
 
-**Next.** Step 38b `[function]`: ten pages of `data` (`distinct`, `duplicates`, `merge`, `append`, `to_long`, `to_wide`, `aggregate`, `drop_missing`, `label`, `recode`). Step 3, the weekly mutation run of Monday 23 November: GitHub queued a scheduled run at 13:39 UTC on that day, which had not started when this entry was written.
+Step 38b `[function]`: ten more help pages of `data` to the contract (`distinct`, `duplicates`, `merge`, `append`, `to_long`, `to_wide`, `aggregate`, `drop_missing`, `label`, `recode`); the specification's example page of `merge` brought with them, logged. A second fault added to step 38e: `merge` with `suffixes:` keeps a panel declaration that names a variable the suffix renamed.
+
+**Next.** Step 38c `[function]`: nine pages of `data` (`panel`, `lag`, `lead`, `diff`, `rank`, `standardize`, `center`, `between`, `winsorize`). Step 3, the weekly mutation run of Monday 23 November: GitHub queued a scheduled run at 13:39 UTC on that day, which had not started when this entry was written.
 
 **For the owner, from step 38a2.** Step 38e will let `update` take an `NA` of its variable's type; recommended also for a bare `NA` there (`update(wage = NA, where: wage > 500)`), since the variable gives the type. Say if a bare `NA` should stay refused.
 

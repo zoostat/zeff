@@ -3,17 +3,7 @@
 # decision #103). A page listed here is held to the contract as it stood; one not listed, to the
 # contract in full. A line is struck when its page is revised, and the list is empty at 0.10.0.
 # One line per page: the package and the function's catalogue name.
-data distinct
-data duplicates
-data merge
-data append
-data to_long
-data to_wide
-data aggregate
 data panel
-data drop_missing
-data label
-data recode
 data lag
 data lead
 data diff

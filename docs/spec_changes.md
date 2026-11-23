@@ -915,6 +915,10 @@ Corrected the words of #215 for `plot`, whose second function is called on a `Re
 
 Open decision #103 (the help contract of 0.8.0), applied to `where` as step 38a2 of release 0.9.0. The page of `where` left the list of pages not yet revised, so the specification's example of it gains the parts the contract asks of such a page: MISSING VALUES after VALUE, COMING FROM R OR STATA (the catalogue's equivalents, one row of the table and a sentence) after WARNINGS AND NOTES, and a caption on each of its two examples. The other words of the example are unchanged. `kernel/zeff-registry/tests/render.rs` holds the engine's rendering to it word for word, as before. The example of `merge` follows at step 38b.
 
+## 24 November 2026 — zeff_help_examples.md, the example page `zeff help merge`
+
+Open decision #103 (the help contract of 0.8.0), applied to `merge` as step 38b of release 0.9.0, as the example of `where` was at step 38a2. The example gains IN BRIEF before USAGE, MISSING VALUES after VALUE, and A COMMON MISTAKE and COMING FROM R OR STATA after WARNINGS AND NOTES; the call refused with Z0604, which stood among the examples, is the common mistake; the two examples have captions, and the second writes `join:` and `suffixes:`, as the contract asks of every optional argument. `kernel/zeff-registry/tests/render.rs` holds the engine's rendering to it word for word, as before.
+
 ## 24 November 2026 — zeff_open_decisions.md, new entry #216
 
 Two things the help prints that mislead, found by the Zemp Lite session at the close of Zemp Lite 0.2.3: no command lists the packages `text`, `plot` and `datasets`, whose names are also functions', and a page's prose writes R's and Stata's functions in the same form as Zeff's. Recorded as an open decision with deadline 0.10.0, as the freeze requires; no normative text changed.

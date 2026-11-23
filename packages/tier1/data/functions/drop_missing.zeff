@@ -7,8 +7,7 @@
 /// its condition is `NA` with the same kind of note, and `drop_missing` is that filter written for
 /// missingness itself. The variables are a list or a range by position; the whole frame is
 /// `drop_missing([first..last])` with its first and last variable. Metadata and the frame's
-/// declaration travel with the rows. Like R's `na.omit` on the subset of variables, and
-/// `complete.cases`; Stata has no single command.
+/// declaration travel with the rows.
 ///
 /// Dropping rows is a modelling decision as much as filling them (see `fill_missing`): the
 /// reducers and the regressions skip `NA` on their own and say how many rows they skipped, so
@@ -17,22 +16,26 @@
 /// data: The frame.
 /// vars: The variables that must be present, a list of names or a range.
 /// returns: A frame with the rows kept, in their order.
+/// missing values: A row with `NA` in any of the variables named is dropped; `NA` in a variable that is not named does not matter. The note counts the rows dropped, or says that none had `NA`.
+/// coming from: d.drop_missing([x, y]) | d[complete.cases(d[, c("x", "y")]), ], or tidyr::drop_na(d, x, y) | drop if missing(x, y)
+/// coming from: R's `na.omit(d)` looks at every variable; here the variables are named, and a range names them all. Stata's `missing(x, y)` is true when either is missing, so `drop if missing(x, y)` is the same filter, and Stata prints how many observations it deleted, as the note does here.
+/// related: To keep rows by any condition, use `where`.
+/// related: To count the missing values of a variable, use `n_missing`.
+/// related: To fill missing values and keep the rows, use `fill_missing`.
 /// see also: where, n_missing, fill_missing, is_missing, select
-/// > let d = frame(id = [1, 2, 3], x = [1, NA, 3], y = [NA, 2, 3])
-/// > d.drop_missing([x, y])
-/// frame · 1 row × 3 variables
-///
-///       id   x   y
-///   1    3   3   3
-/// note: 2 rows with NA in x or y dropped (line 2)
-/// > d.drop_missing([id])
-/// frame · 3 rows × 3 variables
-///
-///       id    x    y
-///   1    1    1   NA
-///   2    2   NA    2
-///   3    3    3    3
-/// note: no row had NA in id (line 3)
+/// example: The rows of the shipped wages with a wage, an education and an experience; the note counts the rows dropped.
+/// > let wages = dataset(wages)
+/// > wages.drop_missing([wage, educ, exper]).n_rows()
+/// 18179
+/// note: 233 rows with NA in wage, educ or exper dropped (line 2)
+/// example: A variable with no missing value drops nothing, and the note says so.
+/// > wages.drop_missing([worker]).n_rows()
+/// 18412
+/// note: no row had NA in worker (line 3)
+/// example: A range names every variable from one to another, by position.
+/// > wages.drop_missing([wage..hours]).n_rows()
+/// 18145
+/// note: 267 rows with NA in wage, educ, exper, age or hours dropped (line 4)
 fn drop_missing(data: Frame, vars: Vars) -> Frame {
     // The variables arrive as plain names, a range already expanded against the frame, each once.
     let names = [for v in vars { name_of(v) }]

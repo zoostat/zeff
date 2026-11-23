@@ -3,6 +3,11 @@
 ## Summary
 Set a variable's label, or the labels its codes stand for
 
+## In brief
+- `d.label(wage, "Hourly wage")`: the variable's label, the description it carries beside its name.
+- `d.label(sex, [0 => "male", 1 => "female"])`: value labels, the text that the codes of an Int variable stand for.
+- `d.label(wage, "")`: the label removed.
+
 ## Description
 With text, sets the variable label: the description a variable carries beside its name, which
 readers of Stata, SPSS and SAS files fill, Arrow files keep and Zemp's variable view shows; an
@@ -23,35 +28,67 @@ category's levels.
 ## Value
 A `Frame` with the same rows and variables, the variable's metadata changed.
 
+## Missing values
+A label is said of a variable or of a code, never of `NA`: a missing value stays `NA` and prints as `NA`.
+
+## A common mistake
+Giving value labels to a category. A category's levels are its labels already; value labels are for the codes of an Int variable:
+
+> dataset(firms).label(industry, [1 => "Farming"])
+error[Z0401]: value labels name the codes of an Int variable, but `industry` is a Category variable
+  = help: a category's levels are its labels; `recode(industry, ["old" => "new"])` renames them
+
+Rename the level: `dataset(firms).recode(industry, ["Agriculture" => "Farming"])`.
+
+## Coming from R or Stata
+| d.label(wage, "Hourly wage") | attr(d$wage, "label") <- "Hourly wage" | label variable wage "Hourly wage" |
+| d.label(sex, [0 => "male", 1 => "female"]) | d$sex <- factor(d$sex, levels = c(0, 1), labels = c("male", "female")) | label define sexl 0 "male" 1 "female", then label values sex sexl |
+
+In R a labelled code is usually made a factor, which no longer holds the numbers; here, as in
+Stata, the variable keeps its codes and shows the labels. Stata names a set of labels and
+attaches it to the variable in a second step; here the mapping is given with the variable.
+
+## Related tasks
+- To make a category of a variable, use `category`.
+- To rename the levels of a category, or to move codes, use `recode`.
+- To change the name of a variable, use `rename`.
+- To see which variables carry value labels, use `describe`.
+
 ## See also
 category, recode, describe, rename
 
 ## Examples
-> let staff = import("data/staff.csv")
-note: data/staff.csv read as CSV: 4 rows × 3 variables, types guessed; CSV carries no labels, value labels or categories (line 1)
-> let s = staff.label(grade, [1 => "junior", 2 => "mid", 3 => "senior"])
-> s
-s · 4 rows × 3 variables
+// Value labels on a code read from a file: the variable keeps its numbers and shows the labels.
+> let staff = import("zeff:staff.csv").select([employee, region, offer, training])
+> let s = staff.label(offer, [0 => "no", 1 => "yes"])
+> s.head(3)
+note: zeff:staff.csv read as CSV: 2,400 rows × 9 variables, types guessed; CSV carries no labels, value labels or categories (line 1)
+frame · 3 rows × 4 variables
 
-      name   dept    grade
-  1   Ann    Sales   mid
-  2   Bob    IT      junior
-  3   Cy     Sales   senior
-  4   Dee    HR      mid
+      employee   region   offer   training
+  1          1   South    yes            1
+  2          2   South    no             0
+  3          3   North    no             1
+
+// `describe` marks the variable `Int (lab)`.
 > s.describe()
-s · 4 rows × 3 variables
+s · 2,400 rows × 4 variables
 
   variable   type        non-missing   missing   example
-  name       Str                   4         0   Ann
-  dept       Str                   4         0   Sales
-  grade      Int (lab)             4         0   mid
-> levels(category(s["grade"]))
-junior
-mid
-senior
-> staff.label(dept, "Department").head(2)
-frame · 2 rows × 3 variables
+  employee   Int               2,400         0   1
+  region     Str               2,400         0   South
+  offer      Int (lab)         2,400         0   yes
+  training   Int               2,400         0   1
 
-      name   dept    grade
-  1   Ann    Sales       2
-  2   Bob    IT          1
+// A category made of the labelled variable has the labels as its levels.
+> levels(category(s["offer"]))
+no
+yes
+
+// A variable label: the values print as before.
+> staff.label(training, "Took the course").head(2)
+frame · 2 rows × 4 variables
+
+      employee   region   offer   training
+  1          1   South        1          1
+  2          2   South        0          0

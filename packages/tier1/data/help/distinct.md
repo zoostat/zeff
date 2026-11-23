@@ -8,8 +8,7 @@ The rows whose values of the named variables are distinct: of the rows that shar
 of the frame, and the rest are dropped, with a note of how many. Values are compared by
 identity (section 3.7 of the Language Reference), so `NA` matches `NA` and rows with `NA` keys
 keep one of their number. Sort first when the row to keep matters: `data.sort(year).distinct(firm)`
-keeps each firm's earliest year. Like dplyr's `distinct(.keep_all = TRUE)` and Stata's
-`duplicates drop`.
+keeps each firm's earliest year.
 
 ## Arguments
 - data: The frame.
@@ -18,29 +17,66 @@ keeps each firm's earliest year. Like dplyr's `distinct(.keep_all = TRUE)` and S
 ## Value
 A frame of the kept rows, in their original order, with every column and the panel declaration.
 
+## Missing values
+`NA` is a value like any other here: the rows with `NA` in a variable named count as repeats of one another, and one of them is kept.
+
 ## Details
 Exact: the rows are grouped by the kernel's identity on the key values and the first row of each
 group is kept; nothing is computed.
+
+## A common mistake
+Calling it with no variable, as dplyr's `distinct()` does for rows alike in everything. The variables whose values must differ are named:
+
+> dataset(firms).distinct()
+error[Z0406]: `distinct` needs `vars`
+  = help: usage: `data.distinct(vars)`
+
+Name them: `dataset(firms).distinct(industry)`; for rows alike in every variable, name them all with a range, `distinct(firm..founded)`.
+
+## Coming from R or Stata
+| d.distinct(firm) | d[!duplicated(d$firm), ], or dplyr::distinct(d, firm, .keep_all = TRUE) | duplicates drop firm, force |
+| d.distinct([firm, year]) | dplyr::distinct(d, firm, year, .keep_all = TRUE) | duplicates drop firm year, force |
+
+dplyr's `distinct(d, firm)` keeps the variable named and drops the others unless
+`.keep_all = TRUE`; here every column is kept. Stata's `duplicates drop` with variables asks for
+`force`, since rows alike on them may differ elsewhere; here the note counts the rows that went.
+
+## Related tasks
+- To see which values repeat before dropping any, use `duplicates`.
+- For the number of different values, use `n_distinct`.
+- For the different values of one variable as a list, use `unique`.
+- To choose which of the repeats is kept, sort first with `sort`.
 
 ## See also
 duplicates, unique, n_distinct, sort, drop_missing
 
 ## Examples
-> let sales = frame(firm = [2, 1, 2, 1, 3], year = [2021, 2020, 2020, 2020, 2021], revenue = [12.5, 8, 11, 9, 7])
-> sales.distinct(firm)
-frame · 3 rows × 3 variables
+// One row for each worker of the shipped wages: the first of each is kept, with every column.
+> let wages = dataset(wages)
+> wages.distinct(worker).n_rows()
+3911
+note: 14,501 rows dropped as repeats of worker; 3,911 rows distinct (line 2)
 
-      firm   year   revenue
-  1      2   2021      12.5
-  2      1   2020         8
-  3      3   2021         7
-note: 2 rows dropped as repeats of firm; 3 rows distinct (line 2)
-> sales.distinct([firm, year])
-frame · 4 rows × 3 variables
+// Distinct pairs of two variables.
+> wages.distinct([firm, year]).n_rows()
+4072
+note: 14,340 rows dropped as repeats of firm, year; 4,072 rows distinct (line 3)
 
-      firm   year   revenue
-  1      2   2021      12.5
-  2      1   2020         8
-  3      2   2020        11
-  4      3   2021         7
-note: 1 row dropped as a repeat of firm, year; 4 rows distinct (line 3)
+// Sort first when the row to keep matters: each worker's latest year.
+> wages.sort(year, desc: true).distinct(worker).select([worker, year, wage]).head(3)
+frame · 3 rows × 3 variables · panel worker × year
+
+      worker   year    wage
+  1        1   2021   26.65
+  2       15   2021   28.21
+  3       23   2021   37.79
+note: 14,501 rows dropped as repeats of worker; 3,911 rows distinct (line 4)
+
+// Rows with `NA` in the variable are repeats of one another.
+> frame(id = [1, 2, 3, 4], region = ["North", NA, "North", NA]).distinct(region)
+frame · 2 rows × 2 variables
+
+      id   region
+  1    1   North
+  2    2   NA
+note: 2 rows dropped as repeats of region; 2 rows distinct (line 5)
