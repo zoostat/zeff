@@ -15,7 +15,10 @@ delimiter), grouped digits (`thousands: "."`), and a file that is not UTF-8 (`en
 
 The type of each column is guessed from its first 1,000 rows: Bool, Int, Float, Date (ISO 8601),
 DateTime or Str. A later value that does not fit stops the run naming the row, the column and the
-value (Z0606); nothing is ever coerced to `NA` silently. Empty cells, `NA` and `.` are missing, and
+value (Z0606); nothing is ever coerced to `NA` silently. One later value is taken in: a decimal
+in a column guessed as whole numbers. The column is then read as Float, which keeps every whole
+number as it was, and a note names the first row that holds a decimal; `types: {col: Int}` keeps
+the column to whole numbers, and there the decimal stops the run. Empty cells, `NA` and `.` are missing, and
 `na_values:` adds codes; `Inf` and `-Inf` are infinity; `NaN` becomes `NA` with a note. Dates are read
 only in the ISO form, or with the format `types:` gives; a column that looks like dates in another
 form is read as text, with a note that proposes the `types:` entry. Variable names are kept as the

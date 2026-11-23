@@ -20,13 +20,15 @@ DESCRIPTION
 
     The type of each column is guessed from its first 1,000 rows: Bool, Int, Float, Date (ISO 8601),
     DateTime or Str. A later value that does not fit stops the run naming the row, the column and the value
-    (Z0606); nothing is ever coerced to `NA` silently. Empty cells, `NA` and `.` are missing, and
-    `na_values:` adds codes; `Inf` and `-Inf` are infinity; `NaN` becomes `NA` with a note. Dates are read
-    only in the ISO form, or with the format `types:` gives; a column that looks like dates in another form
-    is read as text, with a note that proposes the `types:` entry. Variable names are kept as the file has
-    them unless `names: snake` turns them into valid snake_case names. Every import prints one note saying
-    what was read and what the format carries; further notes report what the reader changed or could not
-    keep.
+    (Z0606); nothing is ever coerced to `NA` silently. One later value is taken in: a decimal in a column
+    guessed as whole numbers. The column is then read as Float, which keeps every whole number as it was,
+    and a note names the first row that holds a decimal; `types: {col: Int}` keeps the column to whole
+    numbers, and there the decimal stops the run. Empty cells, `NA` and `.` are missing, and `na_values:`
+    adds codes; `Inf` and `-Inf` are infinity; `NaN` becomes `NA` with a note. Dates are read only in the
+    ISO form, or with the format `types:` gives; a column that looks like dates in another form is read as
+    text, with a note that proposes the `types:` entry. Variable names are kept as the file has them unless
+    `names: snake` turns them into valid snake_case names. Every import prints one note saying what was read
+    and what the format carries; further notes report what the reader changed or could not keep.
 
 ARGUMENTS
     path        Str. The file, written with `/` from the project folder, or `root:file` for a data root. A
@@ -69,7 +71,11 @@ WARNINGS AND NOTES
     Z0101   types: names a column the file does not have
     Z0401   delim:, skip:, na_values: or types: holds a value of the wrong kind
     Z0605   an empty, repeated or case-clashing column name, or a file without a header line
-    Z0606   a value after the first 1,000 rows, or in a declared column, does not fit the column's type
+    Note    a column guessed as whole numbers from its first 1,000 rows read as Float because a later row
+            holds a decimal
+    Z0606   a value after the first 1,000 rows, or in a declared column, does not fit the column's type:
+            text in a numeric column, a value that is not a date in a Date column, a decimal in a column
+            declared Int
     Z0607   a row with the wrong number of fields, or a quote never closed
     Z0608   a row that is not UTF-8
     Z0701   a path outside the project and its data roots

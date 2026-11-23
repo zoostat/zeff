@@ -639,13 +639,133 @@ fn the_specification_example_of_z0606_is_reproduced() {
     assert_eq!(d.render(&sources), expected);
 }
 
+/// A column guessed as whole numbers from its first 1,000 rows, with a decimal further down
+/// (open decision #169; release 0.9.0, step 32b): it is read as Floats, whole, and a note
+/// names the first row that holds a decimal. The whole numbers before and after it are the
+/// same numbers; a missing value stays missing; an exponent, an infinity and `NaN` widen as
+/// a decimal does; text still stops the import, and so does a decimal in a column declared
+/// `Int`; a decimal among the first 1,000 rows was always a Float column and says nothing.
+#[test]
+fn a_guessed_int_is_widened_by_a_later_decimal() {
+    let mut text = String::from("id,n,k\n");
+    for i in 1..=1000 {
+        text.push_str(&format!("{i},{i},{}\n", i % 7));
+    }
+    let got = read(&format!(
+        "{text}1001,3.5,1\n1002,,2\n1003,7,3\n1004,-2.25,4\n"
+    ));
+    // The schema of the file as read says what the column is; the schema read from the first
+    // rows alone, which the check uses before a run, still says whole numbers.
+    assert_eq!(
+        got.schema.types,
+        vec![ColumnType::Int, ColumnType::Float, ColumnType::Int]
+    );
+    let n = got.table.column("n").unwrap();
+    assert_eq!(n.ty(), ColumnType::Float);
+    assert_eq!(n.len(), 1004);
+    let values: Vec<Option<f64>> = n.as_floats().unwrap().collect();
+    // The whole numbers of the first thousand rows, exactly, then the rows after them.
+    for (at, value) in values[..1000].iter().enumerate() {
+        assert_eq!(*value, Some((at + 1) as f64));
+    }
+    assert_eq!(values[1000..], [Some(3.5), None, Some(7.0), Some(-2.25)]);
+    // The other columns are untouched: whole numbers still.
+    assert_eq!(got.table.column("id").unwrap().ty(), ColumnType::Int);
+    assert_eq!(got.table.column("k").unwrap().ty(), ColumnType::Int);
+    let notes: Vec<&str> = got.messages.iter().map(|m| m.message.as_str()).collect();
+    assert_eq!(
+        notes,
+        ["n read as Float: its first 1,000 rows hold whole numbers, and row 1,002 holds 3.5"]
+    );
+
+    // An exponent and an infinity are Floats too; `NaN` is read as missing, with its note.
+    for (value, expected) in [
+        ("1e3", Some(1000.0)),
+        ("Inf", Some(f64::INFINITY)),
+        ("-Inf", Some(f64::NEG_INFINITY)),
+    ] {
+        let got = read(&format!("{text}1001,{value},1\n"));
+        let n = got.table.column("n").unwrap();
+        assert_eq!(n.ty(), ColumnType::Float, "{value}");
+        assert_eq!(n.as_floats().unwrap().last().unwrap(), expected, "{value}");
+        assert!(
+            got.messages[0]
+                .message
+                .ends_with(&format!("row 1,002 holds {value}")),
+            "{}",
+            got.messages[0].message
+        );
+    }
+    let got = read(&format!("{text}1001,NaN,1\n"));
+    let n = got.table.column("n").unwrap();
+    assert_eq!(n.ty(), ColumnType::Float);
+    assert_eq!(n.as_floats().unwrap().last().unwrap(), None);
+    assert_eq!(got.messages.len(), 2, "{:?}", got.messages);
+
+    // Text after the widening still stops the import, as text in a numeric column.
+    let e = error(&format!("{text}1001,3.5,1\n1002,varies,2\n"));
+    assert_eq!(
+        e,
+        CsvError::DoesNotFit {
+            row: 1003,
+            column: "n".into(),
+            value: "varies".into(),
+            ty: ColumnType::Int,
+            declared: false
+        }
+    );
+    assert!(render(&e, "d.csv").contains("has text in a numeric column"));
+    // Text alone, with no decimal before it, is the error it was.
+    let e = error(&format!("{text}1001,varies,1\n"));
+    assert!(matches!(
+        e,
+        CsvError::DoesNotFit {
+            row: 1002,
+            ty: ColumnType::Int,
+            declared: false,
+            ..
+        }
+    ));
+
+    // A decimal among the first 1,000 rows: a Float column from the guess, and no note.
+    let early = read(&format!("id,n\n1,1\n2,2.5\n{}", "3,3\n".repeat(1200)));
+    assert_eq!(early.schema.types, vec![ColumnType::Int, ColumnType::Float]);
+    assert!(early.messages.is_empty(), "{:?}", early.messages);
+
+    // A decimal comma, where the file says so, widens as a decimal point does.
+    let mut semis = String::from("id;n\n");
+    for i in 1..=1000 {
+        semis.push_str(&format!("{i};{i}\n"));
+    }
+    semis.push_str("1001;3,5\n");
+    let options = CsvOptions {
+        numbers: zeff_data::csv::NumberFormat {
+            decimal: b',',
+            ..Default::default()
+        },
+        ..CsvOptions::default()
+    };
+    let got = read_with(&semis, options);
+    let n = got.table.column("n").unwrap();
+    assert_eq!(n.ty(), ColumnType::Float);
+    assert_eq!(n.as_floats().unwrap().last().unwrap(), Some(3.5));
+}
+
 #[test]
 fn the_other_shapes_of_z0606() {
     let mut text = String::from("id,n\n");
     for i in 1..=1000 {
         text.push_str(&format!("{i},{i}\n"));
     }
-    let e = error(&format!("{text}1001,3.5\n"));
+    // A decimal after the first 1,000 rows of a column guessed as whole numbers no longer
+    // stops the import (open decision #169; release 0.9.0, step 32b: the column is read as
+    // Floats, with a note, which `a_guessed_int_is_widened_by_a_later_decimal` holds). A
+    // column declared `Int` is kept to, and the decimal is the error it was.
+    let declared = CsvOptions {
+        types: vec![("n".into(), TypeSpec::Int)],
+        ..CsvOptions::default()
+    };
+    let e = read_csv(format!("{text}1001,3.5\n").as_bytes(), &declared).unwrap_err();
     assert_eq!(
         e,
         CsvError::DoesNotFit {
@@ -653,7 +773,7 @@ fn the_other_shapes_of_z0606() {
             column: "n".into(),
             value: "3.5".into(),
             ty: ColumnType::Int,
-            declared: false
+            declared: true
         }
     );
     let shown = render(&e, "d.csv");

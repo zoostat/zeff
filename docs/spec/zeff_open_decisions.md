@@ -3465,6 +3465,9 @@ Raised on 19 November 2026 by the review against R. `import` guesses each type f
 
 **The owner's decision (21 November 2026, at the opening of release 0.9.0).** The owner said "go" to the checklist of `docs/releases/0.9.0.md` without changing its answers, so its recommendation is taken under his standing instruction of 12 November 2026, his to overturn. Option A: a later value with a decimal widens a guessed Int column to Float with a note naming the row; section 6.1's rule is amended at step 32 and logged.
 
+**Status (23 November 2026).** Built at step 32b of Zeff 0.9.0, as decided: a later decimal widens a guessed Int column to Float with a note naming the row; text in a numeric column, a value that is not a date in a Date column, and a decimal in a column declared `Int` stop the import. Sections 4.1, 5.6 and 6.1 of the Language Reference are amended and logged. Deadline for the owner to overturn: 1.0.
+
+
 ### 170. Six smaller refusals with workarounds
 
 Raised on 19 November 2026 by the review against R. Each has a workaround; together they are friction a user meets on a first real script.

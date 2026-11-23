@@ -574,3 +574,114 @@ fn the_option_values_are_checked() {
     assert_eq!(all.matches("error[Z0401]").count(), 6, "{all}");
     insta::assert_snapshot!("option_values_checked", all);
 }
+
+// ----- a guessed Int widened by a later decimal (open decision #169; release 0.9.0, step 32b) -----
+
+/// A file made like the review's (the bank-marketing file, whose `nr.employed` holds whole
+/// numbers for 7,763 rows and then 5228.1): 8,000 rows, four variables, the first decimal of
+/// `nr.employed` on line 7,765.
+fn bank_like() -> String {
+    let mut text = String::from("age,job,nr.employed,calls\n");
+    for i in 1..=8000 {
+        let employed = if i < 7764 {
+            "5191"
+        } else if i % 2 == 0 {
+            "5228.1"
+        } else {
+            "5228"
+        };
+        let job = if i % 3 == 0 { "technician" } else { "admin" };
+        text.push_str(&format!("{},{job},{employed},{}\n", 20 + i % 40, i % 7));
+    }
+    text
+}
+
+#[test]
+fn the_file_of_the_review_imports_whole() {
+    let text = bank_like();
+    assert_eq!(text.lines().nth(7764), Some("24,technician,5228.1,1"));
+    let files: [(&str, &[u8]); 1] = [("data/bank.csv", text.as_bytes())];
+    let (code, stdout, stderr) = go_with(
+        &files,
+        "let b = import(\"data/bank.csv\")\nprint(b.n_rows(), b.n_cols())\nprint(type_of(b[\"nr.employed\"]), type_of(b[\"age\"]), type_of(b[\"calls\"]))\nprint(b.min(`nr.employed`), b.max(`nr.employed`))\nprint(b.where(`nr.employed` > 5228).n_rows())\nprint(b[\"nr.employed\"][7763], b[\"nr.employed\"][7764], last(b[\"nr.employed\"]))\nprint(b.add(half = `nr.employed` / 2)[\"half\"][7764])\n",
+    );
+    assert_eq!(code, 0, "{stderr}");
+    // The file is read whole, and the one thing said beside the format is the widening,
+    // with the row a text editor shows.
+    assert_eq!(
+        stderr,
+        format!(
+            "{}note: `nr.employed` read as Float: its first 1,000 rows hold whole numbers, and row 7,765 holds 5228.1 (line 1)\n",
+            format_note("data/bank.csv", 8000, 4, 1)
+        )
+    );
+    // 7,763 rows of 5191, then 5228.1 on every second row of the 237 that follow.
+    assert_eq!(
+        stdout,
+        "8000 4\nColumn<Float> Column<Int> Column<Int>\n5191 5228.1\n119\n5191 5228.1 5228.1\n2614.05\n"
+    );
+    // A column declared `Int` is kept to: the decimal stops the import, as before.
+    let (code, _, stderr) = go_with(
+        &files,
+        "let b = import(\"data/bank.csv\", types: {`nr.employed`: Int})\n",
+    );
+    assert_eq!(code, 1);
+    insta::assert_snapshot!("a_declared_int_with_a_decimal", stderr);
+    // Declared `Float`, nothing is guessed and nothing is said of it.
+    let (code, stdout, stderr) = go_with(
+        &files,
+        "let b = import(\"data/bank.csv\", types: {`nr.employed`: Float})\nprint(b.max(`nr.employed`))\n",
+    );
+    assert_eq!(code, 0, "{stderr}");
+    assert_eq!(stdout, "5228.1\n");
+    assert!(!stderr.contains("read as Float"), "{stderr}");
+    // Text after the first rows still stops the import, widened or not.
+    let broken = text.replacen("\n25,admin,5228,2\n", "\n25,admin,varies,2\n", 1);
+    assert_ne!(broken, text);
+    let files: [(&str, &[u8]); 1] = [("data/bank.csv", broken.as_bytes())];
+    let (code, _, stderr) = go_with(&files, "let b = import(\"data/bank.csv\")\n");
+    assert_eq!(code, 1);
+    insta::assert_snapshot!("text_after_the_widening", stderr);
+}
+
+proptest! {
+    #![proptest_config(ProptestConfig::with_cases(24))]
+
+    /// Wherever the first decimal stands after the first 1,000 rows, the column read whole is
+    /// the column the same file gives with the type declared: the same values in every row,
+    /// and the note names the row of that first decimal.
+    #[test]
+    fn a_widened_column_is_the_column_declared_float(
+        after in 1usize..400,
+        later in prop::collection::vec((0u32..5000, prop::bool::ANY), 0..40),
+    ) {
+        let mut text = String::from("id,n\n");
+        let mut row = 0usize;
+        let mut push = |text: &mut String, value: String| {
+            row += 1;
+            text.push_str(&format!("{row},{value}\n"));
+        };
+        for i in 0..1000 + after - 1 {
+            push(&mut text, (i % 97).to_string());
+        }
+        push(&mut text, "12.75".to_string());
+        for (k, decimal) in &later {
+            push(&mut text, if *decimal { format!("{k}.5") } else { k.to_string() });
+        }
+        let files: [(&str, &[u8]); 1] = [("data/late.csv", text.as_bytes())];
+        let script = |types: &str| format!(
+            "let d = import(\"data/late.csv\"{types})\nprint(type_of(d[\"n\"]), d.n_rows())\nprint(d.sum(n), d.max(n), d.min(n), last(d[\"n\"]))\n"
+        );
+        let (code, guessed, stderr) = go_with(&files, &script(""));
+        prop_assert_eq!(code, 0, "{}", stderr);
+        let expected_note = format!(
+            "note: n read as Float: its first 1,000 rows hold whole numbers, and row {} holds 12.75 (line 1)",
+            count((1000 + after + 1) as u64)
+        );
+        prop_assert!(stderr.lines().any(|line| line == expected_note), "{}", stderr);
+        let (code, declared, stderr) = go_with(&files, &script(", types: {n: Float}"));
+        prop_assert_eq!(code, 0, "{}", stderr);
+        prop_assert!(!stderr.contains("read as Float"), "{}", stderr);
+        prop_assert_eq!(guessed, declared);
+    }
+}

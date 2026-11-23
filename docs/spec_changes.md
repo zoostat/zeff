@@ -862,3 +862,7 @@ Open decision #166 (decided 21 November 2026, option A), applied as step 31c of 
 
 Open decision #168 (decided 21 November 2026, option A), applied as step 32a of release 0.9.0. The rows "Indexing" say that `x[i]` of a column is the value of its row `i`, `NA` where that is missing, with Z0207 outside its rows, that `first(x)` and `last(x)` give the value of a column's first and last row, and that a column takes no range; the row "Conversion" says that `to(x, List)` of a column is the list of its values; the row of Z0207 in section 5.6 names the column beside the list. The catalogue's rows of `first`, `last` and `to` say the same. No row is new and no count changes.
 
+## 23 November 2026 — zeff_language_reference.md, sections 4.1 (the row "Import"), 5.6 (the row of Z0606) and 6.1 (the row "Delimited text")
+
+Open decision #169 (decided 21 November 2026, option A), applied as step 32b of release 0.9.0. The rule was that any value after the first 1,000 rows that does not fit the guessed type stops the import. It now has one exception, written in the three rows: a decimal in a column guessed as Int widens the column to Float, with a note naming the row. Text in a numeric column, a value that is not a date in a Date column, and a decimal in a column declared `Int` stop the import as before.
+

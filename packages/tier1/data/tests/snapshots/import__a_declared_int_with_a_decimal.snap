@@ -1,0 +1,11 @@
+---
+source: packages/tier1/data/tests/import.rs
+expression: stderr
+---
+error[Z0606]: row 7,765 of `data/bank.csv` has a decimal in a whole-number column
+ --> scripts/main.zeff:1:9
+  |
+1 | let b = import("data/bank.csv", types: {`nr.employed`: Int})
+  |         ^^^^^^ column `nr.employed` declared as Int by `types:`; row 7,765 holds "5228.1"
+  |
+  = help: declare it with `types: {`nr.employed`: Float}`, or fix the file

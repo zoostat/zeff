@@ -533,7 +533,7 @@ Zeff has one missing value, `NA`. Invalid results such as `0/0` become `NA` with
 | Merge keys | `NA` never matches; such rows are reported as unmatched | dplyr matches NA keys |
 | Sorting | `NA` last; `Inf` and `-Inf` sort as numbers | |
 | Testing | `is_missing(x)`, `is_finite(x)`, `n_missing(x)`, `fill_missing(x, 0)`, `coalesce(a, b)` | `x == NA` is always `NA`, so it is flagged as a mistake |
-| Import | `types: {col: Str}` overrides a guessed column type; empty cells, `NA` and `.` are missing; `Inf` and `-Inf` are infinity; `NaN` becomes `NA` with a note; `na_values: [-99, -98]` adds codes. Dates are read only when the form is unambiguous (ISO 8601, `2026-10-16`) or when `types:` names the format, `types: {sold: Date("%d/%m/%Y")}`; a column that looks like dates in any other form (`04/05/2026`) is read as text, with a note that names the column, shows three values and proposes the `types:` entry. A format is never guessed. A UTF-8 byte-order mark at the start of a file is removed with a note; `thousands: ","` reads grouped digits such as `1,234,567`; the CSV dialect, other encodings and Bool spellings are in section 3.8 |
+| Import | `types: {col: Str}` overrides a guessed column type; a column guessed as Int from its first 1,000 rows is read as Float when a later row holds a decimal, with a note naming the row, and every other later value that does not fit its column stops the import (Z0606); empty cells, `NA` and `.` are missing; `Inf` and `-Inf` are infinity; `NaN` becomes `NA` with a note; `na_values: [-99, -98]` adds codes. Dates are read only when the form is unambiguous (ISO 8601, `2026-10-16`) or when `types:` names the format, `types: {sold: Date("%d/%m/%Y")}`; a column that looks like dates in any other form (`04/05/2026`) is read as text, with a note that names the column, shows three values and proposes the `types:` entry. A format is never guessed. A UTF-8 byte-order mark at the start of a file is removed with a note; `thousands: ","` reads grouped digits such as `1,234,567`; the CSV dialect, other encodings and Bool spellings are in section 3.8 |
 | Export | Empty cell in CSV, `.` in Stata files; the full CSV writing rules are in section 3.8 | |
 
 `Inf` stays a value because it has honest uses, such as open ends in `bin(x, breaks: [-Inf, 0, 10, Inf])`. After 1.0, `na_values: [-99 => "refused", -98 => "dont_know"]` will keep the reason while the value still counts as `NA`.
@@ -758,7 +758,7 @@ Every problem that can arise while a correct-looking script runs is one of the f
 | A step whose estimated memory exceeds the budget | Error before the step starts, with the estimate (section 8.3 of the Engine and Project Specification) | Z0704 |
 | A step cancelled from the interface | Error; nothing after it runs, and results so far stay in the session | Z0705 |
 | A file missing, unreadable, outside the project or changed since the schema pass | Error naming the path (section 2 of the Engine and Project Specification) | Z0701, Z0702 |
-| A CSV value that does not fit the type guessed from the first 1,000 rows | Error naming the row (section 11) | Z0606 |
+| A CSV value that does not fit the type guessed from the first 1,000 rows: text in a numeric column, a value that is not a date in a Date column, a decimal in a column declared Int. A decimal in a column guessed as Int is not one: the column is read as Float, with a note naming the row | Error naming the row (section 11) | Z0606 |
 | A model that cannot be estimated: no variation, perfect separation, a singular design after collinearity handling, non-convergence | Error with the diagnosis (section 11) | Z08xx |
 | `today()` or `now()` used | Note with the recorded value (section 3.8) | W0703 |
 
@@ -836,7 +836,7 @@ One function, `import(path, ...)`, picks the reader from the extension, or from 
 
 | Format | Extensions | Options beyond the shared ones | What is kept | Release |
 | --- | --- | --- | --- | --- |
-| Delimited text | `.csv`, `.tsv`, `.txt`, `.dat` | `delim:` (`;` and tab detected), `header:`, `skip:`, `quote:`, `decimal: ","` for files with a decimal comma | Types guessed from 1,000 rows and overridable (section 3.8) | 0.1.0, options complete in 0.2.0 |
+| Delimited text | `.csv`, `.tsv`, `.txt`, `.dat` | `delim:` (`;` and tab detected), `header:`, `skip:`, `quote:`, `decimal: ","` for files with a decimal comma | Types guessed from 1,000 rows and overridable (section 3.8); a guessed Int widened to Float by a later decimal, with a note | 0.1.0, options complete in 0.2.0 |
 | Fixed width | `.txt`, `.fwf` | `widths:` or `positions:`, with `names:` | As text | 0.11.0 |
 | Excel | `.xlsx`, `.xlsm`, `.xls` | `sheet:` (name or number), `range: "A2:F500"`, `header:` | Cell types; dates as dates, with both Excel epochs; formulas and merged cells read as their values, with a note | 0.11.0 |
 | OpenDocument | `.ods` | As Excel | As Excel | 0.11.0 |

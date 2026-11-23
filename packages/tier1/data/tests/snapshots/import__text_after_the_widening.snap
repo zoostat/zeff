@@ -1,0 +1,11 @@
+---
+source: packages/tier1/data/tests/import.rs
+expression: stderr
+---
+error[Z0606]: row 7,766 of `data/bank.csv` has text in a numeric column
+ --> scripts/main.zeff:1:9
+  |
+1 | let b = import("data/bank.csv")
+  |         ^^^^^^ column `nr.employed` read as Int from the first 1,000 rows; row 7,766 holds "varies"
+  |
+  = help: declare it with `types: {`nr.employed`: Str}`, add "varies" to `na_values:`, or fix the file

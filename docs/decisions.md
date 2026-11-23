@@ -7345,3 +7345,15 @@ Step 32 names two things that share nothing; it is split in two in the checklist
 
 **Held by.** `crates/zeff-engine/tests/one_value_of_a_column.rs`: the first, the last and the tenth row of the shipped wages against the file read as text; the type of the value for each type of column, and `NA` for a missing one; `add`, `by:` and `aggregate`; the review's case, one prediction read as `p[1]`, equal to its workaround; eighteen refusals stored; a property (`x[i]` is the i-th item of `to(x, List)`, `first` and `last` its ends). The pages of `first`, `last` and `to`.
 
+## 23 November 2026 — release 0.9.0, step 32b: a guessed Int widened to Float on import
+
+- *The rule* (open decision #169, option A). `import` guesses each column's type from its first 1,000 rows. A column guessed as Int that holds a decimal further down is now read as Float, whole, where the import stopped before (Z0606): it is the column the guess would have made had that value stood among the first rows. Every whole number before and after it is the same number.
+- *The note* names the column, the row as a text editor numbers it, and the value: "`nr.employed` read as Float: its first 1,000 rows hold whole numbers, and row 7,765 holds 5228.1". One note for a column, for its first such row.
+- *What widens:* any value the reader takes as a Float where it is not an Int: a decimal, an exponent (`1e3`), `Inf` and `-Inf`; `NaN` widens and is read as missing with its own note, as in any Float column. A decimal comma widens where `decimal: ","` is given.
+- *What still stops the import, as the decision lists:* text in a numeric column, before the widening or after it; a value that is not a date in a Date column; and a decimal in a column declared `Int` with `types:`, since a declaration is kept to. The messages are those there were.
+- *The check before a run still reads the first 1,000 rows alone*, so it takes such a column for Int; the frame the run reads has the Float column, and the file's schema as read says Float. This is the documented limit of a guess from a sample, and the note says what happened.
+- *The review's file is not in the repository* (an outside data file needs its source and licence): the tests make a file like it, with the first decimal of `nr.employed` on line 7,765.
+- *Section 6.1's rule, with the rows of sections 4.1 and 5.6, is amended* (`docs/spec_changes.md`), and the explained page of Z0606 and the page of `import` say the same.
+
+**Held by.** `packages/tier1/data/tests/csv.rs`: the widened column value by value, the other columns untouched, the note, an exponent, the infinities and `NaN`, text after the widening and without it, a decimal among the first rows (no note), a decimal comma, and the refusal for a declared `Int`. `packages/tier1/data/tests/import.rs`: the file like the review's imported whole through a script, with its note and its values; the declared forms; two messages stored; a property (wherever the first decimal stands, the column read is the column declared `Float`, and the note names that row).
+

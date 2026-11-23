@@ -152,7 +152,9 @@ Step 31c `[function]`: `row(vars, stat: n_missing)`, the number of the variables
 
 Step 32a `[engine]` (step 32 split in two): one value out of a column (#168). `x[i]`, `first(x)` and `last(x)` take a column and give the value of one row; `to(x, List)` gives the list of a column's values. Inside `aggregate`, `first` and `last` are the first and last value of each group. One prediction is now read as `m.predict(newdata: b.head(1))[1]`.
 
-**Next.** Step 32b `[engine]`: a guessed Int widened to Float on import (#169). Step 3, the weekly mutation run of Monday 23 November, when it has ended.
+Step 32b `[engine]`: on import, a column guessed as whole numbers from its first 1,000 rows that holds a decimal further down is read as Float, whole, with a note naming the row, where the import stopped before (#169); text in a numeric column and a decimal in a column declared `Int` stop it as before. A file like the review's imports whole. Step 32 is done.
+
+**Next.** Step 33 `[function]`: six smaller refusals (#170). Step 3, the weekly mutation run of Monday 23 November, when it has ended.
 
 **For the owner, from step 31c.** Stata also has `egen rownonmiss()`, the number of values present in each row. It is the number of variables less `row(vars, stat: n_missing)`, and the page says so; whether it should be a word of `stat:` of its own (decisions 98 and 99) is his to say.
 

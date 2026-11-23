@@ -730,7 +730,7 @@ fn read(bytes: &[u8], options: &CsvOptions, full: bool) -> Result<CsvRead, CsvEr
         };
         specs.push(spec);
     }
-    let schema = Schema {
+    let mut schema = Schema {
         names: names.clone(),
         types: specs.iter().map(TypeSpec::column_type).collect(),
     };
@@ -755,6 +755,9 @@ fn read(bytes: &[u8], options: &CsvOptions, full: bool) -> Result<CsvRead, CsvEr
             options,
             &mut messages,
         )?;
+        // The type the column was read as: a guessed `Int` may have been widened to `Float`
+        // by a decimal beyond the rows the guess looked at (open decision #169).
+        schema.types[c] = column.ty();
         columns.push((name.clone(), column));
     }
     let table = Table::new(columns).map_err(|e| match e {
@@ -891,16 +894,56 @@ fn build_column(
             Column::bools(out)
         }
         TypeSpec::Int => {
-            let mut out = Vec::with_capacity(data.len());
-            for (record, cell) in data.iter().zip(&cells) {
-                out.push(match cell {
-                    None => None,
-                    Some(v) => Some(
-                        parse_int(v, &options.numbers).ok_or_else(|| does_not_fit(record, v))?,
-                    ),
-                });
+            let mut out: Vec<Option<i64>> = Vec::with_capacity(data.len());
+            // A column guessed as whole numbers from its first rows may hold a decimal further
+            // down: it is then the column of Floats it would have been guessed as had that
+            // value stood among the first rows, and a note names the row (open decision #169;
+            // release 0.9.0, step 32b). A declared `Int` is kept to: there a decimal stops
+            // the import, as text does in any numeric column.
+            let mut widened_at: Option<usize> = None;
+            for (at, (record, cell)) in data.iter().zip(&cells).enumerate() {
+                match cell {
+                    None => out.push(None),
+                    Some(v) => match parse_int(v, &options.numbers) {
+                        Some(k) => out.push(Some(k)),
+                        None if !declared && parse_float(v, &options.numbers).is_some() => {
+                            widened_at = Some(at);
+                            break;
+                        }
+                        None => return Err(does_not_fit(record, v)),
+                    },
+                }
             }
-            Column::ints(out)
+            match widened_at {
+                None => Column::ints(out),
+                Some(at) => {
+                    let mut floats: Vec<Option<f64>> =
+                        out.into_iter().map(|k| k.map(|k| k as f64)).collect();
+                    for (record, cell) in data[at..].iter().zip(&cells[at..]) {
+                        floats.push(match cell {
+                            None => None,
+                            Some(v) => {
+                                let x = parse_float(v, &options.numbers)
+                                    .ok_or_else(|| does_not_fit(record, v))?;
+                                if x.is_nan() {
+                                    nan_count += 1;
+                                    None
+                                } else {
+                                    Some(x)
+                                }
+                            }
+                        });
+                    }
+                    messages.push(Diagnostic::plain_note(format!(
+                        "{} read as Float: its first {} rows hold whole numbers, and row {} holds {}",
+                        shown(name),
+                        count(GUESS_ROWS as u64),
+                        count(data[at].row as u64),
+                        cells[at].unwrap_or_default().trim()
+                    )));
+                    Column::floats(floats).0
+                }
+            }
         }
         TypeSpec::Float => {
             let mut out = Vec::with_capacity(data.len());

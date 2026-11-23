@@ -93,9 +93,12 @@ pub fn functions() -> Vec<Function> {
                         "Z0605",
                         "an empty, repeated or case-clashing column name, or a file without a header line",
                     ),
+                    DiagnosticDecl::note(
+                        "a column guessed as whole numbers from its first 1,000 rows read as Float because a later row holds a decimal",
+                    ),
                     DiagnosticDecl::new(
                         "Z0606",
-                        "a value after the first 1,000 rows, or in a declared column, does not fit the column's type",
+                        "a value after the first 1,000 rows, or in a declared column, does not fit the column's type: text in a numeric column, a value that is not a date in a Date column, a decimal in a column declared Int",
                     ),
                     DiagnosticDecl::new(
                         "Z0607",
