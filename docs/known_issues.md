@@ -60,6 +60,16 @@ is never listed here as accepted: it is fixed or the function is withdrawn.
   linear-regression problem of NIST is solved to within 0.3 of a digit of what R reaches,
   but Longley (11.7 digits against R's 13.0). (Since 0.4.0; found at
   0.9.0.)
+- **On NIST's three hardest problems of analysis of variance, F agrees to 3.1 to 3.3 digits.**
+  The values of SmLs07, SmLs08 and SmLs09 have thirteen constant leading digits
+  (1000000000000.4 and its neighbours), so a number as a computer stores it keeps three or
+  four digits of the part that varies: exact arithmetic on the stored numbers gives F to 4.2
+  to 4.4 digits and no more. `anova` forms its sum of squares between the groups from the
+  group means, which are stored at the same size, and loses one digit more; R's
+  `oneway.test` gives 3.3. The class of `anova` asks for 1e-6. Data that vary in their
+  leading digits are not affected: the other eight problems agree to 8.8 digits and more.
+  Subtracting a constant from such a variable before the test gives the digits its stored
+  values allow. (Since 0.7.0; found at 0.9.0.)
 - **On NIST's Wampler5 problem three coefficients agree to 5.8 to 6.2 digits, at the edge of
   the class.** The class of `reg` asks for 1e-6 relative. The certified coefficients are 1 and
   their certified standard deviations are up to 2.4e7, so the difference is 7e-14 of a standard

@@ -13,6 +13,17 @@
 //! is zero the absolute error stands in the place of the relative one; a value the engine did
 //! not give (a term dropped as collinear) has 0.
 //!
+//! The three kinds of problem are run as follows. A regression is fitted by `reg`, and what
+//! `reg` does not print (the table of variance) is formed in the script from its residuals
+//! and fitted values. A univariate problem asks for the mean and the standard deviation,
+//! which are functions, and the first autocorrelation, which has no function at this release
+//! and is written out by its definition. An analysis of variance is `anova` with
+//! `equal_var: true`: F and R² (its eta squared) are read from the result in the script; the
+//! sums of squares, which the result prints to three decimals and gives no method for, are
+//! taken in full from the function's own computation (`zeff_stats::anova::classical` on the
+//! group summaries it makes), and a test holds that computation to the F the script printed,
+//! bit for bit.
+//!
 //! Two conformance lines stand for a problem: the digest of what its script printed, and the
 //! digest of its table of log relative errors to one decimal. Every target must give both,
 //! so the accuracy recorded here is the accuracy on every platform.
@@ -22,12 +33,18 @@
 pub enum Kind {
     /// Linear least-squares regression (`lls`).
     Regression,
+    /// Univariate summary statistics (`univ`).
+    Univariate,
+    /// One-way analysis of variance (`anova`).
+    Anova,
 }
 
 impl Kind {
     fn folder(self) -> &'static str {
         match self {
             Kind::Regression => "lls",
+            Kind::Univariate => "univ",
+            Kind::Anova => "anova",
         }
     }
 }
@@ -71,6 +88,47 @@ pub const REGRESSION: [Problem; 11] = [
     problem!(Kind::Regression, "lls", "Wampler4"),
     problem!(Kind::Regression, "lls", "Wampler5"),
 ];
+
+/// The nine univariate problems: lower difficulty (PiDigits, Lottery, Lew, Mavro, Michelso,
+/// NumAcc1), average (NumAcc2, NumAcc3) and higher (NumAcc4).
+pub const UNIVARIATE: [Problem; 9] = [
+    problem!(Kind::Univariate, "univ", "PiDigits"),
+    problem!(Kind::Univariate, "univ", "Lottery"),
+    problem!(Kind::Univariate, "univ", "Lew"),
+    problem!(Kind::Univariate, "univ", "Mavro"),
+    problem!(Kind::Univariate, "univ", "Michelso"),
+    problem!(Kind::Univariate, "univ", "NumAcc1"),
+    problem!(Kind::Univariate, "univ", "NumAcc2"),
+    problem!(Kind::Univariate, "univ", "NumAcc3"),
+    problem!(Kind::Univariate, "univ", "NumAcc4"),
+];
+
+/// The eleven problems of analysis of variance: lower difficulty (SiRstv, SmLs01 to SmLs03),
+/// average (AtmWtAg, SmLs04 to SmLs06) and higher (SmLs07 to SmLs09, whose values have
+/// thirteen constant leading digits).
+pub const ANOVA: [Problem; 11] = [
+    problem!(Kind::Anova, "anova", "SiRstv"),
+    problem!(Kind::Anova, "anova", "SmLs01"),
+    problem!(Kind::Anova, "anova", "SmLs02"),
+    problem!(Kind::Anova, "anova", "SmLs03"),
+    problem!(Kind::Anova, "anova", "AtmWtAg"),
+    problem!(Kind::Anova, "anova", "SmLs04"),
+    problem!(Kind::Anova, "anova", "SmLs05"),
+    problem!(Kind::Anova, "anova", "SmLs06"),
+    problem!(Kind::Anova, "anova", "SmLs07"),
+    problem!(Kind::Anova, "anova", "SmLs08"),
+    problem!(Kind::Anova, "anova", "SmLs09"),
+];
+
+/// Every problem: the regressions, the univariate problems, the analyses of variance.
+pub fn problems() -> Vec<Problem> {
+    REGRESSION
+        .iter()
+        .chain(&UNIVARIATE)
+        .chain(&ANOVA)
+        .copied()
+        .collect()
+}
 
 /// The digits NIST certifies, and so the most a log relative error can say.
 pub const CERTIFIED_DIGITS: f64 = 15.0;
@@ -218,10 +276,82 @@ fn certified_regression(problem: &Problem) -> Vec<Certified> {
     values
 }
 
-/// The certified values of a problem, in the order its script prints the computed ones.
+/// The certified values of a univariate problem: the mean, the standard deviation (with
+/// n − 1) and the autocorrelation at lag one. Each stands after its symbol, `ybar:`, `s:`
+/// and `r(1):`; some are marked `(exact)`.
+fn certified_univariate(problem: &Problem) -> Vec<Certified> {
+    let lines = part(problem.file, "Certified Values");
+    let after = |symbol: &str| {
+        lines.iter().find_map(|line| {
+            let at = line.find(symbol)?;
+            number(line[at + symbol.len()..].split_whitespace().next()?)
+        })
+    };
+    [
+        ("mean", " ybar:"),
+        ("standard deviation", " s:"),
+        ("autocorrelation at lag 1", " r(1):"),
+    ]
+    .into_iter()
+    .map(|(what, symbol)| Certified {
+        what: what.to_string(),
+        value: after(symbol).unwrap_or(f64::NAN),
+    })
+    .collect()
+}
+
+/// The certified values of an analysis of variance: the sum of squares and the mean square
+/// between the groups, F, the sum of squares and the mean square within them, R² and the
+/// residual standard deviation.
+fn certified_anova(problem: &Problem) -> Vec<Certified> {
+    let (mut between, mut within) = (Vec::new(), Vec::new());
+    let (mut r_squared, mut sd) = (None, None);
+    // The lines the file names, and the one after them: AtmWtAg's file has its last
+    // certified value, the residual standard deviation, a line below the lines it gives.
+    let (first, last) = lines_of(problem.file, "Certified Values").unwrap_or((1, 0));
+    let lines = problem
+        .file
+        .lines()
+        .skip(first.saturating_sub(1))
+        .take(last + 2 - first);
+    for line in lines {
+        let tokens: Vec<&str> = line.split_whitespace().collect();
+        let numbers: Vec<f64> = tokens.iter().skip(1).filter_map(|t| number(t)).collect();
+        match tokens.first().copied() {
+            Some("Between") if numbers.len() == 4 => between = numbers[1..].to_vec(),
+            Some("Within") if numbers.len() == 3 => within = numbers[1..].to_vec(),
+            Some("Certified") if tokens.get(1) == Some(&"R-Squared") => {
+                r_squared = numbers.last().copied();
+            }
+            Some("Standard") if tokens.get(1) == Some(&"Deviation") && tokens.len() == 3 => {
+                sd = number(tokens[2]);
+            }
+            _ => {}
+        }
+    }
+    [
+        ("sum of squares between", between.first().copied()),
+        ("mean square between", between.get(1).copied()),
+        ("F statistic", between.get(2).copied()),
+        ("sum of squares within", within.first().copied()),
+        ("mean square within", within.get(1).copied()),
+        ("R-squared", r_squared),
+        ("residual standard deviation", sd),
+    ]
+    .into_iter()
+    .map(|(what, value)| Certified {
+        what: what.to_string(),
+        value: value.unwrap_or(f64::NAN),
+    })
+    .collect()
+}
+
+/// The certified values of a problem, in the order the computed ones are recorded.
 pub fn certified(problem: &Problem) -> Vec<Certified> {
     match problem.kind {
         Kind::Regression => certified_regression(problem),
+        Kind::Univariate => certified_univariate(problem),
+        Kind::Anova => certified_anova(problem),
     }
 }
 
@@ -259,6 +389,8 @@ pub fn csv(problem: &Problem) -> String {
         Kind::Regression => std::iter::once("y".to_string())
             .chain((1..width).map(|i| format!("x{i}")))
             .collect(),
+        Kind::Univariate => vec!["y".to_string()],
+        Kind::Anova => vec!["g".to_string(), "y".to_string()],
     };
     let mut text = names.join(",");
     text.push('\n');
@@ -320,11 +452,89 @@ fn regression_script(problem: &Problem) -> String {
     script
 }
 
+/// The script of a univariate problem: the mean and the standard deviation by their
+/// functions, and the autocorrelation at lag one by its definition,
+/// Σ (yₜ − ȳ)(yₜ₋₁ − ȳ) / Σ (yₜ − ȳ)², since no function gives it at this release. The rows are
+/// numbered and declared one series so that `lag` has its order; the first row, which has no
+/// row before it, adds nothing to the sum.
+fn univariate_script(problem: &Problem) -> String {
+    format!(
+        "let d = import(\"data/{}.csv\").add(t = row_number(), one = 1)\n\
+         print(to(d.mean(y), Str))\n\
+         print(to(d.sd(y), Str))\n\
+         let v = d.panel(unit: one, time: t).add(c = (y - mean(y)) * (coalesce(lag(y), mean(y)) - mean(y)), q = (y - mean(y))^2)\n\
+         print(to(v.sum(c) / v.sum(q), Str))\n",
+        problem.name
+    )
+}
+
+/// The script of an analysis of variance: the classical one-way form, whose F and eta
+/// squared, which is R², it prints in full.
+fn anova_script(problem: &Problem) -> String {
+    format!(
+        "let d = import(\"data/{}.csv\")\n\
+         let a = d.anova(y, group: g, equal_var: true)\n\
+         print(to(a.statistic(), Str))\n\
+         print(to(a.effect_size(), Str))\n",
+        problem.name
+    )
+}
+
 /// The script that computes a problem's certified values, one to a line.
 pub fn script(problem: &Problem) -> String {
     match problem.kind {
         Kind::Regression => regression_script(problem),
+        Kind::Univariate => univariate_script(problem),
+        Kind::Anova => anova_script(problem),
     }
+}
+
+/// The one-way analysis as `anova` computes it, from the group summaries it makes (the
+/// groups in the order of their numbers, each summarised by the function's own `Sample`):
+/// its sums of squares in full, which the result prints to three decimals.
+pub fn one_way(problem: &Problem) -> Option<zeff_stats::anova::OneWay> {
+    use zeff_stats::anova::{GroupSummary, classical};
+    use zeff_stats::testing::Sample;
+    let mut groups: Vec<(i64, Vec<f64>)> = Vec::new();
+    for row in data(problem) {
+        let (group, value) = (row.first()?.parse::<i64>().ok()?, row.get(1)?.parse().ok()?);
+        match groups.iter_mut().find(|(g, _)| *g == group) {
+            Some((_, values)) => values.push(value),
+            None => groups.push((group, vec![value])),
+        }
+    }
+    groups.sort_by_key(|(group, _)| *group);
+    let summaries: Vec<GroupSummary> = groups
+        .iter()
+        .map(|(_, values)| {
+            let column = zeff_columns::Column::floats(values.iter().map(|v| Some(*v))).0;
+            let rows: Vec<usize> = (0..values.len()).collect();
+            let sample = Sample::of(&column, &rows, None);
+            GroupSummary {
+                n: sample.n(),
+                mean: sample.mean(),
+                variance: sample.variance(),
+            }
+        })
+        .collect();
+    classical(&summaries).ok()
+}
+
+/// The computed values of an analysis of variance in the order of `certified_anova`: F and
+/// R² as the script printed them, the rest from `one_way`.
+fn anova_values(problem: &Problem, printed: &[f64]) -> Vec<f64> {
+    let (Some(own), [f, r_squared]) = (one_way(problem), printed) else {
+        return Vec::new();
+    };
+    vec![
+        own.ss_between,
+        own.ss_between / own.df1,
+        *f,
+        own.ss_within,
+        own.ss_within / own.df2,
+        *r_squared,
+        zeff_numeric::maths::sqrt(own.ss_within / own.df2),
+    ]
 }
 
 /// A figure as the script printed it: a number, `Inf`, or `NA` for a value the engine did
@@ -408,6 +618,10 @@ pub fn solve(problem: &Problem) -> Solved {
     let outcome = crate::run_script(&fs, &project, "scripts/main.zeff", &script(problem));
     let certified = certified(problem);
     let computed: Vec<f64> = outcome.output.stdout.lines().map(printed).collect();
+    let computed = match problem.kind {
+        Kind::Anova => anova_values(problem, &computed),
+        Kind::Regression | Kind::Univariate => computed,
+    };
     let values = if outcome.exit_code == 0 && computed.len() == certified.len() {
         certified
             .into_iter()
@@ -429,9 +643,9 @@ pub fn solve(problem: &Problem) -> Solved {
     }
 }
 
-/// Every problem, solved, in NIST's order.
+/// Every problem, solved: the regressions, the univariate problems, the analyses of variance.
 pub fn solved() -> Vec<Solved> {
-    REGRESSION.iter().map(solve).collect()
+    problems().iter().map(solve).collect()
 }
 
 /// The conformance lines of the problems: for each, the digest of what its script printed
@@ -490,13 +704,15 @@ pub fn record() -> String {
                 shown(*error),
             ));
         }
-        if !solved.values.is_empty() {
+        if !solved.values.is_empty() && solved.problem.kind == Kind::Regression {
             text.push_str(&format!(
                 "  least: estimates {:.1}, standard deviations {:.1}, all {:.1}\n",
                 solved.least(" estimate"),
                 solved.least(" standard deviation"),
                 solved.least(""),
             ));
+        } else if !solved.values.is_empty() {
+            text.push_str(&format!("  least: {:.1}\n", solved.least("")));
         }
         text.push('\n');
     }

@@ -3,7 +3,8 @@
 //! stored, and what the record must hold whatever the figures are.
 
 use zeff_conformance::nist::{
-    CERTIFIED_DIGITS, REGRESSION, certified, data, log_relative_error, record, solve, solved,
+    ANOVA, CERTIFIED_DIGITS, REGRESSION, UNIVARIATE, certified, data, log_relative_error, one_way,
+    problems, record, solve, solved,
 };
 
 /// The stored record: every problem, every certified value, NIST's figure, Zeff's and the
@@ -54,6 +55,43 @@ fn every_file_is_read_whole() {
     let wampler1 = certified(&REGRESSION[6]);
     assert_eq!(wampler1[12].value, 0.0);
     assert_eq!(wampler1[16].value, f64::INFINITY);
+}
+
+/// The univariate files and those of analysis of variance, read whole the same way: the
+/// observations each says it has; three certified values, or seven.
+#[test]
+fn every_univariate_and_anova_file_is_read_whole() {
+    let rows = [5000, 218, 200, 50, 100, 3, 1001, 1001, 1001];
+    for (problem, rows) in UNIVARIATE.iter().zip(rows) {
+        assert_eq!(data(problem).len(), rows, "{}: rows", problem.name);
+        let values = certified(problem);
+        assert_eq!(values.len(), 3, "{}", problem.name);
+        assert!(values.iter().all(|c| !c.value.is_nan()), "{}", problem.name);
+    }
+    let lew = certified(&UNIVARIATE[2]);
+    assert_eq!(lew[0].value, -177.435);
+    assert_eq!(lew[1].value, 277.332168044316);
+    assert_eq!(lew[2].value, -0.307304800605679);
+    // A value marked `(exact)`.
+    assert_eq!(certified(&UNIVARIATE[8])[1].value, 0.1);
+    let rows = [25, 189, 1809, 18009, 48, 189, 1809, 18009, 189, 1809, 18009];
+    for (problem, rows) in ANOVA.iter().zip(rows) {
+        assert_eq!(data(problem).len(), rows, "{}: rows", problem.name);
+        let values = certified(problem);
+        assert_eq!(values.len(), 7, "{}", problem.name);
+        assert!(
+            values.iter().all(|c| !c.value.is_nan()),
+            "{}: {values:?}",
+            problem.name
+        );
+    }
+    let silver = certified(&ANOVA[4]);
+    assert_eq!(silver[2].what, "F statistic");
+    assert_eq!(silver[2].value, 15.946733567793);
+    // The value AtmWtAg's file has a line below the lines it names.
+    assert_eq!(silver[6].what, "residual standard deviation");
+    assert_eq!(silver[6].value, 1.51048314446410E-05);
+    assert_eq!(problems().len(), 31);
 }
 
 /// The log relative error: the digits that agree, between 0 and the 15 NIST certifies.
@@ -132,6 +170,68 @@ fn the_regression_problems_reach_the_digits_recorded() {
         .unwrap();
     assert_eq!(f.2, None);
     assert!(f.1 > 1e25);
+}
+
+/// The univariate problems: the mean is exact in all nine, and the standard deviation and the
+/// first autocorrelation agree to thirteen digits and more but for the standard deviation of
+/// NumAcc3 and NumAcc4 (9.5 and 8.3 digits, as in R: values of seven and eight digits that
+/// differ in the eighth and ninth).
+#[test]
+fn the_univariate_problems_reach_the_digits_recorded() {
+    for solved in solved()
+        .iter()
+        .filter(|s| UNIVARIATE.iter().any(|p| p.name == s.problem.name))
+    {
+        let name = solved.problem.name;
+        let of = |what: &str| {
+            solved
+                .values
+                .iter()
+                .find(|(c, _, _)| c.what == what)
+                .and_then(|(_, _, e)| *e)
+                .unwrap()
+        };
+        assert_eq!(of("mean"), CERTIFIED_DIGITS, "{name}");
+        let deviation = match name {
+            "NumAcc3" => 9.0,
+            "NumAcc4" => 8.0,
+            _ => 13.0,
+        };
+        assert!(of("standard deviation") >= deviation, "{name}");
+        assert!(of("autocorrelation at lag 1") >= 13.0, "{name}");
+    }
+}
+
+/// The analyses of variance. The sums of squares recorded are the function's own: the
+/// computation they are read from gives the F the script printed, bit for bit. The lower
+/// problems agree with NIST to thirteen digits and more and the average ones to 8.8 and
+/// more. SmLs07 to SmLs09 agree to 3.1 to 3.3 digits in F, below the class of `anova`: their
+/// values have thirteen constant leading digits, and as a computer stores them they allow 4.2
+/// to 4.4 digits whatever the arithmetic (the known issue of this step; R's `oneway.test`
+/// gives 3.3).
+#[test]
+fn the_analyses_of_variance_reach_the_digits_recorded() {
+    let all = solved();
+    for problem in &ANOVA {
+        let solved = all.iter().find(|s| s.problem.name == problem.name).unwrap();
+        let name = problem.name;
+        let own = one_way(problem).unwrap();
+        let printed: f64 = solved.stdout.lines().next().unwrap().parse().unwrap();
+        assert_eq!(own.f.to_bits(), printed.to_bits(), "{name}: F");
+        let least = solved.least("");
+        let (at_least, below) = match name {
+            "SiRstv" => (13.0, 15.1),
+            "SmLs01" | "SmLs02" | "SmLs03" => (14.5, 15.1),
+            "AtmWtAg" => (8.5, 15.1),
+            "SmLs04" | "SmLs05" | "SmLs06" => (9.0, 15.1),
+            // The known issue: three digits, and fewer than the six of the class.
+            _ => (3.0, 6.0),
+        };
+        assert!(
+            least >= at_least && least < below,
+            "{name}: least {least:.1}"
+        );
+    }
 }
 
 /// Every problem runs, and gives a figure or says why not for every certified value.

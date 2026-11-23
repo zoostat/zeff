@@ -3135,3 +3135,130 @@ print(to(ssr / 5, Str))
 print(to((ssr / 5) / (rss / 15), Str))
 print(to(rss, Str))
 print(to(rss / 15, Str))
+==== script 193
+let d = import("data/PiDigits.csv").add(t = row_number(), one = 1)
+print(to(d.mean(y), Str))
+print(to(d.sd(y), Str))
+let v = d
+    .panel(unit: one, time: t)
+    .add(c = (y - mean(y)) * (coalesce(lag(y), mean(y)) - mean(y)), q = (y - mean(y))^2)
+print(to(v.sum(c) / v.sum(q), Str))
+==== script 194
+let d = import("data/Lottery.csv").add(t = row_number(), one = 1)
+print(to(d.mean(y), Str))
+print(to(d.sd(y), Str))
+let v = d
+    .panel(unit: one, time: t)
+    .add(c = (y - mean(y)) * (coalesce(lag(y), mean(y)) - mean(y)), q = (y - mean(y))^2)
+print(to(v.sum(c) / v.sum(q), Str))
+==== script 195
+let d = import("data/Lew.csv").add(t = row_number(), one = 1)
+print(to(d.mean(y), Str))
+print(to(d.sd(y), Str))
+let v = d
+    .panel(unit: one, time: t)
+    .add(c = (y - mean(y)) * (coalesce(lag(y), mean(y)) - mean(y)), q = (y - mean(y))^2)
+print(to(v.sum(c) / v.sum(q), Str))
+==== script 196
+let d = import("data/Mavro.csv").add(t = row_number(), one = 1)
+print(to(d.mean(y), Str))
+print(to(d.sd(y), Str))
+let v = d
+    .panel(unit: one, time: t)
+    .add(c = (y - mean(y)) * (coalesce(lag(y), mean(y)) - mean(y)), q = (y - mean(y))^2)
+print(to(v.sum(c) / v.sum(q), Str))
+==== script 197
+let d = import("data/Michelso.csv").add(t = row_number(), one = 1)
+print(to(d.mean(y), Str))
+print(to(d.sd(y), Str))
+let v = d
+    .panel(unit: one, time: t)
+    .add(c = (y - mean(y)) * (coalesce(lag(y), mean(y)) - mean(y)), q = (y - mean(y))^2)
+print(to(v.sum(c) / v.sum(q), Str))
+==== script 198
+let d = import("data/NumAcc1.csv").add(t = row_number(), one = 1)
+print(to(d.mean(y), Str))
+print(to(d.sd(y), Str))
+let v = d
+    .panel(unit: one, time: t)
+    .add(c = (y - mean(y)) * (coalesce(lag(y), mean(y)) - mean(y)), q = (y - mean(y))^2)
+print(to(v.sum(c) / v.sum(q), Str))
+==== script 199
+let d = import("data/NumAcc2.csv").add(t = row_number(), one = 1)
+print(to(d.mean(y), Str))
+print(to(d.sd(y), Str))
+let v = d
+    .panel(unit: one, time: t)
+    .add(c = (y - mean(y)) * (coalesce(lag(y), mean(y)) - mean(y)), q = (y - mean(y))^2)
+print(to(v.sum(c) / v.sum(q), Str))
+==== script 200
+let d = import("data/NumAcc3.csv").add(t = row_number(), one = 1)
+print(to(d.mean(y), Str))
+print(to(d.sd(y), Str))
+let v = d
+    .panel(unit: one, time: t)
+    .add(c = (y - mean(y)) * (coalesce(lag(y), mean(y)) - mean(y)), q = (y - mean(y))^2)
+print(to(v.sum(c) / v.sum(q), Str))
+==== script 201
+let d = import("data/NumAcc4.csv").add(t = row_number(), one = 1)
+print(to(d.mean(y), Str))
+print(to(d.sd(y), Str))
+let v = d
+    .panel(unit: one, time: t)
+    .add(c = (y - mean(y)) * (coalesce(lag(y), mean(y)) - mean(y)), q = (y - mean(y))^2)
+print(to(v.sum(c) / v.sum(q), Str))
+==== script 202
+let d = import("data/SiRstv.csv")
+let a = d.anova(y, group: g, equal_var: true)
+print(to(a.statistic(), Str))
+print(to(a.effect_size(), Str))
+==== script 203
+let d = import("data/SmLs01.csv")
+let a = d.anova(y, group: g, equal_var: true)
+print(to(a.statistic(), Str))
+print(to(a.effect_size(), Str))
+==== script 204
+let d = import("data/SmLs02.csv")
+let a = d.anova(y, group: g, equal_var: true)
+print(to(a.statistic(), Str))
+print(to(a.effect_size(), Str))
+==== script 205
+let d = import("data/SmLs03.csv")
+let a = d.anova(y, group: g, equal_var: true)
+print(to(a.statistic(), Str))
+print(to(a.effect_size(), Str))
+==== script 206
+let d = import("data/AtmWtAg.csv")
+let a = d.anova(y, group: g, equal_var: true)
+print(to(a.statistic(), Str))
+print(to(a.effect_size(), Str))
+==== script 207
+let d = import("data/SmLs04.csv")
+let a = d.anova(y, group: g, equal_var: true)
+print(to(a.statistic(), Str))
+print(to(a.effect_size(), Str))
+==== script 208
+let d = import("data/SmLs05.csv")
+let a = d.anova(y, group: g, equal_var: true)
+print(to(a.statistic(), Str))
+print(to(a.effect_size(), Str))
+==== script 209
+let d = import("data/SmLs06.csv")
+let a = d.anova(y, group: g, equal_var: true)
+print(to(a.statistic(), Str))
+print(to(a.effect_size(), Str))
+==== script 210
+let d = import("data/SmLs07.csv")
+let a = d.anova(y, group: g, equal_var: true)
+print(to(a.statistic(), Str))
+print(to(a.effect_size(), Str))
+==== script 211
+let d = import("data/SmLs08.csv")
+let a = d.anova(y, group: g, equal_var: true)
+print(to(a.statistic(), Str))
+print(to(a.effect_size(), Str))
+==== script 212
+let d = import("data/SmLs09.csv")
+let a = d.anova(y, group: g, equal_var: true)
+print(to(a.statistic(), Str))
+print(to(a.effect_size(), Str))

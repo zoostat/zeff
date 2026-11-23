@@ -251,3 +251,187 @@ expression: record()
   residual sum of squares                       8.3554268e15              8.3554268e15  15.0
   residual mean square                   5.57028453333333e14      5.570284533333333e14  15.0
   least: estimates 5.8, standard deviations 13.6, all 5.8
+
+## univ · PiDigits
+  certified value                                       NIST                      Zeff   LRE
+  mean                                              4.5348e0                  4.5348e0  15.0
+  standard deviation                      2.86733906028871e0       2.867339060288708e0  15.0
+  autocorrelation at lag 1              -3.55099287237972e-3     -3.550992872379715e-3  14.9
+  least: 14.9
+
+## univ · Lottery
+  certified value                                       NIST                      Zeff   LRE
+  mean                                     5.1895871559633e2       5.189587155963303e2  15.0
+  standard deviation                      2.91699727470969e2      2.9169972747096904e2  15.0
+  autocorrelation at lag 1              -1.20948622967393e-1    -1.2094862296739288e-1  15.0
+  least: 15.0
+
+## univ · Lew
+  certified value                                       NIST                      Zeff   LRE
+  mean                                            -1.77435e2                -1.77435e2  15.0
+  standard deviation                      2.77332168044316e2       2.773321680443161e2  15.0
+  autocorrelation at lag 1              -3.07304800605679e-1    -3.0730480060567944e-1  14.8
+  least: 14.8
+
+## univ · Mavro
+  certified value                                       NIST                      Zeff   LRE
+  mean                                            2.001856e0                2.001856e0  15.0
+  standard deviation                     4.29123454003053e-4      4.291234540030854e-4  13.1
+  autocorrelation at lag 1               9.37989183438248e-1      9.379891834382648e-1  13.7
+  least: 13.1
+
+## univ · Michelso
+  certified value                                       NIST                      Zeff   LRE
+  mean                                            2.998524e2                2.998524e2  15.0
+  standard deviation                     7.90105478190518e-2      7.901054781905066e-2  13.8
+  autocorrelation at lag 1               5.35199668621283e-1      5.351996686212633e-1  13.4
+  least: 13.4
+
+## univ · NumAcc1
+  certified value                                       NIST                      Zeff   LRE
+  mean                                           1.0000002e7               1.0000002e7  15.0
+  standard deviation                                     1e0                       1e0  15.0
+  autocorrelation at lag 1                             -5e-1                     -5e-1  15.0
+  least: 15.0
+
+## univ · NumAcc2
+  certified value                                       NIST                      Zeff   LRE
+  mean                                                 1.2e0                     1.2e0  15.0
+  standard deviation                                    1e-1      9.999999999999998e-2  15.0
+  autocorrelation at lag 1                          -9.99e-1     -9.989999999999999e-1  15.0
+  least: 15.0
+
+## univ · NumAcc3
+  certified value                                       NIST                      Zeff   LRE
+  mean                                           1.0000002e6               1.0000002e6  15.0
+  standard deviation                                    1e-1      1.000000000349246e-1   9.5
+  autocorrelation at lag 1                          -9.99e-1                  -9.99e-1  15.0
+  least: 9.5
+
+## univ · NumAcc4
+  certified value                                       NIST                      Zeff   LRE
+  mean                                          1.00000002e7              1.00000002e7  15.0
+  standard deviation                                    1e-1     1.0000000055879354e-1   8.3
+  autocorrelation at lag 1                          -9.99e-1     -9.989999999999998e-1  15.0
+  least: 8.3
+
+## anova · SiRstv
+  certified value                                       NIST                      Zeff   LRE
+  sum of squares between                       5.11462616e-2      5.114626160000043e-2  14.1
+  mean square between                          1.27865654e-2     1.2786565400000107e-2  14.1
+  F statistic                             1.18046237440255e0      1.1804623744024678e0  13.2
+  sum of squares within                         2.1663656e-1      2.166365600000165e-1  13.1
+  mean square within                            1.0831828e-2     1.0831828000000824e-2  13.1
+  R-squared                              1.90999039051129e-1     1.9099903905111887e-1  13.3
+  residual standard deviation            1.04076068334656e-1     1.0407606833466003e-1  13.4
+  least: 13.1
+
+## anova · SmLs01
+  certified value                                       NIST                      Zeff   LRE
+  sum of squares between                              1.68e0      1.6800000000000028e0  14.8
+  mean square between                                 2.1e-1     2.1000000000000035e-1  14.8
+  F statistic                                          2.1e1       2.100000000000002e1  15.0
+  sum of squares within                                1.8e0      1.8000000000000012e0  15.0
+  mean square within                                    1e-2     1.0000000000000007e-2  15.0
+  R-squared                              4.82758620689655e-1      4.827586206896554e-1  15.0
+  residual standard deviation                           1e-1     1.0000000000000003e-1  15.0
+  least: 14.8
+
+## anova · SmLs02
+  certified value                                       NIST                      Zeff   LRE
+  sum of squares between                             1.608e1       1.607999999999999e1  15.0
+  mean square between                                 2.01e0       2.009999999999999e0  15.0
+  F statistic                                         2.01e2      2.0099999999999977e2  14.9
+  sum of squares within                                1.8e1       1.800000000000001e1  15.0
+  mean square within                                    1e-2     1.0000000000000005e-2  15.0
+  R-squared                              4.71830985915493e-1      4.718309859154927e-1  15.0
+  residual standard deviation                           1e-1     1.0000000000000003e-1  15.0
+  least: 14.9
+
+## anova · SmLs03
+  certified value                                       NIST                      Zeff   LRE
+  sum of squares between                            1.6008e2      1.6008000000000027e2  14.8
+  mean square between                                2.001e1      2.0010000000000034e1  14.8
+  F statistic                                        2.001e3      2.0010000000000018e3  15.0
+  sum of squares within                                1.8e2       1.800000000000001e2  15.0
+  mean square within                                    1e-2     1.0000000000000007e-2  15.0
+  R-squared                              4.70712773465067e-1      4.707127734650673e-1  15.0
+  residual standard deviation                           1e-1     1.0000000000000003e-1  15.0
+  least: 14.8
+
+## anova · AtmWtAg
+  certified value                                       NIST                      Zeff   LRE
+  sum of squares between                      3.638341875e-9      3.638341869099444e-9   8.8
+  mean square between                         3.638341875e-9      3.638341869099444e-9   8.8
+  F statistic                              1.5946733567793e1      1.5946733541732279e1   8.8
+  sum of squares within                  1.04951729166667e-8      1.049517291679747e-8  10.9
+  mean square within                    2.28155932971014e-10    2.2815593297385806e-10  10.9
+  R-squared                              2.57426544538321e-1      2.574265442259241e-1   8.9
+  residual standard deviation             1.5104831444641e-5     1.5104831444735094e-5  11.2
+  least: 8.8
+
+## anova · SmLs04
+  certified value                                       NIST                      Zeff   LRE
+  sum of squares between                              1.68e0      1.6799999992176893e0   9.3
+  mean square between                                 2.1e-1     2.0999999990221116e-1   9.3
+  F statistic                                          2.1e1      2.0999999989134572e1   9.3
+  sum of squares within                                1.8e0      1.8000000000931324e0  10.3
+  mean square within                                    1e-2     1.0000000000517402e-2  10.3
+  R-squared                              4.82758620689655e-1      4.827586205604586e-1   9.6
+  residual standard deviation                           1e-1       1.00000000002587e-1  10.6
+  least: 9.3
+
+## anova · SmLs05
+  certified value                                       NIST                      Zeff   LRE
+  sum of squares between                             1.608e1       1.607999999251217e1   9.3
+  mean square between                                 2.01e0      2.0099999990640214e0   9.3
+  F statistic                                         2.01e2      2.0099999989600238e2   9.3
+  sum of squares within                                1.8e1      1.8000000000931323e1  10.3
+  mean square within                                    1e-2       1.00000000005174e-2  10.3
+  R-squared                              4.71830985915493e-1     4.7183098578655325e-1   9.6
+  residual standard deviation                           1e-1       1.00000000002587e-1  10.6
+  least: 9.3
+
+## anova · SmLs06
+  certified value                                       NIST                      Zeff   LRE
+  sum of squares between                            1.6008e2      1.6008000011181457e2   9.2
+  mean square between                                2.001e1       2.001000001397682e1   9.2
+  F statistic                                        2.001e3      2.0010000012941503e3   9.2
+  sum of squares within                                1.8e2      1.8000000000931323e2  10.3
+  mean square within                                    1e-2       1.00000000005174e-2  10.3
+  R-squared                              4.70712773465067e-1     4.7071277362620023e-1   9.5
+  residual standard deviation                           1e-1       1.00000000002587e-1  10.6
+  least: 9.2
+
+## anova · SmLs07
+  certified value                                       NIST                      Zeff   LRE
+  sum of squares between                              1.68e0      1.6791822910308838e0   3.3
+  mean square between                                 2.1e-1     2.0989778637886047e-1   3.3
+  F statistic                                          2.1e1      2.0988630861890417e1   3.3
+  sum of squares within                                1.8e0      1.8000984340906143e0   4.3
+  mean square within                                    1e-2      1.000054685605897e-2   4.3
+  R-squared                              4.82758620689655e-1      4.826233994016812e-1   3.6
+  residual standard deviation                           1e-1     1.0000273424291442e-1   4.6
+  least: 3.3
+
+## anova · SmLs08
+  certified value                                       NIST                      Zeff   LRE
+  sum of squares between                             1.608e1      1.6072176352143288e1   3.3
+  mean square between                                 2.01e0       2.009022044017911e0   3.3
+  F statistic                                         2.01e2      2.0089125346619366e2   3.3
+  sum of squares within                                1.8e1      1.8000981211662292e1   4.3
+  mean square within                                    1e-2     1.0000545117590163e-2   4.3
+  R-squared                              4.71830985915493e-1     4.7169612390769605e-1   3.5
+  residual standard deviation                           1e-1     1.0000272555080768e-1   4.6
+  least: 3.3
+
+## anova · SmLs09
+  certified value                                       NIST                      Zeff   LRE
+  sum of squares between                            1.6008e2       1.601973570138216e2   3.1
+  mean square between                                2.001e1        2.00246696267277e1   3.1
+  F statistic                                        2.001e3      2.0023578099633144e3   3.2
+  sum of squares within                                1.8e2      1.8000981217622757e2   4.3
+  mean square within                                    1e-2     1.0000545120901531e-2   4.3
+  R-squared                              4.70712773465067e-1     4.7088177887377475e-1   3.4
+  residual standard deviation                           1e-1     1.0000272556736407e-1   4.6
+  least: 3.1

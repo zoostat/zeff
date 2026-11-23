@@ -2395,6 +2395,7 @@ dependencies = [
  "zeff-numeric",
  "zeff-plot",
  "zeff-results",
+ "zeff-stats",
  "zeff-syntax",
 ]
 
