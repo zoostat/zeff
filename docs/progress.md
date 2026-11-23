@@ -102,7 +102,9 @@ Step 38a2 `[function]`: seven more help pages of `data` to the contract (`where`
 
 Step 38b `[function]`: ten more help pages of `data` to the contract (`distinct`, `duplicates`, `merge`, `append`, `to_long`, `to_wide`, `aggregate`, `drop_missing`, `label`, `recode`); the specification's example page of `merge` brought with them, logged. A second fault added to step 38e: `merge` with `suffixes:` keeps a panel declaration that names a variable the suffix renamed.
 
-**Next.** Step 38c `[function]`: nine pages of `data` (`panel`, `lag`, `lead`, `diff`, `rank`, `standardize`, `center`, `between`, `winsorize`). Step 3, the weekly mutation run of Monday 23 November: GitHub queued a scheduled run at 13:39 UTC on that day, which had not started when this entry was written.
+Step 38c `[function]`: nine more help pages of `data` to the contract (`panel`, `lag`, `lead`, `diff`, `rank`, and the four written in Zeff, `standardize`, `center`, `between`, `winsorize`).
+
+**Next.** Step 38d `[function]`: the last seventeen pages of `data` and `datasets` (the reducers, `summary`, `n_distinct`, `dataset`, `datasets`), then step 38e `[engine]`, the two faults met in these pages. Step 3, the weekly mutation run of Monday 23 November: GitHub queued a scheduled run at 13:39 UTC on that day, which had not started when this entry was written.
 
 **For the owner, from step 38a2.** Step 38e will let `update` take an `NA` of its variable's type; recommended also for a bare `NA` there (`update(wage = NA, where: wage > 500)`), since the variable gives the type. Say if a bare `NA` should stay refused.
 

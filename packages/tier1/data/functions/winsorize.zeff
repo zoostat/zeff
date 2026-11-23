@@ -17,34 +17,47 @@
 /// details: Closed form: the two quantiles come from `quantile` under definition 7 and each value is then `min(max(x, low), high)`, exactly R's `pmin(pmax(x, quantile(x, at)), quantile(x, 1 - at))`; nothing else is computed.
 /// reference: Hyndman, R. J. and Fan, Y. (1996) Sample quantiles in statistical packages, The American Statistician 50(4), 361–365.
 /// reference: Signorell, A., the `Winsorize` function of the DescTools package; Stata's `winsor2` command.
+/// missing values: The two cut points are taken over the values present, with a warning for the rows skipped, and a row that is `NA` stays `NA`.
+/// common mistake: Writing the share as a percentage. `at:` is the share of the values at each end, so one per cent is 0.01, and five per cent is `winsorize(wage, at: 0.05)`.
+/// mistake call: dataset(wages).add(w = winsorize(wage, at: 5))
+/// mistake prints: error[Z0401]: `at:` of `winsorize` is a share between 0 and 0.5; above 0.5 the cut points would cross
+/// coming from: d.add(w = winsorize(wage, at: 0.01)) | pmin(pmax(d$wage, quantile(d$wage, 0.01, na.rm = TRUE)), quantile(d$wage, 0.99, na.rm = TRUE)) | winsor2 wage, cuts(1 99)
+/// coming from: Stata's `winsor2`, a command from outside Stata's own, takes the two cut points as percentiles, 1 and 99, and makes a new variable `wage_w`; here `at:` is a share and the result is named in `add`.
+/// related: To pull values into bounds that you give, use `clamp`.
+/// related: For the quantiles themselves, use `quantile`.
+/// related: To leave the extreme rows out instead, keep the others with `where`.
 /// see also: clamp, quantile, bin
-/// > let d = frame(x = [1, 2, 3, 4, 5, 6, 7, 8, 9, 100])
-/// > d.add(w = winsorize(x, at: 0.1))
-/// frame · 10 rows × 2 variables
+/// example: The wages of one year with the lowest and the highest five per cent pulled in: the smallest and largest values before and after.
+/// > let w = dataset(wages).where(year == 2019).select([worker, year, wage]).add(capped = winsorize(wage, at: 0.05))
+/// > w.aggregate(lowest = min(wage), highest = max(wage), low_capped = min(capped), high_capped = max(capped))
+/// warning[W0201]: 26 rows with NA in wage were skipped (line 1)
+/// frame · 1 row × 4 variables
 ///
-///          x      w
-///    1     1    1.9
-///    2     2      2
-///    3     3      3
-///    4     4      4
-///    5     5      5
-///    6     6      6
-///    7     7      7
-///    8     8      8
-///    9     9      9
-///   10   100   18.1
-/// > winsorize(d["x"])
-/// Column<Float> · 10 values
-/// 1.09
-/// 2
-/// 3
-/// 4
-/// 5
-/// 6
-/// 7
-/// 8
-/// 9
-/// 91.81
+///       lowest   highest   low_capped   high_capped
+///   1     5.42    104.59       13.084       59.3785
+/// warning[W0201]: 26 rows with NA in wage were skipped (line 2)
+/// warning[W0201]: 26 rows with NA in capped were skipped (line 2)
+/// note: the panel declaration `worker × year` dropped: `aggregate` summarised the rows (line 2)
+/// example: One per cent at each end unless told.
+/// > w.add(c1 = winsorize(wage)).aggregate(lowest = min(c1), highest = max(c1))
+/// frame · 1 row × 2 variables
+///
+///       lowest   highest
+///   1   9.1646   75.1261
+/// warning[W0201]: 26 rows with NA in wage were skipped (line 3)
+/// warning[W0201]: 26 rows with NA in c1 were skipped (line 3)
+/// note: the panel declaration `worker × year` dropped: `aggregate` summarised the rows (line 3)
+/// example: Within each group with `by:`: the cut points of each year.
+/// > dataset(wages).add(capped = winsorize(wage, at: 0.05), by: year).aggregate(highest = max(capped), by: year).head(3)
+/// frame · 3 rows × 2 variables
+///
+///       year   highest
+///   1   2010     43.14
+///   2   2011    47.352
+///   3   2012   47.5785
+/// warning[W0201]: 211 rows with NA in wage were skipped (line 4)
+/// warning[W0201]: 211 rows with NA in capped were skipped (line 4)
+/// note: the panel declaration `worker × year` dropped: `aggregate` summarised the rows (line 4)
 fn winsorize(x: Column<Float>, at: Float = 0.01) -> Column<Float> {
     if at < 0 || at > 0.5 {
         error(

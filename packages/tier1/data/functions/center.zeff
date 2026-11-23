@@ -4,26 +4,44 @@
 /// the original: `x - mean(x)`. The mean is taken over the values present, with the reducers'
 /// warning for the rows with `NA` skipped (section 4.1 of the Language Reference), and those rows
 /// stay `NA` in the result. Centring a regressor before an interaction makes the main effects
-/// read at the mean rather than at zero. Like R's `scale(x, scale = FALSE)`.
+/// read at the mean rather than at zero.
 ///
 /// x: The column to centre.
 /// returns: A `Column<Float>` with mean zero.
 /// details: The mean is the compensated sum of the values present over their count; each value is then one subtraction away from it.
 /// reference: R Core Team, the `scale` function of the base package, with `scale = FALSE`.
+/// missing values: The mean is taken over the values present, with a warning for the rows skipped, and a row that is `NA` stays `NA`.
+/// coming from: d.add(c = center(wage)) | d$c <- d$wage - mean(d$wage, na.rm = TRUE) | summarize wage, then generate c = wage - r(mean)
+/// coming from: R's `scale(x, scale = FALSE)` does the same and gives a matrix of one column. Stata has no single command: `summarize` leaves the mean in `r(mean)`.
+/// related: To divide by the standard deviation as well, use `standardize`.
+/// related: For the mean itself, use `mean`.
 /// see also: standardize, mean, sd
-/// > let d = frame(x = [2, 4, 9])
-/// > center(d["x"])
-/// Column<Float> · 3 values
-/// -3
-/// -1
-/// 4
-/// > d.add(xc = center(x))
-/// frame · 3 rows × 2 variables
+/// example: Years of schooling less their mean, for the wages of one year.
+/// > let w = dataset(wages).where(year == 2019).select([worker, year, educ]).add(educ_c = center(educ))
+/// > w.head(3)
+/// frame · 3 rows × 4 variables · panel worker × year
 ///
-///       x   xc
-///   1   2   -3
-///   2   4   -1
-///   3   9    4
+///       worker   year   educ      educ_c
+///   1        1   2019     17     3.49078
+///   2        7   2019     13   -0.509223
+///   3       13   2019     10    -3.50922
+/// example: The result has mean zero, to the last digits a number holds.
+/// > round(w.mean(educ_c), digits: 10)
+/// 0
+/// example: Centred before an interaction, the coefficient of schooling is its effect at the mean experience, where uncentred it is the effect at no experience.
+/// > let d = dataset(wages).add(educ_c = center(educ), exper_c = center(exper))
+/// > d.reg(log(wage) ~ educ_c * exper_c).coef(educ_c)
+/// > d.reg(log(wage) ~ educ * exper).coef(educ)
+/// warning[W0201]: 22 rows with NA in exper were skipped (line 4)
+/// 0.0760919
+/// 0.0577602
+/// example: Within each group with `by:`: schooling against the mean of the same year.
+/// > dataset(wages).add(educ_c = center(educ), by: year).where(worker == 1).select([worker, year, educ, educ_c]).head(2)
+/// frame · 2 rows × 4 variables · panel worker × year
+///
+///       worker   year   educ    educ_c
+///   1        1   2015     17   3.55071
+///   2        1   2016     17   3.57705
 fn center(x: Column<Float>) -> Column<Float> {
     x - frame(value = x).mean(value)
 }

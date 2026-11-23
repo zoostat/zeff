@@ -3,15 +3,6 @@
 # decision #103). A page listed here is held to the contract as it stood; one not listed, to the
 # contract in full. A line is struck when its page is revised, and the list is empty at 0.10.0.
 # One line per page: the package and the function's catalogue name.
-data panel
-data lag
-data lead
-data diff
-data rank
-data standardize
-data center
-data between
-data winsorize
 data mean
 data sd
 data variance

@@ -13,14 +13,17 @@ DESCRIPTION
     `sd` gives. Both are taken over the values present, each with the reducers' warning for the rows with
     `NA` skipped (section 4.1 of the Language Reference), and those rows stay `NA`. A column with no spread,
     one value or all values equal, has no z-scores: every row is `NA` with the warning `0 / 0` gives
-    (W0205), never an error, so a grouped summary over small groups still prints. Like R's `scale` and
-    Stata's `egen std()`.
+    (W0205), never an error, so a grouped summary over small groups still prints.
 
 ARGUMENTS
     x           Column<Float>. The column to standardise.
 
 VALUE
     A `Column<Float>` with mean zero and standard deviation one.
+
+MISSING VALUES
+    The mean and the standard deviation are taken over the values present, with a warning for the rows
+    skipped, and a row that is `NA` stays `NA`.
 
 DETAILS
     The sample standard deviation with divisor n − 1, as R's `scale` and `sd` use; standardising by the
@@ -31,6 +34,21 @@ WARNINGS AND NOTES
     W0201   missing values skipped, with the count; all missing, or no rows at all, gives NA
     W0204   Inf and -Inf both present, so the result is NA
     W0205   one value only, an infinite value, or squared deviations that overflow, so the result is NA
+
+COMING FROM R OR STATA
+    Equivalents: R scale(); Stata egen std().
+
+    Zeff                           R                                  Stata
+    d.add(z = standardize(wage))   d$z <- as.numeric(scale(d$wage))   egen z = std(wage)
+
+    R's `scale` gives a matrix of one column, with the mean and the deviation as attributes, which
+    `as.numeric` takes away; both skip missing values, as here. Under `by:` the mean and the deviation are
+    those of each group, as with `bysort year: egen z = std(wage)` in Stata.
+
+RELATED TASKS
+    - To subtract the mean alone, use `center`.
+    - For the standard deviation itself, use `sd`.
+    - To cap extreme values before standardising, use `winsorize`.
 
 ACCURACY
     Closed form.
@@ -43,13 +61,40 @@ SEE ALSO
     center, mean, sd
 
 EXAMPLES
-    > let d = frame(x = [2, 4, 9])
-    > standardize(d["x"])
-    Column<Float> · 3 values
-    -0.83205
-    -0.27735
-    1.1094
-    > frame(z = standardize(d["x"])).sd(z)
+    // The wages of one year as z-scores.
+    > let w = dataset(wages).where(year == 2019).select([worker, year, wage]).add(z = standardize(wage))
+    > w.head(3)
+    warning[W0201]: 26 rows with NA in wage were skipped (line 1)
+    frame · 3 rows × 4 variables · panel worker × year
+
+          worker   year    wage           z
+      1        1   2019   26.39   -0.286874
+      2        7   2019   23.39   -0.493649
+      3       13   2019   22.98   -0.521908
+
+    // The result has standard deviation one.
+    > w.sd(z)
     1
+    warning[W0201]: 26 rows with NA in z were skipped (line 3)
+
+    // Within each group with `by:`: each wage against the wages of its own year.
+    > dataset(wages).add(z = standardize(wage), by: year).where(worker == 1).select([worker, year, wage, z]).head(3)
+    frame · 3 rows × 4 variables · panel worker × year
+
+          worker   year    wage           z
+      1        1   2015   18.08   -0.659662
+      2        1   2016   17.28   -0.740958
+      3        1   2017   20.93   -0.523249
+    warning[W0201]: 211 rows with NA in wage were skipped (line 4)
+
+    // A column with no spread has no z-scores: every row is `NA`, with a warning.
+    > frame(x = [5, 5, 5]).add(z = standardize(x))
+    frame · 3 rows × 2 variables
+
+          x    z
+      1   5   NA
+      2   5   NA
+      3   5   NA
+    warning[W0205]: 0 / 0 gave NA in 3 rows (line 5)
 
 Another `standardize`, of the `learn` package, arrives with a release after 1.0: z-scores with the analysis-set mean and sd
