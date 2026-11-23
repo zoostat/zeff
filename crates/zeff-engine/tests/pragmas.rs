@@ -173,10 +173,50 @@ fn a_pragma_in_a_loop_silences_each_pass() {
     let outcome = run(&format!(
         "{FRAME}for i in [1, 2, 3] {{\n    // zeff: allow(W0204) a zero is real\n    let z = d.add(l = log(x))\n}}\n"
     ));
-    // Each pass keeps its W0205 and records its W0204.
-    assert_eq!(messages(&outcome), 3, "{}", outcome.output.stderr);
+    // Each pass records its W0204, silenced at the statement the pragma stands on. Its W0205,
+    // which no pragma allows, is raised in each pass and said once for the three (open
+    // decision #149; release 0.9.0, step 30).
+    assert_eq!(messages(&outcome), 1, "{}", outcome.output.stderr);
+    assert!(
+        outcome
+            .output
+            .stderr
+            .contains("; the same for each of 3 passes (line 2)"),
+        "{}",
+        outcome.output.stderr
+    );
     assert_eq!(outcome.output.allowed.len(), 3);
     assert!(outcome.output.allowed.iter().all(|a| a.line == 4));
+}
+
+/// A warning said once for the passes of a loop is one warning to a pragma and to
+/// `--deny-warnings` (open decision #149; release 0.9.0, step 30): a pragma on the loop
+/// records it once, with the count in its words, and `--deny-warnings` makes one error of it.
+#[test]
+fn a_warning_said_once_for_the_passes_is_allowed_or_refused_once() {
+    let script = "let d = frame(x = [1.0, NA, 3.0])\nfor i in 1..50 { let m = d.mean(x) }\nprint(\"after\")\n";
+    let refused = deny(script);
+    assert_eq!(refused.exit_code, 3);
+    assert_eq!(refused.output.stdout, "", "the run stops after the loop");
+    assert_eq!(
+        refused.output.stderr,
+        "error[W0201]: 1 row with NA in x was skipped; the same for each of 50 passes (line 2)\n  = help: `--deny-warnings` makes every warning an error; to keep this one deliberately, write `// zeff: allow(W0201) reason` above the statement\n"
+    );
+    let allowed = deny(
+        "let d = frame(x = [1.0, NA, 3.0])\n// zeff: allow(W0201) the gap is known\nfor i in 1..50 { let m = d.mean(x) }\nprint(\"after\")\n",
+    );
+    assert_eq!(allowed.exit_code, 0, "{}", allowed.output.stderr);
+    assert_eq!(allowed.output.stdout, "after\n");
+    assert_eq!(allowed.output.stderr, "");
+    assert_eq!(allowed.output.allowed.len(), 1);
+    assert_eq!(allowed.output.allowed[0].reason, "the gap is known");
+    assert!(
+        allowed.output.allowed[0]
+            .message
+            .contains("1 row with NA in x was skipped; the same for each of 50 passes"),
+        "{}",
+        allowed.output.allowed[0].message
+    );
 }
 
 #[test]

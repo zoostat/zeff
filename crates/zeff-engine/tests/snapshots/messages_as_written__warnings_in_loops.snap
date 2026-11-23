@@ -1,0 +1,27 @@
+---
+source: crates/zeff-engine/tests/messages_as_written.rs
+expression: "format!(\"{stdout}---\\n{stderr}\")"
+---
+4
+4
+4
+4
+4
+1
+2
+---
+warning[W0201]: 1 row with NA in x was skipped; the same for each of 12 passes (line 3)
+warning[W0201]: 2 rows with NA in y were skipped; the same for each of 12 passes (line 3)
+warning[W0201]: 1 row with NA in x was skipped; the same for each of 5 items (line 8)
+warning[W0201]: 2 rows with NA in y were skipped; the same for each of 4 items (line 9)
+warning[W0201]: 1 row with NA in x was skipped; the same for each of 3 passes (line 10)
+warning[W0201]: 1 row with NA in y was skipped (line 14)
+warning[W0201]: 2 rows with NA in y were skipped (line 14)
+note: 2 of 4 rows sampled with a seed of its own, derived from 7; the same for each of 4 passes (line 17)
+warning[W0201]: 1 row with NA in x was skipped (line 17)
+warning[W0201]: 1 row with NA in x was skipped; the same for each of 6 passes (line 24)
+note: 1 row with NA in x or g dropped (line 27)
+note[W0401]: `level:` changes nothing here: Holm adjusts the p-values step by step and has no intervals; the same for each of 3 passes (line 28)
+  = help: the methods with intervals at the level asked are tukey, games_howell, scheffe, bonferroni, sidak and none
+warning[W0201]: 1 row with NA in x was skipped; the same 4 times (line 40)
+note: 4 passes until done (line 40)

@@ -142,7 +142,9 @@ Step 28 `[engine]` (the owner's "Continue to 28"): sections in a script (#178). 
 
 Step 29 `[function]` (the owner's "Continue to 29", 23 November 2026): `posthoc(method: games_howell)` (#85): Tukey's comparison on each pair's own variances and Welch's degrees of freedom, for groups that differ in spread; the default stays `tukey`, whose note after Welch's `anova` now names it. Refused after an `anova` of a formula and for a group with no variance of its own. Held to R by its formula in base R, checked against `rstatix` where that package is installed; no package is added to the reference library.
 
-**Next.** Step 30 `[engine]`: a warning repeated in the passes of a loop said once, with the count (#149). Step 3, the weekly mutation run of Monday 23 November, when it has ended.
+Step 30 `[engine]` (on the owner's renewed word of 23 November, "immediately start next steps when a step is finished"): a warning raised word for word in several passes of one loop, or for several items of `map`, `filter` or `reduce`, is printed once with the count, as a note has been since 0.8.0, and never across statements (#149). To a pragma and to `--deny-warnings` it is one warning. What a loop prints and computes is unchanged; the release notes will list the change of printed messages.
+
+**Next.** Step 31 `[function]`: `n_chars`, `row_number` and `row(stat: n_missing)` (#165, #167, #166). Step 3, the weekly mutation run of Monday 23 November, when it has ended.
 
 **For the owner.** The printed table of `margins` (#202 (d)), shown at step 11a, is yours to change; #202 (a) to (e) are taken as recommended. #198, #199 and #200 and #201 (a) (taken as recommended, yours to overturn before 1.0; #201 (b) is open and yours: which standardized coefficients a `glm` fit has, refused until you choose; #200: `predict` gives a probability and `residuals` the outcome less it unless `type:` says otherwise, where R gives log-odds and deviance residuals): on a `glm` fit, clustered errors carry the factor (N − 1)/(N − k) that Stata's `logit` and R's `vcovCL` left to itself omit; analytic weights are refused on a binary model, as in Stata.
 

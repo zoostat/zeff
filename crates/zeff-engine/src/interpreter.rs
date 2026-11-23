@@ -5188,24 +5188,29 @@ fn append_note(message: &Diagnostic) -> Option<(u64, u64, Vec<String>)> {
     Some((rows(added)?, rows(below)?, filled))
 }
 
-/// A note raised word for word in several passes of one loop, or for several items of `map`,
-/// `filter` or `reduce`, is said once, with the count (release 0.8.0, step 8o): a simulation
-/// of a thousand passes that draws a sample in each prints one note, not a thousand. `made`
-/// is the number of passes or items, 0 where it is not known; `what` names them. Warnings,
-/// which carry a code and ask for attention, are left as they are; errors end the loop.
+/// A note or a warning raised word for word in several passes of one loop, or for several
+/// items of `map`, `filter` or `reduce`, is said once, with the count: a simulation of a
+/// thousand passes that draws a sample in each prints one note, not a thousand (release 0.8.0,
+/// step 8o), and one that takes a mean over a missing value prints one warning (open decision
+/// #149; release 0.9.0, step 30). `made` is the number of passes or items, 0 where it is not
+/// known; `what` names them. Two messages are the same when their kind, code, words, advice
+/// and place are; the one kept stands where the first was raised. Never across statements:
+/// this is called for the passes of one loop. W1006 has its own rule and its own words (one
+/// for the fits of a statement, `once_for_the_statement`); errors end the loop.
 fn once_for_the_passes(messages: &mut Vec<Diagnostic>, from: usize, made: usize, what: &str) {
-    let plain_note =
-        |d: &Diagnostic| d.severity == zeff_diagnostics::Severity::Note && d.code.is_empty();
+    let repeated =
+        |d: &Diagnostic| d.severity != zeff_diagnostics::Severity::Error && d.code != "W1006";
     let mut at = from;
     while at < messages.len() {
-        if !plain_note(&messages[at]) {
+        if !repeated(&messages[at]) {
             at += 1;
             continue;
         }
         let mut times = 1usize;
         let mut later = at + 1;
         while later < messages.len() {
-            if plain_note(&messages[later])
+            if messages[later].severity == messages[at].severity
+                && messages[later].code == messages[at].code
                 && messages[later].message == messages[at].message
                 && messages[later].help == messages[at].help
                 && messages[later].labels == messages[at].labels
