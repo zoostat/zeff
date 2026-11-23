@@ -204,13 +204,26 @@ pub fn report(ctx: &mut CallContext<'_>, args: Args) -> Result<Value, Fail> {
         columns.push((hanging(format!("({})", k + 1), tail - 1), Align::Right));
     }
     let mut rows: Vec<Vec<String>> = Vec::new();
+    // How far each number runs past the decimals of `digits:`, cell by cell: a coefficient
+    // written by significant digits (`shown_pair`) has more decimals than its column, and
+    // the others of the column make room on their right, so that the decimal points of a
+    // column stay one under another (open decision #171; release 0.9.0, step 34).
+    let usual = if digits == 0 { 0 } else { digits + 1 };
+    let past = |number: &str| {
+        let length = number.chars().count();
+        number
+            .chars()
+            .position(|c| c == '.')
+            .map_or(0, |at| length - at)
+            .saturating_sub(usual)
+    };
+    let mut runs: Vec<Vec<usize>> = Vec::new();
     for term in &terms {
-        let label = labels
-            .iter()
-            .find(|(t, _)| t == term)
-            .map_or(term.clone(), |(_, l)| l.clone());
+        let label = labelled(term, &labels);
         let mut estimates = vec![label];
         let mut errors = vec![String::new()];
+        let mut over_estimates = vec![0];
+        let mut over_errors = vec![0];
         for shown in &fits {
             match shown.cell(term) {
                 Cell::Estimate {
@@ -219,27 +232,44 @@ pub fn report(ctx: &mut CallContext<'_>, args: Args) -> Result<Value, Fail> {
                     p_value,
                 } => {
                     let star = if with_stars { stars(p_value) } else { "" };
-                    estimates.push(format!(
-                        "{}{star:<width$}",
-                        fixed(value, digits),
-                        width = tail
-                    ));
-                    errors.push(hanging(format!("({})", fixed(std_error, digits)), tail - 1));
+                    let (estimate, error) = shown_pair(value, std_error, digits);
+                    over_estimates.push(past(&estimate));
+                    over_errors.push(past(&error));
+                    estimates.push(format!("{estimate}{star:<width$}", width = tail));
+                    errors.push(hanging(format!("({error})"), tail - 1));
                 }
                 Cell::Marked(mark) => {
+                    over_estimates.push(0);
+                    over_errors.push(0);
                     estimates.push(hanging(mark.to_string(), tail - 1));
                     errors.push(String::new());
                 }
                 Cell::Absent => {
+                    over_estimates.push(0);
+                    over_errors.push(0);
                     estimates.push(String::new());
                     errors.push(String::new());
                 }
             }
         }
         rows.push(estimates);
+        runs.push(over_estimates);
         // A term no model estimated (dropped wherever it appears) has no standard-error row.
         if errors.iter().any(|cell| !cell.is_empty()) {
             rows.push(errors);
+            runs.push(over_errors);
+        }
+    }
+    for k in 1..=fits.len() {
+        let widest = runs.iter().map(|row| row[k]).max().unwrap_or(0);
+        if widest == 0 {
+            continue;
+        }
+        columns[k].0.push_str(&" ".repeat(widest));
+        for (row, run) in rows.iter_mut().zip(&runs) {
+            if !row[k].is_empty() {
+                row[k].push_str(&" ".repeat(widest - run[k]));
+            }
         }
     }
     let rules = vec![rows.len()];
@@ -619,8 +649,106 @@ fn fits(ctx: &mut CallContext<'_>, args: &Args) -> Result<Vec<Shown>, Fail> {
         .collect()
 }
 
+/// A coefficient and its standard error as `report` prints them: both to `digits` decimals;
+/// and, where that would print a coefficient that is not zero as zeros, the coefficient to
+/// two significant digits with its sign, and its standard error to the same number of
+/// decimals (open decision #171; release 0.9.0, step 34): a coefficient of -0.00052 printed
+/// as `0.000`, and a starred `0.000***` said nothing of its size or its direction. Below one
+/// in a million the two digits are written with an exponent, `2.4e-9`, and so is the
+/// standard error. A row whose coefficient shows at `digits` decimals prints as it did, its
+/// standard error included, `(0.000)` where that is what `digits` decimals give.
+fn shown_pair(value: f64, std_error: f64, digits: usize) -> (String, String) {
+    let plain = fixed(value, digits);
+    if value == 0.0 || !value.is_finite() || plain.chars().any(|c| ('1'..='9').contains(&c)) {
+        return (plain, fixed(std_error, digits));
+    }
+    let (estimate, decimals) = two_significant(value);
+    let Some(decimals) = decimals else {
+        return (estimate, format!("{std_error:.1e}"));
+    };
+    let error = format!("{std_error:.decimals$}");
+    // A standard error far below its coefficient would be zeros again: its own two digits.
+    let error = if std_error != 0.0
+        && std_error.is_finite()
+        && !error.chars().any(|c| ('1'..='9').contains(&c))
+    {
+        two_significant(std_error).0
+    } else {
+        error
+    };
+    (estimate, error)
+}
+
+/// A number that is not zero to two significant digits, and the number of decimals that
+/// took: written plainly down to one in a million, `0.00045`, and with an exponent below
+/// that, `2.4e-9`, where there is no number of decimals to give.
+fn two_significant(value: f64) -> (String, Option<usize>) {
+    // The exponent of the value so rounded says how many decimals two digits take.
+    let rounded = format!("{value:.1e}");
+    let exponent: i32 = rounded
+        .split_once('e')
+        .and_then(|(_, e)| e.parse().ok())
+        .unwrap_or(0);
+    if exponent < -6 {
+        return (rounded, None);
+    }
+    let decimals = (1 - exponent).max(0) as usize;
+    (format!("{value:.decimals$}"), Some(decimals))
+}
+
+/// A term's name with `labels:` applied (open decision #171): the label of the whole term
+/// where one is given; otherwise each part of an interaction, split at its colons, takes the
+/// label of that part, and a part that is a level of a category, `city=Mumbai`, the label of
+/// its variable before the level, so that `labels: {lsize: "Log size"}` renames `lsize` and
+/// `lsize:city=Mumbai` alike.
+fn labelled(term: &str, labels: &[(String, String)]) -> String {
+    let of = |name: &str| {
+        labels
+            .iter()
+            .find(|(t, _)| t == name)
+            .map(|(_, l)| l.as_str())
+    };
+    if let Some(whole) = of(term) {
+        return whole.to_string();
+    }
+    term.split(':')
+        .map(|part| match (of(part), part.split_once('=')) {
+            (Some(label), _) => label.to_string(),
+            (None, Some((variable, level))) => match of(variable) {
+                Some(label) => format!("{label}={level}"),
+                None => part.to_string(),
+            },
+            (None, None) => part.to_string(),
+        })
+        .collect::<Vec<String>>()
+        .join(":")
+}
+
+/// The names `labels:` may give a label to: each term, each part of an interaction, and the
+/// variable of a part that is a level of a category.
+fn label_names(terms: &[String]) -> Vec<String> {
+    let mut names: Vec<String> = Vec::new();
+    let mut add = |name: &str| {
+        if !names.iter().any(|n| n == name) {
+            names.push(name.to_string());
+        }
+    };
+    for term in terms {
+        add(term);
+    }
+    for term in terms {
+        for part in term.split(':') {
+            add(part);
+            if let Some((variable, _)) = part.split_once('=') {
+                add(variable);
+            }
+        }
+    }
+    names
+}
+
 /// `labels:`, a record of term names and the text to print for each; a name that is a term of
-/// none of the models is refused, as is a label that is not text.
+/// none of the models, nor a part of one, is refused, as is a label that is not text.
 fn labels(
     ctx: &CallContext<'_>,
     args: &Args,
@@ -645,7 +773,7 @@ fn labels(
                 .help("write `labels: {educ: \"Years of schooling\"}`"),
             ));
         };
-        if !terms.contains(name) {
+        if !label_names(terms).contains(name) {
             let listed = terms
                 .iter()
                 .map(|t| format!("`{t}`"))
@@ -658,7 +786,7 @@ fn labels(
                 )
                 .in_file(ctx.script)
                 .primary(ctx.span_of(LABELS), "unknown term")
-                .help(format!("the terms are {listed}")),
+                .help(format!("the terms are {listed}; a part of an interaction, or the variable of a level, may be named too")),
             ));
         }
         labels.push((name.clone(), label.clone()));

@@ -321,8 +321,20 @@ pub fn test_result_before(result: &TestResult) -> Vec<String> {
         match &h.symbols {
             Some((s0, s1)) => {
                 let width = h.h0.chars().count().max(h.h1.chars().count());
-                lines.push(format!("  H0: {:<width$}      {s0}", h.h0));
-                lines.push(format!("  H1: {:<width$}      {s1}", h.h1));
+                // Beside the words where both fit the page; where they do not (long names
+                // of groups, as a Bool group's `female=false`), each symbolic form goes on
+                // a line of its own under its words (open decision #171; release 0.9.0,
+                // step 34), so that no line of the block runs to twice the page.
+                let widest = 6 + width + 6 + s0.chars().count().max(s1.chars().count());
+                if widest <= PAGE_WIDTH {
+                    lines.push(format!("  H0: {:<width$}      {s0}", h.h0));
+                    lines.push(format!("  H1: {:<width$}      {s1}", h.h1));
+                } else {
+                    lines.push(format!("  H0: {}", h.h0));
+                    lines.push(format!("      {s0}"));
+                    lines.push(format!("  H1: {}", h.h1));
+                    lines.push(format!("      {s1}"));
+                }
             }
             None => {
                 lines.push(format!("  H0: {}", h.h0));

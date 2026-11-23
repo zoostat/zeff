@@ -799,6 +799,7 @@ pub fn anova(
                 statistic: statistic(row),
                 p_value: row.p,
                 effect: Some(Estimate {
+                    std_error: None,
                     label: measure.clone(),
                     value: row.effect(which),
                     ci: None,

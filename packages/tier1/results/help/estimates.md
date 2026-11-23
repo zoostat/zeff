@@ -9,7 +9,9 @@ p-value and confidence interval at the result's level as a frame, one row per te
 estimate, for tables and plots of one's own; a term omitted as collinear has no row. A test's
 result gives a row for its estimate, with the statistic, its degrees of freedom and the p-value,
 and a row for its effect size with its interval where it has one; `df2` holds the second degrees
-of freedom of an F and is `NA` otherwise. A test of several rows gives a row for each: a term of
+of freedom of an F and is `NA` otherwise. A t-test gives the standard error of its mean or of
+its difference, the one its statistic divides by, and that of its effect size; the other tests
+of one row leave `std_error` as `NA`. A test of several rows gives a row for each: a term of
 a factorial `anova` with its F, a comparison of `posthoc` with its difference in `estimate`, its
 standard error and its interval where the method has one. Like `broom::tidy` in R and `r(table)`
 in Stata.
@@ -38,8 +40,8 @@ frame · 4 rows × 9 variables
 frame · 2 rows × 9 variables
 
       term                           estimate   std_error   statistic      df   df2    p_value     ci_lower
-  1   difference (male − female)   -0.0431739          NA     -1.1778   18304    NA   0.238892    -0.115024
-  2   Hedges' g                    -0.0173753          NA          NA      NA    NA         NA   -0.0462772
+  1   difference (male − female)   -0.0431739   0.0366564     -1.1778   18304    NA   0.238892    -0.115024
+  2   Hedges' g                    -0.0173753   0.0147461          NA      NA    NA         NA   -0.0462772
 
        ci_upper
   1    0.028676

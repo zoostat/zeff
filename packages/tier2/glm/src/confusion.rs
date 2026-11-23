@@ -243,6 +243,7 @@ pub fn confusion(ctx: &mut CallContext<'_>, args: Args) -> Result<Value, Fail> {
             p_value: f64::NAN,
             effect: None,
             estimate: Some(Estimate {
+                std_error: None,
                 label: (*name).to_string(),
                 value: *value,
                 ci: None,

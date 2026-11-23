@@ -446,7 +446,16 @@ pub fn estimates(ctx: &mut CallContext<'_>, args: Args) -> Result<Value, Fail> {
             let mut p_values = vec![Some(test.p_value)];
             let mut lowers = vec![test.estimate.as_ref().and_then(|e| e.ci).map(|c| c.0)];
             let mut uppers = vec![test.estimate.as_ref().and_then(|e| e.ci).map(|c| c.1)];
+            // The standard error of the estimate, where the test rests on one (a `t_test`'s
+            // difference and its effect size; open decision #171).
+            let mut errors = vec![
+                test.estimate
+                    .as_ref()
+                    .and_then(|e| e.std_error)
+                    .and_then(finite),
+            ];
             if let Some(effect) = &test.effect {
+                errors.push(effect.std_error.and_then(finite));
                 terms.push(Some(effect.label.clone()));
                 values.push(Some(effect.value));
                 statistics.push(None);
@@ -456,14 +465,13 @@ pub fn estimates(ctx: &mut CallContext<'_>, args: Args) -> Result<Value, Fail> {
                 lowers.push(effect.ci.map(|c| c.0));
                 uppers.push(effect.ci.map(|c| c.1));
             }
-            let rows = terms.len();
             vec![
                 (
                     "term".to_string(),
                     Column::strs(terms.iter().map(|t| t.as_deref())),
                 ),
                 ("estimate".to_string(), floats(values)),
-                ("std_error".to_string(), floats(vec![None; rows])),
+                ("std_error".to_string(), floats(errors)),
                 ("statistic".to_string(), floats(statistics)),
                 ("df".to_string(), floats(dfs)),
                 ("df2".to_string(), floats(df2s)),

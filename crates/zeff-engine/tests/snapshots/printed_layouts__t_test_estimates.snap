@@ -1,0 +1,27 @@
+---
+source: crates/zeff-engine/tests/printed_layouts.rs
+expression: stdout
+---
+frame · 2 rows × 9 variables
+
+      term                         estimate   std_error   statistic        df   df2       p_value   ci_lower
+  1   difference (male − female)    3.75194    0.205332     18.2726   18093.9    NA   6.32626e-74    3.34947
+  2   Hedges' g                    0.269885    0.014898          NA        NA    NA            NA   0.240686
+
+      ci_upper
+  1    4.15441
+  2   0.299085
+true
+frame · 1 row × 9 variables
+
+      term                     estimate   std_error   statistic      df   df2   p_value   ci_lower   ci_upper
+  1   difference (mean − 20)    7.36954    0.103972     70.8802   18200    NA         0    7.16574    7.57333
+frame · 2 rows × 9 variables
+
+      term                         estimate   std_error   statistic      df   df2       p_value   ci_lower   ci_upper
+  1   difference (male − female)    3.75194    0.206177     18.1977   18199    NA   2.40529e-73    3.34782    4.15607
+  2   Hedges' g                    0.269885    0.014898          NA      NA    NA            NA   0.240686   0.299085
+frame · 1 row × 9 variables
+
+      term                          estimate   std_error   statistic   df   df2     p_value    ci_lower    ci_upper
+  1   difference (before − after)      -0.46    0.191311    -2.40446    4    NA   0.0739977   -0.991165   0.0711652

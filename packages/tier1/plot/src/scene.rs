@@ -645,6 +645,30 @@ struct Categories {
 /// any other variable are the values it holds, in the order of the language (section 3.7:
 /// `false` before `true`, numbers by size, text by code point), each named by its value label
 /// where it has one and as it prints where it has none; values with one label are one category.
+/// The title of a facet for a value of a variable (open decision #171; release 0.9.0, step
+/// 34): a number, or true or false, says nothing alone at the head of a panel, so it carries
+/// its variable, `kids = 0`; a text, a category and a value with a label are their own
+/// title. `NA` carries the variable too where the others do.
+fn facet_title(name: &str, column: &Column, label: &str) -> String {
+    let numbers = column.levels().is_none()
+        && matches!(
+            column.ty(),
+            zeff_columns::ColumnType::Int
+                | zeff_columns::ColumnType::Float
+                | zeff_columns::ColumnType::Bool
+        )
+        // A value label is a word, and is its own title.
+        && (0..column.len()).all(|row| {
+            let shown = labelled_cell(column, row);
+            shown == "NA" || shown == "true" || shown == "false" || shown.parse::<f64>().is_ok()
+        });
+    if numbers {
+        format!("{name} = {label}")
+    } else {
+        label.to_string()
+    }
+}
+
 fn categories(column: &Column) -> Categories {
     if let (Some(levels), Some(codes)) = (column.levels(), column.as_codes()) {
         return Categories {
@@ -2922,11 +2946,16 @@ fn parting(plot: &Plot) -> Option<Parting> {
                 combination
                     .iter()
                     .zip(&keys)
-                    .map(|((none, place), key)| {
-                        if *none {
-                            "NA".to_string()
+                    .zip(by.iter())
+                    .map(|(((none, place), key), name)| {
+                        let label = if *none {
+                            "NA"
                         } else {
-                            key.labels[*place].clone()
+                            key.labels[*place].as_str()
+                        };
+                        match frame.table.column(name) {
+                            Some(column) => facet_title(name, column, label),
+                            None => label.to_string(),
                         }
                     })
                     .collect::<Vec<String>>()
@@ -2986,16 +3015,20 @@ fn grid_parting(plot: &Plot, rows: Option<&str>, cols: Option<&str>) -> Option<P
         let Some(name) = name else {
             return Some((vec![String::new()], vec![0; frame.table.rows()]));
         };
-        let all = categories(frame.table.column(name)?);
+        let column = frame.table.column(name)?;
+        let all = categories(column);
         // The categories that a row has, in their order, and `NA` last.
         let mut held: Vec<Option<usize>> = all.of.clone();
         held.sort_by_key(|place| (place.is_none(), place.unwrap_or(0)));
         held.dedup();
         let labels = held
             .iter()
-            .map(|place| match place {
-                Some(place) => all.labels[*place].clone(),
-                None => "NA".to_string(),
+            .map(|place| {
+                let label = match place {
+                    Some(place) => all.labels[*place].as_str(),
+                    None => "NA",
+                };
+                facet_title(name, column, label)
             })
             .collect();
         let of = all

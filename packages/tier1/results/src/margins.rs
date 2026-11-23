@@ -1211,6 +1211,7 @@ pub fn margins(ctx: &mut CallContext<'_>, args: Args) -> Result<Value, Fail> {
                 p_value: f64::NAN,
                 effect: None,
                 estimate: Some(Estimate {
+                    std_error: None,
                     label: term,
                     value: if estimable { estimate } else { f64::NAN },
                     ci: None,
@@ -1245,6 +1246,7 @@ pub fn margins(ctx: &mut CallContext<'_>, args: Args) -> Result<Value, Fail> {
             p_value: p,
             effect: None,
             estimate: Some(Estimate {
+                std_error: None,
                 label: term,
                 value: estimate,
                 ci: Some(interval),

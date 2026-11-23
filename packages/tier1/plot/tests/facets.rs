@@ -129,6 +129,73 @@ fn a_plot_parted_by_a_variable_has_a_panel_for_each_of_its_values() {
     insta::assert_snapshot!("three_sites", json);
 }
 
+/// A facet of a number, or of true and false, carries its variable in its title, `week = 1`:
+/// a bare `1` at the head of a panel said nothing (open decision #171; release 0.9.0, step
+/// 34). A text and a value with a label are their own titles, as before; a row without a
+/// value is `week = NA` where the others carry the variable; two variables give both.
+#[test]
+fn a_facet_of_a_number_is_titled_by_its_variable_and_its_value() {
+    let strips = |by: &[&str]| -> Vec<String> {
+        with(&parted(sites(), "week", "count", by), Mark::Points)
+            .panels
+            .iter()
+            .filter_map(|p| p.strip.clone())
+            .collect()
+    };
+    assert_eq!(strips(&["week"]), ["week = 1", "week = 2", "week = 3"]);
+    assert_eq!(strips(&["arm"]), ["a", "b"]);
+    assert_eq!(
+        strips(&["arm", "week"]),
+        ["a, week = 1", "a, week = 3", "b, week = 2"]
+    );
+    // True and false, and a missing value among whole numbers.
+    let frame = Frame::new(
+        zeff_columns::Table::new(vec![
+            (
+                "treated".to_string(),
+                Column::bools([Some(true), Some(false), Some(true), None]),
+            ),
+            (
+                "kids".to_string(),
+                Column::ints([Some(0), Some(1), Some(1), None]),
+            ),
+            ("x".to_string(), numbers(&[1.0, 2.0, 3.0, 4.0])),
+            ("y".to_string(), numbers(&[2.0, 1.0, 4.0, 3.0])),
+        ])
+        .unwrap(),
+    );
+    let of = |by: &str| -> Vec<String> {
+        with(&parted(frame.clone(), "x", "y", &[by]), Mark::Points)
+            .panels
+            .iter()
+            .filter_map(|p| p.strip.clone())
+            .collect()
+    };
+    assert_eq!(of("kids"), ["kids = 0", "kids = 1", "kids = NA"]);
+    assert_eq!(
+        of("treated"),
+        ["treated = false", "treated = true", "treated = NA"]
+    );
+    // A grid of two variables: the columns and the rows are titled the same way.
+    let grid = with(
+        &gridded(frame, "x", "y", Some("kids"), Some("treated")),
+        Mark::Points,
+    );
+    let over: Vec<&str> = grid
+        .panels
+        .iter()
+        .filter_map(|p| p.strip.as_deref())
+        .collect();
+    assert_eq!(over, ["treated = false", "treated = true", "treated = NA"]);
+    let mut beside: Vec<&str> = grid
+        .panels
+        .iter()
+        .filter_map(|p| p.side.as_deref())
+        .collect();
+    beside.dedup();
+    assert_eq!(beside, ["kids = 0", "kids = 1", "kids = NA"]);
+}
+
 #[test]
 fn the_panels_are_laid_in_rows() {
     let shape = |n: usize| {

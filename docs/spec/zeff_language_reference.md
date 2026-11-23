@@ -480,7 +480,7 @@ The rules of this section settle what language specifications usually settle and
 | Frame | Its `describe` header and first ten rows (section 3.1) |
 | `Column<T>` | Its type and length on one line (`Column<Float> · 5 values`), then its values as a list prints them: one per line, up to 20, then the count of the rest; the values of an opaque column print as the opaque row below says |
 | List, Record, Mapping | One line per item or field, up to 20, then the count of the rest |
-| Result | Its `summary`; tables round half to even: estimates, standard errors and confidence limits to 4 decimals, test statistics to 2, descriptive statistics to 3, p-values to 3 with `<0.001` below, and counts with thousands separators, as section 10.2 shows; a `report` table, which sets models side by side, rounds estimates and standard errors to 3 decimals; `report(digits:)` changes a table's precision |
+| Result | Its `summary`; tables round half to even: estimates, standard errors and confidence limits to 4 decimals, test statistics to 2, descriptive statistics to 3, p-values to 3 with `<0.001` below, and counts and degrees of freedom with thousands separators, as section 10.2 shows; a `report` table, which sets models side by side, rounds estimates and standard errors to 3 decimals; `report(digits:)` changes a table's precision; a coefficient of a `report` table that is not zero and would print as zeros is written to two significant digits with its sign, `-0.00048`, and its standard error to the same decimals |
 | Table, Plot | Shown in the viewer or the console; `.export()` writes them |
 | `Fn` | Its signature |
 | `Dag` | Its text form, one edge per line as a `dag { }` block writes it; `g.plot()` draws it |

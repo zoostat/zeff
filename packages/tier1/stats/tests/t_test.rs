@@ -157,6 +157,17 @@ fn check(case: &Json, result: &TestResult, mu: Option<f64>) {
     let (lower, upper) = estimate.ci.unwrap();
     want("ci lower", lower, number(&case["ci_lower"]) - shift);
     want("ci upper", upper, number(&case["ci_upper"]) - shift);
+    // The standard error of the difference is R's `t.test()$stderr` (open decision #171;
+    // release 0.9.0, step 34), and t is the difference over it.
+    let se = estimate
+        .std_error
+        .expect("a t-test has the standard error of its difference");
+    want("std error", se, number(&case["stderr"]));
+    assert!(
+        (estimate.value / se - result.statistic.value).abs()
+            <= 1e-9 * result.statistic.value.abs().max(1.0),
+        "{name}: t is not the difference over its standard error"
+    );
     if let Some(effect) = &result.effect {
         let key = if effect.label.starts_with("Cohen") {
             "d"

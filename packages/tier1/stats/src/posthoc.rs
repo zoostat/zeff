@@ -39,7 +39,9 @@
 
 use std::f64::consts::SQRT_2;
 use std::rc::Rc;
-use zeff_core::display::{degrees_text, fixed, format_float, level_text, p_value_text};
+use zeff_core::display::{
+    degrees_text, fixed, fixed_grouped, format_float, level_text, p_value_text,
+};
 use zeff_core::runtime::{Args, CallContext, Fail, fail};
 use zeff_core::value::{
     Align, Alternative, Distribution, Estimate, FollowUp, GroupMean, ModelFit, Statistic, Table,
@@ -641,7 +643,7 @@ fn report(test: &TestResult, method: Method, report: Report<'_>) -> Value {
             if welch_pairs {
                 // Welch–Satterthwaite degrees of freedom are seldom whole: one decimal in
                 // every row keeps the column in line.
-                cells.push(fixed(row.df, 1));
+                cells.push(fixed_grouped(row.df, 1));
             }
             cells.push(p_value_text(row.p));
             if intervals {
@@ -670,6 +672,7 @@ fn report(test: &TestResult, method: Method, report: Report<'_>) -> Value {
                 p_value: row.p,
                 effect: None,
                 estimate: Some(Estimate {
+                    std_error: None,
                     label: label(row),
                     value: row.difference,
                     ci: row.ci,

@@ -14,7 +14,10 @@ case <- function(name, t, extra = list()) {
   ci <- as.vector(t$conf.int)
   c(list(name = name, statistic = num(unname(t$statistic)), df = num(unname(t$parameter)),
          p_value = num(t$p.value), estimate = num(unname(sum(t$estimate * c(1, -1)[seq_along(t$estimate)]))),
-         ci_lower = num(ci[1]), ci_upper = num(ci[2])), extra)
+         ci_lower = num(ci[1]), ci_upper = num(ci[2]),
+         # The standard error of the difference, which estimates() of the result gives from
+         # release 0.9.0, step 34 (open decision #171).
+         stderr = num(unname(t$stderr))), extra)
 }
 
 effect <- function(x1, x2, level, alternative) {

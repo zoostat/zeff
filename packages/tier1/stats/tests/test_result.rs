@@ -71,6 +71,7 @@ fn welch() -> TestResult {
             rules: Vec::new(),
         }),
         estimate: Some(Estimate {
+            std_error: None,
             label: "difference (male − female)".to_string(),
             value: 0.153,
             ci: Some((0.138, 0.168)),
@@ -83,6 +84,7 @@ fn welch() -> TestResult {
         },
         p_value: 1e-90,
         effect: Some(Estimate {
+            std_error: None,
             label: "Hedges' g".to_string(),
             value: 0.30,
             ci: Some((0.27, 0.33)),
@@ -191,6 +193,7 @@ fn the_lines_round_as_the_display_rules_say() {
     assert_eq!(
         estimate_line(
             &Estimate {
+                std_error: None,
                 label: "mean".into(),
                 value: 2.5,
                 ci: None,
@@ -203,6 +206,7 @@ fn the_lines_round_as_the_display_rules_say() {
     assert_eq!(
         estimate_line(
             &Estimate {
+                std_error: None,
                 label: "π".into(),
                 value: 0.4,
                 ci: Some((0.35, 0.45)),

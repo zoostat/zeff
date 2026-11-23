@@ -80,6 +80,7 @@ fn welch() -> Rc<TestResult> {
         header: Vec::new(),
         table: None,
         estimate: Some(Estimate {
+            std_error: None,
             label: "difference (male − female)".to_string(),
             value: 0.137_707,
             ci: Some((0.123_754, 0.151_659)),
@@ -92,6 +93,7 @@ fn welch() -> Rc<TestResult> {
         },
         p_value: 1.500_26e-82,
         effect: Some(Estimate {
+            std_error: None,
             label: "Hedges' g".to_string(),
             value: 0.286_923,
             ci: Some((0.257_706, 0.316_14)),
@@ -151,6 +153,7 @@ fn exact() -> Rc<TestResult> {
         header: Vec::new(),
         table: None,
         estimate: Some(Estimate {
+            std_error: None,
             label: "odds ratio (conditional MLE)".to_string(),
             value: 1.044_72,
             ci: Some((0.991_214, f64::INFINITY)),
@@ -288,6 +291,7 @@ fn comparisons(intervals: bool) -> Rc<TestResult> {
         p_value: p,
         effect: None,
         estimate: Some(Estimate {
+            std_error: None,
             label: term.to_string(),
             value,
             ci: intervals.then_some((value - 2.0 * se, value + 2.0 * se)),

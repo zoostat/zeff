@@ -420,6 +420,7 @@ pub fn variance_test(ctx: &mut CallContext<'_>, args: Args) -> Result<Value, Fai
                 },
                 test.tested.p,
                 Some(Estimate {
+                    std_error: None,
                     label: format!("ratio of variances ({} / {})", labels[0], labels[1]),
                     value: test.ratio,
                     ci: Some(test.ci),

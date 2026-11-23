@@ -41,7 +41,8 @@ takes the place of what an earlier one said.
 The panels. There is one for each value of the variable that the frame of the plot holds, in
 the order an axis or a legend would have them in: the levels of a Category in their order,
 and other values from the smallest up. Over each is written its value, by its value label
-where the variable has one. A row with no value of the variable is not dropped: it is drawn
+where the variable has one. A number, and true or false, say nothing alone over a panel, so
+they are written with the variable, `kids = 0`; a level, a text and a value label stand alone. A row with no value of the variable is not dropped: it is drawn
 in a panel of its own, the last, named `NA`. A value that only a layer with `data:` of its
 own holds is a panel more, after the others.
 

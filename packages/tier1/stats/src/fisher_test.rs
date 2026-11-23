@@ -476,6 +476,7 @@ pub fn fisher_test(ctx: &mut CallContext<'_>, args: Args) -> Result<Value, Fail>
         (
             result.p,
             Some(Estimate {
+                std_error: None,
                 label: "odds ratio (conditional MLE)".to_string(),
                 value: result.estimate,
                 ci: Some(result.ci),

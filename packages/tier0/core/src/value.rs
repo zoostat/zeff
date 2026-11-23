@@ -1452,6 +1452,10 @@ pub struct Estimate {
     pub value: f64,
     pub ci: Option<(f64, f64)>,
     pub decimals: usize,
+    /// The standard error of the estimate, where the test rests on one: the difference of a
+    /// `t_test` and its effect size (open decision #171; release 0.9.0, step 34), which
+    /// `estimates()` gives in `std_error`. `None` where the test has none of its own.
+    pub std_error: Option<f64>,
 }
 
 #[derive(Debug, Clone, PartialEq)]

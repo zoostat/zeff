@@ -27,9 +27,9 @@ two_sided
 18201
 frame · 2 rows × 9 variables
 
-      term                         estimate   std_error   statistic        df   df2       p_value   ci_lower
-  1   difference (male − female)   0.137707          NA     19.3458   18130.3    NA   1.50026e-82   0.123754
-  2   Hedges' g                    0.286923          NA          NA        NA    NA            NA   0.257706
+      term                         estimate    std_error   statistic        df   df2       p_value   ci_lower
+  1   difference (male − female)   0.137707   0.00711814     19.3458   18130.3    NA   1.50026e-82   0.123754
+  2   Hedges' g                    0.286923    0.0149068          NA        NA    NA            NA   0.257706
 
       ci_upper
   1   0.151659

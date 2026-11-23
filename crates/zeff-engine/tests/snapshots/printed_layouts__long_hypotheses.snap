@@ -1,0 +1,28 @@
+---
+source: crates/zeff-engine/tests/printed_layouts.rs
+expression: stdout
+---
+proportion_test · two-sample · member by woman_in_the_sample
+  H0: the population proportions of member are equal in woman_in_the_sample=false and woman_in_the_sample=true
+      π(woman_in_the_sample=false) − π(woman_in_the_sample=true) = 0
+  H1: the population proportions of member differ between woman_in_the_sample=false and woman_in_the_sample=true
+      π(woman_in_the_sample=false) − π(woman_in_the_sample=true) ≠ 0
+
+  group                           N   successes   proportion
+  woman_in_the_sample=false   9,375       2,934        0.313
+  woman_in_the_sample=true    8,826       2,854        0.323
+
+difference (woman_in_the_sample=false − woman_in_the_sample=true, Newcombe) = -0.010   95% CI [-0.024, 0.003]
+z = -1.51   p = 0.132
+decision at α = 0.05: fail to reject H0 (p = 0.132)
+proportion_test · two-sample · member by female
+  H0: the population proportions of member are equal in male and female        π(male) − π(female) = 0
+  H1: the population proportions of member differ between male and female      π(male) − π(female) ≠ 0
+
+  group        N   successes   proportion
+  male     9,375       2,934        0.313
+  female   8,826       2,854        0.323
+
+difference (male − female, Newcombe) = -0.010   95% CI [-0.024, 0.003]
+z = -1.51   p = 0.132
+decision at α = 0.05: fail to reject H0 (p = 0.132)

@@ -369,6 +369,7 @@ fn one_sample(
         )],
         table: None,
         estimate: Some(Estimate {
+            std_error: Some(se),
             label: format!("difference (mean − {m})"),
             value: mean - mu,
             ci: Some(ci),
@@ -452,6 +453,7 @@ fn paired_form(
         )],
         table: None,
         estimate: Some(Estimate {
+            std_error: Some(se),
             label: format!("difference ({a} − {b})"),
             value: mean_d,
             ci: Some(ci),
@@ -595,6 +597,7 @@ fn two_groups(
             rules: Vec::new(),
         }),
         estimate: Some(Estimate {
+            std_error: Some(se),
             label: format!("difference ({g1} − {g2})"),
             value: difference,
             ci: Some(ci),
@@ -607,6 +610,7 @@ fn two_groups(
         },
         p_value: p,
         effect: Some(Estimate {
+            std_error: Some(se_effect),
             label: label.to_string(),
             value,
             ci: Some(effect_ci),

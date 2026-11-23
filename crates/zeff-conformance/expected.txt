@@ -124,15 +124,15 @@ models/ar_test/stdout 4848553079a9fa73
 models/ar_test/stderr 0beceb45c8281a13
 models/first_stage/stdout 07507645b72016dc
 models/first_stage/stderr 92ef2fd5b0f41429
-models/ivreg/stdout 2c6aa8d411f5eca0
+models/ivreg/stdout e0e63baa496a617d
 models/ivreg/stderr 01ec1ac5c3294ea7
 models/instruments_checked/stdout 449797f7817b0896
 models/instruments_checked/stderr ba06c4edfe4c3af9
-models/glm/stdout 6f91d1f8e4a6ddec
+models/glm/stdout e5d9a426bee9c9fb
 models/glm/stderr d3ef9608efb247c1
 models/glm_checked/stdout cbf29ce484222325
 models/glm_checked/stderr 370eab9a0a1ef51d
-models/margins/stdout 408ee449134a3e36
+models/margins/stdout aab90d8067998a19
 models/margins/stderr 26394a6077f1061d
 control/check/stdout cbf29ce484222325
 control/check/stderr 78f09813226bf7ad
@@ -260,9 +260,9 @@ tests/anova_oneway/stdout 73ec1aaf49e06bac
 tests/anova_oneway/stderr 44b8e20762fa68d7
 tests/anova_factorial/stdout b41156ba0a74efa4
 tests/anova_factorial/stderr 9c735bc3dbfdcd45
-tests/posthoc/stdout 4d8225870839674e
+tests/posthoc/stdout 5333078c747206c4
 tests/posthoc/stderr cc9c0390ee16eae3
-tests/posthoc_games_howell/stdout 5bb54c57785c00c9
+tests/posthoc_games_howell/stdout db71586b8a23929d
 tests/posthoc_games_howell/stderr 8ce96fcbc149db93
 verbs/save/stdout cbf29ce484222325
 verbs/save/stderr f0b9f97ee401dc01
@@ -552,7 +552,7 @@ regression/exit_code a8c7f832281a39c5
 regression/output/model5.tex 50a2cb894ae38f0c
 regression/output/table1.docx 38433d13dd4d1591
 regression/output/table1.tex 6cf45d170a0e5e55
-user_functions/stdout 54c24bf5106e3eb4
+user_functions/stdout ec427662b36479da
 user_functions/stderr e520ab3d7c59acaf
 user_functions/exit_code a8c7f832281a39c5
 # user_functions/exit_code bits 0000000000000000
@@ -596,13 +596,13 @@ plots/output/fig7_trend.png 3d9479bcdede1b06
 plots/output/fig7_trend.svg 95c372a56c500f6c
 plots/output/fig8_industries.svg c80034c74a5d78b0
 plots/output/fig9_shape.svg cbd3616f34331d64
-tests/stdout e9dec113fb628d10
+tests/stdout 8cb235969b87e3a2
 tests/stderr f1bcf360999ab7c4
 tests/exit_code a8c7f832281a39c5
 # tests/exit_code bits 0000000000000000
-instruments/stdout 515cdd0a13b6c085
+instruments/stdout 1c6d6073c3c37373
 instruments/stderr 6459536a561f2944
 instruments/exit_code a8c7f832281a39c5
 # instruments/exit_code bits 0000000000000000
-instruments/output/table_iv.tex 0197b4ea2155cac9
+instruments/output/table_iv.tex 63b49f63950010d9
 help/examples cbf29ce484222325

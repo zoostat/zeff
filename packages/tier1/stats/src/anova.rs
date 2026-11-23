@@ -606,6 +606,7 @@ pub fn anova(ctx: &mut CallContext<'_>, args: Args) -> Result<Value, Fail> {
         },
         p_value: test.p,
         effect: Some(Estimate {
+            std_error: None,
             label: which.label().to_string(),
             value: size,
             ci: None,

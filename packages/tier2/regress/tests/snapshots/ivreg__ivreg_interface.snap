@@ -69,11 +69,11 @@ let plain = staff.ivreg(productivity ~ age + training, instruments: training ~ o
 report([ols, iv])
 
 ---
-                           (1)               (2)
-  age                   0.004             0.000
-                       (0.009)           (0.009)
-  training              5.934***          4.582***
-                       (0.208)           (0.423)
+                           (1)             (2)
+  age                   0.004          -0.00048
+                       (0.009)         (0.00946)
+  training              5.934***        4.582***
+                       (0.208)         (0.423)
   ────────────────────────────────────────────────
   Fixed effects             site              site
   Instruments                      offer, distance
@@ -91,11 +91,11 @@ let plain = staff.ivreg(productivity ~ age + training, instruments: training ~ o
 report([ols, iv, plain], stats: [n_obs, r_squared, r_squared_within, aic, bic])
 
 ---
-                      (1)               (2)         (3)
-  age              0.004             0.000      -0.008
-                  (0.009)           (0.009)     (0.011)
-  training         5.934***          4.582***    4.327***
-                  (0.208)           (0.423)     (0.506)
+                      (1)             (2)           (3)
+  age              0.004          -0.00048      -0.008
+                  (0.009)         (0.00946)     (0.011)
+  training         5.934***        4.582***      4.327***
+                  (0.208)         (0.423)       (0.506)
   (intercept)                                   51.674***
                                                 (0.586)
   ───────────────────────────────────────────────────────

@@ -156,6 +156,7 @@ pub fn curve(ctx: &mut CallContext<'_>, args: Args) -> Result<Value, Fail> {
         header,
         table: None,
         estimate: Some(Estimate {
+            std_error: None,
             label: "area under the curve".to_string(),
             value: curve.area,
             ci: None,

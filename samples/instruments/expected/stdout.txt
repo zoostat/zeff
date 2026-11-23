@@ -111,14 +111,14 @@ frame · 2 rows × 9 variables
 Table 1. Productivity and the training course
 
                         (1)         (2)               (3)
-  Age in years       0.004       0.000             0.000
-                    (0.009)     (0.009)           (0.009)
+  Age in years       0.004      -0.00041          -0.00048
+                    (0.009)     (0.00947)         (0.00946)
   Took the course    5.934***    4.603***          4.582***
                     (0.208)     (0.428)           (0.423)
-  ─────────────────────────────────────────────────────────
-  Fixed effects          site        site              site
-  Instruments                       offer   offer, distance
-  SEs                  robust      robust            robust
-  N                     2,400       2,400             2,400
+  ───────────────────────────────────────────────────────────
+  Fixed effects          site          site              site
+  Instruments                         offer   offer, distance
+  SEs                  robust        robust            robust
+  N                     2,400         2,400             2,400
 
 * p < 0.05, ** p < 0.01, *** p < 0.001

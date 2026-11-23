@@ -70,17 +70,17 @@ Wage regressions
   SEs                  classical    robust
   N                       18,179    18,179
   R²                       0.203     0.210
-                    (1)
-  (intercept)        2***
-                    (0)
-  educ               0***
-                    (0)
-  exper              0***
-                    (0)
-  female             0***
-                    (0)
-  ───────────────────────
-  SEs           classical
+                (1)
+  (intercept)    2***
+                (0)
+  educ           0.076***
+                (0.001)
+  exper          0.022***
+                (0.00045)
+  female        -0.13***
+                (0.01)
+  ─────────────────────────
+  SEs             classical
 
 * p < 0.05, ** p < 0.01, *** p < 0.001
 Table
@@ -162,7 +162,7 @@ error[Z0414]: `nope` is not a term of any of these fits
 3 | report([m1], labels: {nope: "x"})
   |                      ^^^^^^^^^^^ unknown term
   |
-  = help: the terms are `(intercept)`, `educ`, `exper`, `female`
+  = help: the terms are `(intercept)`, `educ`, `exper`, `female`; a part of an interaction, or the variable of a level, may be named too
 [exit 1]
 
 > let wages = dataset(wages)

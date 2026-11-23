@@ -26,15 +26,15 @@ note: 3 of the 3,911 clusters hold one observation (line 3)
 ====
 report([lg, m], stats: [n_obs, r_squared, aic, bic], stars: false)
 ---
-                             (1)         (2)
-  (intercept)            -1.227       0.220
-                         (0.265)     (0.024)
-  educ                    0.001       0.000
-                         (0.017)     (0.001)
-  exper                   0.028       0.006
-                         (0.005)     (0.000)
-  female                  0.056       0.012
-                         (0.080)     (0.007)
+                             (1)       (2)
+  (intercept)            -1.227     0.220
+                         (0.265)   (0.024)
+  educ                    0.001     0.00020
+                         (0.017)   (0.00145)
+  exper                   0.028     0.006
+                         (0.005)   (0.000)
+  female                  0.056     0.012
+                         (0.080)   (0.007)
   ──────────────────────────────────────────
   SEs             cluster worker   classical
   N                       18,390      18,390

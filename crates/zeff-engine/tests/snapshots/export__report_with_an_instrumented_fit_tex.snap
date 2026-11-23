@@ -6,12 +6,12 @@ expression: tex
 % 
 \begin{tabular}{lrr}
 \toprule
- & (1)   & (2)   \\
+ & (1)   & (2)     \\
 \midrule
-age & 0.004    & 0.000    \\
- & (0.009)   & (0.009)   \\
-training & 5.934*** & 4.582*** \\
- & (0.208)   & (0.423)   \\
+age & 0.004    & -0.00048    \\
+ & (0.009)   & (0.00946)   \\
+training & 5.934*** & 4.582***   \\
+ & (0.208)   & (0.423)     \\
 \midrule
 Fixed effects & site & site \\
 Instruments &  & offer, distance \\

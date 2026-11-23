@@ -50,18 +50,10 @@ is never listed here as accepted: it is fixed or the function is withdrawn.
 - **`dist.truncated` refuses equal bounds.** A count distribution cannot be cut to one number by
   writing it twice, `lower: 2, upper: 2`; `lower: 2, upper: 2.5` does it, since a truncated
   count distribution keeps the whole numbers of its interval. (Since 0.3.0.)
-- **Gaps that the review against R met, each with a way round it, due at 0.9.0.** A row number
-  (`row_number()`, #167); the length of each text value of a column (#165); one value taken
-  out of a column (#168); a count of missing values across variables in each row, written
-  today as a sum of `to(is_missing(x), Int)` (#166); a column guessed as whole numbers on
-  import that meets a decimal further down, which stops the import where it should widen
-  (#169); six smaller refusals (#170) and six printed layouts, among them a coefficient of
-  -0.0004 that prints as 0.000 in `report` (#171). Each is an error or a layout, never a
-  wrong number.
 - **A warning is said once for a statement, not once for a script.** The same observation
   driving three fits made in one statement is one warning with a count (W1006, since 0.8.0);
-  three fits on three lines are three warnings, and so are the passes of a loop (#149, due at
-  0.9.0). (Since 0.8.0 for the count; before it, every repetition.)
+  three fits on three lines are three warnings. The passes of a loop are counted as one since
+  0.9.0 (see "Resolved at 0.9.0"). (Since 0.8.0 for the count; before it, every repetition.)
 - **No reader outside the project has read Zeff's scripts yet.** The testing handbook asks, from
   0.8.0, that short scripts be given to students and referees who have not written Zeff and that
   what they misread be corrected (section 2.4, item 4). The test was not run at this release, by the
@@ -494,6 +486,25 @@ is never listed here as accepted: it is fixed or the function is withdrawn.
 - **The function catalogue's status column** is updated at each release close, not per function,
   so between releases it lags the registry; `zeff help <package>` shows what is shipped. (Since
   0.1.0.)
+
+## Resolved at 0.9.0
+
+- **The gaps that the review against R met**, listed at 0.8.0 with a way round each, are closed,
+  each as its open decision recommends: the length of each text value, `n_chars` (#165, step
+  31a); a row number, `row_number()` (#167, step 31b); a count of missing values across
+  variables in each row, `row(vars, stat: n_missing)` (#166, step 31c); one value taken out of
+  a column, `x[i]`, `first` and `last` (#168, step 32a); a column guessed as whole numbers on
+  import that meets a decimal further down, now read as Float with a note (#169, step 32b);
+  the six smaller refusals (#170, step 33); and the six printed layouts (#171, step 34): a
+  coefficient of `report` that printed as `0.000` is written to two significant digits with
+  its sign, `labels:` reaches the parts of an interaction, degrees of freedom have thousands
+  separators, a facet of a number is titled `kids = 0`, hypotheses too long for the page have
+  their symbols under their words, and `estimates()` of a t-test gives the standard error.
+  Each was an error or a layout, never a wrong number. Printed output changed with the
+  layouts, and the release notes say where.
+- **A warning repeated word for word in the passes of a loop** was printed in every pass. It
+  is said once, with the count of passes, as a note has been since 0.8.0 (#149, step 30).
+  Warnings of two statements are still two. Listed since 0.8.0.
 
 ## Resolved at 0.8.0
 

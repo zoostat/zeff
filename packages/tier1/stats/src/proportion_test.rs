@@ -477,6 +477,7 @@ fn one_sample(
         )],
         table: None,
         estimate: Some(Estimate {
+            std_error: None,
             label: format!("proportion ({})", interval_name(o.interval)),
             value: c.proportion(),
             ci: Some(ci),
@@ -653,6 +654,7 @@ fn two_groups(
             rules: Vec::new(),
         }),
         estimate: Some(Estimate {
+            std_error: None,
             label: format!(
                 "difference ({g1} − {g2}, {})",
                 match o.interval {

@@ -23,7 +23,9 @@ and a line under the table says what the column is.
   `aic` and `bic`; `[n_obs, r_squared]` unless given.
 - digits: The decimals of the estimates and standard errors.
 - stars: Whether to mark significance with stars and print the legend.
-- labels: Text to print instead of a term's name: `labels: {educ: "Years of schooling"}`.
+- labels: Text to print instead of a term's name: `labels: {educ: "Years of schooling"}`. A
+  label of a variable is printed in every term the variable is a part of, an interaction
+  or a level of a category; a label of a whole term comes before those of its parts.
 - title: The title printed above the table.
 
 ## Value
@@ -32,7 +34,10 @@ A `Table`, which `export` writes to `.docx` or `.tex`.
 ## Details
 Estimates and standard errors are rounded half to even to `digits:` decimals, three unless
 given, as section 3.8 of the Language Reference says; R² keeps three decimals, AIC and BIC one,
-and N is a count. The stars are `*` below 0.05, `**` below 0.01 and `***` below 0.001, and
+and N is a count. A coefficient that is not zero and would print as zeros at those decimals,
+`0.000***`, is written to two significant digits with its sign, `-0.00048`, and its standard
+error to the same decimals; below one in a million both are written with an exponent,
+`2.4e-9`. The stars are `*` below 0.05, `**` below 0.01 and `***` below 0.001, and
 hang to the right of the estimates so that the numbers align on their decimal points. The
 footer carries the legend, then every note and statistical warning a fit raised (a dropped
 term, few clusters, an observation that drives a coefficient), numbered as the fit's column is;

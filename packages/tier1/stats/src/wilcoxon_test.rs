@@ -996,6 +996,7 @@ fn signed_rank_form(
         header: vec![header],
         table: None,
         estimate: Some(Estimate {
+            std_error: None,
             label,
             value: estimate,
             ci: Some(ci),
@@ -1102,6 +1103,7 @@ fn rank_sum_form(
             rules: Vec::new(),
         }),
         estimate: Some(Estimate {
+            std_error: None,
             label: format!("location shift ({g1} − {g2})"),
             value: estimate,
             ci: Some(ci),
