@@ -898,3 +898,7 @@ The owner's decision of 24 November 2026 on the running 0.2.3: "remove "related 
 ## 24 November 2026 — zeff_open_decisions.md, entry #211, item 13
 
 The owner's addition the same day: "Also I want to remove "Help" from right to "Home"". The trail of the Help place no longer begins with the word Help; it begins with the first step under Home, and on Home there is none. The row of 0.2.3 in the Zemp Specification ("a trail saying where a page stands") needs no change.
+
+## 24 November 2026 — zemp_specification.md, section 15; zeff_open_decisions.md, entry #211
+
+The owner's decision of 24 November 2026, on five designs: "Soft panel is final and record it". Open decision #211 gains item 14. The row of 0.2.3 in section 15 of the Zemp Specification said that Home is an Index of functions by package until the methods arrive; it now says that Home is a landing page of panels: Zeff and Zemp Lite one after the other, each with its version and a few words, then a panel for each topic with its count and what it holds. The Index of functions is no longer a page of Help, since every function is reached from its package.
