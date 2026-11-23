@@ -858,3 +858,7 @@ Open decision #167 (decided 21 November 2026, option A, with the name `row_numbe
 
 Open decision #166 (decided 21 November 2026, option A), applied as step 31c of release 0.9.0. The usage of `row` gains a word of `stat:`: `row(vars, stat: mean | sum | n_missing, min_valid: Int = 1)`, the count of the values missing among the variables in each row, with `rowSums(is.na())` and `egen rowmiss()` beside its equivalents. No row is new and no count changes.
 
+## 23 November 2026 — zeff_language_reference.md, sections 3.1, 3.7 and 5.6 (the rows on indexing and conversion), and zeff_functions.csv (rows 36, 44 and 45 widened)
+
+Open decision #168 (decided 21 November 2026, option A), applied as step 32a of release 0.9.0. The rows "Indexing" say that `x[i]` of a column is the value of its row `i`, `NA` where that is missing, with Z0207 outside its rows, that `first(x)` and `last(x)` give the value of a column's first and last row, and that a column takes no range; the row "Conversion" says that `to(x, List)` of a column is the list of its values; the row of Z0207 in section 5.6 names the column beside the list. The catalogue's rows of `first`, `last` and `to` say the same. No row is new and no count changes.
+

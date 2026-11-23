@@ -104,6 +104,18 @@ fn empty(ctx: &CallContext<'_>, name: &str) -> Fail {
     )
 }
 
+/// `first` or `last` of a column with no row (open decision #168).
+fn empty_column(ctx: &CallContext<'_>, name: &str) -> Fail {
+    fail(
+        Diagnostic::error("Z0207", format!("`{name}` of a column with no row"))
+            .in_file(ctx.script)
+            .primary(ctx.span_of(0), "the column has 0 values")
+            .help(format!(
+                "a column must have a row for `{name}` to give its value; `n_rows` of the frame says whether there is one"
+            )),
+    )
+}
+
 fn list_arg(ctx: &CallContext<'_>, args: &mut Args, name: &str) -> Result<Vec<Value>, Fail> {
     match args.take(0) {
         Some(Value::List(items)) => Ok(items),
@@ -121,8 +133,16 @@ fn list_arg(ctx: &CallContext<'_>, args: &mut Args, name: &str) -> Result<Vec<Va
     }
 }
 
-/// `first(list)`: the first item, in the list's current order (section 6, "Row order").
+/// `first(list)`: the first item, in the list's current order (section 6, "Row order"). Of a
+/// column, the value of its first row, `NA` where that is missing (open decision #168;
+/// release 0.9.0, step 32a): R's `x[1]`.
 fn first(ctx: &mut CallContext<'_>, mut args: Args) -> Result<Value, Fail> {
+    if let Some(Value::Column(column)) = args.get(0) {
+        return match column.len() {
+            0 => Err(empty_column(ctx, "first")),
+            _ => Ok(crate::lift::cell_value(column, 0)),
+        };
+    }
     let mut items = list_arg(ctx, &mut args, "first")?;
     if items.is_empty() {
         return Err(empty(ctx, "first"));
@@ -130,8 +150,14 @@ fn first(ctx: &mut CallContext<'_>, mut args: Args) -> Result<Value, Fail> {
     Ok(items.swap_remove(0))
 }
 
-/// `last(list)`: the last item.
+/// `last(list)`: the last item; of a column, the value of its last row.
 fn last(ctx: &mut CallContext<'_>, mut args: Args) -> Result<Value, Fail> {
+    if let Some(Value::Column(column)) = args.get(0) {
+        return match column.len() {
+            0 => Err(empty_column(ctx, "last")),
+            rows => Ok(crate::lift::cell_value(column, rows - 1)),
+        };
+    }
     let mut items = list_arg(ctx, &mut args, "last")?;
     match items.pop() {
         Some(item) => Ok(item),
@@ -674,10 +700,13 @@ pub fn functions() -> Vec<Function> {
                 name: "first",
                 package: "core",
                 method: false,
-                params: vec![ParamSpec::required("list", "List")],
+                params: vec![ParamSpec::required("list", "List | Column")],
                 rest: None,
                 returns: "Element",
-                diagnostics: vec![DiagnosticDecl::new("Z0207", "the list is empty")],
+                diagnostics: vec![DiagnosticDecl::new(
+                    "Z0207",
+                    "the list is empty, or the column has no row",
+                )],
                 help: include_str!("../help/first.md"),
                 accuracy: None,
             },
@@ -688,10 +717,13 @@ pub fn functions() -> Vec<Function> {
                 name: "last",
                 package: "core",
                 method: false,
-                params: vec![ParamSpec::required("list", "List")],
+                params: vec![ParamSpec::required("list", "List | Column")],
                 rest: None,
                 returns: "Element",
-                diagnostics: vec![DiagnosticDecl::new("Z0207", "the list is empty")],
+                diagnostics: vec![DiagnosticDecl::new(
+                    "Z0207",
+                    "the list is empty, or the column has no row",
+                )],
                 help: include_str!("../help/last.md"),
                 accuracy: None,
             },

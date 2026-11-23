@@ -7331,3 +7331,17 @@ Step 31 names three functions; it is split in three in the checklist, each funct
 
 **Held by.** `packages/tier1/data/tests/row_n_missing.rs`: the three references; the edges (nothing missing, everything, one variable, an empty text, a variable named twice, `update`, an empty frame); `mean` and `sum` as they were; `min_valid:` with its note and a pragma; every message; a property over random frames of three types. The page of `row`.
 
+## 23 November 2026 — release 0.9.0, step 32a: one value out of a column
+
+Step 32 names two things that share nothing; it is split in two in the checklist (32a one value out of a column, 32b a guessed Int widened on import).
+
+- *`x[i]` of a column* (open decision #168, option A) is the value of its row `i`, counted from 1, of the type of the column's values; `NA` where that row is missing. Outside `1..` the number of rows, and for `NA`, it is the list's error (Z0207), in words that speak of rows. The index is an Int (Z0221 otherwise).
+- *`first(x)` and `last(x)` of a column* are the values of its first and last row, as the rows stand; a column with no row is Z0207, as an empty list is. Neither skips a missing value and neither warns: one value was asked for and it is that one.
+- *Inside frame methods they are what the rows of the frame, or of the group, give.* `add(start = first(price))` writes the first value on every row; under `by:` the first of each group; in `aggregate(open = first(price), close = last(price), by: firm)` they are the first and last value of each group, which is R's `first()` and `last()` of dplyr and Stata's `price[1]` and `price[_N]` under `bysort`. Nothing was built for this: a definition already sees a variable as a column.
+- *`to(x, List)`* of a column is the list of its values, one item for each row, each as a scalar function sees it; a list given is itself; one value is refused with the way to write a list of one. The check types it as a list of the column's row type, not as a column of lists.
+- *A category gives its label*, as text, in all four forms, as it does to every scalar function.
+- *A range of rows is not taken from a column* (`x[2..4]` is refused, Z0221, with the ways to get it): the decision asks for one value, a stretch of rows is `head`, `where` or `to(x, List)[2..4]`, and a sub-column would be a new kind of result to settle on its own.
+- *The specification's rows on indexing and conversion* say the same (`docs/spec_changes.md`); no function is new.
+
+**Held by.** `crates/zeff-engine/tests/one_value_of_a_column.rs`: the first, the last and the tenth row of the shipped wages against the file read as text; the type of the value for each type of column, and `NA` for a missing one; `add`, `by:` and `aggregate`; the review's case, one prediction read as `p[1]`, equal to its workaround; eighteen refusals stored; a property (`x[i]` is the i-th item of `to(x, List)`, `first` and `last` its ends). The pages of `first`, `last` and `to`.
+

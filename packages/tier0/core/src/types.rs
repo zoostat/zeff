@@ -343,6 +343,39 @@ fn to(ctx: &mut CallContext<'_>, mut args: Args) -> Result<Value, Fail> {
             format: None,
         },
     };
+    // `to(column, List)`: the values of a column as a list, each as the value a scalar
+    // function sees it, `NA` for a missing one (open decision #168; release 0.9.0, step
+    // 32a). A list is itself; one value is no list, and the message says how to write one.
+    if ty.name == "List" {
+        if ty.format.is_some() {
+            return Err(fail(
+                Diagnostic::error("Z0401", "`List` takes no format; only Date and DateTime do")
+                    .in_file(ctx.script)
+                    .primary(ctx.span_of(1), "a format on a type that reads none")
+                    .help("write the type name alone: `to(x, List)`"),
+            ));
+        }
+        return match value {
+            Value::Column(column) => Ok(Value::List(
+                (0..column.len())
+                    .map(|row| crate::lift::cell_value(&column, row))
+                    .collect(),
+            )),
+            Value::List(items) => Ok(Value::List(items)),
+            other => Err(fail(
+                Diagnostic::error(
+                    "Z0401",
+                    format!(
+                        "to(List) gives the values of a column as a list, but this is {}",
+                        other.type_word()
+                    ),
+                )
+                .in_file(ctx.script)
+                .primary(ctx.span_of(0), "not a column")
+                .help("`to(d[\"x\"], List)` is the list of the values of `x`; one value in brackets, `[v]`, is a list of one item"),
+            )),
+        };
+    }
     let target = match Target::of(&ty.name) {
         Some(target) => target,
         None => {
@@ -353,7 +386,7 @@ fn to(ctx: &mut CallContext<'_>, mut args: Args) -> Result<Value, Fail> {
                 )
                 .in_file(ctx.script)
                 .primary(ctx.span_of(1), "not a target of `to`")
-                .help("`to` converts to Int, Float, Str, Bool, Date, DateTime or Category"),
+                .help("`to` converts to Int, Float, Str, Bool, Date, DateTime or Category, and a column to the List of its values"),
             ));
         }
     };

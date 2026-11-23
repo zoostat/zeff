@@ -3449,6 +3449,9 @@ Raised on 19 November 2026 by the review against R. `first(col)`, `last(col)` an
 
 **The owner's decision (21 November 2026, at the opening of release 0.9.0).** The owner said "go" to the checklist of `docs/releases/0.9.0.md` without changing its answers, so its recommendation is taken under his standing instruction of 12 November 2026, his to overturn. Option A: `first`, `last` and `x[i]` take a column, and `to(column, List)` gives the List of its values; built at step 32.
 
+**Status (23 November 2026).** Built at step 32a of Zeff 0.9.0, as decided: `x[i]`, `first(x)` and `last(x)` take a column, and `to(x, List)` gives the list of its values. A range of rows is not taken from a column, which the message says with the ways to get it. Deadline for the owner to overturn: 1.0.
+
+
 ### 169. Widening a guessed Int to Float on import
 
 Raised on 19 November 2026 by the review against R. `import` guesses each type from the first 1,000 rows and stops when a later value does not fit (Z0606): the bank-marketing file stops at row 7,765, where `nr.employed` holds 5228.1. The message names the fix, but widening Int to Float loses nothing, and R's `read.csv` reads the file as it is.

@@ -2774,6 +2774,15 @@ impl<'a> Interpreter<'a> {
                         };
                         items[position - 1].clone()
                     }
+                    // The value of one row of a column, `NA` where it is missing.
+                    Value::Column(column) => match key {
+                        Value::Int(i) if i >= 1 && (i as usize) <= column.len() => {
+                            zeff_core::lift::cell_value(&column, i as usize - 1)
+                        }
+                        other => {
+                            return Err(self.outside_column(&other, column.len(), index.span));
+                        }
+                    },
                     Value::Mapping(entries) => {
                         match entries.iter().find(|(k, _)| operators::identical(k, &key)) {
                             Some((_, v)) => v.clone(),
@@ -4875,6 +4884,28 @@ impl<'a> Interpreter<'a> {
                     ),
                 )
                 .help("positions count from 1 to the list's length"),
+        )
+    }
+
+    /// An index that names no row of a column.
+    fn outside_column(&self, index: &Value, len: usize, span: zeff_diagnostics::Span) -> Fail {
+        let message = match index {
+            Value::Na => "the index is NA".to_string(),
+            other if len == 0 => format!("index {}, but the column has no row", shown(other)),
+            other => format!("index {} is outside 1..{}", shown(other), len),
+        };
+        fail(
+            Diagnostic::error("Z0207", message)
+                .in_file(self.script)
+                .primary(
+                    span,
+                    format!(
+                        "the column has {} {}",
+                        zeff_diagnostics::count(len as u64),
+                        if len == 1 { "row" } else { "rows" }
+                    ),
+                )
+                .help("positions count from 1 to the number of rows; `last(x)` is the value of the last row"),
         )
     }
 

@@ -4956,6 +4956,45 @@ impl Checker<'_> {
                     },
                 }
             }
+            // `x[i]` of a column: the value of one row, from 1 (open decision #168; release
+            // 0.9.0, step 32a). A stretch of rows is not a column's to give: `head` and
+            // `where` keep rows of a frame, and `to(x, List)[a..b]` is a sub-list.
+            Ty::Column(item) => {
+                if let ast::ExprKind::Binary {
+                    op: ast::BinaryOp::Range,
+                    ..
+                } = &index.kind
+                {
+                    return self.wrong_operands(
+                        index.span,
+                        "a column is indexed by one position; a range of rows is not taken from it"
+                            .to_string(),
+                        "a range".to_string(),
+                        "`x[1]` is the value of the first row; `to(x, List)[2..4]` is the list of the values of rows 2 to 4, and `head` and `where` keep rows of the frame",
+                    );
+                }
+                let i = self.expr(index, Some(&Ty::Int));
+                if !is_int_like(&i.ty) {
+                    let found = i.ty.clone();
+                    return self.wrong_operands(
+                        i.span,
+                        format!(
+                            "a column is indexed by an Int, but this is {}",
+                            found.with_article()
+                        ),
+                        found.with_article(),
+                        "positions count from 1: `x[1]` is the value of the first row",
+                    );
+                }
+                Expr {
+                    ty: *item,
+                    span,
+                    kind: ExprKind::Index {
+                        receiver: Box::new(target),
+                        index: Box::new(i),
+                    },
+                }
+            }
             Ty::Mapping(key, value) => {
                 let k = self.expr(index, Some(&key));
                 if !key.accepts(&k.ty) {
@@ -7039,9 +7078,19 @@ impl Checker<'_> {
                 .first()
                 .and_then(|s| s.as_ref())
                 .is_some_and(|e| matches!(e.ty, Ty::Column(_)));
-            match (receiver_is_column, &target) {
-                (true, Ty::Column(_)) | (false, _) => target,
-                (true, t) => Ty::Column(Box::new(t.clone())),
+            // `to(column, List)` is the list of the column's values, not a column of lists
+            // (open decision #168): a list of the row type; a list given is itself.
+            if named == Some("List") {
+                match slots.first().and_then(|s| s.as_ref()).map(|e| e.ty.clone()) {
+                    Some(Ty::Column(inner)) => Ty::List(inner),
+                    Some(list @ Ty::List(_)) => list,
+                    _ => Ty::List(Box::new(Ty::Unknown)),
+                }
+            } else {
+                match (receiver_is_column, &target) {
+                    (true, Ty::Column(_)) | (false, _) => target,
+                    (true, t) => Ty::Column(Box::new(t.clone())),
+                }
             }
         // `ByTerm<A, B>` (a result method of question 4): A when a term is named, or when the
         // receiver is a test's result, which has one value; B over every term; unknown for a
@@ -7094,7 +7143,8 @@ impl Checker<'_> {
         // items' type and the item added (section 3.7, "Joining types"; Z0214 when they do not).
         } else if spec.returns == "Element" {
             match slots.first().and_then(|s| s.as_ref()).map(|e| &e.ty) {
-                Some(Ty::List(inner)) => (**inner).clone(),
+                // Of a column, the type of one row's value (open decision #168).
+                Some(Ty::List(inner) | Ty::Column(inner)) => (**inner).clone(),
                 _ => Ty::Unknown,
             }
         // `Keys` (`keys`): the field names of a record as `List<Str>`, the keys of a mapping as a

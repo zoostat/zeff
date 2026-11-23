@@ -1,0 +1,33 @@
+---
+source: crates/zeff-engine/tests/one_value_of_a_column.rs
+expression: "format!(\"{stdout}---\\n{stderr}\")"
+---
+frame · 5 rows × 6 variables
+
+      firm   year   price   start   end   second
+  1   a      2020      10      10     9     12.5
+  2   a      2021    12.5      10     9     12.5
+  3   b      2020       7      10     9     12.5
+  4   b      2021      NA      10     9     12.5
+  5   b      2022       9      10     9     12.5
+frame · 5 rows × 6 variables
+
+      firm   year   price   start    end   change
+  1   a      2020      10      10   12.5      2.5
+  2   a      2021    12.5      10   12.5      2.5
+  3   b      2020       7       7      9        2
+  4   b      2021      NA       7      9        2
+  5   b      2022       9       7      9        2
+frame · 2 rows × 4 variables
+
+      firm   open   close   years
+  1   a        10    12.5       1
+  2   b         7       9       2
+frame · 2 rows × 2 variables
+
+      firm   latest
+  1   a        2021
+  2   b        2022
+1
+---
+note: 1 row dropped where `price > first(price)` was NA; `d.where(is_missing(price))` lists them (line 6)

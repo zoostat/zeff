@@ -39,7 +39,7 @@ error[Z0401]: `x` of `len` must be a List, Str, Column or Mapping, but this is a
   = help: usage: `len(x)`
 
 ## first_not_a_list (exit 1)
-error[Z0401]: `list` of `first` must be a List, but this is a Str
+error[Z0401]: `list` of `first` must be a List or Column, but this is a Str
  --> scripts/main.zeff:1:7
   |
 1 | first("abc")

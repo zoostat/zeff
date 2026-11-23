@@ -150,7 +150,9 @@ Step 31b `[function]`: `row_number()`, the position of each row from 1 in the or
 
 Step 31c `[function]`: `row(vars, stat: n_missing)`, the number of the variables missing in each row (#166), for variables of any type, held exactly to R's `rowSums(is.na())`; `where(row(vars, stat: n_missing) == 0)` keeps the complete rows. Step 31 is done: the three workarounds of the review are no longer needed.
 
-**Next.** Step 32 `[engine]`: one value out of a column, and a guessed Int widened (#168, #169). Step 3, the weekly mutation run of Monday 23 November, when it has ended.
+Step 32a `[engine]` (step 32 split in two): one value out of a column (#168). `x[i]`, `first(x)` and `last(x)` take a column and give the value of one row; `to(x, List)` gives the list of a column's values. Inside `aggregate`, `first` and `last` are the first and last value of each group. One prediction is now read as `m.predict(newdata: b.head(1))[1]`.
+
+**Next.** Step 32b `[engine]`: a guessed Int widened to Float on import (#169). Step 3, the weekly mutation run of Monday 23 November, when it has ended.
 
 **For the owner, from step 31c.** Stata also has `egen rownonmiss()`, the number of values present in each row. It is the number of variables less `row(vars, stat: n_missing)`, and the page says so; whether it should be a word of `stat:` of its own (decisions 98 and 99) is his to say.
 

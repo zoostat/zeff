@@ -1,0 +1,189 @@
+---
+source: crates/zeff-engine/tests/one_value_of_a_column.rs
+expression: out
+---
+d["x"][0]
+---
+error[Z0207]: index 0 is outside 1..3
+ --> scripts/main.zeff:2:8
+  |
+2 | d["x"][0]
+  |        ^ the column has 3 rows
+  |
+  = help: positions count from 1 to the number of rows; `last(x)` is the value of the last row
+
+d["x"][4]
+---
+error[Z0207]: index 4 is outside 1..3
+ --> scripts/main.zeff:2:8
+  |
+2 | d["x"][4]
+  |        ^ the column has 3 rows
+  |
+  = help: positions count from 1 to the number of rows; `last(x)` is the value of the last row
+
+d["x"][-1]
+---
+error[Z0207]: index -1 is outside 1..3
+ --> scripts/main.zeff:2:8
+  |
+2 | d["x"][-1]
+  |        ^^ the column has 3 rows
+  |
+  = help: positions count from 1 to the number of rows; `last(x)` is the value of the last row
+
+d["x"][NA]
+---
+error[Z0207]: the index is NA
+ --> scripts/main.zeff:2:8
+  |
+2 | d["x"][NA]
+  |        ^^ the column has 3 rows
+  |
+  = help: positions count from 1 to the number of rows; `last(x)` is the value of the last row
+
+d["x"][1.5]
+---
+error[Z0221]: a column is indexed by an Int, but this is a Float
+ --> scripts/main.zeff:2:8
+  |
+2 | d["x"][1.5]
+  |        ^^^ a Float
+  |
+  = help: positions count from 1: `x[1]` is the value of the first row
+
+d["x"]["a"]
+---
+error[Z0221]: a column is indexed by an Int, but this is a Str
+ --> scripts/main.zeff:2:8
+  |
+2 | d["x"]["a"]
+  |        ^^^ a Str
+  |
+  = help: positions count from 1: `x[1]` is the value of the first row
+
+d["x"][1..2]
+---
+error[Z0221]: a column is indexed by one position; a range of rows is not taken from it
+ --> scripts/main.zeff:2:8
+  |
+2 | d["x"][1..2]
+  |        ^^^^ a range
+  |
+  = help: `x[1]` is the value of the first row; `to(x, List)[2..4]` is the list of the values of rows 2 to 4, and `head` and `where` keep rows of the frame
+
+d.add(v = x[9])
+---
+error[Z0207]: index 9 is outside 1..3
+ --> scripts/main.zeff:2:13
+  |
+2 | d.add(v = x[9])
+  |             ^ the column has 3 rows
+  |
+  = help: positions count from 1 to the number of rows; `last(x)` is the value of the last row
+
+first(d.where(x > 99)["x"])
+---
+note: 1 row dropped where `x > 99` was NA; `d.where(is_missing(x))` lists them (line 2)
+note: no row kept: the result is empty (line 2)
+error[Z0207]: `first` of a column with no row
+ --> scripts/main.zeff:2:7
+  |
+2 | first(d.where(x > 99)["x"])
+  |       ^^^^^^^^^^^^^^^^^^^^ the column has 0 values
+  |
+  = help: a column must have a row for `first` to give its value; `n_rows` of the frame says whether there is one
+
+last(d.where(x > 99)["x"])
+---
+note: 1 row dropped where `x > 99` was NA; `d.where(is_missing(x))` lists them (line 2)
+note: no row kept: the result is empty (line 2)
+error[Z0207]: `last` of a column with no row
+ --> scripts/main.zeff:2:6
+  |
+2 | last(d.where(x > 99)["x"])
+  |      ^^^^^^^^^^^^^^^^^^^^ the column has 0 values
+  |
+  = help: a column must have a row for `last` to give its value; `n_rows` of the frame says whether there is one
+
+d.where(x > 99)["x"][1]
+---
+note: 1 row dropped where `x > 99` was NA; `d.where(is_missing(x))` lists them (line 2)
+note: no row kept: the result is empty (line 2)
+error[Z0207]: index 1, but the column has no row
+ --> scripts/main.zeff:2:22
+  |
+2 | d.where(x > 99)["x"][1]
+  |                      ^ the column has 0 rows
+  |
+  = help: positions count from 1 to the number of rows; `last(x)` is the value of the last row
+
+to(3, List)
+---
+error[Z0401]: to(List) gives the values of a column as a list, but this is an Int
+ --> scripts/main.zeff:2:4
+  |
+2 | to(3, List)
+  |    ^ not a column
+  |
+  = help: `to(d["x"], List)` is the list of the values of `x`; one value in brackets, `[v]`, is a list of one item
+
+to("abc", List)
+---
+error[Z0401]: to(List) gives the values of a column as a list, but this is a Str
+ --> scripts/main.zeff:2:4
+  |
+2 | to("abc", List)
+  |    ^^^^^ not a column
+  |
+  = help: `to(d["x"], List)` is the list of the values of `x`; one value in brackets, `[v]`, is a list of one item
+
+to(d, List)
+---
+error[Z0401]: to(List) gives the values of a column as a list, but this is a Frame
+ --> scripts/main.zeff:2:4
+  |
+2 | to(d, List)
+  |    ^ not a column
+  |
+  = help: `to(d["x"], List)` is the list of the values of `x`; one value in brackets, `[v]`, is a list of one item
+
+to(d["x"], List("%d"))
+---
+error[Z0103]: no function is called `List`
+ --> scripts/main.zeff:2:12
+  |
+2 | to(d["x"], List("%d"))
+  |            ^^^^ not a function of Zeff
+  |
+  = help: `zeff help` lists the functions of this release
+
+first(d)
+---
+error[Z0401]: `list` of `first` must be a List or Column, but this is a Frame
+ --> scripts/main.zeff:2:7
+  |
+2 | first(d)
+  |       ^ a Frame
+  |
+  = help: usage: `first(list)`
+
+first(3)
+---
+error[Z0401]: `list` of `first` must be a List or Column, but this is an Int
+ --> scripts/main.zeff:2:7
+  |
+2 | first(3)
+  |       ^ an Int
+  |
+  = help: usage: `first(list)`
+
+first([])
+---
+error[Z0207]: `first` of an empty list
+ --> scripts/main.zeff:2:7
+  |
+2 | first([])
+  |       ^^ the list has 0 items
+  |
+  = help: a list must have an item for `first` to give one; test `len(xs) > 0` first, or build the list so that it is never empty
