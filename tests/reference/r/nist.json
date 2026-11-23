@@ -1,0 +1,162 @@
+{
+ "reference": {
+  "software": "R version 4.6.0 (2026-04-24)",
+  "note": "base R; numbers written with 15 significant digits"
+ },
+ "note": "log relative errors of R against NIST's certified values, to one decimal; a comparison for the release notes, not a reference",
+ "regression": {
+  "Norris": {
+   "coefficients": "12.7",
+   "standard_errors": "13.7",
+   "terms_dropped": 0
+  },
+  "Pontius": {
+   "coefficients": "12.3",
+   "standard_errors": "13.7",
+   "terms_dropped": 0
+  },
+  "NoInt1": {
+   "coefficients": "14.7",
+   "standard_errors": "14.5",
+   "terms_dropped": 0
+  },
+  "NoInt2": {
+   "coefficients": "15.0",
+   "standard_errors": "15.0",
+   "terms_dropped": 0
+  },
+  "Filip": {
+   "coefficients": "0.0",
+   "standard_errors": "0.0",
+   "terms_dropped": 1,
+   "with_tolerance_1e_10": {
+    "coefficients": "7.8",
+    "standard_errors": "7.3",
+    "terms_dropped": 0
+   }
+  },
+  "Longley": {
+   "coefficients": "13.0",
+   "standard_errors": "14.2",
+   "terms_dropped": 0
+  },
+  "Wampler1": {
+   "coefficients": "9.4",
+   "standard_errors": "9.9",
+   "terms_dropped": 0
+  },
+  "Wampler2": {
+   "coefficients": "13.0",
+   "standard_errors": "14.9",
+   "terms_dropped": 0
+  },
+  "Wampler3": {
+   "coefficients": "9.4",
+   "standard_errors": "13.3",
+   "terms_dropped": 0
+  },
+  "Wampler4": {
+   "coefficients": "7.8",
+   "standard_errors": "13.3",
+   "terms_dropped": 0
+  },
+  "Wampler5": {
+   "coefficients": "5.8",
+   "standard_errors": "13.3",
+   "terms_dropped": 0
+  }
+ },
+ "univariate": {
+  "PiDigits": {
+   "mean": "15.0",
+   "standard_deviation": "14.9",
+   "autocorrelation": "14.0"
+  },
+  "Lottery": {
+   "mean": "15.0",
+   "standard_deviation": "15.0",
+   "autocorrelation": "15.0"
+  },
+  "Lew": {
+   "mean": "15.0",
+   "standard_deviation": "15.0",
+   "autocorrelation": "15.0"
+  },
+  "Mavro": {
+   "mean": "15.0",
+   "standard_deviation": "13.1",
+   "autocorrelation": "13.7"
+  },
+  "Michelso": {
+   "mean": "15.0",
+   "standard_deviation": "13.9",
+   "autocorrelation": "13.4"
+  },
+  "NumAcc1": {
+   "mean": "15.0",
+   "standard_deviation": "15.0",
+   "autocorrelation": "15.0"
+  },
+  "NumAcc2": {
+   "mean": "15.0",
+   "standard_deviation": "14.2",
+   "autocorrelation": "14.4"
+  },
+  "NumAcc3": {
+   "mean": "15.0",
+   "standard_deviation": "9.5",
+   "autocorrelation": "14.3"
+  },
+  "NumAcc4": {
+   "mean": "15.0",
+   "standard_deviation": "8.3",
+   "autocorrelation": "14.5"
+  }
+ },
+ "anova": {
+  "SiRstv": {
+   "f_oneway_test": "12.9",
+   "f_anova_lm": "13.3"
+  },
+  "SmLs01": {
+   "f_oneway_test": "15.0",
+   "f_anova_lm": "15.0"
+  },
+  "SmLs02": {
+   "f_oneway_test": "14.9",
+   "f_anova_lm": "14.2"
+  },
+  "SmLs03": {
+   "f_oneway_test": "13.7",
+   "f_anova_lm": "12.8"
+  },
+  "AtmWtAg": {
+   "f_oneway_test": "11.7",
+   "f_anova_lm": "9.5"
+  },
+  "SmLs04": {
+   "f_oneway_test": "9.3",
+   "f_anova_lm": "10.4"
+  },
+  "SmLs05": {
+   "f_oneway_test": "9.3",
+   "f_anova_lm": "10.2"
+  },
+  "SmLs06": {
+   "f_oneway_test": "9.3",
+   "f_anova_lm": "10.2"
+  },
+  "SmLs07": {
+   "f_oneway_test": "3.3",
+   "f_anova_lm": "4.7"
+  },
+  "SmLs08": {
+   "f_oneway_test": "3.3",
+   "f_anova_lm": "2.7"
+  },
+  "SmLs09": {
+   "f_oneway_test": "3.3",
+   "f_anova_lm": "0.2"
+  }
+ }
+}

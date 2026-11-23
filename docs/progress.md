@@ -166,7 +166,9 @@ Step 36a `[engine]`: NIST's Statistical Reference Datasets, part 1 (#153 A; step
 
 Step 36b `[engine]`: NIST's nine univariate and eleven analysis-of-variance problems, thirty-one problems in all in the conformance suite. Univariate: the mean to 15 digits in all nine, the standard deviation and the first autocorrelation to 13 and more but for NumAcc3 and NumAcc4 (9.5 and 8.3, as R). Analysis of variance: eight problems to 8.8 digits and more; SmLs07 to SmLs09 to 3.1 to 3.3 in F, a known issue (the stored numbers allow 4.2 to 4.4; R's `oneway.test` gives 3.3). A fix that would gain the one digit is noted in `docs/decisions.md` and left for 0.10.0.
 
-**Next.** Step 36c `[engine]`: the testing handbook's kind of test, logged; R's figures beside Zeff's for the release notes. Step 3, the weekly mutation run of Monday 23 November: GitHub queued a scheduled run at 13:39 UTC, which had not started when this entry was written.
+Step 36c `[engine]`: the testing handbook has the kind of test ("Certified-value tests", logged); R's figures on the thirty-one problems are in `tests/reference/r/nist.json` for the release notes, a comparison that no test reads; the three values below their class are known issues. Step 36 is complete.
+
+**Next.** Step 37 `[function]`: a citation file (#161 A). Step 3, the weekly mutation run of Monday 23 November: GitHub queued a scheduled run at 13:39 UTC on that day, which had not started when this entry was written.
 
 **For the owner, from step 36a.** #214: what the article says of Filip, the one NIST regression problem the engine declines (with a warning, as R does by default). Recommended: leave the rule as it is at 1.0 and say so.
 
