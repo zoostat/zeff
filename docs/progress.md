@@ -104,7 +104,9 @@ Step 38b `[function]`: ten more help pages of `data` to the contract (`distinct`
 
 Step 38c `[function]`: nine more help pages of `data` to the contract (`panel`, `lag`, `lead`, `diff`, `rank`, and the four written in Zeff, `standardize`, `center`, `between`, `winsorize`).
 
-**Next.** Step 38d `[function]`: the last seventeen pages of `data` and `datasets` (the reducers, `summary`, `n_distinct`, `dataset`, `datasets`), then step 38e `[engine]`, the two faults met in these pages. Step 3, the weekly mutation run of Monday 23 November: GitHub queued a scheduled run at 13:39 UTC on that day, which had not started when this entry was written.
+Step 38d1 `[function]`: the nine reducer pages of `data` to the contract (`mean`, `sd`, `variance`, `median`, `quantile`, `min`, `max`, `sum`, `n`); step 38d split in two. The examples of a standard error, here and on the page of `aggregate`, now divide by the count of the values present.
+
+**Next.** Step 38d2 `[function]`: the last eight pages (`iqr`, `mad`, `skewness`, `kurtosis`, `summary`, `n_distinct`, `dataset`, `datasets`), then step 38e `[engine]`, the two faults met in these pages. Step 3, the weekly mutation run of Monday 23 November: GitHub started it at 13:39 UTC on that day and it was still running on the 24th, 25 of its 88 jobs done, behind the release's own continuous-integration runs; it is read when it ends.
 
 **For the owner, from step 38a2.** Step 38e will let `update` take an `NA` of its variable's type; recommended also for a bare `NA` there (`update(wage = NA, where: wage > 500)`), since the variable gives the type. Say if a bare `NA` should stay refused.
 

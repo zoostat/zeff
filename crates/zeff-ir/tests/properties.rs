@@ -18,7 +18,7 @@ fn registry() -> Registry {
         help,
         accuracy: None,
     };
-    let mean_help = "# mean\n\n## Summary\nMean\n\n## Description\nTests.\n\n## Arguments\n- data: The frame.\n- var: The variable.\n\n## Value\nA Float.\n\n## Details\nTests.\n\n## References\nNone (1900).\n\n## See also\nprint\n\n## Examples\n> mean\n1\n";
+    let mean_help = "# mean\n\n## Summary\nMean\n\n## Description\nTests.\n\n## Arguments\n- data: The frame.\n- var: The variable.\n\n## Value\nA Float.\n\n## Missing values\nNone in the fixture.\n\n## Coming from R or Stata\n| d.mean(x) | mean(x) | summarize x |\n\n## Details\nTests.\n\n## References\nNone (1900).\n\n## See also\nprint\n\n## Examples\n// The one example of the fixture\'s page.\n> mean\n1\n";
     let mean = FunctionSpec {
         name: "mean",
         package: "data",

@@ -7,27 +7,27 @@ expression: all
 1:2-1:6, a function
     mean — Mean of a variable                                              data · tier 1 · since 0.1.0 · 1.0 · closed form
     
-    USAGE
-        data.mean(var, by: Vars, weights: Var, weight_type: frequency | analytic | sampling = sampling)
-    (and 61 lines more)
+    IN BRIEF
+        - `d.mean(wage)`: the mean of a variable, one value.
+    (and 119 lines more)
 ----
 > let d = import("data/small.csv")
 > d.me|an(a)
 1:2-1:6, a function
     mean — Mean of a variable                                              data · tier 1 · since 0.1.0 · 1.0 · closed form
     
-    USAGE
-        data.mean(var, by: Vars, weights: Var, weight_type: frequency | analytic | sampling = sampling)
-    (and 61 lines more)
+    IN BRIEF
+        - `d.mean(wage)`: the mean of a variable, one value.
+    (and 119 lines more)
 ----
 > let d = import("data/small.csv")
 > d.mean|(a)
 1:2-1:6, a function
     mean — Mean of a variable                                              data · tier 1 · since 0.1.0 · 1.0 · closed form
     
-    USAGE
-        data.mean(var, by: Vars, weights: Var, weight_type: frequency | analytic | sampling = sampling)
-    (and 61 lines more)
+    IN BRIEF
+        - `d.mean(wage)`: the mean of a variable, one value.
+    (and 119 lines more)
 ----
 > let d = import("data/small.csv")
 > d.summ|ary
@@ -70,9 +70,9 @@ expression: all
 1:6-1:8, a function
     sd — Sample standard deviation                                         data · tier 1 · since 0.1.0 · 1.0 · closed form
     
-    USAGE
-        data.sd(var, by: Vars, weights: Var, weight_type: frequency | analytic | sampling = sampling)
-    (and 55 lines more)
+    IN BRIEF
+        - `d.sd(wage)`: the standard deviation of a variable, one value.
+    (and 115 lines more)
 ----
 > let d = import("data/small.csv")
 > d.histo|gram(a)

@@ -84,12 +84,12 @@ warning[W0201]: 211 rows with NA in wage were skipped (line 2)
 note: the panel declaration `worker × year` dropped: `aggregate` summarised the rows (line 2)
 
 // Arithmetic over reducers, and a later definition that uses an earlier one.
-> wages.aggregate(avg = mean(wage), spread = sd(wage), se = spread / sqrt(n()), by: female)
+> wages.aggregate(avg = mean(wage), spread = sd(wage), se = spread / sqrt(n() - n_missing(wage)), by: female)
 frame · 2 rows × 4 variables
 
       female       avg    spread         se
-  1   male     29.1889   14.7867    0.15178
-  2   female    25.437   12.8947   0.136523
+  1   male     29.1889   14.7867   0.152716
+  2   female    25.437   12.8947   0.137255
 warning[W0201]: 211 rows with NA in wage were skipped (line 3)
 note: the panel declaration `worker × year` dropped: `aggregate` summarised the rows (line 3)
 

@@ -7486,3 +7486,14 @@ Open decision #153, option A. Step 36 is split in three in the checklist: the re
 - *What is said of R and Stata* is what is certain: that `dplyr::lag` and `lead` take the neighbouring row whatever its time; Stata's `L.`, `F.`, `D.` after `xtset`, that `D2.` is the difference of the difference and `S2.` the change over two periods, and that `xtset` wants a numeric unit; that R's `diff` gives a vector one shorter; that R's `rank` ranks `NA` unless `na.last = "keep"`, and `egen rank` with `track`; that `scale` gives a matrix of one column; that `inrange` is false for a missing value; that `winsor2` is a command from outside Stata's own which takes percentiles and makes `x_w`. The base-R form is given for winsorising, the arguments of the package function having changed between its versions.
 
 **Held by.** The help contract in full for the nine pages, now off the list (15 pages of `data` remain, 110 in all); the example runner on every example and mistake.
+
+## 24 November 2026 — release 0.9.0, step 38d1: the nine reducer pages of `data`
+
+- *The pages:* `mean`, `sd`, `variance`, `median`, `quantile`, `min`, `max`, `sum` and `n` (the specification `pages_l.py`, outside the repository; seven of them from one pattern, since the seven are called in the same four ways). Step 38d is split in two: these nine, then the eight that remain.
+- *In brief on each* gives the ways a reducer is called: of a frame's variable, by group, weighted, and inside a definition of `add` or `aggregate`. The examples run on the shipped wages and show each way.
+- *Missing values* are said the same way on each: skipped, with a warning that counts the rows; nothing left gives `NA`. For `sum` the page says where this differs from R and Stata, which give 0 for no values.
+- *A standard error in an example divides by the values present.* The examples of `aggregate` and of `n` wrote `sd(wage) / sqrt(n())` on the wages, where 211 wages are missing and `n()` counts every row; they now write `sqrt(n() - n_missing(wage))`. The page of `aggregate`, revised at step 38b, is corrected with them.
+- *What is said of R and Stata* is what is certain: `na.rm = TRUE`; `tapply`; `weighted.mean`; `summarize` and the results it leaves (`r(mean)`, `r(sd)`, `r(Var)`, `r(min)`, `r(max)`, `r(sum)`, and `r(p50)` after `detail`); `tabstat` with `by()` and `statistics()`; `centile`, whose definition is the one numbered 6; `_N`, `contract` and `dplyr::count`, `add_count`.
+- *A message noted and left:* `d.mean(wage, na.rm: true)`, which a reader from R may try, is answered "`:` is an interaction and belongs in a formula" (Z0306), because of the point in `na.rm`. It belongs with the R names of #213.
+
+**Held by.** The help contract in full for the nine pages, now off the list (6 pages of `data` remain, 101 in all); the example runner on every example and mistake.
