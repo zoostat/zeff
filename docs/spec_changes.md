@@ -910,3 +910,7 @@ The owner's decision of 24 November 2026 ("Yes, option A") on a name with two fu
 ## 24 November 2026 — zeff_open_decisions.md, entry #215
 
 Corrected the words of #215 for `plot`, whose second function is called on a `Result`, not only a fit, as Zemp Lite found when building it (step 9g of 0.2.3); added what was built and what the engine's part at 0.10.0 must give. No normative text changed.
+
+## 24 November 2026 — zeff_help_examples.md, the example page `zeff help where`
+
+Open decision #103 (the help contract of 0.8.0), applied to `where` as step 38a2 of release 0.9.0. The page of `where` left the list of pages not yet revised, so the specification's example of it gains the parts the contract asks of such a page: MISSING VALUES after VALUE, COMING FROM R OR STATA (the catalogue's equivalents, one row of the table and a sentence) after WARNINGS AND NOTES, and a caption on each of its two examples. The other words of the example are unchanged. `kernel/zeff-registry/tests/render.rs` holds the engine's rendering to it word for word, as before. The example of `merge` follows at step 38b.

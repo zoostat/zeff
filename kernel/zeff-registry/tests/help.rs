@@ -31,6 +31,41 @@ drop_missing, select, sort
 4217
 ";
 
+/// The same page with the parts the contract of 0.8.0 adds for `where` (what it does with
+/// `NA`, its equivalents, a caption): the page a registry accepts now that `where` is off the
+/// list of pages not yet revised (release 0.9.0, step 38a2).
+const FULL: &str = "# where
+
+## Summary
+Keep the rows where a condition is true
+
+## Description
+Returns the rows for which `condition` is `true`. Rows where it is `NA` are dropped and counted.
+
+Row order is kept.
+
+## Arguments
+- data: The frame to filter.
+- condition: An expression over the frame's variables.
+
+## Value
+A `Frame` with the same columns and a subset of the rows.
+
+## Missing values
+A row where the condition is `NA` is dropped and counted.
+
+## Coming from R or Stata
+| d.where(x > 1) | subset(d, x > 1) | keep if x > 1 & !missing(x) |
+
+## See also
+drop_missing, select, sort
+
+## Examples
+// The rows from 2010 on.
+> wages.where(year >= 2010).n_rows()
+4217
+";
+
 fn where_spec(help: &'static str) -> FunctionSpec {
     FunctionSpec {
         name: "where",
@@ -282,7 +317,7 @@ fn the_registry_refuses_what_the_catalogue_does_not_know() {
         }]
     );
 
-    let twice = Registry::build_with(vec![where_spec(GOOD), where_spec(GOOD)], catalogue.clone())
+    let twice = Registry::build_with(vec![where_spec(FULL), where_spec(FULL)], catalogue.clone())
         .unwrap_err();
     assert_eq!(
         twice,
@@ -312,7 +347,7 @@ fn the_registry_refuses_what_the_catalogue_does_not_know() {
         "{shown}"
     );
 
-    let registry = Registry::build_with(vec![where_spec(GOOD)], catalogue).unwrap();
+    let registry = Registry::build_with(vec![where_spec(FULL)], catalogue).unwrap();
     assert_eq!(registry.functions().len(), 1);
     assert_eq!(registry.named("where").len(), 1);
     assert!(

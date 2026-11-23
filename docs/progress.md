@@ -98,7 +98,11 @@ Step 37 `[function]`: `CITATION.cff` at the top of the repository (#161 A), nami
 
 Step 38a1 `[function]`: nine help pages of `data` to the contract of 0.8.0 (`frame`, `import`, `save`, `n_rows`, `n_cols`, `variables`, `describe`, `head`, `tail`), every example on the shipped datasets. The 52 pages of `data` and `datasets` were counted and split into five steps (9, 7, 10, 9, 17). The progress file's first 24 steps of this release were folded into one paragraph, every word kept.
 
-**Next.** Step 38a2 `[function]`: seven pages of `data` (`where`, `select`, `drop`, `rename`, `update`, `sort`, `sample`). Step 3, the weekly mutation run of Monday 23 November: GitHub queued a scheduled run at 13:39 UTC on that day, which had not started when this entry was written.
+Step 38a2 `[function]`: seven more help pages of `data` to the contract (`where`, `select`, `drop`, `rename`, `update`, `sort`, `sample`); the specification's example page of `where` brought with them, logged. A fault met and given its own step, 38e: `update` refuses `to(NA, Float)`, which its own message advises; the page shows the form that works, `wage * NA`.
+
+**Next.** Step 38b `[function]`: ten pages of `data` (`distinct`, `duplicates`, `merge`, `append`, `to_long`, `to_wide`, `aggregate`, `drop_missing`, `label`, `recode`). Step 3, the weekly mutation run of Monday 23 November: GitHub queued a scheduled run at 13:39 UTC on that day, which had not started when this entry was written.
+
+**For the owner, from step 38a2.** Step 38e will let `update` take an `NA` of its variable's type; recommended also for a bare `NA` there (`update(wage = NA, where: wage > 500)`), since the variable gives the type. Say if a bare `NA` should stay refused.
 
 **For the owner, from step 37.** The citation file takes your name as family name Patra, given name Sabyasachi, with no affiliation and no ORCID; say if any of these should change. The archive's link (question 7c) is still yours to make.
 

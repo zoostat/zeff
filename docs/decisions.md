@@ -7456,3 +7456,13 @@ Open decision #153, option A. Step 36 is split in three in the checklist: the re
 - *The tools* are those of step 22a of 0.8.0, outside the repository (`~/dev/handbook/help-revision-tools`, the specification `pages_h.py`).
 
 **Held by.** The help contract in full for the nine pages, now off `kernel/zeff-registry/unrevised.txt` (41 pages of `data` remain on it, 136 in all); the example runner, which runs every example and each page's mistake and compares what is printed; the stored help printouts that changed with the pages, renewed and read.
+
+## 24 November 2026 — release 0.9.0, step 38a2: seven more help pages of `data`
+
+- *The pages:* `where`, `select`, `drop`, `rename`, `update`, `sort`, `sample`, each with the parts the contract asks and every example on the shipped datasets, as at step 38a1 (the specification `pages_i.py`, outside the repository).
+- *The common mistake of each* is the one a reader from R or Stata makes first, with the diagnostic it raises: `&` for and in `where`; a name in quotation marks in `select`; a misspelt name in `drop`; the old name first in `rename`; a variable that is not there in `update`; a minus sign for descending in `sort`; more rows than the frame has in `sample`.
+- *What is said of R and Stata* is what is certain: that `d[d$x > 20, ]` gives rows of `NA` for a missing `x` while `subset` and `filter` leave them out silently; that Stata takes a missing value as larger than any number, so `keep if`, `replace … if`, `count if` and `gsort -x` treat it so; that `sort` in Stata is not stable without `stable`; that `sample` there takes a percentage unless `count` is given, and `bsample` draws with replacement; that R's `d[, "x"]` with one name gives a vector.
+- *The specification's example page of `where`* (`docs/spec/zeff_help_examples.md`) gains the parts, logged; the registry's own tests have a full page of `where` beside the short one they vary.
+- *A fault met.* `update(wage = to(NA, Float), where: …)` is refused with Z0219, and the help of that message advises exactly `to(NA, Float)`; the same definition is accepted by `add`. The page of `update` therefore shows the form that works today, `wage * NA`, and says that `NA` alone has no type. The fault has its own step, 38e, placed after the pages of `data`: in `update` a value takes the type of its variable, so a typed `NA`, and as recommended a bare one, should be accepted. No wrong number comes of it: the call is refused.
+
+**Held by.** The help contract in full for the seven pages, now off the list (34 pages of `data` remain, 129 in all); the example runner on every example and mistake; `kernel/zeff-registry/tests/render.rs`, the rendering of the example page of `where` word for word against the specification.

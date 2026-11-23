@@ -202,9 +202,22 @@ ARGUMENTS
 VALUE
     A `Frame` with the same columns and a subset of the rows; a panel declaration survives.
 
+MISSING VALUES
+    A row where the condition is `NA` is not kept, and a note counts those rows and says how to list them.
+    To keep them on purpose, say so: `where(is_missing(age) || age > 30)`.
+
 WARNINGS AND NOTES
     Note    rows dropped because the condition was NA, with the count and a statement that lists them
     Note    no row kept: the result is empty
+
+COMING FROM R OR STATA
+    Equivalents: R subset(), dplyr::filter(); Stata keep if.
+
+    Zeff                 R                                                      Stata
+    d.where(wage > 20)   subset(d, wage > 20), or dplyr::filter(d, wage > 20)   keep if wage > 20 & !missing(wage)
+
+    In Stata a missing value is larger than any number, so `keep if wage > 20` keeps the rows with no wage;
+    R's `subset` and `filter` leave them out and say nothing.
 
 ACCURACY
     Exact: the same rows, in the same order, as dplyr::filter() once its NA rows are removed; part of
@@ -214,9 +227,12 @@ SEE ALSO
     drop_missing, select, sort, distinct, sample, is_missing
 
 EXAMPLES
+    // The rows that meet two conditions.
     > let wages = import("zeff:wages.csv")
     > wages.where(year >= 2010 && female == 1).n_rows()
     4217
+
+    // The note counts the rows where the condition was `NA`.
     > wages.where(exper > 10).n_rows()
     7902
     note: 13 rows dropped where `exper > 10` was NA; `wages.where(is_missing(exper))` lists them
