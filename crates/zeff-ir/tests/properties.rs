@@ -33,7 +33,7 @@ fn registry() -> Registry {
         help: mean_help,
         accuracy: None,
     };
-    let import_help = "# import\n\n## Summary\nImport\n\n## Description\nTests.\n\n## Arguments\n- path: The path.\n- header: Header.\n- names: Names.\n\n## Value\nA Frame.\n\n## See also\nprint\n\n## Examples\n> import\n1\n";
+    let import_help = "# import\n\n## Summary\nImport\n\n## In brief\n- `import(p)`: a fixture.\n\n## Description\nTests.\n\n## Arguments\n- path: The path.\n- header: Header.\n- names: Names.\n\n## Value\nA Frame.\n\n## Missing values\nNone in the fixture.\n\n## Coming from R or Stata\n| import(p) | read.csv(p) | import delimited p |\n\n## See also\nprint\n\n## Examples\n// The one example of the fixture's page.\n> import(p, header: true, names: keep)\n1\n";
     let import = FunctionSpec {
         name: "import",
         package: "data",

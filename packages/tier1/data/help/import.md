@@ -3,6 +3,13 @@
 ## Summary
 Read a data file into a frame
 
+## In brief
+- `import("data/wages.csv")`: a file of the project, the type of each column guessed from its first 1,000 rows.
+- `import("data/wages.csv", types: {id: Str})`: a type declared where the guess is not the one wanted.
+- `import("data/sales.csv", decimal: ",", thousands: ".")`: a file written with a decimal comma.
+- `import("lfs:wages.csv")`: a file of a data root declared in `zeff.toml`.
+- `import("zeff:wages.csv")`: a file that ships with Zeff.
+
 ## Description
 Reads a file in the project (`import("data/wages.csv")`) or in a declared data root
 (`import("lfs:wages.parquet")`) and chooses the reader from the extension. This release reads
@@ -57,29 +64,118 @@ changed or could not keep.
 ## Value
 A `Frame` with one column per variable of the file.
 
+## Missing values
+An empty cell, `NA` and `.` are read as missing in a column of any type. `na_values:` adds the codes a file uses for a missing value, such as `-99`, and a note counts the values each code turned into `NA`. `NaN` in a column of numbers becomes `NA` with a note. Nothing else becomes `NA`: a value that does not fit the type of its column stops the import and names the row (Z0606).
+
+## A common mistake
+Misspelling the name of the file. Nothing is read in its place, and the message offers the nearest name:
+
+> import("zeff:wage.csv")
+error[Z0715]: no file `zeff:wage.csv` ships with Zeff
+  = help: did you mean `zeff:wages.csv`?
+
+Write the name as it is: `import("zeff:wages.csv")`. A file of the project is written from the project folder, as in `data/wages.csv`; a place on the computer outside the project is refused (Z0701), so that a project runs the same on any machine.
+
+## Coming from R or Stata
+| import("data/wages.csv") | read.csv("data/wages.csv") | import delimited "data/wages.csv", clear |
+| import("data/wages.tsv") | read.delim("data/wages.tsv") | import delimited "data/wages.tsv", clear |
+| import("f.csv", types: {id: Str}) | read.csv("f.csv", colClasses = c(id = "character")) | import delimited "f.csv", stringcols(1) clear |
+| import("f.csv", na_values: [-99]) | read.csv("f.csv", na.strings = c("", "NA", "-99")) | import delimited "f.csv", clear, then mvdecode _all, mv(-99) |
+
+R's `read.csv` reads a column of numbers that holds one stray word as text, the whole column,
+and says nothing; Stata's `import delimited` makes it a string variable. Here the type guessed
+from the first 1,000 rows is kept to, and a later value that does not fit stops the import and
+names the row, so a stray code is found on the day the file is read. `read.csv` starts from the
+working directory, which `setwd` moves; here a path always starts at the project folder, so a
+script reads the same file from wherever it is run. Stata replaces the dataset in memory, which
+is why it asks for `clear`; here the frame is a value, bound to a name with `let`.
+
+## Related tasks
+- To write a frame to a file, use `save`.
+- For the datasets that ship with Zeff, with their labels and categories, use `dataset`.
+- To see the type and the missing values of each variable read, use `describe`.
+- To type a small frame into the script, use `frame`.
+- To change the type of a variable after reading, use `to`.
+
 ## See also
 frame, describe, n_rows, variables
 
 ## Examples
-> let wages = import("data/wages.csv")
-note: data/wages.csv read as CSV: 3 rows × 3 variables, types guessed; CSV carries no labels, value labels or categories (line 1)
-> wages
-wages · 3 rows × 3 variables
+// A file that ships with Zeff is read like any other; the note says what was read. The file carries the group as a code, where `dataset(sleep)` carries its label.
+> let sleep = import("zeff:sleep.csv")
+> sleep.head(3)
+note: zeff:sleep.csv read as CSV: 20 rows × 3 variables, types guessed; CSV carries no labels, value labels or categories (line 1)
+frame · 3 rows × 3 variables
 
-      id   wage   hours
-  1    1   23.4      40
-  2    2     19      35
-  3    3   31.2      NA
-> import("data/wages.csv", na_values: [40]).mean(hours)
-35
-note: data/wages.csv read as CSV: 3 rows × 3 variables, types guessed; CSV carries no labels, value labels or categories (line 3)
-note: 1 value of hours read as NA from na_values 40 (line 3)
-warning[W0201]: 2 rows with NA in hours were skipped (line 3)
-> import("data/wages_de.csv", decimal: ",", thousands: ".", encoding: "windows-1252")
+      extra   group   id
+  1     0.7       1    1
+  2    -1.6       1    2
+  3    -0.2       1    3
+
+// What each variable was read as: a date written as ISO 8601 is a Date.
+> import("zeff:firms.csv").describe()
+frame · 400 rows × 4 variables
+
+  variable   type   non-missing   missing   example
+  firm       Int            400         0   1
+  industry   Str            400         0   Agriculture
+  size       Int            400         0   3
+  founded    Date           400         0   1990-11-06
+note: zeff:firms.csv read as CSV: 400 rows × 4 variables, types guessed; CSV carries no labels, value labels or categories (line 3)
+
+// A type declared where the guess is not the one wanted: the group is a code, kept as text.
+> import("zeff:sleep.csv", types: {group: Str}).describe()
+frame · 20 rows × 3 variables
+
+  variable   type    non-missing   missing   example
+  extra      Float            20         0   0.7
+  group      Str              20         0   1
+  id         Int              20         0   1
+note: zeff:sleep.csv read as CSV: 20 rows × 3 variables, types guessed; CSV carries no labels, value labels or categories (line 4)
+
+// A code that a file uses for a missing value. Were 0 the code for a night not measured, the note would count what it turned into `NA`.
+> import("zeff:sleep.csv", na_values: [0]).describe()
+frame · 20 rows × 3 variables
+
+  variable   type    non-missing   missing   example
+  extra      Float            19         1   0.7
+  group      Int              20         0   1
+  id         Int              20         0   1
+note: zeff:sleep.csv read as CSV: 20 rows × 3 variables, types guessed; CSV carries no labels, value labels or categories (line 5)
+note: 1 value of extra read as NA from na_values 0 (line 5)
+
+// A file whose first line is not a header: the columns are `v1`, `v2`, …. Here the header is skipped as a line of its own.
+> import("zeff:sleep.csv", header: false, skip: 1).head(2)
+frame · 2 rows × 3 variables
+
+        v1   v2   v3
+  1    0.7    1    1
+  2   -1.6    1    2
+note: zeff:sleep.csv read as CSV: 20 rows × 3 variables, types guessed; CSV carries no labels, value labels or categories (line 6)
+
+// The delimiter named. A wrong one shows at once: a single variable holding whole lines.
+> import("zeff:sleep.csv", delim: ";").head(2)
+frame · 2 rows × 1 variable
+
+      extra,group,id
+  1   0.7,1,1
+  2   -1.6,1,2
+note: zeff:sleep.csv read as CSV: 20 rows × 1 variable, types guessed; CSV carries no labels, value labels or categories (line 7)
+
+// `names: snake` turns each name into a snake_case one and reports the changes; these names are that already, so nothing is reported. `quote: ""` reads a file that never quotes, every character as it stands.
+> import("zeff:firms.csv", names: snake, quote: "").head(2)
 frame · 2 rows × 4 variables
 
-      id   name      wage   hours
-  1    1   Jörg    1234.5      40
-  2    2   Aimée   987.25      35
-note: data/wages_de.csv read as CSV: 2 rows × 4 variables, types guessed; CSV carries no labels, value labels or categories (line 4)
-note: delimiter `;` detected from the first line (line 4)
+      firm   industry      size   founded
+  1      1   Agriculture      3   1990-11-06
+  2      2   Agriculture      5   1957-07-02
+note: zeff:firms.csv read as CSV: 400 rows × 4 variables, types guessed; CSV carries no labels, value labels or categories (line 8)
+
+// The options for a file from a German spreadsheet: a decimal comma, which makes `;` the delimiter, a point between groups of digits, and Windows-1252. The shipped file is not written so, and the result says it at once.
+> import("zeff:sleep.csv", decimal: ",", thousands: ".", encoding: "windows-1252").head(2)
+frame · 2 rows × 1 variable
+
+      extra,group,id
+  1   0.7,1,1
+  2   -1.6,1,2
+note: zeff:sleep.csv read as CSV: 20 rows × 1 variable, types guessed; CSV carries no labels, value labels or categories (line 9)
