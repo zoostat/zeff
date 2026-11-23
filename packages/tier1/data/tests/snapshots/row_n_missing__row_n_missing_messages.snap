@@ -1,0 +1,101 @@
+---
+source: packages/tier1/data/tests/row_n_missing.rs
+expression: out
+---
+let d = frame(a = [1.5, NA], b = ["x", NA])
+d.add(g = row([a, b]))
+---
+error[Z0406]: `row` needs `stat:`
+ --> scripts/main.zeff:2:11
+  |
+2 | d.add(g = row([a, b]))
+  |           ^^^ `stat:` is missing
+  |
+  = help: usage: `row([q1, q2, q3], stat: mean)` for the mean across the variables, `stat: sum` for their sum, or `stat: n_missing` for the number of them that are missing
+
+let d = frame(a = [1.5, NA], b = ["x", NA])
+d.add(g = row([a, b], stat: missing))
+---
+error[Z0402]: `missing` is not one of the allowed words
+ --> scripts/main.zeff:2:29
+  |
+2 | d.add(g = row([a, b], stat: missing))
+  |                             ^^^^^^^ expected one of mean, sum, n_missing
+  |
+  = help: did you mean `n_missing`?
+
+let d = frame(a = [1.5, NA], b = ["x", NA])
+d.add(g = row([a, b], stat: mean))
+---
+error[Z0401]: `row` with `stat: mean` or `stat: sum` takes Int and Float variables, but `b` is a Str
+ --> scripts/main.zeff:2:15
+  |
+2 | d.add(g = row([a, b], stat: mean))
+  |               ^^^^^^ `b` is not a number
+  |
+  = help: the mean and the sum of `row` are of numbers; convert the variable first, or leave it out (`stat: n_missing` counts the missing values of variables of any type)
+
+let d = frame(a = [1.5, NA], b = ["x", NA])
+d.add(g = row([a, b], stat: sum))
+---
+error[Z0401]: `row` with `stat: mean` or `stat: sum` takes Int and Float variables, but `b` is a Str
+ --> scripts/main.zeff:2:15
+  |
+2 | d.add(g = row([a, b], stat: sum))
+  |               ^^^^^^ `b` is not a number
+  |
+  = help: the mean and the sum of `row` are of numbers; convert the variable first, or leave it out (`stat: n_missing` counts the missing values of variables of any type)
+
+let d = frame(a = [1.5, NA], b = [true, NA])
+d.add(g = row([a, b], stat: sum))
+---
+error[Z0401]: `row` with `stat: mean` or `stat: sum` takes Int and Float variables, but `b` is a Bool
+ --> scripts/main.zeff:2:15
+  |
+2 | d.add(g = row([a, b], stat: sum))
+  |               ^^^^^^ `b` is not a number
+  |
+  = help: Bool is not a number; `to(x, Int)` turns true and false into 1 and 0
+
+let d = frame(a = [1.5, NA], b = ["x", NA])
+d.add(g = row([a, zz], stat: n_missing))
+---
+error[Z0101]: no variable `zz` in `d`
+ --> scripts/main.zeff:2:15
+  |
+2 | d.add(g = row([a, zz], stat: n_missing))
+  |               ^^^^^^^ not a variable of d
+  |
+  = help: the variables of `d` are: a, b
+
+let d = frame(a = [1.5, NA], b = ["x", NA])
+d.add(g = row([a, b], stat: n_missing, min_valid: 0))
+---
+error[Z0401]: `min_valid:` of `row` cannot be 0
+ --> scripts/main.zeff:2:51
+  |
+2 | d.add(g = row([a, b], stat: n_missing, min_valid: 0))
+  |                                                   ^ fewer than one value
+  |
+  = help: a row needs at least one value for a result; `min_valid:` is 1 unless given
+
+row([1, 2], stat: n_missing)
+---
+error[Z0401]: `vars` of `row` must be a Vars, but this is a List<Int>
+ --> scripts/main.zeff:1:5
+  |
+1 | row([1, 2], stat: n_missing)
+  |     ^^^^^^ a List<Int>
+  |
+  = help: name the variables in a list, as in `[lwage, educ]`
+
+let d = frame(a = [1.5, NA], b = ["x", NA])
+d.add(g = row(stat: n_missing))
+---
+error[Z0406]: `row` needs `vars`
+ --> scripts/main.zeff:2:11
+  |
+2 | d.add(g = row(stat: n_missing))
+  |           ^^^ `vars` is missing
+  |
+  = help: usage: `row(vars, stat: mean | sum | n_missing, min_valid: Int = 1)`

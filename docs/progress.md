@@ -148,7 +148,11 @@ Step 31a `[function]` (step 31 split in three): `n_chars(s)`, the length of each
 
 Step 31b `[function]`: `row_number()`, the position of each row from 1 in the order the rows stand, within each group under `by:` (#167), held exactly to base R's `seq_len` and `ave(seq_along(g), g, FUN = seq_along)`. It stands in `add`, `update` and `where`. The catalogue gains a row: 279 functions in 1.0, 673 rows.
 
-**Next.** Step 31c `[function]`: `row(stat: n_missing)` (#166). Step 3, the weekly mutation run of Monday 23 November, when it has ended.
+Step 31c `[function]`: `row(vars, stat: n_missing)`, the number of the variables missing in each row (#166), for variables of any type, held exactly to R's `rowSums(is.na())`; `where(row(vars, stat: n_missing) == 0)` keeps the complete rows. Step 31 is done: the three workarounds of the review are no longer needed.
+
+**Next.** Step 32 `[engine]`: one value out of a column, and a guessed Int widened (#168, #169). Step 3, the weekly mutation run of Monday 23 November, when it has ended.
+
+**For the owner, from step 31c.** Stata also has `egen rownonmiss()`, the number of values present in each row. It is the number of variables less `row(vars, stat: n_missing)`, and the page says so; whether it should be a word of `stat:` of its own (decisions 98 and 99) is his to say.
 
 **For the owner.** The printed table of `margins` (#202 (d)), shown at step 11a, is yours to change; #202 (a) to (e) are taken as recommended. #198, #199 and #200 and #201 (a) (taken as recommended, yours to overturn before 1.0; #201 (b) is open and yours: which standardized coefficients a `glm` fit has, refused until you choose; #200: `predict` gives a probability and `residuals` the outcome less it unless `type:` says otherwise, where R gives log-odds and deviance residuals): on a `glm` fit, clustered errors carry the factor (N − 1)/(N − k) that Stata's `logit` and R's `vcovCL` left to itself omit; analytic weights are refused on a binary model, as in Stata.
 

@@ -7346,6 +7346,9 @@ impl Checker<'_> {
     ///   a half; Ints under `min`, `max` and `first`.
     /// * `running(x, stat:)`: under `sum` the type of `x`, Int for Int and Float for Float;
     ///   Floats under `product`.
+    /// * `row(vars, stat:)`: Floats under `mean` and `sum`; Ints under `n_missing`, a count
+    ///   (release 0.9.0, step 31c), so that `row(vars, stat: n_missing) == 0` compares whole
+    ///   numbers.
     ///
     /// Where the option is not a word written in the call (it comes from a record of
     /// options), or the type of `x` is not known before the run, the result is a column whose
@@ -7355,7 +7358,7 @@ impl Checker<'_> {
         spec: &zeff_registry::FunctionSpec,
         slots: &[Option<Expr>],
     ) -> Option<Ty> {
-        if spec.package != "data" || !matches!(spec.name, "rank" | "running") {
+        if spec.package != "data" || !matches!(spec.name, "rank" | "running" | "row") {
             return None;
         }
         // The word an option was given: `Some(None)` where it is not written, `None` where it
@@ -7375,6 +7378,11 @@ impl Checker<'_> {
             "rank" => match word("ties") {
                 Some(None | Some("average")) => column(Ty::Float),
                 Some(Some("min" | "max" | "first")) => column(Ty::Int),
+                _ => column(Ty::Unknown),
+            },
+            "row" => match word("stat") {
+                Some(Some("mean" | "sum")) => column(Ty::Float),
+                Some(Some("n_missing")) => column(Ty::Int),
                 _ => column(Ty::Unknown),
             },
             _ => match word("stat") {

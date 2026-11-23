@@ -1342,16 +1342,20 @@ pub fn functions() -> Vec<Function> {
                 method: false,
                 params: vec![
                     ParamSpec::required("vars", "Vars"),
-                    ParamSpec::option("stat", "mean | sum"),
+                    ParamSpec::option("stat", "mean | sum | n_missing"),
                     ParamSpec::option_with_default("min_valid", "Int", "1"),
                 ],
                 rest: None,
-                returns: "Column<Float>",
+                returns: "Column<Float> | Column<Int>",
                 diagnostics: vec![
                     DiagnosticDecl::new("Z0406", "stat: missing"),
                     DiagnosticDecl::new(
                         "Z0401",
-                        "outside add or update, a variable that is not an Int or a Float, or min_valid: below 1",
+                        "outside add or update, a variable that is not an Int or a Float under stat: mean or sum, or min_valid: below 1",
+                    ),
+                    DiagnosticDecl::new(
+                        "W0401",
+                        "min_valid: written out with stat: n_missing, where it changes nothing",
                     ),
                 ],
                 help: include_str!("../help/row.md"),

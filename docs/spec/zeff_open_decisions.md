@@ -3417,6 +3417,9 @@ Raised on 19 November 2026 by the review against R. `n_missing([x1, x2, x3])` in
 
 **The owner's decision (21 November 2026, at the opening of release 0.9.0).** The owner said "go" to the checklist of `docs/releases/0.9.0.md` without changing its answers, so its recommendation is taken under his standing instruction of 12 November 2026, his to overturn. Option A: `row(vars, stat: n_missing)`; built at step 31.
 
+**Status (23 November 2026).** Built at step 31c of Zeff 0.9.0, as decided: `row(vars, stat: n_missing)`, an Int in every row, for variables of any type, held exactly to R's `rowSums(is.na())`. Catalogue row 136 has the wider usage. Open beside it, for the owner: whether the number of values present (Stata's `egen rownonmiss()`) should be a word of `stat:` too. Deadline for the owner to overturn: 1.0.
+
+
 ### 167. A row number
 
 Raised on 19 November 2026 by the review against R. `add(id = seq(1, n()))` is refused, since a list is not a column; the review wrote `add(one = 1).add(id = running(one, stat: sum))`. R's `row_number()` and Stata's `_n`, within groups as `by: g` gives them, are used to number observations, to make an identifier before `to_long`, and to take the first row of each group.

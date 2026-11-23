@@ -7317,3 +7317,17 @@ Step 31 names three functions; it is split in three in the checklist, each funct
 
 **Held by.** `packages/tier1/data/tests/row_number.rs`: the references; an empty frame, one row, a missing group, every row its own group; `add`, `update`, `where` and expressions; a panel out of time order; every message; a property over random groups (1 to the size of each group, rising, the last equal to `n()`, equal to a running sum of ones, whatever the rows hold). The page of `row_number`.
 
+## 23 November 2026 — release 0.9.0, step 31c: `row(vars, stat: n_missing)`
+
+- *The statistic* (open decision #166, option A: one function with an option, not a new name): for each row, the number of the variables named whose value is missing, an Int from 0 to the number of variables, never `NA`. R's `rowSums(is.na(...))` and Stata's `egen rowmiss()`.
+- *Variables of any type.* `mean` and `sum` take Ints and Floats and refuse the rest, as before; a count of missing values has no such need, and takes text, logical values, dates, date-times and categories, as R's and Stata's do. An empty text is a value and is not counted, as in R; Stata counts it as missing, and the page says so.
+- *`min_valid:` changes nothing under `n_missing`*, which gives a number in every row: written out, it is said in a note with a code (W0401), as `level:` of `posthoc` with a step-wise method is, so that a script may allow it and `--deny-warnings` refuse it. A value below 1 is still refused, whatever the statistic.
+- *The type of the result is known at the check.* `row` now gives Floats or Ints by its option; the check types `row(vars, stat: n_missing)` as a column of Ints and `mean` and `sum` as Floats, as it already does for `rank` and `running`, so that `where(row(vars, stat: n_missing) == 0)` compares whole numbers. Without this the comparison was refused as "one type or another".
+- *It also stands in `where`*, as `row` did before: the rows with no value missing among some variables are `where(row(vars, stat: n_missing) == 0)`, which keeps what `drop_missing(vars)` keeps; a property holds the two together.
+- *The refusal of a variable that is not a number* now says which statistics it concerns ("`row` with `stat: mean` or `stat: sum` takes Int and Float variables"), and its help names `stat: n_missing`.
+- *Not added:* a count of the values present (Stata's `egen rownonmiss()`), which is the number of variables less this count and is written so on the page. Whether it should be a word of its own is the owner's (decisions 98 and 99 ask that R's and Stata's methods be options); raised to him in the step's announcement and not settled here.
+- *The reference* is `rowSums(is.na())` in `tests/reference/r/rows.R`: on the four numeric matrices `row` already had, on a frame of five types, and on the shipped wages (the rows with 0, 1, 2 and 3 of wage, hours and industry missing; the missing values over every variable; the complete rows). The earlier values of the file are untouched.
+- *The catalogue's row 136* has the wider usage; no row is new, so the counts stand.
+
+**Held by.** `packages/tier1/data/tests/row_n_missing.rs`: the three references; the edges (nothing missing, everything, one variable, an empty text, a variable named twice, `update`, an empty frame); `mean` and `sum` as they were; `min_valid:` with its note and a pragma; every message; a property over random frames of three types. The page of `row`.
+

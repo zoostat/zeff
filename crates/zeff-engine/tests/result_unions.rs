@@ -24,6 +24,9 @@ fn every_result_declared_as_a_union_has_its_rule() {
     let audited = [
         // By `ties:`: Floats under `average`, the default; Ints under the other three.
         ("data", "rank", "Column<Float> | Column<Int>"),
+        // By `stat:`: Floats under `mean` and `sum`; Ints under `n_missing`, a count (release
+        // 0.9.0, step 31c).
+        ("data", "row", "Column<Float> | Column<Int>"),
         // By `stat:`: the type of the column under `sum`; Floats under `product`.
         ("data", "running", "Column<Float> | Column<Int>"),
         // By its first argument: a list for a list, a column for a column.
@@ -49,6 +52,11 @@ fn every_result_declared_as_a_union_has_its_rule() {
         "d.add(v = running(x, stat: sum) * 2)",
         "d.add(v = running(k, stat: sum) + 1)",
         "d.add(v = running(k, stat: product) / 2 > 1)",
+        "d.add(v = row([x, p], stat: mean) * 2)",
+        "d.add(v = row([x, k], stat: sum) > 1.5)",
+        "d.add(v = row([x, k, p], stat: n_missing) == 0)",
+        "d.add(v = 3 - row([x, k, p], stat: n_missing))",
+        "d.where(row([x, k], stat: n_missing) < 1)",
         "d.add(v = p_adjust(p) * 2)",
         "d.add(v = p_adjust(p, method: bh) < 0.05)",
         "p_adjust([0.01, 0.04])[1] * 2",

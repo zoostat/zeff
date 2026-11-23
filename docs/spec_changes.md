@@ -854,3 +854,7 @@ Open decision #165 (decided 21 November 2026, option A, with the name `n_chars`)
 
 Open decision #167 (decided 21 November 2026, option A, with the name `row_number`), applied as step 31b of release 0.9.0. One row is new: `row_number()` in `data`, the position of each row from 1 in the order the rows stand, within each group under `by:`. The counts follow: `data` has 57 functions in 1.0 and `row_number` joins its column functions, the engine 279 (265 written in Rust, 185 in tier 1), the catalogue 673 rows; the Zemp Specification's scale reads 279, of which 186 are tagged `general` alone, and 673 in all. Additions only.
 
+## 23 November 2026 — zeff_functions.csv (row 136 widened)
+
+Open decision #166 (decided 21 November 2026, option A), applied as step 31c of release 0.9.0. The usage of `row` gains a word of `stat:`: `row(vars, stat: mean | sum | n_missing, min_valid: Int = 1)`, the count of the values missing among the variables in each row, with `rowSums(is.na())` and `egen rowmiss()` beside its equivalents. No row is new and no count changes.
+

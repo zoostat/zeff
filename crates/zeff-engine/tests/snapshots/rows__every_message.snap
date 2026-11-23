@@ -3,7 +3,7 @@ source: crates/zeff-engine/tests/rows.rs
 expression: text
 ---
 ## bool_variable (exit 1)
-error[Z0401]: `row` takes Int and Float variables, but `f` is a Bool
+error[Z0401]: `row` with `stat: mean` or `stat: sum` takes Int and Float variables, but `f` is a Bool
  --> scripts/main.zeff:2:15
   |
 2 | d.add(s = row([f, x], stat: sum))
@@ -12,13 +12,13 @@ error[Z0401]: `row` takes Int and Float variables, but `f` is a Bool
   = help: Bool is not a number; `to(x, Int)` turns true and false into 1 and 0
 
 ## text_variable (exit 1)
-error[Z0401]: `row` takes Int and Float variables, but `s` is a Str
+error[Z0401]: `row` with `stat: mean` or `stat: sum` takes Int and Float variables, but `s` is a Str
  --> scripts/main.zeff:2:15
   |
 2 | d.add(m = row([s, x], stat: mean))
   |               ^^^^^^ `s` is not a number
   |
-  = help: `row` adds numbers; convert the variable first, or leave it out
+  = help: the mean and the sum of `row` are of numbers; convert the variable first, or leave it out (`stat: n_missing` counts the missing values of variables of any type)
 
 ## no_statistic (exit 1)
 error[Z0406]: `row` needs `stat:`
@@ -27,14 +27,14 @@ error[Z0406]: `row` needs `stat:`
 2 | d.add(m = row([q1, q2]))
   |           ^^^ `stat:` is missing
   |
-  = help: usage: `row([q1, q2, q3], stat: mean)` for the mean across the variables, or `stat: sum` for their sum
+  = help: usage: `row([q1, q2, q3], stat: mean)` for the mean across the variables, `stat: sum` for their sum, or `stat: n_missing` for the number of them that are missing
 
 ## a_statistic_that_is_not_offered (exit 1)
 error[Z0402]: `median` is not one of the allowed words
  --> scripts/main.zeff:2:31
   |
 2 | d.add(m = row([q1, q2], stat: median))
-  |                               ^^^^^^ expected one of mean, sum
+  |                               ^^^^^^ expected one of mean, sum, n_missing
   |
   = help: did you mean `mean`?
 

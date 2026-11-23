@@ -51,7 +51,7 @@ data · tier 1 · 57 of 57 functions in this release
   to_long        Turn repeated columns into rows
   to_wide        Turn rows into repeated columns
   save           Save as CSV or TSV, chosen by the extension
-  row            Mean or sum across variables in each row
+  row            Mean, sum or count of missing values across variables in each row
   drop_missing   Remove rows with NA in the variables and report how many
   between        True where low <= x <= high
   center         Subtract the mean
