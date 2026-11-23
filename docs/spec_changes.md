@@ -902,3 +902,7 @@ The owner's addition the same day: "Also I want to remove "Help" from right to "
 ## 24 November 2026 — zemp_specification.md, section 15; zeff_open_decisions.md, entry #211
 
 The owner's decision of 24 November 2026, on five designs: "Soft panel is final and record it". Open decision #211 gains item 14. The row of 0.2.3 in section 15 of the Zemp Specification said that Home is an Index of functions by package until the methods arrive; it now says that Home is a landing page of panels: Zeff and Zemp Lite one after the other, each with its version and a few words, then a panel for each topic with its count and what it holds. The Index of functions is no longer a page of Help, since every function is reached from its package.
+
+## 24 November 2026 — zemp_specification.md, section 15; zeff_open_decisions.md, new entry #215
+
+The owner's decision of 24 November 2026 ("Yes, option A") on a name with two functions in the help, such as `histogram`. Open decision #215 is entered, decided. The row of 0.2.3 in section 15 of the Zemp Specification now says that such a name has a page for each function, titled by what it is called on, and that the bare name opens a short chooser of the two. The engine's part, `zeff help` printing the chooser, is left to Zeff 0.10.0; no normative text of the engine changed.
