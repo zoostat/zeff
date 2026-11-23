@@ -890,3 +890,7 @@ Open decision #153 (decided 21 November 2026, option A: "the testing handbook ga
 ## 24 November 2026 — zemp_specification.md, section 7; zeff_open_decisions.md, entry #211
 
 The owner's standing rule of 24 November 2026: "you must update the help pages (including codes and figures) as per the zeff engine". Open decision #211 gains item 12, and the Help row of section 7 of the Zemp Specification now says that at every release Help agrees with the engine the release carries: the code in Zemp's own pages runs on that engine at the build and prints what the page shows, every function, option or code they name exists in that engine, and every picture is made again from the running app, the build failing where one of these does not hold. In force from Zemp Lite 0.2.3.
+
+## 24 November 2026 — zemp_specification.md, section 15; zeff_open_decisions.md, entry #211
+
+The owner's decision of 24 November 2026 on the running 0.2.3: "remove "related functions" move search bar to right end, Move "on this pane" to the right pane". Open decision #211 gains item 13, and the row of 0.2.3 in section 15 of the Zemp Specification now says that the search field stands at the right end of the Help place's bar and that the right pane is **On this page**, the open page's sections with the one in view marked, in place of **Related functions**; the page's own See also keeps its links.
