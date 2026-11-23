@@ -197,6 +197,7 @@ pub fn datasets(_ctx: &mut CallContext<'_>, _args: Args) -> Result<Value, Fail> 
         })
         .collect();
     Ok(Value::Table(zeff_core::value::Table {
+        behind: None,
         title: format!("datasets · {} shipped with this release", SHIPPED.len()),
         columns: vec![
             ("name".to_string(), Align::Left),

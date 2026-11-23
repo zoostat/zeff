@@ -20,7 +20,8 @@ offset is converted to UTC and counted (W0702). Given a column, `to` converts ro
 returns a column of the type; `Category` needs a column. `to(x, List)` is of another kind: it
 takes a column and gives the list of its values, each as a value of the column's type, so that
 a column can be handed to a function of lists or walked in a loop; one value out of a column is
-`x[i]`, `first(x)` or `last(x)`, and needs no list. R converts with `as.integer`,
+`x[i]`, `first(x)` or `last(x)`, and needs no list. `to(t, Frame)` gives the frame behind a
+printed table that has one: the table of `duplicates`, as its key variables and `copies`. R converts with `as.integer`,
 `as.numeric`, `as.character`, `as.logical` and `as.Date`, which also read `"2.5"` as 2, `"+5"`
 and `"0x10"`; Zeff refuses those.
 
@@ -28,7 +29,8 @@ and `"0x10"`; Zeff refuses those.
 - x: The value, or a column.
 - type: The type to convert to: `Int`, `Float`, `Str`, `Bool`, `Date`, `DateTime` or `Category`; a
   date or time type may carry a format, `Date("%d/%m/%Y")`, written as `strftime` writes it.
-  `List`, for a column, gives the list of its values.
+  `List`, for a column, gives the list of its values, and `Frame`, for the table of
+  `duplicates`, its frame.
 
 ## Value
 A value of the type named, or a column of it when `x` is a column. With `List`, a list with one

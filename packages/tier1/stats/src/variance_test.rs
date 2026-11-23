@@ -497,6 +497,7 @@ pub fn variance_test(ctx: &mut CallContext<'_>, args: Args) -> Result<Value, Fai
         alternative: Alternative::TwoSided,
         header: Vec::new(),
         table: Some(Table {
+            behind: None,
             title: String::new(),
             before: Vec::new(),
             columns: vec![

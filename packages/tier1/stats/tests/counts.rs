@@ -112,6 +112,21 @@ fn close(got: f64, want: f64) -> bool {
     (got - want).abs() <= 1e-6 * want.abs().max(1e-9)
 }
 
+/// The shipped wages' industry (text), without the rows of one industry.
+fn wages_without(industry: &str) -> Frame {
+    let text =
+        std::fs::read_to_string(root().join("packages/tier1/datasets/data/wages.csv")).unwrap();
+    let mut lines = text.lines();
+    let header: Vec<&str> = lines.next().unwrap().split(',').collect();
+    let at = header.iter().position(|h| *h == "industry").unwrap();
+    let kept: Vec<Option<String>> = lines
+        .map(|line| line.split(',').nth(at).unwrap().to_string())
+        .filter(|value| value != industry)
+        .map(Some)
+        .collect();
+    frame_of(vec![("industry", Column::strs(kept))])
+}
+
 /// A Bool column of `x` successes in `n` trials.
 fn trials(x: usize, n: usize) -> Column {
     Column::bools((0..n).map(|i| Some(i < x)))
@@ -318,6 +333,63 @@ fn chi_squared_agrees_with_chisq_test() {
                 vec![
                     (1, var("industry")),
                     (4, Value::List(vec![Value::Float(1.0 / 12.0); 12])),
+                ],
+            ),
+            // A category that no row holds, named by `levels:` (open decision #170; release
+            // 0.9.0, step 33c): R's table of a factor with the level named.
+            "votes_unobserved" => (
+                frame_of(vec![(
+                    "party",
+                    Column::strs(["a", "a", "b", "a", "b", "a", "a", "b", "a", "a"].map(Some)),
+                )]),
+                vec![
+                    (1, var("party")),
+                    (
+                        4,
+                        Value::List(vec![
+                            Value::Float(0.5),
+                            Value::Float(0.3),
+                            Value::Float(0.2),
+                        ]),
+                    ),
+                    (
+                        7,
+                        Value::List(
+                            ["a", "b", "c"]
+                                .iter()
+                                .map(|l| Value::Str(l.to_string()))
+                                .collect(),
+                        ),
+                    ),
+                ],
+            ),
+            // The wages without the rows of one industry, fitted to twelve equal shares, the
+            // twelve industries named in R's order.
+            "industry_without_mining" => (
+                wages_without("Mining"),
+                vec![
+                    (1, var("industry")),
+                    (4, Value::List(vec![Value::Float(1.0 / 12.0); 12])),
+                    (
+                        7,
+                        Value::List(
+                            r["industry_levels"]
+                                .as_array()
+                                .unwrap()
+                                .iter()
+                                .map(|l| Value::Str(l.as_str().unwrap().to_string()))
+                                .collect(),
+                        ),
+                    ),
+                ],
+            ),
+            // The levels in another order than the values': the proportions follow them.
+            "female_reordered" => (
+                w.clone(),
+                vec![
+                    (1, var("female")),
+                    (4, Value::List(vec![Value::Float(0.45), Value::Float(0.55)])),
+                    (7, Value::List(vec![Value::Int(1), Value::Int(0)])),
                 ],
             ),
             other => panic!("unknown case {other}"),

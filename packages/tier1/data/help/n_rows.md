@@ -6,12 +6,14 @@ Number of rows
 ## Description
 The number of rows of a frame, as an `Int`: every row, whether or not it holds missing values. A
 frame read from a file has one row per data line of the file; a frame built with `frame` has as
-many rows as each of its lists has values.
+many rows as each of its lists has values. Of a printed table, such as the one `duplicates`
+gives, it is the number of rows of the table: `d.duplicates(firm).n_rows()` is the number of
+repeated values.
 
 Like R's `nrow` and Stata's `count` without a condition.
 
 ## Arguments
-- data: The frame.
+- data: The frame, or a table.
 
 ## Value
 An `Int`, `0` for a frame with no rows.

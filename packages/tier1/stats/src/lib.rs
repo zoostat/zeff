@@ -276,6 +276,7 @@ fn square(title: &str, names: &[String], cells: &[Vec<String>]) -> Table {
         })
         .collect();
     Table {
+        behind: None,
         title: title.to_string(),
         columns,
         rows,
@@ -567,6 +568,7 @@ pub fn functions() -> Vec<Function> {
                         "frequency | analytic | sampling",
                         "sampling",
                     ),
+                    ParamSpec::option("levels", "List"),
                 ],
                 rest: None,
                 returns: "TestResult",
@@ -578,7 +580,7 @@ pub fn functions() -> Vec<Function> {
                     DiagnosticDecl::new("Z0101", "a variable the frame does not have"),
                     DiagnosticDecl::new(
                         "Z0401",
-                        "a second variable and p: together, or neither; fewer than two values of a variable; p: with the wrong number of proportions, or proportions that are not positive and summing to 1; an opaque variable; analytic weights",
+                        "a second variable and p: together, or neither; fewer than two values of a variable; p: with the wrong number of proportions, or proportions that are not positive and summing to 1; levels: without p:, naming a value twice, or leaving out a value the variable holds; an opaque variable; analytic weights",
                     ),
                     DiagnosticDecl::new("Z0411", "weights: with weight_type: sampling"),
                 ],

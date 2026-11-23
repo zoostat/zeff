@@ -84,7 +84,16 @@ chi_cases <- list(
   chi("union_female_corrected", union_female, correct = TRUE),
   chi("small_empty_cell", small),
   chi("female_half", table(wages$female), p = c(0.5, 0.5)),
-  chi("industry_equal", table(wages$industry), p = rep(1 / 12, 12)))
+  chi("industry_equal", table(wages$industry), p = rep(1 / 12, 12)),
+  # A category that no row holds (release 0.9.0, step 33c; chi2_test(var, p:, levels:)): the
+  # table of a factor with the level named counts it 0. Ten votes for two of three parties; the
+  # shipped wages without the rows of one industry, fitted to twelve equal shares; and the levels
+  # in another order than the values', the proportions following them.
+  chi("votes_unobserved", table(factor(c("a", "a", "b", "a", "b", "a", "a", "b", "a", "a"), levels = c("a", "b", "c"))),
+      p = c(0.5, 0.3, 0.2)),
+  chi("industry_without_mining", table(factor(wages$industry[wages$industry != "Mining"], levels = sort(unique(wages$industry)))),
+      p = rep(1 / 12, 12)),
+  chi("female_reordered", table(factor(wages$female, levels = c(1, 0))), p = c(0.45, 0.55)))
 industry_levels <- as.list(sort(unique(wages$industry)))
 
 out <- list(reference = reference_block(), one_sample = one_sample, two_sample = two_sample,

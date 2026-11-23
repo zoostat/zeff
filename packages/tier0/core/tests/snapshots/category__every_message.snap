@@ -3,7 +3,7 @@ source: packages/tier0/core/tests/category.rs
 expression: all
 ---
 > category("a")
-error[Z0401]: `var` of `category` must be a Column, but this is a Str
+error[Z0401]: `var` of `category` must be a Column or List, but this is a Str
  --> scripts/main.zeff:1:10
   |
 1 | category("a")

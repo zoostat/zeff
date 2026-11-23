@@ -1005,6 +1005,7 @@ mod tests {
     #[test]
     fn a_table_prints_its_title_and_aligned_columns() {
         let table = crate::value::Table {
+            behind: None,
             title: "wages · 3 rows × 3 variables".into(),
             columns: vec![
                 ("variable".into(), Align::Left),

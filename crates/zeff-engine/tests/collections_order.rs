@@ -162,10 +162,17 @@ fn equal_is_identity_over_values_and_collections() {
         prints("equal([[1, 2], [3]], [[1, 2], [3]])\nequal([1, 2], {a: 1})\n"),
         "true\nfalse\n"
     );
-    // A column is not among the values equal compares.
+    // Two columns are compared row by row, `NA` with `NA` (open decision #170; release 0.9.0,
+    // step 33): until then a column was refused (Z0401).
     assert_eq!(
-        error_code("let d = frame(x = [1, 2])\nequal(d[\"x\"], d[\"x\"])\n"),
-        "Z0401"
+        prints("let d = frame(x = [1, 2])\nequal(d[\"x\"], d[\"x\"])\n"),
+        "true\n"
+    );
+    assert_eq!(
+        prints(
+            "let d = frame(x = [1, NA], y = [1, 2])\nprint(equal(d[\"x\"], d[\"y\"]), equal(d[\"x\"], [1, NA]))\n"
+        ),
+        "false false\n"
     );
 }
 
@@ -177,10 +184,7 @@ fn every_message_of_the_order_functions() {
         ("is_in_not_a_list", "is_in(1, 2)\n"),
         ("is_in_record", "is_in({a: 1}, [1])\n"),
         ("keys_of_a_list", "keys([1, 2])\n"),
-        (
-            "equal_column",
-            "let d = frame(x = [1, 2])\nequal(d[\"x\"], d[\"x\"])\n",
-        ),
+        ("equal_frame", "let d = frame(x = [1, 2])\nequal(d, d)\n"),
         ("unique_not_a_list", "unique(\"abc\")\n"),
     ];
     let mut text = String::new();

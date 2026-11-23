@@ -9,7 +9,9 @@ from a list is written once: `filter(xs, fn(x) x > 0)` keeps the positive values
 is a name or a function literal written where it is used (section 3.7 of the Language Reference,
 "Functions as values"), and it must answer `true` or `false` for every item: `NA` is an error
 (Z0203), as it is in `if`, so a list with missing values is filtered by a function that decides
-the missing case, `fn(x) !is_missing(x) && x > 0`. Like R's `Filter` or `purrr::keep`.
+the missing case, `fn(x) !is_missing(x) && x > 0`. A list that holds a failed value of `attempt`
+is filtered when `f` is a test of its item by `is`: `filter(fits, fn(f) !f.is(Failed))` keeps the
+values that succeeded. Like R's `Filter` or `purrr::keep`.
 
 ## Arguments
 - list: The list to choose from.

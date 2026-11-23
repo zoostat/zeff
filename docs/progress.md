@@ -154,7 +154,9 @@ Step 32a `[engine]` (step 32 split in two): one value out of a column (#168). `x
 
 Step 32b `[engine]`: on import, a column guessed as whole numbers from its first 1,000 rows that holds a decimal further down is read as Float, whole, with a note naming the row, where the import stopped before (#169); text in a numeric column and a decimal in a column declared `Int` stop it as before. A file like the review's imports whole. Step 32 is done.
 
-**Next.** Step 33 `[function]`: six smaller refusals (#170). Step 3, the weekly mutation run of Monday 23 November, when it has ended.
+Step 33 `[function]`: the six smaller refusals of #170 lifted: `equal` on two columns; `category` of a list; `duplicates` counted by `n_rows()` and given as a frame by `to(Frame)`; `attempt(error("…"))`; `map` and `filter` with a test by `is` over a list holding a failed value; `chi2_test(x, p:, levels:)` for a category never observed, held to R.
+
+**Next.** Step 34 `[function]`: six printed layouts (#171). Step 3, the weekly mutation run of Monday 23 November: on that day GitHub started the nightly jobs alone (10:43 UTC), and the weekly ones had not started when this entry was written.
 
 **For the owner, from step 31c.** Stata also has `egen rownonmiss()`, the number of values present in each row. It is the number of variables less `row(vars, stat: n_missing)`, and the page says so; whether it should be a word of `stat:` of its own (decisions 98 and 99) is his to say.
 

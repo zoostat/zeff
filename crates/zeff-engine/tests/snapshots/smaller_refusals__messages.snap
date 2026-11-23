@@ -1,0 +1,204 @@
+---
+source: crates/zeff-engine/tests/smaller_refusals.rs
+expression: out
+---
+let fits = [attempt(log(1)), attempt(error("no data"))]
+print(map(fits, fn(x) x + 1))
+---
+error[Z0220]: a failed value cannot be used in a list given as an argument: it failed with Z0001 at line 1: no data
+ --> scripts/main.zeff:2:11
+  |
+2 | print(map(fits, fn(x) x + 1))
+  |           ^^^^ a failed value
+  |
+  = help: test it first with `x.is(Failed)`, or keep it in a list for `report` and `len` to skip with a count (section 5.4)
+
+let fits = [attempt(log(1)), attempt(error("no data"))]
+print(map(fits, fn(x) type_of(x)))
+---
+error[Z0220]: a failed value cannot be used in a list given as an argument: it failed with Z0001 at line 1: no data
+ --> scripts/main.zeff:2:11
+  |
+2 | print(map(fits, fn(x) type_of(x)))
+  |           ^^^^ a failed value
+  |
+  = help: test it first with `x.is(Failed)`, or keep it in a list for `report` and `len` to skip with a count (section 5.4)
+
+let fits = [attempt(log(1)), attempt(error("no data"))]
+print(filter(fits, fn(x) x > 0))
+---
+error[Z0220]: a failed value cannot be used in a list given as an argument: it failed with Z0001 at line 1: no data
+ --> scripts/main.zeff:2:14
+  |
+2 | print(filter(fits, fn(x) x > 0))
+  |              ^^^^ a failed value
+  |
+  = help: test it first with `x.is(Failed)`, or keep it in a list for `report` and `len` to skip with a count (section 5.4)
+
+let fits = [attempt(log(1)), attempt(error("no data"))]
+print(reduce(fits, fn(a, x) a, 0))
+---
+error[Z0220]: a failed value cannot be used in a list given as an argument: it failed with Z0001 at line 1: no data
+ --> scripts/main.zeff:2:14
+  |
+2 | print(reduce(fits, fn(a, x) a, 0))
+  |              ^^^^ a failed value
+  |
+  = help: test it first with `x.is(Failed)`, or keep it in a list for `report` and `len` to skip with a count (section 5.4)
+
+let fits = [attempt(log(1)), attempt(error("no data"))]
+print(map(fits, fn(x) is(1, Failed)))
+---
+error[Z0220]: a failed value cannot be used in a list given as an argument: it failed with Z0001 at line 1: no data
+ --> scripts/main.zeff:2:11
+  |
+2 | print(map(fits, fn(x) is(1, Failed)))
+  |           ^^^^ a failed value
+  |
+  = help: test it first with `x.is(Failed)`, or keep it in a list for `report` and `len` to skip with a count (section 5.4)
+
+let a = attempt(print("x"))
+---
+error[Z0206]: this gives no value, so it cannot be run by `attempt`
+ --> scripts/main.zeff:1:17
+  |
+1 | let a = attempt(print("x"))
+  |                 ^^^^^^^^^^ its type is Nothing
+  |
+  = help: `print` and the other statements that print or warn return nothing; use the value they were given
+
+category([1, "a"])
+---
+error[Z0214]: a list holds one type: this one has an Int and a Str
+ --> scripts/main.zeff:1:14
+  |
+1 | category([1, "a"])
+  |              ^^^ a Str
+  |
+  = help: put values of one type in a list; Int and Float join as Float
+
+category([])
+---
+error[Z0401]: `category` of an empty list has no values to make levels of
+ --> scripts/main.zeff:1:10
+  |
+1 | category([])
+  |          ^^ not a list of one type of value
+  |
+  = help: write the values as texts, `category(["low", "high"], levels: ["low", "high"])`, or give a variable of a frame
+
+category([[1], [2]])
+---
+error[Z0401]: `category` takes a list of values of one type: texts, numbers, Bools or dates, with `NA` for a missing one
+ --> scripts/main.zeff:1:10
+  |
+1 | category([[1], [2]])
+  |          ^^^^^^^^^^ not a list of one type of value
+  |
+  = help: write the values as texts, `category(["low", "high"], levels: ["low", "high"])`, or give a variable of a frame
+
+category(3)
+---
+error[Z0401]: `var` of `category` must be a Column or List, but this is an Int
+ --> scripts/main.zeff:1:10
+  |
+1 | category(3)
+  |          ^ an Int
+  |
+  = help: usage: `category(var, levels: List, ordered: Bool = false, contrast: treatment | sum | helmert | poly = treatment)`
+
+frame(x = [1.5, 2.5]).describe().to(Frame)
+---
+error[Z0401]: this table is printed only: there is no frame behind it to convert to
+ --> scripts/main.zeff:1:1
+  |
+1 | frame(x = [1.5, 2.5]).describe().to(Frame)
+  | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ a table without a frame
+  |
+  = help: the table of `duplicates` converts to a frame; `aggregate` computes counts and statistics by group as a frame, and a result's `estimates()` gives its estimates as one
+
+to(3, Frame)
+---
+error[Z0401]: to(Frame) converts a table that has a frame behind it, but this is an Int
+ --> scripts/main.zeff:1:4
+  |
+1 | to(3, Frame)
+  |    ^ not a table
+  |
+  = help: `frame(x = [1, 2])` builds a frame from values; `d.duplicates(vars).to(Frame)` is the frame of the repeated values
+
+frame(x = [1.5, 2.5]).describe().n_cols()
+---
+error[Z0401]: `n_cols` cannot be called on a Table
+ --> scripts/main.zeff:1:1
+  |
+1 | frame(x = [1.5, 2.5]).describe().n_cols()
+  | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ this is a Table
+  |
+  = help: `n_cols` takes a Frame first; `x.n_cols(...)` is `n_cols(x, ...)`
+
+let d = frame(x = ["a", "a", "b"])
+d.chi2_test(x, p: [0.5, 0.3, 0.2])
+---
+error[Z0401]: `p:` of `chi2_test` has 3 proportions, but `x` has 2 values: a, b
+ --> scripts/main.zeff:2:19
+  |
+2 | d.chi2_test(x, p: [0.5, 0.3, 0.2])
+  |                   ^^^^^^^^^^^^^^^ one proportion per value
+  |
+  = help: write the proportions in the order the values are listed; a category that no row holds is named with `levels:`, as in `levels: ["a", "b", "c"]`, and counts 0
+
+let d = frame(x = ["a", "a", "b"])
+d.chi2_test(x, p: [0.5, 0.5], levels: ["a", "c"])
+---
+error[Z0401]: `x` holds the value b, which `levels:` of `chi2_test` does not name
+ --> scripts/main.zeff:2:39
+  |
+2 | d.chi2_test(x, p: [0.5, 0.5], levels: ["a", "c"])
+  |                                       ^^^^^^^^^^ a value of the variable left out
+  |
+  = help: name every value the variable holds, and those it could hold, in the order of `p:`; the rows hold: a, b
+
+let d = frame(x = ["a", "a", "b"])
+d.chi2_test(x, p: [0.5, 0.5], levels: ["a", "b", "c"])
+---
+error[Z0401]: `p:` of `chi2_test` has 2 proportions, but `levels:` names 3 values
+ --> scripts/main.zeff:2:19
+  |
+2 | d.chi2_test(x, p: [0.5, 0.5], levels: ["a", "b", "c"])
+  |                   ^^^^^^^^^^ one proportion per value named
+  |
+  = help: write one proportion for each value of `levels:`, in its order
+
+let d = frame(x = ["a", "a", "b"])
+d.chi2_test(x, p: [0.5, 0.3, 0.2], levels: ["a", "b", "a"])
+---
+error[Z0401]: `levels:` of `chi2_test` names a twice
+ --> scripts/main.zeff:2:44
+  |
+2 | d.chi2_test(x, p: [0.5, 0.3, 0.2], levels: ["a", "b", "a"])
+  |                                            ^^^^^^^^^^^^^^^ a value repeated
+  |
+  = help: each value once, in the order of the proportions of `p:`
+
+let d = frame(x = ["a", "a", "b"], y = [1, 2, 1])
+d.chi2_test(x, y, levels: ["a", "b"])
+---
+error[Z0401]: `levels:` of `chi2_test` names the categories of a fit to `p:`, and there is no `p:`
+ --> scripts/main.zeff:2:27
+  |
+2 | d.chi2_test(x, y, levels: ["a", "b"])
+  |                           ^^^^^^^^^^ `levels:` without `p:`
+  |
+  = help: write `chi2_test(var, p: [0.5, 0.3, 0.2], levels: ["a", "b", "c"])`; a test of independence takes its values from the two variables
+
+let d = frame(x = ["a", "a", "b"])
+d.chi2_test(x, p: [0.5, 0.5], levels: [[1], [2]])
+---
+error[Z0401]: `levels:` of `chi2_test` is a list of the variable's values, but it holds a List<Int>
+ --> scripts/main.zeff:2:39
+  |
+2 | d.chi2_test(x, p: [0.5, 0.5], levels: [[1], [2]])
+  |                                       ^^^^^^^^^^ not a value of the variable
+  |
+  = help: write the values as the variable has them, in the order of `p:`: `levels: ["a", "b", "c"]`

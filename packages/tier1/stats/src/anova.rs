@@ -487,6 +487,7 @@ pub fn anova(ctx: &mut CallContext<'_>, args: Args) -> Result<Value, Fail> {
     let more = if equal_var {
         let ss_total = test.ss_between + test.ss_within;
         vec![Table {
+            behind: None,
             title: String::new(),
             before: Vec::new(),
             columns: vec![
@@ -583,6 +584,7 @@ pub fn anova(ctx: &mut CallContext<'_>, args: Args) -> Result<Value, Fail> {
         alternative: Alternative::TwoSided,
         header: Vec::new(),
         table: Some(Table {
+            behind: None,
             title: String::new(),
             before: Vec::new(),
             columns: vec![

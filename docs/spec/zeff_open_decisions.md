@@ -3485,6 +3485,9 @@ Deadline 0.9.0.
 
 **The owner's decision (21 November 2026, at the opening of release 0.9.0).** The owner said "go" to the checklist of `docs/releases/0.9.0.md` without changing its answers, so its recommendation is taken under his standing instruction of 12 November 2026, his to overturn. Each item as the table recommends; built at step 33.
 
+**Status (23 November 2026).** Built at step 33 of Zeff 0.9.0, each item as the table recommends. Two readings were taken on the way, the owner's to overturn: the frame of `duplicates` is given by `to(t, Frame)`, the conversion, and not by a new function; and `filter` goes over a list with a failed value under the same test by `is` as `map`, so that `filter(fits, fn(f) !f.is(Failed))` keeps the fits that succeeded. Deadline for the owner to overturn: 1.0.
+
+
 ### 171. Six printed layouts the review found
 
 Raised on 19 November 2026 by the review against R. Each is a printed layout and so the owner's to decide.

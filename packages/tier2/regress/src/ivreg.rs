@@ -844,6 +844,7 @@ pub fn first_stage(ctx: &mut CallContext<'_>, args: Args) -> Result<Value, Fail>
         None => "endogeneity: Durbin–Wu–Hausman test not available".to_string(),
     });
     let whole = Table {
+        behind: None,
         title: String::new(),
         before: lines,
         columns: Vec::new(),

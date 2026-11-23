@@ -368,6 +368,7 @@ pub fn test_table(result: &TestResult) -> Table {
     let after = test_result_after(result);
     match &result.table {
         Some(table) => Table {
+            behind: None,
             title: result.title.clone(),
             before,
             columns: table.columns.clone(),
@@ -378,6 +379,7 @@ pub fn test_table(result: &TestResult) -> Table {
         },
         // A test with an estimate prints its lines and needs no grid of the statistic.
         None if result.estimate.is_some() => Table {
+            behind: None,
             title: result.title.clone(),
             before,
             columns: Vec::new(),
@@ -387,6 +389,7 @@ pub fn test_table(result: &TestResult) -> Table {
             rules: Vec::new(),
         },
         None => Table {
+            behind: None,
             title: result.title.clone(),
             before,
             columns: vec![
@@ -423,6 +426,7 @@ pub fn test_table(result: &TestResult) -> Table {
 pub fn sample() -> Table {
     let row = |cells: [&str; 6]| -> Vec<String> { cells.iter().map(|c| c.to_string()).collect() };
     Table {
+        behind: None,
         title: "reg · log(wage) ~ educ + exper + exper^2 + female".to_string(),
         before: vec![
             "N = 18,179 (233 rows dropped for NA in model variables)".to_string(),

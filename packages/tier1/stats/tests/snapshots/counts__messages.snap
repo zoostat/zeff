@@ -88,7 +88,7 @@ error[Z0401]: `p:` of `chi2_test` has 2 proportions, but `a` has 3 values: 1, 2,
 1 | frame(a = [1, 2, 3]).chi2_test(a, p: [0.5, 0.5])
   |                                      ^^^^^^^^^^ one proportion per value
   |
-  = help: write the proportions in the order the values are listed
+  = help: write the proportions in the order the values are listed; a category that no row holds is named with `levels:`, as in `levels: ["a", "b", "c"]`, and counts 0
 
 error[Z0401]: `p:` of `chi2_test` must be positive proportions that sum to 1, but these sum to 0.8
  --> scripts/main.zeff:1:35

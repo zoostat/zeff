@@ -372,6 +372,7 @@ pub fn report(ctx: &mut CallContext<'_>, args: Args) -> Result<Value, Fail> {
     }
     after.extend(once_for_its_columns(of_columns));
     Ok(Value::Table(Table {
+        behind: None,
         title,
         before: Vec::new(),
         columns,
@@ -504,6 +505,7 @@ fn tests_report(ctx: &mut CallContext<'_>, args: &Args) -> Result<Value, Fail> {
     }
     let after = once_for_its_columns(of_columns);
     Ok(Value::Table(Table {
+        behind: None,
         title,
         before: Vec::new(),
         columns,

@@ -684,6 +684,7 @@ fn report(test: &TestResult, method: Method, report: Report<'_>) -> Value {
         alternative: Alternative::TwoSided,
         header: vec![header.to_string()],
         table: Some(Table {
+            behind: None,
             title: String::new(),
             before: Vec::new(),
             columns,

@@ -509,6 +509,7 @@ fn compare_likelihood(ctx: &CallContext<'_>, a: &Rc<Fit>, b: &Rc<Fit>) -> Result
         ]
     };
     let table = Table {
+        behind: None,
         title: String::new(),
         before: Vec::new(),
         columns: vec![
@@ -615,6 +616,7 @@ pub fn compare(ctx: &mut CallContext<'_>, args: Args) -> Result<Value, Fail> {
         ]
     };
     let table = Table {
+        behind: None,
         title: String::new(),
         before: Vec::new(),
         columns: vec![
@@ -920,6 +922,7 @@ pub fn derive(ctx: &mut CallContext<'_>, args: Args) -> Result<Value, Fail> {
         ]);
     }
     Ok(Value::Table(Table {
+        behind: None,
         title: format!("derive · {}", fit_name(&fit)),
         before: Vec::new(),
         columns: vec![

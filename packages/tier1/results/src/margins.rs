@@ -1373,6 +1373,7 @@ pub fn margins(ctx: &mut CallContext<'_>, args: Args) -> Result<Value, Fail> {
         alternative: Alternative::TwoSided,
         header,
         table: Some(Table {
+            behind: None,
             title: String::new(),
             before: Vec::new(),
             columns,

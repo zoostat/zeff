@@ -146,6 +146,7 @@ pub fn tabulate(ctx: &mut CallContext<'_>, args: Args) -> Result<Value, Fail> {
         two_way(&names, &keys, &groups, n_rows, percent, &shown)
     };
     Ok(Value::Table(Table {
+        behind: None,
         title,
         before: Vec::new(),
         columns,

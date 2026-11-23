@@ -207,6 +207,7 @@ pub fn ci(ctx: &mut CallContext<'_>, args: Args) -> Result<Value, Fail> {
                 ]),
                 Some(None) => Value::Na,
                 None => Value::Table(Table {
+                    behind: None,
                     title,
                     before: Vec::new(),
                     columns,
@@ -282,6 +283,7 @@ pub fn ci(ctx: &mut CallContext<'_>, args: Args) -> Result<Value, Fail> {
                 ));
             }
             Ok(Value::Table(Table {
+                behind: None,
                 title,
                 before: Vec::new(),
                 columns: vec![
@@ -565,6 +567,7 @@ fn test_table(test: &TestResult) -> Table {
         None => (Vec::new(), Vec::new(), Vec::new(), Vec::new()),
     };
     Table {
+        behind: None,
         title: test.title.clone(),
         before: test_result_before(test),
         columns,
@@ -637,6 +640,7 @@ pub fn vcov(ctx: &mut CallContext<'_>, args: Args) -> Result<Value, Fail> {
                 })
                 .collect();
             Ok(Value::Table(Table {
+                behind: None,
                 title: format!("vcov · {}", fit.se_kind),
                 before: Vec::new(),
                 columns,

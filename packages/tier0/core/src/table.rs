@@ -171,6 +171,7 @@ pub fn table(ctx: &mut CallContext<'_>, args: Args) -> Result<Value, Fail> {
         .map(|r| prepared.iter().map(|p| p.cells[r].clone()).collect())
         .collect();
     Ok(Value::Table(Table {
+        behind: None,
         title,
         before: Vec::new(),
         columns,

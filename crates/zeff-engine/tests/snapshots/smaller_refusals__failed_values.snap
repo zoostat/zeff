@@ -1,0 +1,27 @@
+---
+source: crates/zeff-engine/tests/smaller_refusals.rs
+expression: "format!(\"{stdout}---\\n{stderr}\")"
+---
+true Failed
+failed · Z0001 at line 1: the fit did not converge
+false
+true
+false
+false
+true
+false
+true
+false
+true
+0
+4
+0
+true
+false
+false
+2
+---
+warning[W0801]: 1 of 1 items failed (Z0001 at line 4) and was skipped (line 9)
+  = help: the count is of the items that succeeded; `x.is(Failed)` tells which failed
+warning[W0801]: 1 of 3 items failed (Z0001 at line 4) and was skipped (line 11)
+  = help: the count is of the items that succeeded; `x.is(Failed)` tells which failed

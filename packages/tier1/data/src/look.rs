@@ -31,6 +31,11 @@ fn the_frame<'a>(ctx: &CallContext<'_>, name: &str, args: &'a Args) -> Result<&'
 
 /// `data.n_rows()`: the number of rows, as an Int.
 pub fn n_rows(ctx: &mut CallContext<'_>, args: Args) -> Result<Value, Fail> {
+    // Of a printed table, the rows of its grid (open decision #170; release 0.9.0, step 33c):
+    // `d.duplicates(firm).n_rows()` is the number of repeated values.
+    if let Some(Value::Table(table)) = args.get(0) {
+        return Ok(Value::Int(table.rows.len() as i64));
+    }
     let frame = the_frame(ctx, "n_rows", &args)?;
     Ok(Value::Int(frame.table.rows() as i64))
 }
@@ -97,6 +102,7 @@ pub fn describe(ctx: &mut CallContext<'_>, args: Args) -> Result<Value, Fail> {
         None => frame_header(&frame),
     };
     Ok(Value::Table(Table {
+        behind: None,
         title,
         columns,
         rows,

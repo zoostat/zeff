@@ -5255,6 +5255,7 @@ fn listed(items: &[String]) -> String {
 /// A table of the printed plot with no title of its own.
 fn part(columns: Vec<(String, Align)>, rows: Vec<Vec<String>>) -> Table {
     Table {
+        behind: None,
         title: String::new(),
         before: Vec::new(),
         columns,
@@ -5986,6 +5987,7 @@ pub fn start(frame: Frame, mappings: Vec<PlotMapping>, constants: Vec<PlotConsta
         coord: Coord::Cartesian,
         facet: None,
         summary: Table {
+            behind: None,
             title: String::new(),
             before: Vec::new(),
             columns: Vec::new(),

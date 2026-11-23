@@ -866,3 +866,7 @@ Open decision #168 (decided 21 November 2026, option A), applied as step 32a of 
 
 Open decision #169 (decided 21 November 2026, option A), applied as step 32b of release 0.9.0. The rule was that any value after the first 1,000 rows that does not fit the guessed type stops the import. It now has one exception, written in the three rows: a decimal in a column guessed as Int widens the column to Float, with a note naming the row. Text in a numeric column, a value that is not a date in a Date column, and a decimal in a column declared `Int` stop the import as before.
 
+## 23 November 2026 — zeff_language_reference.md, section 3.7 (the row "Nothing" and the paragraph "Failed values"), and zeff_functions.csv (rows 40, 99, 113, 173, 424, 529, 536 and 537 widened)
+
+Open decision #170 (decided 21 November 2026, each item as its table recommends), applied as step 33 of release 0.9.0. Section 3.7 says that `error` may stand inside `attempt`, where it gives the failed value of its message, and that `map` and `filter` go over a list holding a failed value when their function is a test of its item by `is`. The catalogue's rows say what each function now takes: `equal` two columns, `category` a list of values, `n_rows` a printed table, `duplicates` its count and its frame, `chi2_test` the categories of `levels:`, `attempt` an `error`, `map` and `filter` a test by `is`. No row is new and no count changes.
+

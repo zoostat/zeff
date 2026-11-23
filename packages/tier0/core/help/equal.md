@@ -9,12 +9,13 @@ Language Reference, which `==` is not: `==` is three-valued and compares one sca
 while `equal` always answers `true` or `false` and reaches inside collections. `NA` is identical
 to `NA` and `-0.0` to `0.0`; an Int equals the Float of the same number; two lists are equal item
 by item, two records field by field whatever order the fields are written in, two mappings entry
-by entry in insertion order; values of different kinds are never equal, so `equal(1, "1")` is
-`false`. It is the way a project tests its own functions, `assert(equal(f(x), [1, 2]), "...")`.
+by entry in insertion order; two columns are equal when they have the same number of rows and
+the same value in every row, `NA` with `NA`; values of different kinds are never equal, so
+`equal(1, "1")` is `false`, and a column is not equal to a list of its values. It is the way a project tests its own functions, `assert(equal(f(x), [1, 2]), "...")`.
 Like R's `identical`.
 
 ## Arguments
-- a: A value: a Bool, Int, Float, Str, list, record or mapping.
+- a: A value: a Bool, Int, Float, Str, list, record or mapping, or a column.
 - b: The value to compare it with.
 
 ## Value

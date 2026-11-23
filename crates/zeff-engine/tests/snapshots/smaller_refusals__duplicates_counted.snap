@@ -1,0 +1,28 @@
+---
+source: crates/zeff-engine/tests/smaller_refusals.rs
+expression: "format!(\"{stdout}---\\n{stderr}\")"
+---
+duplicates · firm
+
+  firm   copies
+  1           2
+  2           2
+Table 2
+f · 2 rows × 2 variables
+
+      firm   copies
+  1      1        2
+  2      2        2
+Column<Int> 4 2
+frame · 1 row × 3 variables
+
+      firm   year   copies
+  1      1   2020        2
+0 0
+4
+3
+true
+---
+note: no repeated values of revenue (line 9)
+note: no repeated values of revenue (line 9)
+note: merge: 4 rows matched; 1 left row unmatched; 0 right rows unmatched (line 10)

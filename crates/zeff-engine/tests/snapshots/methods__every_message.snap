@@ -9,7 +9,7 @@ error[Z0401]: `n_rows` cannot be called on an Int
 1 | 5.n_rows()
   | ^ this is an Int
   |
-  = help: `n_rows` takes a Frame first; `x.n_rows(...)` is `n_rows(x, ...)`
+  = help: `n_rows` takes a Frame or Table first; `x.n_rows(...)` is `n_rows(x, ...)`
 
 ## method_of_core_on_text (exit 1)
 error[Z0401]: `abs` cannot be called on a Str

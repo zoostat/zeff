@@ -580,6 +580,7 @@ fn two_groups(
         alternative: options.alternative,
         header: Vec::new(),
         table: Some(Table {
+            behind: None,
             title: String::new(),
             before: Vec::new(),
             columns: vec![

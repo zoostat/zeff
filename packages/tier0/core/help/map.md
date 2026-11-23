@@ -10,7 +10,9 @@ probabilities i/n, each one computed exactly as i divided by n. The function is 
 function value is anywhere (section 3.7 of the Language Reference, "Functions as values"), or a
 function literal written where it is used, `fn(i) i / n`, whose parameter takes the type of the
 list's items and whose body is one expression over it and the bindings in sight. The result is a
-list of what `f` gives; an empty list gives an empty list. Like R's `lapply` or `purrr::map`
+list of what `f` gives; an empty list gives an empty list. A list that holds a failed value of
+`attempt` is gone over when `f` is a test of its item by `is`, `map(fits, fn(f) f.is(Failed))`;
+any other function is refused such a list (Z0220), since it would have to use the failed value. Like R's `lapply` or `purrr::map`
 without the choice of output type: a list always.
 
 ## Arguments

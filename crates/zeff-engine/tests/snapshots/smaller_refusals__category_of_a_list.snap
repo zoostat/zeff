@@ -1,0 +1,33 @@
+---
+source: crates/zeff-engine/tests/smaller_refusals.rs
+expression: "format!(\"{stdout}---\\n{stderr}\")"
+---
+Column<Category> · 4 values
+low
+high
+low
+NA
+Column<Category>
+low
+high
+frame · 3 rows × 2 variables
+
+      dose     y
+  1   low    1.5
+  2   high   2.5
+  3   low    3.5
+Column<Category> · 4 values
+3
+1
+2
+1
+1
+2
+3
+Column<Category> · 2 values
+a
+NA
+true
+---
+warning[W0203]: 1 value is none of the levels given and became NA: "b" (line 8)
+  = help: add the value to `levels:`, or recode it first; `is_missing` finds the NA afterwards

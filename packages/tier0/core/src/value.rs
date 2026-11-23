@@ -63,7 +63,20 @@ pub struct Table {
     /// coefficients, section 10.2): a line across the grid when printed, `\midrule` in LaTeX, a
     /// border in Word.
     pub rules: Vec<usize>,
+    /// The table as data, where it has one behind it (`duplicates`: the key variables with
+    /// their own types, and `copies`): what `to(table, Frame)` gives (open decision #170;
+    /// release 0.9.0, step 33c). `None` for a table that is only printed. Held behind a
+    /// pointer, so that a table, and with it every value, is no larger for the few tables
+    /// that have one: the memory a list of values is counted to need is as it was.
+    pub behind: Option<Box<Behind>>,
 }
+
+/// The frame behind a printed table. Two tables are the same table when they print the same
+/// and their frames, where they have them, hold the same values.
+#[derive(Debug, Clone, PartialEq)]
+pub struct Behind(pub Frame);
+
+impl Eq for Behind {}
 
 /// A plot as a value (Language Reference, section 7.6): what the script asked for, in the order
 /// written, which is the frame, the mappings of the aesthetics and the layers. Declared here as a

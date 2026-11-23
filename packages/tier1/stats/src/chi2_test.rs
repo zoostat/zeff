@@ -25,6 +25,8 @@ const CORRECT: usize = 3;
 const P: usize = 4;
 const WEIGHTS: usize = 5;
 const WEIGHT_TYPE: usize = 6;
+// After the options there were (open decision #170; release 0.9.0, step 33c).
+const LEVELS: usize = 7;
 
 fn variable<'a>(
     ctx: &CallContext<'_>,
@@ -190,6 +192,60 @@ pub fn chi2_test(ctx: &mut CallContext<'_>, args: Args) -> Result<Value, Fail> {
     };
     let correct = matches!(args.get(CORRECT), Some(Value::Bool(true)));
     let weights = frequency_weights(ctx, &frame, &args)?;
+    // `levels:` names the categories of the fit to `p:`, in the order of the proportions,
+    // so that a category no row holds has its place and counts 0 (open decision #170).
+    let named: Option<Vec<String>> = match args.get(LEVELS) {
+        Some(Value::List(items)) => {
+            let mut labels: Vec<String> = Vec::with_capacity(items.len());
+            for item in items {
+                let label = match item {
+                    Value::Str(s) => s.clone(),
+                    Value::Int(i) => i.to_string(),
+                    Value::Float(x) => format_float(*x),
+                    Value::Bool(b) => b.to_string(),
+                    other => {
+                        return Err(fail(
+                            Diagnostic::error(
+                                "Z0401",
+                                format!(
+                                    "`levels:` of `chi2_test` is a list of the variable's values, but it holds {}",
+                                    other.type_word()
+                                ),
+                            )
+                            .in_file(ctx.script)
+                            .primary(ctx.span_of(LEVELS), "not a value of the variable")
+                            .help("write the values as the variable has them, in the order of `p:`: `levels: [\"a\", \"b\", \"c\"]`"),
+                        ));
+                    }
+                };
+                if labels.contains(&label) {
+                    return Err(fail(
+                        Diagnostic::error(
+                            "Z0401",
+                            format!("`levels:` of `chi2_test` names {label} twice"),
+                        )
+                        .in_file(ctx.script)
+                        .primary(ctx.span_of(LEVELS), "a value repeated")
+                        .help("each value once, in the order of the proportions of `p:`"),
+                    ));
+                }
+                labels.push(label);
+            }
+            Some(labels)
+        }
+        _ => None,
+    };
+    if named.is_some() && proportions.is_none() {
+        return Err(fail(
+            Diagnostic::error(
+                "Z0401",
+                "`levels:` of `chi2_test` names the categories of a fit to `p:`, and there is no `p:`",
+            )
+            .in_file(ctx.script)
+            .primary(ctx.span_of(LEVELS), "`levels:` without `p:`")
+            .help("write `chi2_test(var, p: [0.5, 0.3, 0.2], levels: [\"a\", \"b\", \"c\"])`; a test of independence takes its values from the two variables"),
+        ));
+    }
     match (second, proportions) {
         (Some(_), Some(_)) => Err(fail(
             Diagnostic::error(
@@ -212,7 +268,14 @@ pub fn chi2_test(ctx: &mut CallContext<'_>, args: Args) -> Result<Value, Fail> {
         (Some((b, b_column)), None) => {
             independence(ctx, &frame, (&a, a_column), (&b, b_column), correct, weights.as_ref())
         }
-        (None, Some(ps)) => goodness_of_fit(ctx, &frame, (&a, a_column), &ps, weights.as_ref()),
+        (None, Some(ps)) => goodness_of_fit(
+            ctx,
+            &frame,
+            (&a, a_column),
+            &ps,
+            named.as_deref(),
+            weights.as_ref(),
+        ),
     }
 }
 
@@ -341,6 +404,7 @@ fn independence(
         alternative: Alternative::TwoSided,
         header: Vec::new(),
         table: Some(Table {
+            behind: None,
             title: String::new(),
             before: Vec::new(),
             columns,
@@ -371,6 +435,7 @@ fn goodness_of_fit(
     frame: &Frame,
     (var, column): (&str, &Column),
     proportions: &[f64],
+    named: Option<&[String]>,
     weights: Option<&Weights>,
 ) -> Result<Value, Fail> {
     let (rows, dropped) = testing::complete_rows(ctx, frame, &[(var, column)]);
@@ -378,11 +443,50 @@ fn goodness_of_fit(
     let kept_column = kept
         .column(var)
         .ok_or_else(|| internal(ctx, "a column vanished"))?;
-    let (groups, labels) = levels(ctx, kept_column, A)?;
+    let (groups, observed_labels) = levels(ctx, kept_column, A)?;
+    // The categories: those `levels:` names, in its order, or the values the rows hold. Each
+    // value observed has its place among them; a category named and never observed counts 0.
+    let labels: Vec<String> = match named {
+        Some(named) => named.to_vec(),
+        None => observed_labels.clone(),
+    };
+    let mut place: Vec<usize> = Vec::with_capacity(observed_labels.len());
+    for label in &observed_labels {
+        match labels.iter().position(|l| l == label) {
+            Some(at) => place.push(at),
+            None => {
+                return Err(fail(
+                    Diagnostic::error(
+                        "Z0401",
+                        format!(
+                            "`{var}` holds the value {label}, which `levels:` of `chi2_test` does not name"
+                        ),
+                    )
+                    .in_file(ctx.script)
+                    .primary(ctx.span_of(LEVELS), "a value of the variable left out")
+                    .help(format!(
+                        "name every value the variable holds, and those it could hold, in the order of `p:`; the rows hold: {}",
+                        observed_labels.join(", ")
+                    )),
+                ));
+            }
+        }
+    }
     let k = labels.len();
     if proportions.len() != k {
-        return Err(fail(
-            Diagnostic::error(
+        return Err(fail(match named {
+            Some(_) => Diagnostic::error(
+                "Z0401",
+                format!(
+                    "`p:` of `chi2_test` has {} proportions, but `levels:` names {} values",
+                    count(proportions.len() as u64),
+                    count(k as u64)
+                ),
+            )
+            .in_file(ctx.script)
+            .primary(ctx.span_of(P), "one proportion per value named")
+            .help("write one proportion for each value of `levels:`, in its order"),
+            None => Diagnostic::error(
                 "Z0401",
                 format!(
                     "`p:` of `chi2_test` has {} proportions, but `{var}` has {} values: {}",
@@ -393,8 +497,8 @@ fn goodness_of_fit(
             )
             .in_file(ctx.script)
             .primary(ctx.span_of(P), "one proportion per value")
-            .help("write the proportions in the order the values are listed"),
-        ));
+            .help("write the proportions in the order the values are listed; a category that no row holds is named with `levels:`, as in `levels: [\"a\", \"b\", \"c\"]`, and counts 0"),
+        }));
     }
     let sum: f64 = proportions.iter().sum();
     if proportions.iter().any(|p| p.is_nan() || *p <= 0.0) || (sum - 1.0).abs() > 1e-8 {
@@ -419,7 +523,7 @@ fn goodness_of_fit(
             Some(w) => w.of(row),
             None => 1.0,
         };
-        observed[group_of_row[i]] += w;
+        observed[place[group_of_row[i]]] += w;
     }
     let n: f64 = observed.iter().sum();
     let expected: Vec<f64> = proportions.iter().map(|p| p * n).collect();
@@ -464,6 +568,7 @@ fn goodness_of_fit(
         alternative: Alternative::TwoSided,
         header: Vec::new(),
         table: Some(Table {
+            behind: None,
             title: String::new(),
             before: Vec::new(),
             columns: vec![

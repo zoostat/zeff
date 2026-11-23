@@ -1085,6 +1085,7 @@ fn rank_sum_form(
         alternative: o.alternative,
         header: Vec::new(),
         table: Some(Table {
+            behind: None,
             title: String::new(),
             before: Vec::new(),
             columns: vec![

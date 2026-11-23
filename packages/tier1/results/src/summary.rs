@@ -663,6 +663,7 @@ fn summary_of(
         ]);
     }
     Table {
+        behind: None,
         title: lines.title,
         before,
         columns: vec![

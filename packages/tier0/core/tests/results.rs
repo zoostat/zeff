@@ -56,6 +56,7 @@ fn a_test_result_prints_in_the_shape_of_section_10_2() {
         &[],
     );
     let models = Table {
+        behind: None,
         title: String::new(),
         columns: vec![
             ("model".to_string(), Align::Left),

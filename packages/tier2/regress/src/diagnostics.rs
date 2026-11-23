@@ -98,6 +98,7 @@ pub fn vif(ctx: &mut CallContext<'_>, args: Args) -> Result<Value, Fail> {
         ));
     }
     Ok(Value::Table(PrintedTable {
+        behind: None,
         title: format!(
             "vif · {}",
             fit.name.clone().unwrap_or_else(|| fit.formula.clone())

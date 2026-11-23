@@ -94,6 +94,7 @@ fn formats_and_escapes() {
 #[test]
 fn a_further_table_and_a_short_row_write() {
     let inner = Table {
+        behind: None,
         title: "p-values".to_string(),
         columns: vec![("a".to_string(), Align::Left)],
         rows: vec![vec!["x".to_string()]],
@@ -103,6 +104,7 @@ fn a_further_table_and_a_short_row_write() {
         after: Vec::new(),
     };
     let outer = Table {
+        behind: None,
         title: "correlation".to_string(),
         before: Vec::new(),
         columns: vec![
@@ -190,6 +192,7 @@ fn a_test_result_exports_as_a_table() {
     );
     assert!(of_plain.after.is_empty());
     let models = Table {
+        behind: None,
         title: String::new(),
         before: Vec::new(),
         columns: vec![

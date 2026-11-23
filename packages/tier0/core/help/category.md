@@ -29,7 +29,8 @@ sorts levels by the locale's collation; Zeff by code point, the same on every ma
 `encode` orders labels alphabetically as well.
 
 ## Arguments
-- var: A text, Int, Float or category column; inside `add`, the variable's name.
+- var: A text, Int, Float or category column; inside `add`, the variable's name. A list of
+  values of one type, written in the script, is taken as the column it would be in a frame.
 - levels: The levels in the order they should have; omitted, the distinct values in their sorted order.
 - ordered: Whether the levels are ordered.
 - contrast: How a model codes the indicators.

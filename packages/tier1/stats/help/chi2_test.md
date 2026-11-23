@@ -17,6 +17,12 @@ warning (W0211) says so and points to `fisher_test`, which is exact. Values are 
 order of section 3.7 of the Language Reference; rows with `NA` in a tested variable are dropped
 and counted in a note.
 
+A fit to proportions is over categories, and the data may not hold every one: a party no
+respondent chose, a grade nobody was given. The values of the variable are then fewer than the
+proportions. `levels:` names the categories, in the order of `p:`; a category that no row
+holds has an observed count of 0 and its expected count, and takes its part in the statistic
+and in the degrees of freedom.
+
 ## Arguments
 - data: The frame.
 - a: The variable tested: one of the two of a cross-table, or the one whose fit is tested.
@@ -26,6 +32,9 @@ and counted in a note.
   positive and summing to 1.
 - weights: Frequency weights, each row standing for that many rows; analytic weights are
   refused, since the test counts rows, and sampling weights by the shared rule (Z0411).
+- levels: In the goodness-of-fit form, the categories the proportions are for, in the order of
+  `p:`: the values the variable holds and those it could hold. Every value the rows hold must
+  be among them; left out, the categories are the values the rows hold.
 
 ## Value
 A `TestResult`, with the result interface (`summary`, `estimates`, `p_values`, `ci`, `n_obs`,
@@ -37,7 +46,10 @@ no estimate. Its own methods `statistic()`, `df()`, `effect_size()`, `h0()`, `h1
 Independence: expected counts E = (row total × column total) / N, χ² = Σ (|O − E| − c)² / E with
 c = ½ on a corrected 2 × 2 table (never more than the smallest |O − E|) and 0 otherwise, on
 (r − 1)(c − 1) degrees of freedom. Goodness of fit: E = N p, χ² = Σ (O − E)² / E on k − 1 degrees
-of freedom; the proportions must sum to 1, where R's `chisq.test` rescales them only when asked.
+of freedom, k being the number of categories: the values of the variable, or those `levels:`
+names, a category never observed having O = 0. In R the same test is
+`chisq.test(table(factor(x, levels = lev)), p = p)`. The proportions must sum to 1, where R's
+`chisq.test` rescales them only when asked.
 The p-value is the upper tail of the chi-squared distribution, computed directly.
 
 ## References
@@ -78,3 +90,20 @@ chi2_test · goodness of fit · female
 
 chi2(1) = 17.65   p < 0.001
 decision at α = 0.05: reject H0 (p < 0.001)
+> let votes = frame(party = ["a", "a", "b", "a", "b", "a", "a", "b", "a", "a"])
+> votes.chi2_test(party, p: [0.5, 0.3, 0.2], levels: ["a", "b", "c"])
+chi2_test · goodness of fit · party
+  H0: the population proportions of party equal the given p                     π = p
+  H1: at least one population proportion of party differs from the given p      π ≠ p
+
+  party   observed   expected     p
+  a              7        5.0   0.5
+  b              3        3.0   0.3
+  c              0        2.0   0.2
+  ─────────────────────────────────
+  Total         10       10.0     1
+
+chi2(2) = 2.80   p = 0.247
+decision at α = 0.05: fail to reject H0 (p = 0.247)
+warning[W0211]: 2 of 3 expected counts are below 5, so the chi-squared approximation may be poor (line 5)
+  = help: `fisher_test` is exact for a small table; merging sparse values raises the expected counts

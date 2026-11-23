@@ -10,12 +10,17 @@ Stata's `duplicates report`. A note says when no value is repeated. Values are c
 identity, so rows with `NA` keys count together. Before a `merge` that expects one row per
 key, `duplicates` shows which keys would break it; `distinct` then keeps the first of each.
 
+The table is also data: `n_rows()` of it is the number of repeated values, 0 when there is
+none, and `to(Frame)` gives it as a frame, the key variables with their own types and
+`copies`, to count, filter or merge.
+
 ## Arguments
 - data: The frame.
 - vars: The variable, or list of variables, whose repeated values are counted.
 
 ## Value
 A table with the key columns and `copies`; empty, with a note, when nothing is repeated.
+`n_rows()` counts its rows and `to(Frame)` gives it as a frame.
 
 ## Details
 Exact: the rows are grouped by the kernel's identity on the key values and the groups of more

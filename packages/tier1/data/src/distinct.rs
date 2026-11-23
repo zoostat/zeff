@@ -104,6 +104,10 @@ pub fn duplicates(ctx: &mut CallContext<'_>, args: Args) -> Result<Value, Fail> 
     let keys = keys(ctx, frame, &args)?;
     let groups = groups_of(ctx, "duplicates", &keys)?;
     let mut rows_out: Vec<Vec<String>> = Vec::new();
+    // The same rows as data (open decision #170; release 0.9.0, step 33c): the first row of
+    // each repeated value, for the key variables in their own types, and its copies.
+    let mut firsts: Vec<usize> = Vec::new();
+    let mut copies: Vec<Option<i64>> = Vec::new();
     for g in 0..groups.len() {
         let members = groups.rows(g);
         if members.len() > 1 {
@@ -114,8 +118,25 @@ pub fn duplicates(ctx: &mut CallContext<'_>, args: Args) -> Result<Value, Fail> 
                 .collect();
             row.push(count(members.len() as u64));
             rows_out.push(row);
+            firsts.push(members[0]);
+            copies.push(Some(members.len() as i64));
         }
     }
+    let mut behind: Vec<(String, Column)> = keys
+        .names
+        .iter()
+        .zip(&keys.columns)
+        .map(|(name, column)| (name.clone(), column.take(&firsts)))
+        .collect();
+    // A key variable already called `copies` keeps its name; the count takes the next free one.
+    let mut count_name = "copies".to_string();
+    while behind.iter().any(|(name, _)| *name == count_name) {
+        count_name.push('_');
+    }
+    behind.push((count_name, Column::ints(copies)));
+    let behind = zeff_columns::Table::new(behind)
+        .ok()
+        .map(|table| Box::new(zeff_core::value::Behind(Frame::new(table))));
     if rows_out.is_empty() {
         ctx.message(Diagnostic::plain_note(format!(
             "no repeated values of {}",
@@ -129,6 +150,7 @@ pub fn duplicates(ctx: &mut CallContext<'_>, args: Args) -> Result<Value, Fail> 
         .collect();
     columns.push(("copies".to_string(), Align::Right));
     Ok(Value::Table(Table {
+        behind,
         title: format!("duplicates · {}", keys.names.join(", ")),
         columns,
         rows: rows_out,

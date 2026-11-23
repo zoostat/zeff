@@ -178,6 +178,10 @@ pub struct Interpreter<'a> {
     /// statement runs, read after every statement of every block on the way up, taken by the
     /// loop. The checker lets a block that jumps stand only where a statement may.
     jump: Option<Jump>,
+    /// Set for the one call in which `map` or `filter` applies a function that is a test by
+    /// `is` to an item that may be a failed value (open decision #170): the parameter may
+    /// then hold it, where any other function is refused a failed value as an argument.
+    admit_failed: bool,
     /// The sources of the project's modules, by file, so that a module function's body runs
     /// under its own file and lines.
     sources: Option<&'a HashMap<String, Source>>,
@@ -308,6 +312,7 @@ impl<'a> Interpreter<'a> {
             random: Randomness::default(),
             statement: 0,
             jump: None,
+            admit_failed: false,
             sources: None,
             zeff: None,
             fusion: true,
@@ -1682,6 +1687,40 @@ impl<'a> Interpreter<'a> {
         shown.trim_end().to_string()
     }
 
+    /// Whether a function value is a test by `is` of its one parameter, `fn(f) is(f, Failed)`
+    /// or `fn(f) f.is(RegFit)`, alone or under `!`: the functions `map` and `filter` may apply
+    /// to a list that holds a failed value (open decision #170; release 0.9.0, step 33b), since
+    /// `is` is the function that looks at one (section 3.7, "Failed values").
+    fn is_a_test_by_is(&self, function: &FunctionValue) -> bool {
+        let Some(index) = function.script else {
+            return false;
+        };
+        let f = &self.program.functions[index];
+        let [param] = f.params.as_slice() else {
+            return false;
+        };
+        if !f.body.statements.is_empty() {
+            return false;
+        }
+        let Some(mut body) = f.body.tail.as_deref() else {
+            return false;
+        };
+        // `!is(f, Failed)`: the items that did not fail.
+        while let ExprKind::Unary { operand, .. } = &body.kind {
+            body = operand;
+        }
+        matches!(
+            &body.kind,
+            ExprKind::Call(call)
+                if call.package == "core"
+                    && call.name == "is"
+                    && matches!(
+                        call.args.first(),
+                        Some(Some(Expr { kind: ExprKind::Binding(id), .. })) if *id == param.binding
+                    )
+        )
+    }
+
     /// A function value applied to values in parameter order (what `iterate` does with its
     /// `step:` and `done:`): a function of the script through its parameters, a built-in through
     /// its body.
@@ -1766,10 +1805,13 @@ impl<'a> Interpreter<'a> {
         };
         let start = take(2);
         let f_span = span_of(1);
+        // A function that is a test by `is` may be handed a failed item (open decision #170).
+        let tests = self.is_a_test_by_is(&f);
         match name {
             "map" => {
                 let mut out = Vec::with_capacity(items.len());
                 for item in items {
+                    self.admit_failed = tests;
                     out.push(self.apply(&f, vec![Some(item)], f_span, printed, messages)?);
                 }
                 Ok(Value::List(out))
@@ -1777,6 +1819,7 @@ impl<'a> Interpreter<'a> {
             "filter" => {
                 let mut out = Vec::with_capacity(items.len());
                 for item in items {
+                    self.admit_failed = tests;
                     match self.apply(&f, vec![Some(item.clone())], f_span, printed, messages)? {
                         Value::Bool(true) => out.push(item),
                         Value::Bool(false) => {}
@@ -2020,6 +2063,8 @@ impl<'a> Interpreter<'a> {
         printed: &mut String,
         messages: &mut Vec<Diagnostic>,
     ) -> Result<Value, Fail> {
+        // Whether this call is `map` or `filter` handing an item to a test by `is`.
+        let admit_failed = std::mem::take(&mut self.admit_failed);
         for (i, param) in f.params.iter().enumerate() {
             let value = match values[i].take() {
                 Some(v) => v,
@@ -2052,7 +2097,9 @@ impl<'a> Interpreter<'a> {
                     )),
                 ));
             }
-            if let Value::Failed(failure) = &value {
+            if let Value::Failed(failure) = &value
+                && !admit_failed
+            {
                 let span = args[i].as_ref().map_or(callee_span, |e| e.span);
                 return Err(self.failed_used(failure, span, "as an argument"));
             }
@@ -4142,7 +4189,11 @@ impl<'a> Interpreter<'a> {
         let body = self
             .bodies
             .get(&(call.package.clone(), call.name.clone(), call.on.clone()));
-        if !takes_failed(call) {
+        // `map` and `filter` with a test by `is` look at each item as `is` does.
+        let tests_each_item = call.package == "core"
+            && matches!(call.name.as_str(), "map" | "filter")
+            && matches!(values.get(1), Some(Some(Value::Function(f))) if self.is_a_test_by_is(f));
+        if !takes_failed(call) && !tests_each_item {
             let in_list = |v: &Value| match v {
                 Value::List(items) => items.iter().find_map(|i| match i {
                     Value::Failed(f) => Some(f.clone()),

@@ -5317,7 +5317,22 @@ impl Checker<'_> {
             return Expr::error(span);
         }
         let inner = self.expr(positional[0], expected);
-        let inner = self.no_nothing(inner, "run by `attempt`");
+        // `attempt(error("..."))` (open decision #170; release 0.9.0, step 33b): `error` gives
+        // no value because it never comes back, which is the very thing `attempt` is for; the
+        // result is the failed value that holds its message. Anything else that gives
+        // nothing, a `print` or an `if` without `else`, is still refused.
+        let raises = matches!(
+            &inner.kind,
+            ExprKind::Call(call) if call.package == "core" && call.name == "error"
+        );
+        let inner = if raises {
+            Expr {
+                ty: Ty::Unknown,
+                ..inner
+            }
+        } else {
+            self.no_nothing(inner, "run by `attempt`")
+        };
         Expr {
             ty: inner.ty.clone(),
             span,

@@ -597,6 +597,7 @@ fn statistic_method(
                 keys.iter().map(|k| (k.clone(), Align::Left)).collect();
             columns.push((name.to_string(), Align::Right));
             Ok(Value::Table(Table {
+                behind: None,
                 title: format!("{name} · {var} by {}", keys.join(", ")),
                 columns,
                 rows: rows_out,
@@ -690,6 +691,7 @@ fn extreme_of_times(
                 keys.iter().map(|k| (k.clone(), Align::Left)).collect();
             columns.push((name.to_string(), Align::Right));
             Ok(Value::Table(Table {
+                behind: None,
                 title: format!("{name} · {var} by {}", keys.join(", ")),
                 columns,
                 rows: rows_out,
@@ -850,6 +852,7 @@ pub fn quantile(ctx: &mut CallContext<'_>, args: Args) -> Result<Value, Fail> {
             }
             let title = first.title.replace("quantile ·", "quantiles ·");
             Ok(Value::Table(Table {
+                behind: None,
                 title,
                 columns,
                 rows,
@@ -1129,6 +1132,7 @@ pub fn summary(ctx: &mut CallContext<'_>, args: Args) -> Result<Value, Fail> {
         None => format!("summary · {}", frame.name.as_deref().unwrap_or("frame")),
     };
     Ok(Value::Table(Table {
+        behind: None,
         title,
         columns,
         rows,

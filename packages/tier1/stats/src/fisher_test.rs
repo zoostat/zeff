@@ -570,6 +570,7 @@ pub fn fisher_test(ctx: &mut CallContext<'_>, args: Args) -> Result<Value, Fail>
         alternative,
         header: Vec::new(),
         table: Some(Table {
+            behind: None,
             title: String::new(),
             before: Vec::new(),
             columns,

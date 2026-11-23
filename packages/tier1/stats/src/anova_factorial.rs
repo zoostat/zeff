@@ -817,6 +817,7 @@ pub fn anova(
                 .to_string(),
         ],
         table: Some(Table {
+            behind: None,
             title: String::new(),
             before: Vec::new(),
             columns: vec![

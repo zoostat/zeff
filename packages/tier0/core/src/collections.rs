@@ -301,14 +301,27 @@ pub fn deep_identical(a: &Value, b: &Value) -> bool {
                     .zip(y)
                     .all(|((k1, v1), (k2, v2))| deep_identical(k1, k2) && deep_identical(v1, v2))
         }
-        (Value::List(_) | Value::Record(_) | Value::Mapping(_), _)
-        | (_, Value::List(_) | Value::Record(_) | Value::Mapping(_)) => false,
+        // Two columns (open decision #170; release 0.9.0, step 33a): the same number of rows,
+        // and in every row values that are identical, `NA` with `NA`. A column and anything
+        // that is not a column are of two types, and so not equal.
+        (Value::Column(x), Value::Column(y)) => {
+            x.len() == y.len()
+                && (0..x.len()).all(|row| {
+                    identical(
+                        &crate::lift::cell_value(x, row),
+                        &crate::lift::cell_value(y, row),
+                    )
+                })
+        }
+        (Value::List(_) | Value::Record(_) | Value::Mapping(_) | Value::Column(_), _)
+        | (_, Value::List(_) | Value::Record(_) | Value::Mapping(_) | Value::Column(_)) => false,
         (x, y) => identical(x, y),
     }
 }
 
-/// `equal(a, b)`: identity over scalars, lists, records and mappings, `false` across types; the
-/// way a project tests its own functions, `assert(equal(xs, [1, 2]), ...)`.
+/// `equal(a, b)`: identity over scalars, lists, records, mappings and, from release 0.9.0, two
+/// columns; `false` across types; the way a project tests its own functions,
+/// `assert(equal(xs, [1, 2]), ...)`.
 fn equal(_ctx: &mut CallContext<'_>, args: Args) -> Result<Value, Fail> {
     let a = args.get(0).cloned().unwrap_or(Value::Na);
     let b = args.get(1).cloned().unwrap_or(Value::Na);
@@ -532,7 +545,8 @@ fn seq(ctx: &mut CallContext<'_>, args: Args) -> Result<Value, Fail> {
 
 /// The scalar types a list may hold, which `is_in` looks for; and the values `equal` compares.
 const SCALARS: &str = "Bool | Int | Float | Str | Date | DateTime";
-const COMPARABLE: &str = "Bool | Int | Float | Str | Date | DateTime | List | Record | Mapping";
+const COMPARABLE: &str =
+    "Bool | Int | Float | Str | Date | DateTime | List | Record | Mapping | Column";
 
 pub fn functions() -> Vec<Function> {
     vec![

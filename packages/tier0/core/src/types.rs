@@ -343,6 +343,38 @@ fn to(ctx: &mut CallContext<'_>, mut args: Args) -> Result<Value, Fail> {
             format: None,
         },
     };
+    // `to(table, Frame)`: the frame behind a printed table that has one (open decision #170;
+    // release 0.9.0, step 33c): the repeated values of `duplicates` with their copies, so
+    // that they can be counted, filtered and merged. A frame given is itself.
+    if ty.name == "Frame" {
+        return match value {
+            Value::Table(table) => match table.behind.map(|behind| *behind) {
+                Some(crate::value::Behind(frame)) => Ok(Value::Frame(frame)),
+                None => Err(fail(
+                    Diagnostic::error(
+                        "Z0401",
+                        "this table is printed only: there is no frame behind it to convert to",
+                    )
+                    .in_file(ctx.script)
+                    .primary(ctx.span_of(0), "a table without a frame")
+                    .help("the table of `duplicates` converts to a frame; `aggregate` computes counts and statistics by group as a frame, and a result's `estimates()` gives its estimates as one"),
+                )),
+            },
+            Value::Frame(frame) => Ok(Value::Frame(frame)),
+            other => Err(fail(
+                Diagnostic::error(
+                    "Z0401",
+                    format!(
+                        "to(Frame) converts a table that has a frame behind it, but this is {}",
+                        other.type_word()
+                    ),
+                )
+                .in_file(ctx.script)
+                .primary(ctx.span_of(0), "not a table")
+                .help("`frame(x = [1, 2])` builds a frame from values; `d.duplicates(vars).to(Frame)` is the frame of the repeated values"),
+            )),
+        };
+    }
     // `to(column, List)`: the values of a column as a list, each as the value a scalar
     // function sees it, `NA` for a missing one (open decision #168; release 0.9.0, step
     // 32a). A list is itself; one value is no list, and the message says how to write one.
@@ -386,7 +418,7 @@ fn to(ctx: &mut CallContext<'_>, mut args: Args) -> Result<Value, Fail> {
                 )
                 .in_file(ctx.script)
                 .primary(ctx.span_of(1), "not a target of `to`")
-                .help("`to` converts to Int, Float, Str, Bool, Date, DateTime or Category, and a column to the List of its values"),
+                .help("`to` converts to Int, Float, Str, Bool, Date, DateTime or Category, a column to the List of its values, and the table of `duplicates` to a Frame"),
             ));
         }
     };
@@ -807,6 +839,27 @@ fn level_text(ctx: &CallContext<'_>, value: &Value) -> Result<String, Fail> {
 fn category(ctx: &mut CallContext<'_>, args: Args) -> Result<Value, Fail> {
     let column = match args.get(0) {
         Some(Value::Column(c)) => c.clone(),
+        // A list of values of one type, written in the script, is the column it would be in
+        // a frame (open decision #170; release 0.9.0, step 33a): `category(["low", "high"],
+        // levels: ["low", "high"])` gives the Category column.
+        Some(Value::List(items)) => match crate::lift::collect_column(items) {
+            Some(column) => column,
+            None => {
+                return Err(fail(
+                    Diagnostic::error(
+                        "Z0401",
+                        if items.is_empty() {
+                            "`category` of an empty list has no values to make levels of".to_string()
+                        } else {
+                            "`category` takes a list of values of one type: texts, numbers, Bools or dates, with `NA` for a missing one".to_string()
+                        },
+                    )
+                    .in_file(ctx.script)
+                    .primary(ctx.span_of(0), "not a list of one type of value")
+                    .help("write the values as texts, `category([\"low\", \"high\"], levels: [\"low\", \"high\"])`, or give a variable of a frame"),
+                ));
+            }
+        },
         other => {
             return Err(needs_a_column(
                 ctx,
@@ -1114,7 +1167,7 @@ pub fn functions() -> Vec<Function> {
                 package: "core",
                 method: false,
                 params: vec![
-                    ParamSpec::required("var", "Column"),
+                    ParamSpec::required("var", "Column | List"),
                     ParamSpec::option("levels", "List"),
                     ParamSpec::option_with_default("ordered", "Bool", "false"),
                     ParamSpec::option_with_default(

@@ -16,7 +16,10 @@ entries failed; `report` and `len` skip them and say how many (W0801). Using a `
 anywhere else, as an argument, in arithmetic, in a record or as a model input, is an error that
 reports the original failure (Z0220). `x.is(Failed)` tells which values failed, and after
 `if x.is(Failed) { continue }` the checker knows that `x` succeeded for the rest of the block
-(W0209 warns of an unguarded call). A bug inside the engine (an internal error, Z9xxx) is never
+(W0209 warns of an unguarded call). `map` and `filter` go over such a list when their function
+is a test by `is`: `filter(fits, fn(f) !f.is(Failed))` keeps the fits that succeeded. `error`
+may stand inside `attempt`, where it gives the failed value that holds its message:
+`attempt(error("no data"))`. A bug inside the engine (an internal error, Z9xxx) is never
 caught: it is not the script's failure. Like R's `tryCatch` and Stata's `capture`, with the
 failure kept as a value rather than a flag.
 

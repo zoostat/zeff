@@ -43,6 +43,7 @@ fn welch() -> TestResult {
         alternative: Alternative::TwoSided,
         header: Vec::new(),
         table: Some(zeff_core::value::Table {
+            behind: None,
             title: String::new(),
             before: Vec::new(),
             columns: vec![

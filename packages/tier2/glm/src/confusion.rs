@@ -164,6 +164,7 @@ pub fn confusion(ctx: &mut CallContext<'_>, args: Args) -> Result<Value, Fail> {
     let predicted_one = cells.true_positive + cells.false_positive;
     let predicted_nought = cells.false_negative + cells.true_negative;
     let table = Table {
+        behind: None,
         title: String::new(),
         before: Vec::new(),
         columns: vec![

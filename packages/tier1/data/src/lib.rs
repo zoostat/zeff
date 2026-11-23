@@ -122,7 +122,7 @@ pub fn functions() -> Vec<Function> {
                 name: "n_rows",
                 package: "data",
                 method: true,
-                params: vec![ParamSpec::required("data", "Frame")],
+                params: vec![ParamSpec::required("data", "Frame | Table")],
                 rest: None,
                 returns: "Int",
                 diagnostics: vec![],
