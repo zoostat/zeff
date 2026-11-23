@@ -31,9 +31,9 @@ replace 2:2-2:2, 45 offered
 ----
 > let s = "text"
 > s.|
-replace 1:2-1:2, 30 offered
+replace 1:2-1:2, 31 offered
   Method (2): is to
-  Function (28): attempt coalesce contains date datetime ends_with equal error extract fill_missing import is_in is_missing len lower note pad print replace slice split starts_with table timer trim type_of upper warn
+  Function (29): attempt coalesce contains date datetime ends_with equal error extract fill_missing import is_in is_missing len lower n_chars note pad print replace slice split starts_with table timer trim type_of upper warn
 ----
 > let day = date("2024-03-01")
 > day.|
@@ -107,9 +107,9 @@ replace 1:2-1:2, 10 offered
   Function (4): attempt print timer type_of
 ----
 > nothing.|
-replace 0:8-0:8, 236 offered
+replace 0:8-0:8, 237 offered
   Method (122): add aggregate alternative annotate anova append ar_test area bar bars boxplot cdf chi2_test ci coef coef_plot compare confusion coord correlation covariance curve density derive describe design df distinct draw drop drop_missing duplicates effect_size errorbars estimates export facet first_stage fisher_test fit_measures fitted glm h0 h1 head heatmap histogram hline influence iqr is ivreg kruskal_test ks_test kurtosis label labels legend line lines mad margins max mean median merge min n_cols n_obs n_rows p_values panel pdf plot points posthoc predict proportion_test qq_plot quantile r_squared recode reg rename residuals ribbon rug sample save scale scale_x scale_y scatter sd select shapiro_test skewness sort statistic std_errors step sum summary t_test tabulate tail test text theme tile to to_long to_wide update variables variance variance_test vcov vif vline where wilcoxon_test
-  Function (114): abs acos add_time all any append asin assert atan atan2 attempt base beta between bin category ceil center choose clamp coalesce contains cos dataset date datetime day diff div ends_with equal error event exp expm1 extract factorial fill_missing filter first floor format gamma hour import interact inv_logit is_finite is_in is_missing iterate join keys lag last lead len levels log log10 log1p log2 log_gamma logit lower map max min minute mod month n_distinct n_missing name_of note p_adjust pad print quarter rank reduce replace report reversed round row running second seed seq sign sin slice sorted split sqrt standardize start_of starts_with table tan time_between timer trim truncate type_of unique upper vars warn week weekday winsorize year
+  Function (115): abs acos add_time all any append asin assert atan atan2 attempt base beta between bin category ceil center choose clamp coalesce contains cos dataset date datetime day diff div ends_with equal error event exp expm1 extract factorial fill_missing filter first floor format gamma hour import interact inv_logit is_finite is_in is_missing iterate join keys lag last lead len levels log log10 log1p log2 log_gamma logit lower map max min minute mod month n_chars n_distinct n_missing name_of note p_adjust pad print quarter rank reduce replace report reversed round row running second seed seq sign sin slice sorted split sqrt standardize start_of starts_with table tan time_between timer trim truncate type_of unique upper vars warn week weekday winsorize year
 ----
 > let d = import("data/small.csv")
 > d

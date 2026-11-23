@@ -418,7 +418,7 @@ The rules of this section settle what language specifications usually settle and
 
 | Rule | Detail |
 | --- | --- |
-| Unit | Text functions count Unicode scalar values (code points), never bytes or grapheme clusters: `len("café")` is 4 and `len("e\u{301}")` is 2, since a combining accent is its own scalar value; `slice`, `pad`, `extract` and `format` use the same unit. Grapheme-aware functions are an open decision (section 15 of the Engine and Project Specification) |
+| Unit | Text functions count Unicode scalar values (code points), never bytes or grapheme clusters: `len("café")` is 4 and `len("e\u{301}")` is 2, since a combining accent is its own scalar value; `slice`, `pad`, `extract` and `format` use the same unit. `len` of a column is the number of its rows; `n_chars(s)` counts as `len` counts one text and applies row by row, so on a column it is the length of each value. Grapheme-aware functions are an open decision (section 15 of the Engine and Project Specification) |
 | Comparison and order | Text compares and sorts by code point, never by locale, so order is identical everywhere; `sort` on a text column follows the same rule. Locale-aware collation is after 1.0 |
 | Case | `upper` and `lower` apply Unicode simple case mapping, one scalar value to one, so a string's length never changes (`"ß"` stays `"ß"`); `ignore_case:` in `contains` uses simple case folding; `trim` removes Unicode white space |
 | Normalisation | None is applied: two strings that differ only in normalisation form are different values, and `import` notes a text column whose values differ only in that way (W0601) |

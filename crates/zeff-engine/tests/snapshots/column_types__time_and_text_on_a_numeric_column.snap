@@ -14,6 +14,7 @@ weekday: error[Z0401]: `d` of `weekday` must be a Date or a DateTime, but this i
 year: error[Z0401]: `d` of `year` must be a Date or a DateTime, but this is a column of Int
 --- text on `n`
 lower: error[Z0401]: `s` of `lower` must be a Str, but this is a column of Int
+n_chars: error[Z0401]: `s` of `n_chars` must be a Str, but this is a column of Int
 pad: error[Z0401]: `s` of `pad` must be a Str, but this is a column of Int
 slice: error[Z0401]: `s` of `slice` must be a Str, but this is a column of Int
 trim: error[Z0401]: `s` of `trim` must be a Str, but this is a column of Int

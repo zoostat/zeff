@@ -3,7 +3,8 @@
 # accented, combining and non-Latin text among them. Every value is exact, so the comparison is
 # exact. The case mappings are those R's platform gives for these characters, which agree with
 # Unicode simple case mapping; `trimws` trims ASCII white space only, so the Unicode spaces that
-# `trim` also removes are tested in the Rust program by hand. Run with
+# `trim` also removes are tested in the Rust program by hand. nchar(type = "chars") is the
+# reference of `len` of a text and, from release 0.9.0, of `n_chars`. Run with
 # `Rscript tests/reference/r/text.R`.
 source(file.path(dirname(sub("^--file=", "", commandArgs(FALSE)[grepl("^--file=", commandArgs(FALSE))])), "common.R"))
 
@@ -61,11 +62,33 @@ join_cases <- lapply(join_specs, function(s) list(
   out = paste(s[[1]], collapse = s[[2]])
 ))
 
+# The number of characters of each value of a variable (n_chars; release 0.9.0, step 31a, open
+# decision #165): nchar(type = "chars") on the industries of the shipped wages, every row of the
+# file, and on a short variable with a missing value, an empty text, white space and letters
+# outside ASCII. A missing text has no length (NA_integer_), which nchar gives for a character NA.
+root <- normalizePath(file.path(here(), "..", "..", ".."))
+wages <- read_dataset(file.path(root, "packages", "tier1", "datasets", "data", "wages.csv"))
+industry <- as.character(wages$industry)
+by_label <- sort(unique(industry), method = "radix")
+short <- c("clerk", "manager", NA, "", "  Ann Lee", "Zoë", "日本語", "e\u0301")
+chars <- function(x) lapply(nchar(x, type = "chars"), function(n) if (is.na(n)) "NA" else as.integer(n))
+n_chars_cases <- list(
+  wages = list(file = "packages/tier1/datasets/data/wages.csv", variable = "industry",
+               rows = length(industry),
+               labels = as.list(by_label), chars = chars(by_label),
+               # The sum over every row and the rows of each length: what a script can ask of the column.
+               total = as.integer(sum(nchar(industry, type = "chars"))),
+               longest = as.integer(max(nchar(industry, type = "chars"))),
+               rows_of_longest = as.integer(sum(nchar(industry, type = "chars") == max(nchar(industry, type = "chars"))))),
+  short = list(values = lapply(short, function(x) if (is.na(x)) "NA" else x), na = as.list(is.na(short)), chars = chars(short))
+)
+
 write_json(list(
   reference = reference_block(),
   cases = case_cases,
   affixes = affix_cases,
   slices = slice_cases,
   pads = pad_cases,
-  joins = join_cases
+  joins = join_cases,
+  n_chars = n_chars_cases
 ), file.path(here(), "text.json"))

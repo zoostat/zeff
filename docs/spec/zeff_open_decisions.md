@@ -3401,6 +3401,9 @@ Raised on 19 November 2026 by the review against R. Inside `add`, `len(job)` giv
 
 **The owner's decision (21 November 2026, at the opening of release 0.9.0).** The owner said "go" to the checklist of `docs/releases/0.9.0.md` without changing its answers, so its recommendation is taken under his standing instruction of 12 November 2026, his to overturn. Option A with the name `n_chars(s)` in `text`, the length of each value in code points, `NA` for `NA`, and a note when `len` of a column is spread over the rows of `add`; built at step 31 with its catalogue row.
 
+**Status (23 November 2026).** Built at step 31a of Zeff 0.9.0, as decided: `n_chars(s)` in `text`, held to R's `nchar(type = "chars")`; `add` notes `len` of a text variable written as a whole definition, and names `n_chars`. Catalogue row 698. Deadline for the owner to overturn the name: 1.0.
+
+
 ### 166. A row-wise count of missing values
 
 Raised on 19 November 2026 by the review against R. `n_missing([x1, x2, x3])` inside `add` counts the three columns as the items of a list and gives 0 on every row. The count of missing values across variables in each row, R's `rowSums(is.na(...))` and Stata's `egen rowmiss()`, cannot be written; step 20j makes a list of columns an error.

@@ -17,11 +17,12 @@ fn the_compiled_catalogue_reads_in_full() {
     // 675 until step 8j, where `variance_test` took the place of two planned rows (#97).
     // 674 until step 8k, where `running` and `row` took the place of four rows (#99).
     // 672 until step 2 of release 0.9.0, where `glm` took the place of `logistic` and `probit` (#112).
-    assert_eq!(catalogue.rows().len(), 671);
+    // 671 until step 31a of release 0.9.0, which added `n_chars` (#165).
+    assert_eq!(catalogue.rows().len(), 672);
     let mut ids: Vec<u32> = catalogue.rows().iter().map(|r| r.id).collect();
     ids.sort_unstable();
     ids.dedup();
-    assert_eq!(ids.len(), 671, "ids are distinct");
+    assert_eq!(ids.len(), 672, "ids are distinct");
 }
 
 #[test]

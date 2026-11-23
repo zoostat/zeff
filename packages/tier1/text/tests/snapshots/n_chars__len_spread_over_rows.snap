@@ -1,0 +1,29 @@
+---
+source: packages/tier1/text/tests/n_chars.rs
+expression: "format!(\"{stdout}---\\n{stderr}\")"
+---
+frame · 4 rows × 4 variables
+
+      job       site   pay   l
+  1   clerk        1   1.5   4
+  2   manager      1   2.5   4
+  3   NA           2   3.5   4
+  4   cook         2   4.5   4
+frame · 4 rows × 4 variables
+
+      job       site   pay   l
+  1   clerk        1   1.5   2
+  2   manager      1   2.5   2
+  3   NA           2   3.5   2
+  4   cook         2   4.5   2
+frame · 4 rows × 5 variables
+
+      job       site   pay    l   rows
+  1   clerk        1   1.5    5      4
+  2   manager      1   2.5    7      4
+  3   NA           2   3.5   NA      4
+  4   cook         2   4.5    4      4
+---
+note: `len(job)` is the number of rows of `job`, the same on every row; `n_chars(job)` gives the length of each value (line 2)
+note: `len(job)` is the number of rows of `job` in each group, the same on every row of the group; `n_chars(job)` gives the length of each value (line 3)
+note: `len(job)` is the number of rows of `job`, the same on every row; `n_chars(job)` gives the length of each value (line 4)

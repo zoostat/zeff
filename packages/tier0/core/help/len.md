@@ -5,7 +5,9 @@ Items in a list, or code points in a string
 
 ## Description
 The number of items in a list, of Unicode scalar values (code points) in a string, of rows in a
-column, or of entries in a mapping. A string is counted in code points, never in bytes or in
+column, or of entries in a mapping. The length of a column is the number of its rows, so inside
+`add` it is one number on every row; `n_chars` gives the length of each text of a column. A
+string is counted in code points, never in bytes or in
 grapheme clusters (section 3.8 of the Language Reference): `len("café")` is 4, and an accent
 written as a combining mark is its own code point, so `len("e\u{301}")` is 2. `NA` gives `NA`.
 
@@ -42,6 +44,7 @@ bytes, so an accented letter counts twice there; `ustrlen` counts as `len` does.
 ## Related tasks
 - For the rows of a frame, use `n_rows`.
 - For the missing items of a list, use `n_missing`.
+- For the length of each value of a text variable, use `n_chars`.
 
 ## See also
 first, last, append, reversed, attempt

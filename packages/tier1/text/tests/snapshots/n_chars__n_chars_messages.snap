@@ -1,0 +1,75 @@
+---
+source: packages/tier1/text/tests/n_chars.rs
+expression: out
+---
+n_chars(3)
+---
+error[Z0401]: `s` of `n_chars` must be a Str, but this is an Int
+ --> scripts/main.zeff:1:9
+  |
+1 | n_chars(3)
+  |         ^ an Int
+  |
+  = help: usage: `n_chars(s)`
+
+n_chars()
+---
+error[Z0406]: `n_chars` needs `s`
+ --> scripts/main.zeff:1:1
+  |
+1 | n_chars()
+  | ^^^^^^^ `s` is missing
+  |
+  = help: usage: `n_chars(s)`
+
+n_chars("a", "b")
+---
+error[Z0407]: `n_chars` takes 1 argument, but more were given
+ --> scripts/main.zeff:1:14
+  |
+1 | n_chars("a", "b")
+  |              ^^^ one too many
+  |
+  = help: usage: `n_chars(s)`
+
+n_chars(["a", "bc"])
+---
+error[Z0401]: `s` of `n_chars` must be a Str, but this is a List<Str>
+ --> scripts/main.zeff:1:9
+  |
+1 | n_chars(["a", "bc"])
+  |         ^^^^^^^^^^^ a List<Str>
+  |
+  = help: usage: `n_chars(s)`
+
+let d = frame(x = [1.5, 2.5])
+d.add(n = n_chars(x))
+---
+error[Z0401]: `s` of `n_chars` must be a Str, but this is a column of Float
+ --> scripts/main.zeff:2:19
+  |
+2 | d.add(n = n_chars(x))
+  |                   ^ a column of Float
+  |
+  = help: a function given a column applies to every row, and the rows must be of a type it takes; `to(x, Str)` writes a value as text
+
+let d = frame(x = [1.5, 2.5])
+n_chars(d)
+---
+error[Z0401]: `s` of `n_chars` must be a Str, but this is a Frame
+ --> scripts/main.zeff:2:9
+  |
+2 | n_chars(d)
+  |         ^ a Frame
+  |
+  = help: usage: `n_chars(s)`
+
+n_chars(date("2026-11-23"))
+---
+error[Z0401]: `s` of `n_chars` must be a Str, but this is a Date
+ --> scripts/main.zeff:1:9
+  |
+1 | n_chars(date("2026-11-23"))
+  |         ^^^^^^^^^^^^^^^^^^ a Date
+  |
+  = help: usage: `n_chars(s)`

@@ -302,6 +302,9 @@ pub fn functions() -> Vec<Function> {
                 returns: "Frame",
                 diagnostics: vec![
                     DiagnosticDecl::note("a definition replaced a variable of that name"),
+                    DiagnosticDecl::note(
+                        "a definition is len of a text variable, the number of its rows on every row, where n_chars gives the length of each value",
+                    ),
                     DiagnosticDecl::new(
                         "W0102",
                         "a name in a definition is both a variable and a binding",

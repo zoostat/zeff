@@ -39,7 +39,8 @@ Arithmetic, comparisons and the functions of `core` over the frame's variables, 
 reducer of `data` (`mean`, `sd`, `sum`, `n`, `min`, `max` and the rest), which gives one value
 for the frame, or one for each group under `by:`, written into every row of it; a column of the
 same length, such as `lag(wage)` on a panel; a single value. A list, a record or a frame is not a
-variable and is refused (Z0401).
+variable and is refused (Z0401). `len` of a text variable is one number too, the count of its
+rows, and not the length of each value: a note says so and names `n_chars`, which gives that.
 
 ### Replacing a variable
 A definition named after an existing variable replaces it, whatever its type, and a note says

@@ -3962,6 +3962,48 @@ impl<'a> Interpreter<'a> {
                     }
                     match evaluated {
                         Ok(v) => {
+                            // `add(l = len(job))` on a text variable: `len` of a column is
+                            // the number of its rows, and `add` spreads that one number over
+                            // every row, where the length of each value was meant (open
+                            // decision #165; release 0.9.0, step 31a). The result looked
+                            // plausible and nothing said so: a note names `n_chars`.
+                            if pushed
+                                && call.package == "data"
+                                && call.name == "add"
+                                // One number for the frame, or one for each group of `by:`.
+                                && (matches!(v, Value::Int(_)) || groups.is_some())
+                                && let ExprKind::Call(inner) = &call.definitions[*i].1.kind
+                                && inner.package == "core"
+                                && inner.name == "len"
+                                && let Some(Some(of)) = inner.args.first()
+                                && let Some(written) =
+                                    self.source.text().get(of.span.start..of.span.end)
+                                && let written = written.trim()
+                                // A text variable of the frame, by its name: the type is
+                                // the column's own, which the check may not know.
+                                && self.receivers.last().is_some_and(|receiver| {
+                                    receiver
+                                        .extended
+                                        .table
+                                        .column(written)
+                                        .is_some_and(|column| {
+                                            matches!(
+                                                column.ty(),
+                                                zeff_columns::ColumnType::Str
+                                                    | zeff_columns::ColumnType::Category
+                                            )
+                                        })
+                                })
+                            {
+                                messages.push(Diagnostic::plain_note(format!(
+                                    "`len({written})` is the number of rows of `{written}`{}; `n_chars({written})` gives the length of each value",
+                                    if groups.is_some() {
+                                        " in each group, the same on every row of the group"
+                                    } else {
+                                        ", the same on every row"
+                                    }
+                                )));
+                            }
                             // `NA` given a type, `add(v = to(NA, Float))`, is a variable of that
                             // type with no value in any row (Language Reference, section 3.7:
                             // the help of Z0219 "gives the type at the use, `to(NA, Int)`").

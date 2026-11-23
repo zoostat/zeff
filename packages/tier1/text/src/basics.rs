@@ -73,6 +73,17 @@ fn lower(ctx: &mut CallContext<'_>, args: Args) -> Result<Value, Fail> {
     })
 }
 
+/// `n_chars(s)`: the number of Unicode scalar values (code points) in the text, as `len`
+/// counts a string (section 3.8, "Unit"); `NA` gives `NA`. Applied row by row to a column it
+/// is the length of each value, where `len` of a column is the number of its rows (open
+/// decision #165; release 0.9.0, step 31a).
+fn n_chars(ctx: &mut CallContext<'_>, args: Args) -> Result<Value, Fail> {
+    Ok(match text_at(ctx, &args, 0)? {
+        None => Value::Na,
+        Some(s) => Value::Int(s.chars().count() as i64),
+    })
+}
+
 /// `trim(s)`: the text without its leading and trailing Unicode white space (the characters
 /// with the `White_Space` property, which `char::is_whitespace` tests).
 fn trim(ctx: &mut CallContext<'_>, args: Args) -> Result<Value, Fail> {
@@ -271,6 +282,20 @@ pub fn functions() -> Vec<Function> {
         one_text("upper", include_str!("../help/upper.md"), upper),
         one_text("lower", include_str!("../help/lower.md"), lower),
         one_text("trim", include_str!("../help/trim.md"), trim),
+        Function {
+            spec: FunctionSpec {
+                name: "n_chars",
+                package: "text",
+                method: false,
+                params: vec![ParamSpec::required("s", "Str")],
+                rest: None,
+                returns: "Int",
+                diagnostics: Vec::new(),
+                help: include_str!("../help/n_chars.md"),
+                accuracy: None,
+            },
+            body: n_chars,
+        },
         affix(
             "starts_with",
             "prefix",

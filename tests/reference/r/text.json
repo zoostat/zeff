@@ -367,5 +367,75 @@
    "sep": "/",
    "out": "a/NA/c"
   }
- ]
+ ],
+ "n_chars": {
+  "wages": {
+   "file": "packages/tier1/datasets/data/wages.csv",
+   "variable": "industry",
+   "rows": 18412,
+   "labels": [
+    "Agriculture",
+    "Construction",
+    "Education",
+    "Finance",
+    "Health",
+    "Manufacturing",
+    "Mining",
+    "Public administration",
+    "Retail",
+    "Services",
+    "Transport",
+    "Utilities"
+   ],
+   "chars": [
+    11,
+    12,
+    9,
+    7,
+    6,
+    13,
+    6,
+    21,
+    6,
+    8,
+    9,
+    9
+   ],
+   "total": 177293,
+   "longest": 21,
+   "rows_of_longest": 1421
+  },
+  "short": {
+   "values": [
+    "clerk",
+    "manager",
+    "NA",
+    "",
+    "  Ann Lee",
+    "Zoë",
+    "日本語",
+    "é"
+   ],
+   "na": [
+    false,
+    false,
+    true,
+    false,
+    false,
+    false,
+    false,
+    false
+   ],
+   "chars": [
+    5,
+    7,
+    "NA",
+    0,
+    9,
+    3,
+    3,
+    2
+   ]
+  }
+ }
 }
