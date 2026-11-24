@@ -946,3 +946,7 @@ The owner, shown the other pages of the website revised in the style of the new 
 ## 24 November 2026 — zeff_open_decisions.md, new entry #222
 
 The owner's decision of 24 November 2026 ("Yes, switch them"): from Zeff 0.10.0 the engine draws figures in Atkinson Hyperlegible Next and JetBrains Mono, the fonts of the website and Zemp Lite, in place of IBM Plex. Entered decided with deadline 0.10.0. Section 7.6 of the Language Reference still names IBM Plex: under the freeze it is amended at the 0.10.0 step that changes the fonts, not now.
+
+## 24 November 2026 — zeff_open_decisions.md, new entry #223
+
+The owner's first answers on two mockups of Zemp Lite's Help (one page rather than tabs, long parts always whole, the line about the reader's own script kept, a release of its own after 0.2.4), passed on by the Zemp Lite session. Entered as partly decided; the order of a page's parts and the first mockup's Home and search are still open. No normative text changed.
