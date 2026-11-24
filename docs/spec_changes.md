@@ -998,3 +998,7 @@ The owner kept R4's likelihood at Low ("Yes, keep it Low"), once the tight packi
 ## 24 November 2026 — zeff_risk_register.md, new risk R13
 
 The Zemp Lite session found, at the pre-release routine of 0.2.5, that the host answers a missing built file with the app's page under a year's keeping, so that a browser asking in the seconds after a deployment could keep a wrong file for a year. The engine is guarded from 0.2.5; the other built files are not. Entered as R13 (Low likelihood, Medium impact), its mitigation an engineering choice of the Zemp Lite session at its next release. No normative text changed.
+
+## 24 November 2026 — zeff_open_decisions.md, #224 and #225; zeff_risk_register.md, R4 (the release of Zemp Lite 0.2.5)
+
+The owner said "Release 0.2.5", and Zemp Lite 0.2.5 is tagged v0.2.5 at commit `b6ded13` of zemp-lite. #225 is marked done, its five items built; #224 is marked done, the tight packing released. R4's section of 24 November gains the release's figures (2.93 MB of 5 MB, the first start no slower, no early warning). No normative text changed.
