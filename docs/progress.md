@@ -136,7 +136,9 @@ Step 44 `[engine]`: the known-issues list has its section of 0.9.0 (ten entries)
 
 Step 3 `[engine]`, the first part: the 41 shards of the run of 23 November that finished (the numeric kernel, `regress`, one of `results`) show 516 survivors read, 509 recorded and 7 new, all on this release's lines of `results`: one given a test (a certain outcome at an extreme index of the probit likelihood), six recorded as guards and edges. The shards of `stats` are read when the run ends.
 
-**Next.** Step 42b2 `[engine]`: start the weekly job by hand when the run of 23 November (45186076578) has ended. Step 43b: read the nightly (45353244465), the fuzzing (45353249836), the benchmark (45353255238, green), the trial of the release workflow with its installation check (45353923781), and the bundle's size as sent. Then 42c, the runs read, with step 3; and step 45, the reader test, which waits on the owner.
+Step 43b `[engine]`: the jobs on 9b4fbaf are green: the four targets; the nightly (357 test programs, the truth runs of `glm` among them); the fuzzing (2.7 million inputs, no crash); the benchmark; and a trial of the release workflow, whose installation check passed on four clean machines (629 of 629 cases on each, a tampered archive refused). The engine a browser loads is 4,062.7 kB as the host sends it, 81 per cent of the limit, with a cold start of 109 ms.
+
+**Next.** Step 42b2 `[engine]`: the weekly job on the release's code starts by itself when the run of 23 November (45186076578) has ended (a watcher on this machine starts it; "Continue" starts it by hand if the machine slept). Then step 3's second part, the shards of `stats` of that run; 42c, the new run read, a day and a half after it starts; and step 45, the reader test, which waits on the owner. For "Release 0.9.0" the owner's signing key is needed (see below).
 
 **For the owner, from step 42a.** This machine's `emmeans` is 2.0.3 where the lock file and the continuous integration have 2.0.4; `Rscript tests/reference/r/install.R`, run by you, brings it into line (it installs into the repository's own ignored folder). Nothing waits on it.
 

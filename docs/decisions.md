@@ -7690,3 +7690,21 @@ Step 43 is split in two: what is run on this machine, here; and the jobs on GitH
 The six are entered in `tools/mutants/recorded.txt`.
 
 **What is left of the step.** The shards of `stats`, when the run has ended. The shards of the kernels and of `results` are not read from this run: the weekly job is started again on the release's code in its new layout (steps 42b2 and 42c).
+
+## 24 November 2026 — release 0.9.0, step 43b: the jobs on the commit of 0.9.0
+
+**The four targets.** CI on 9b4fbaf, the commit the jobs were started on, and on the five commits after it (d2a2471, 5bd8f5b and 057ba57 of this session, which change the bundle's measure, documents and one test; two of the planning session, documents alone): every job green, the conformance digests the same on Linux x86-64 (both levels), Linux ARM64, macOS ARM64 and WebAssembly, and the reference job against R, which now installs the pinned `sandwich` 3.1.1 (step 42a).
+
+**The nightly (45353244465), by hand on 9b4fbaf: green.** The whole suite in release mode with the long property runs, 357 test programs and 2,761 tests with no failure (316 programs at 0.8.0); the stochastic tests of `dist` (71 seconds) and of `sample`; the truth runs of the regressions (the two-way panel, three designs under five kinds of standard error, two-stage least squares on the staff model) and, new at this release, of `glm`: 50 seeds under two designs and two links, five kinds of standard error each, recover the coefficients with intervals that cover, and the intervals of the average effects cover the true effects; the benchmark suite and the browser benchmark.
+
+**The fuzzing (45353249836), by hand on 9b4fbaf: green.** Eight targets, ten minutes each under libFuzzer, 2,705,071 inputs in all (lexer 1,241,386; csv 546,133; parser 502,784; format 284,844; distribution 60,288; checker 32,963; formula 26,124; lsp 10,549): no crash, no timeout, no leak reported in any log.
+
+**The benchmark of the reduction shape (45353255238), by hand on 9b4fbaf: green.** On the job's x86-64 machine the sum of ten million numbers takes 4.19 ms in eight lanes against 4.60 ms for the plain loop, and the dot product 5.41 ms in eight lanes and 4.49 in sixteen against 4.84 plain.
+
+**The installation check (45353923781), a trial of the release workflow by hand on d2a2471: green.** The engine and the launcher were built for macOS ARM64, Linux ARM64 and Linux x86-64, packed, listed in `SHA256SUMS` and signed with a key made for the run and thrown away with it; nothing was published. On four clean machines (the three targets, and Linux x86-64 on an older system) the launcher installed the engine from its archive and the installed engine passed `zeff selftest`, 629 of 629 cases on each; a copy of the archive with one byte changed was refused with Z0711 and nothing was unpacked, and so was a signature of the same checksums by a key the launcher does not trust. The publisher's own key is still the owner's to make; until it exists a release cannot be signed.
+
+**The bundle and the cold start (risk R4), from the continuous integration on d2a2471.** The engine as a browser loads it, the worker build: 15,209.3 kB raw; 4,062.7 kB as the host sends it, Brotli at setting 2, which is 81 per cent of the limit of 5,000 kB and the figure the limit is now held to; 2,928.1 kB at Brotli's highest setting, the figure quoted until this release (2,782 kB at 0.8.0); a cold start of 109 ms under Node 24 against the limit of 1,000. The conformance bundle: 4,270.7 kB as sent, 85 per cent. Both limits hold. The planning session measured the engine of 0.8.0 on the live address at 4,080.7 kB, so this release has added almost nothing to what travels; 0.94 MB of room is left, and loading packages on first use, the risk's own mitigation, is still not built.
+
+**Step 43 is done.** With the local half (step 43a), every item of the step holds. The coverage report comes with the weekly job (step 42b2), and the mutation shards are read under step 42c.
+
+**Reason.** The testing handbook, section 2.4, items 2, 3 and 5; the checklist's step 43.
