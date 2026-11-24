@@ -3,6 +3,13 @@
 ## Summary
 Analysis of variance: one-way across groups, or factorial from a formula
 
+## In brief
+- `d.anova(y, group: g)`: the one-way test of equal means, by Welch's F; `equal_var: true` gives the classical F with its table.
+- `d.anova(y ~ a * b)`: the factorial table, a row and an F for each term; `type:` is 2 (the default), 3 or 1.
+- `d.anova(y ~ a + x)`: with a numeric covariate, the analysis of covariance.
+- `effect:` chooses the effect size: `eta`, `omega`, `omega_f` or `epsilon`.
+- `.posthoc()` on the result compares the groups pair by pair.
+
 ## Description
 Two forms under one name, chosen by the first argument. With a variable and `group:` it is the
 one-way analysis: whether the population mean of a numeric variable is the same in every group.
@@ -77,6 +84,9 @@ table prints it, `"dose:diet"`; a name that is no term of the table is an error 
 lists the terms. A table of several terms has no single hypothesis, effect size or interval, so
 `h0()`, `h1()`, `effect_size()` without a name and `ci()` are `NA` and no decision line is
 printed.
+
+## Missing values
+A row with `NA` in the variable, in `group:`, or in any variable of the formula is left out, and a note gives the count. With `weights:`, a row whose weight is missing is left out as well. A group left with no row is not a group of the test.
 
 ## Details
 One-way. With k groups of sizes nᵢ, means mᵢ and variances sᵢ², Welch's F weights each group by
@@ -155,6 +165,36 @@ with as many estimated columns as observations, or one that reproduces the outco
 (Z0802); a value too large to square (Z0803). A model with no category is allowed, each row
 then testing a slope, with a note that `reg` gives the estimates.
 
+## A common mistake
+Naming a text variable in the formula. Text, as read from a file, is not yet a category:
+
+> frame(y = [1.0, 2, 3, 4, 5, 6], g = ["a", "a", "b", "b", "c", "c"]).anova(y ~ g)
+error[Z0401]: `g` is text, and a model needs numbers or a category
+  = help: `category(g)` makes it a category, in the formula or with `add`
+
+Write `anova(y ~ category(g))`, or make the variable a category once with `add(g = category(g))`. A code of numbers, such as a site number, is not refused: it enters as a covariate with one degree of freedom unless it too is written `category(site)`.
+
+## Coming from R or Stata
+| d.anova(y, group: g) | oneway.test(y ~ g, data = d) | (none of its own) |
+| d.anova(y, group: g, equal_var: true) | summary(aov(y ~ factor(g), data = d)) | oneway y g |
+| d.anova(y ~ a * b) | car::Anova(lm(y ~ a * b, data = d)) | (none of its own) |
+| d.anova(y ~ a * b, type: 3) | car::Anova(lm(y ~ a * b, data = d, contrasts = list(a = contr.sum, b = contr.sum)), type = 3) | anova y a##b |
+| d.anova(y ~ a * b, type: 1) | anova(lm(y ~ a * b, data = d)) | anova y a##b, sequential |
+| d.anova(y ~ a + x) | car::Anova(lm(y ~ a + x, data = d)) | anova y a c.x |
+
+Stata's `oneway` gives the classical F, and its `anova` gives type 3 sums of squares unless
+`sequential` is written. R's own `anova()` of a model is sequential, so its table changes with
+the order of the terms. In Stata's `anova` a variable is a category unless written `c.x`; here,
+as in R, a number is a covariate unless written `category(x)`. With no interaction, as in the
+last line, types 2 and 3 are the same table.
+
+## Related tasks
+- To compare the groups pair by pair after it, use `posthoc`.
+- To compare two groups, with an interval for the difference, use `t_test`.
+- To compare several groups by ranks, use `kruskal_test`.
+- To check whether the groups have the same variance, use `variance_test`.
+- For the coefficients of the same model, use `reg`.
+
 ## References
 Welch (1951), On the comparison of several mean values: an alternative approach, Biometrika 38,
 330–336.
@@ -174,6 +214,7 @@ size for some common research designs, Psychological Methods 8, 434–447.
 t_test, kruskal_test, reg, tabulate, posthoc, p_adjust
 
 ## Examples
+// The one-way test by Welch's F, the default: do three sites differ in their mean?
 > let g = frame(s = [2.9, 3.0, 2.5, 2.6, 3.2, 3.8, 2.7, 4.0, 2.4, 2.8, 3.4, 3.7, 2.2, 2.0], site = [1, 1, 1, 1, 1, 2, 2, 2, 2, 3, 3, 3, 3, 3])
 > g.anova(s, group: site)
 anova · Welch one-way · s by site
@@ -189,6 +230,8 @@ F(2, 5.5) = 0.39   p = 0.693
 eta squared = 0.092
 decision at α = 0.05: fail to reject H0 (p = 0.693)
 Welch's F over 3 groups, the variances not assumed equal; eta squared = SS between / SS total
+
+// The classical F on the pooled variance, with its table of sums of squares.
 > g.anova(s, group: site, equal_var: true)
 anova · classical one-way · s by site
   H0: the population means of s are equal in all 3 groups of site          μ₁ = μ₂ = μ₃
@@ -209,6 +252,8 @@ F(2, 11) = 0.56   p = 0.587
 eta squared = 0.092
 decision at α = 0.05: fail to reject H0 (p = 0.587)
 classical F over 3 groups on the pooled within-group variance; eta squared = SS between / SS total
+
+// On the shipped wages: the log wage across the twelve industries.
 > let wages = dataset(wages).add(lwage = log(wage))
 > wages.anova(lwage, group: industry)
 anova · Welch one-way · lwage by industry
@@ -234,13 +279,17 @@ eta squared = 0.019
 decision at α = 0.05: reject H0 (p < 0.001)
 Welch's F over 12 groups, the variances not assumed equal; eta squared = SS between / SS total
 note: 211 rows with NA in lwage or industry dropped (line 5)
+
+// The effect size of that test as a number.
 > wages.anova(lwage, group: industry).effect_size()
 0.0185603
 note: 211 rows with NA in lwage or industry dropped (line 6)
+
+// A factorial analysis from a formula: two factors and their interaction, type 2.
 > let trial = frame(gain = [4.1, 5.3, 4.8, 6.9, 7.4, 6.1, 5.2, 4.4, 8.3, 9.1, 7.7, 5.9, 6.4, 7.0, 9.8, 10.4], dose = ["low", "low", "low", "high", "high", "low", "low", "low", "high", "high", "high", "low", "low", "high", "high", "high"], diet = ["a", "a", "a", "a", "a", "b", "b", "b", "b", "b", "b", "c", "c", "c", "c", "c"], age = [31, 45, 38, 52, 29, 41, 36, 48, 33, 27, 44, 39, 50, 35, 30, 42]).add(dose = category(dose), diet = category(diet))
+> trial.anova(gain ~ dose * diet)
 note: `dose` replaced the variable of that name (line 7)
 note: `diet` replaced the variable of that name (line 7)
-> trial.anova(gain ~ dose * diet)
 anova · factorial, type 2 · gain ~ dose * diet
 each row tests H0: the population effect of the term is zero, against H1: it is not
 
@@ -255,6 +304,8 @@ each row tests H0: the population effect of the term is zero, against H1: it is 
 
 type 2 sums of squares: each term adjusted for every other term that does not contain it
 partial eta squared = SS / (SS + SS residual); N = 16
+
+// Type 3: each term adjusted for every other, the interaction included.
 > trial.anova(gain ~ dose * diet, type: 3)
 anova · factorial, type 3 · gain ~ dose * diet
 each row tests H0: the population effect of the term is zero, against H1: it is not
@@ -270,6 +321,8 @@ each row tests H0: the population effect of the term is zero, against H1: it is 
 
 type 3 sums of squares: each term adjusted for every other term, the categories coded by deviations from the mean
 partial eta squared = SS / (SS + SS residual); N = 16
+
+// Type 1: each term adjusted for those written before it, here with a covariate last.
 > trial.anova(gain ~ dose + diet + age, type: 1)
 anova · factorial, type 1 · gain ~ dose + diet + age
 each row tests H0: the population effect of the term is zero, against H1: it is not
@@ -285,6 +338,8 @@ each row tests H0: the population effect of the term is zero, against H1: it is 
 
 type 1 sums of squares: each term adjusted for the terms above it, so the order of the terms matters
 partial eta squared = SS / (SS + SS residual); N = 16
+
+// The rows of the table as a frame.
 > trial.anova(gain ~ dose * diet).estimates().select([term, estimate, statistic, df, df2, p_value])
 frame · 6 rows × 6 variables
 
@@ -295,6 +350,8 @@ frame · 6 rows × 6 variables
   4   partial eta squared (dose)         0.759632          NA   NA    NA            NA
   5   partial eta squared (diet)         0.393368          NA   NA    NA            NA
   6   partial eta squared (dose:diet)   0.0339231          NA   NA    NA            NA
+
+// Categories and a covariate on the wages; a number is made a category in the formula.
 > wages.anova(lwage ~ industry * category(female) + educ)
 anova · factorial, type 2 · lwage ~ industry * category(female) + educ
 each row tests H0: the population effect of the term is zero, against H1: it is not
@@ -312,6 +369,8 @@ each row tests H0: the population effect of the term is zero, against H1: it is 
 type 2 sums of squares: each term adjusted for every other term that does not contain it
 partial eta squared = SS / (SS + SS residual); N = 18,201
 note: 211 rows with NA in a model variable dropped (line 12)
+
+// Omega squared in place of eta squared, in the one-way form.
 > g.anova(s, group: site, effect: omega)
 anova · Welch one-way · s by site
   H0: the population means of s are equal in all 3 groups of site          μ₁ = μ₂ = μ₃
@@ -327,9 +386,13 @@ omega squared = -0.067
 decision at α = 0.05: fail to reject H0 (p = 0.693)
 Welch's F over 3 groups, the variances not assumed equal; omega squared = (SS between − (k − 1) MS within) / (SS total + MS within)
 note: the classical F of the same sums of squares is 0.560, below 1, so omega squared is negative; read it as no evidence of an effect (line 13)
+
+// Epsilon squared, as a number.
 > wages.anova(lwage, group: industry, effect: epsilon).effect_size()
 0.0179668
 note: 211 rows with NA in lwage or industry dropped (line 14)
+
+// The partial omega squared of each term of a formula.
 > trial.anova(gain ~ dose * diet, effect: omega)
 anova · factorial, type 2 · gain ~ dose * diet
 each row tests H0: the population effect of the term is zero, against H1: it is not
@@ -346,6 +409,8 @@ each row tests H0: the population effect of the term is zero, against H1: it is 
 type 2 sums of squares: each term adjusted for every other term that does not contain it
 partial omega squared = (SS − df × MS residual) / (SS + (N − df) × MS residual); N = 16
 note: F is below 1 for `dose:diet`, so its partial omega squared is negative; read it as no evidence of an effect (line 15)
+
+// The omega squared that Stata computes, from the F of each term.
 > trial.anova(gain ~ dose * diet, effect: omega_f)
 anova · factorial, type 2 · gain ~ dose * diet
 each row tests H0: the population effect of the term is zero, against H1: it is not
@@ -362,13 +427,31 @@ each row tests H0: the population effect of the term is zero, against H1: it is 
 type 2 sums of squares: each term adjusted for every other term that does not contain it
 partial omega squared from F = (F − 1) / (F + (df residual + 1) / df); N = 16
 note: F is below 1 for `dose:diet`, so its partial omega squared from F is negative; read it as no evidence of an effect (line 16)
+
+// One term read by its name: its p-value, its F, its degrees of freedom and its effect size.
 > let a = trial.anova(gain ~ dose * diet)
 > a.p_values("diet")
-0.0821533
 > a.statistic(dose)
-31.6028
 > a.df("dose:diet")
+> a.effect_size("diet")
+0.0821533
+31.6028
 2
 10
-> a.effect_size("diet")
 0.393368
+
+// Data given as counts, with the defaults of the one-way form written out.
+> let scores = frame(score = [1, 2, 3, 4, 5, 1, 2, 3, 4, 5], arm = ["a", "a", "a", "a", "a", "b", "b", "b", "b", "b"], count = [3, 8, 14, 9, 4, 6, 11, 12, 5, 2])
+> scores.anova(score, group: arm, equal_var: false, effect: eta, weights: count, weight_type: frequency)
+anova · Welch one-way · score by arm
+  H0: the population means of score are equal in all 2 groups of arm          μ₁ = μ₂
+  H1: at least one group of arm has a different population mean of score      not all equal
+
+  group    N    mean      sd
+  a       38   3.079   1.100
+  b       36   2.611   1.103
+
+F(1, 71.8) = 3.34   p = 0.072
+eta squared = 0.044
+decision at α = 0.05: fail to reject H0 (p = 0.072)
+Welch's F over 2 groups, the variances not assumed equal; eta squared = SS between / SS total

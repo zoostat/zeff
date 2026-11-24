@@ -3,6 +3,12 @@
 ## Summary
 Pairwise comparisons after an ANOVA
 
+## In brief
+- `d.anova(y, group: g).posthoc()`: every pair of group means compared, by Tukey's method.
+- `d.anova(y ~ a * b).posthoc(term: a)`: after a formula, the marginal means of one term compared.
+- `method:` chooses among eleven methods, among them `games_howell`, `scheffe`, `holm` and `bonferroni`.
+- `level:` sets the level of the intervals, for the methods that have them.
+
 ## Description
 The comparison of every pair of means after an `anova`, written on its result. Each row is one
 pair, the first minus the second, with the difference of the two means, its standard error, its
@@ -91,6 +97,9 @@ method, its t and its degrees of freedom; the minus sign may be typed as a hyphe
 and a name that is no row of the table is an error (Z0414) that lists the rows. A set of
 comparisons has no single hypothesis or effect size, so `h0()`, `h1()` and `effect_size()`
 are `NA` and no decision line is printed.
+
+## Missing values
+Nothing is read from the frame again. The rows are those of the `anova` it follows, which left out the rows with `NA` in a variable it used and said how many in its own note.
 
 ## Details
 With k groups of sizes nᵢ, means mᵢ and variances sᵢ², N = Σ nᵢ observations and
@@ -223,6 +232,37 @@ freedom, to four from 5, and to two below, where `ptukey` is at its least accura
 degrees of freedom, which only a pair of groups of two values has, R gives no value and Zeff
 gives the range's.
 
+## A common mistake
+Calling it on the frame, as a test of its own. The comparisons follow an `anova` and are written on its result:
+
+> dataset(firms).posthoc(size, group: industry)
+error[Z0401]: `posthoc` cannot be called on a Frame
+  = help: `posthoc` takes a TestResult first; `x.posthoc(...)` is `posthoc(x, ...)`
+
+Write `dataset(firms).anova(size, group: industry).posthoc()`.
+
+## Coming from R or Stata
+| d.anova(y, group: g, equal_var: true).posthoc() | TukeyHSD(aov(y ~ factor(g), data = d)) | pwmean y, over(g) mcompare(tukey) effects |
+| d.anova(y, group: g).posthoc(method: games_howell) | rstatix::games_howell_test(d, y ~ g) | (none of its own) |
+| d.anova(y, group: g).posthoc(method: holm) | pairwise.t.test(d$y, d$g, p.adjust.method = "holm", pool.sd = FALSE) | (none of its own) |
+| d.anova(y, group: g, equal_var: true).posthoc(method: bonferroni) | pairwise.t.test(d$y, d$g, p.adjust.method = "bonferroni") | pwmean y, over(g) mcompare(bonferroni) effects |
+| d.anova(y ~ a * b + x).posthoc(term: a) | pairs(emmeans::emmeans(lm(y ~ a * b + x, data = d), ~ a)) | pwcompare a, mcompare(tukey) effects, after anova y a##b c.x |
+| d.anova(y, group: g, equal_var: true).posthoc(level: 0.99) | TukeyHSD(aov(y ~ factor(g), data = d), conf.level = 0.99) | pwmean y, over(g) mcompare(tukey) effects level(99) |
+
+`TukeyHSD` and Stata write each comparison as the second group minus the first, so their
+differences and limits have the opposite sign to those here. R's `pairwise.t.test` pools the
+variance and adjusts by Holm's method unless told otherwise; here the t-tests follow the
+`anova`, and the method is the one named. Stata compares on the pooled variance throughout.
+Details says where the figures of `emmeans` and of `TukeyHSD` after a formula part from
+these.
+
+## Related tasks
+- For the analysis of variance it follows, use `anova`.
+- To adjust a list of p-values of your own, use `p_adjust`.
+- For one pair of groups, with an effect size, use `t_test`.
+- For the studentized range behind Tukey's method, use `dist.tukey`.
+- For the comparisons as a frame, use `estimates`.
+
 ## References
 Tukey (1949), Comparing individual means in the analysis of variance, Biometrics 5, 99–114.
 Kramer (1956), Extension of multiple range tests to group means with unequal numbers of
@@ -252,6 +292,7 @@ The step-wise methods have their references on the page of `p_adjust`.
 anova, p_adjust, t_test, dist.tukey, estimates, ci
 
 ## Examples
+// Three diets compared pair by pair after the classical analysis of variance: Tukey's method, the default.
 > let d = frame(gain = [4.2, 3.9, 4.6, 4.1, 4.4, 5.1, 5.6, 4.9, 5.4, 5.8, 4.5, 4.0, 4.8, 4.3], diet = ["a", "a", "a", "a", "a", "b", "b", "b", "b", "b", "c", "c", "c", "c"])
 > d.anova(gain, group: diet, equal_var: true).posthoc()
 posthoc · Tukey HSD · gain by diet
@@ -264,6 +305,8 @@ each row tests H0: the two population means are equal, against H1: they differ
 
 Tukey's HSD over 3 comparisons of 3 groups: p-values and intervals from the studentized range, family-wise
 pooled within-group variance on 11 degrees of freedom; N = 14
+
+// After Welch's F, each pair by Welch's t-test with Holm's adjustment; a step-wise method has no intervals.
 > d.anova(gain, group: diet).posthoc(method: holm)
 posthoc · Holm · gain by diet
 each row tests H0: the two population means are equal, against H1: they differ
@@ -275,6 +318,8 @@ each row tests H0: the two population means are equal, against H1: they differ
 
 Holm over 3 comparisons of 3 groups: p-values adjusted family-wise; step-wise, so no intervals
 Welch's t-test of each pair, the variances not assumed equal; N = 14
+
+// Tukey's method after Welch's F: a note says that it pools the variance all the same.
 > d.anova(gain, group: diet).posthoc()
 posthoc · Tukey HSD · gain by diet
 each row tests H0: the two population means are equal, against H1: they differ
@@ -287,6 +332,8 @@ each row tests H0: the two population means are equal, against H1: they differ
 Tukey's HSD over 3 comparisons of 3 groups: p-values and intervals from the studentized range, family-wise
 pooled within-group variance on 11 degrees of freedom; N = 14
 note: `tukey` pools the variances of the groups, which the `anova` did not assume equal; `method: games_howell` compares the pairs without that assumption (line 4)
+
+// Games and Howell's method, on each pair's own variances.
 > d.anova(gain, group: diet).posthoc(method: games_howell)
 posthoc · Games–Howell · gain by diet
 each row tests H0: the two population means are equal, against H1: they differ
@@ -298,21 +345,25 @@ each row tests H0: the two population means are equal, against H1: they differ
 
 Games–Howell over 3 comparisons of 3 groups: p-values and intervals from the studentized range on each pair's own degrees of freedom, family-wise
 each pair on its two groups' own variances and Welch's degrees of freedom; N = 14
+
+// Bonferroni's method kept under a name; its rows as a frame, and its intervals.
 > let b = d.anova(gain, group: diet, equal_var: true).posthoc(method: bonferroni)
 > b.estimates()
+> b.ci()
 frame · 3 rows × 9 variables
 
       term    estimate   std_error   statistic   df   df2       p_value    ci_lower    ci_upper
   1   a − b      -1.12    0.205736    -5.44387   11    NA   0.000608127    -1.70018   -0.539818
   2   a − c      -0.16    0.218216   -0.733219   11    NA             1   -0.775376    0.455376
   3   b − c       0.96    0.218216     4.39931   11    NA    0.00319324    0.344624     1.57538
-> b.ci()
 ci · 95%
 
   term     lower    upper
   a − b   -1.700   -0.540
   a − c   -0.775    0.455
   b − c    0.345    1.575
+
+// After a formula: the marginal means of the three doses, the diets balanced and age held at its mean.
 > let f = frame(gain = [4.1, 4.9, 3.6, 4.6, 5.3, 4.0, 5.0, 5.8, 4.4, 5.2, 6.4, 5.1, 5.2, 5.9, 4.6, 6.9, 7.8, 6.1], dose = ["low", "low", "low", "low", "low", "low", "mid", "mid", "mid", "mid", "mid", "mid", "top", "top", "top", "top", "top", "top"], diet = ["a", "a", "a", "b", "b", "b", "a", "a", "a", "b", "b", "b", "a", "a", "a", "b", "b", "b"], age = [4, 6, 3, 5, 7, 4, 5, 7, 4, 4, 6, 3, 6, 5, 4, 5, 7, 5])
 > let m = f.anova(gain ~ category(dose) * category(diet) + age)
 > m.posthoc(term: dose)
@@ -328,6 +379,8 @@ Tukey's HSD over 3 comparisons of 3 marginal means: p-values and intervals from 
 each mean is the model's prediction for a level of dose, averaged with equal weight over the levels of diet, with the numeric variables at their means (age = 5)
 residual variance of the model on 11 degrees of freedom; N = 18
 note: `dose` is also part of `dose:diet`: its differences are averages over the levels of `diet` and may not be the same at each level (line 11)
+
+// Every pair of cells of the interaction, by Holm's method.
 > m.posthoc(term: "dose:diet", method: holm)
 posthoc · Holm · dose:diet · gain ~ category(dose) * category(diet) + age
 each row tests H0: the two marginal means of the population are equal, against H1: they differ
@@ -352,6 +405,8 @@ each row tests H0: the two marginal means of the population are equal, against H
 Holm over 15 comparisons of 6 marginal means: p-values adjusted family-wise; step-wise, so no intervals
 each mean is the model's prediction for a cell of dose:diet, with the numeric variables at their means (age = 5)
 residual variance of the model on 11 degrees of freedom; N = 18
+
+// A formula with one term of categories needs no `term:`.
 > f.anova(gain ~ category(dose) + age).posthoc(method: bonferroni)
 posthoc · Bonferroni · dose · gain ~ category(dose) + age
 each row tests H0: the two marginal means of the population are equal, against H1: they differ
@@ -364,14 +419,20 @@ each row tests H0: the two marginal means of the population are equal, against H
 Bonferroni over 3 comparisons of 3 marginal means: each p-value multiplied by 3, each interval at the level 1 − 0.05/3
 each mean is the model's prediction for a level of dose, with the numeric variables at their means (age = 5)
 residual variance of the model on 14 degrees of freedom; N = 18
+
+// One comparison read by its name; the minus sign may be typed as a hyphen.
 > b.p_values("a − b")
-0.000608127
 > b.p_values("a - b")
 0.000608127
+0.000608127
+
+// The t of another comparison, and its degrees of freedom.
 > b.statistic("b − c")
-4.39931
 > b.df("b − c")
+4.39931
 11
+
+// Intervals at 99%.
 > d.anova(gain, group: diet, equal_var: true).posthoc(level: 0.99)
 posthoc · Tukey HSD · gain by diet
 each row tests H0: the two population means are equal, against H1: they differ
@@ -383,6 +444,8 @@ each row tests H0: the two population means are equal, against H1: they differ
 
 Tukey's HSD over 3 comparisons of 3 groups: p-values and intervals from the studentized range, family-wise
 pooled within-group variance on 11 degrees of freedom; N = 14
+
+// Šidák's intervals at 90%, as a table.
 > d.anova(gain, group: diet, equal_var: true).posthoc(method: sidak, level: 0.9).ci()
 ci · 90%
 
@@ -390,3 +453,16 @@ ci · 90%
   a − b   -1.616   -0.624
   a − c   -0.686    0.366
   b − c    0.434    1.486
+
+// Scheffé's method, the most cautious for pairs, with the default level written out.
+> d.anova(gain, group: diet, equal_var: true).posthoc(method: scheffe, level: 0.95)
+posthoc · Scheffé · gain by diet
+each row tests H0: the two population means are equal, against H1: they differ
+
+  comparison   difference   std.error   t value   p value   95% CI
+  a − b            -1.120       0.206     -5.44     0.001   [-1.701, -0.539]
+  a − c            -0.160       0.218     -0.73     0.769   [-0.776, 0.456]
+  b − c             0.960       0.218      4.40     0.004   [0.344, 1.576]
+
+Scheffé over 3 comparisons of 3 groups: p-values and intervals from F(2, 11), family-wise over every contrast
+pooled within-group variance on 11 degrees of freedom; N = 14

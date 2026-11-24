@@ -3,6 +3,12 @@
 ## Summary
 Adjust p-values for multiple testing
 
+## In brief
+- `p_adjust([0.01, 0.04, 0.03])`: a list of p-values adjusted by Holm's method.
+- `method:` is `holm`, `bonferroni`, `hochberg`, `hommel`, `sidak`, `bh`, `by` or `none`.
+- `d.add(p_holm = p_adjust(p_value))`: a variable of p-values adjusted, one on each row.
+- `d.add(p_holm = p_adjust(p_value), by: outcome)`: each group of rows adjusted as a family of its own.
+
 ## Description
 The p-values of several tests adjusted so that they can be compared with one level across the
 family. Eight methods are offered: Holm's step-down method (the default), Bonferroni's
@@ -32,6 +38,9 @@ outcome among themselves, and the number of comparisons is counted within the gr
 ## Value
 A `List<Float>` of the same length as `p` for a list, and a `Column<Float>` of the same length
 for a variable or any other column, such as `tests["p"]`.
+
+## Missing values
+An `NA` among the p-values stays `NA` in its place and is not counted among the comparisons, so the other p-values are adjusted as if it were not there.
 
 ## Details
 With n the number of p-values present and p₍₁₎ ≤ … ≤ p₍ₙ₎ their order statistics, the adjusted
@@ -72,6 +81,31 @@ R's `p.adjust` writes the methods `"holm"`, `"hochberg"`, `"hommel"`, `"bonferro
 `noadjust` in the `mtest()` option of `test`, and `bonferroni`, `sidak` and `noadjust` in the
 `mcompare()` option of `pwcompare`; its `sidak` is the single-step form given here.
 
+## A common mistake
+Giving a p-value as a percentage. A p-value lies between 0 and 1:
+
+> p_adjust([0.01, 4, 0.03])
+error[Z0401]: a p-value lies between 0 and 1, but item 2 of `p_adjust` is 4
+  = help: check the list; `NA` stands for a p-value that is missing
+
+Write the share, `0.04`.
+
+## Coming from R or Stata
+| p_adjust(p) | p.adjust(p, method = "holm") | (none of its own) |
+| p_adjust(p, method: bh) | p.adjust(p, method = "BH") | (none of its own) |
+| d.add(q = p_adjust(p)) | d$q <- p.adjust(d$p) | (none of its own) |
+| d.add(q = p_adjust(p), by: g) | d$q <- ave(d$p, d$g, FUN = p.adjust) | (none of its own) |
+
+R's `p.adjust` writes `"BH"`, or `"fdr"`, and `"BY"` in capitals, and has no Šidák. Stata
+adjusts within one command, in the `mtest()` option of `test` and the `mcompare()` option of
+`pwcompare`, and has no command of its own that adjusts a variable of p-values.
+
+## Related tasks
+- For every pair of groups compared after an analysis of variance, already adjusted, use `posthoc`.
+- For the analysis of variance before it, use `anova`.
+- For the p-values of a result as values, use `p_values`.
+- To keep the rows whose adjusted p-value is small, use `where`.
+
 ## References
 Holm (1979), A simple sequentially rejective multiple test procedure, Scandinavian Journal of
 Statistics 6, 65–70.
@@ -95,6 +129,7 @@ under dependency, Annals of Statistics 29, 1165–1188.
 kruskal_test, t_test, anova, posthoc, add, rank
 
 ## Examples
+// Five p-values adjusted by Holm's method, the default.
 > let p = [0.01, 0.04, 0.03, 0.005, 0.2]
 > p_adjust(p)
 0.04
@@ -102,35 +137,57 @@ kruskal_test, t_test, anova, posthoc, add, rank
 0.09
 0.025
 0.2
+
+// Hochberg's and Hommel's methods, each no less powerful than the one before.
 > p_adjust(p, method: hochberg)
+> p_adjust(p, method: hommel)
 0.04
 0.08
 0.08
 0.025
 0.2
-> p_adjust(p, method: hommel)
 0.04
 0.08
 0.06
 0.025
 0.2
+
+// Šidák's and Bonferroni's corrections.
 > p_adjust(p, method: sidak)
+> p_adjust(p, method: bonferroni)
 0.04901
 0.184627
 0.141266
 0.0247512
 0.67232
-> p_adjust(p, method: bonferroni)
 0.05
 0.2
 0.15
 0.025
 1
+
+// A missing p-value keeps its place and is not counted: three comparisons, by Benjamini and Hochberg.
 > p_adjust([0.01, NA, 0.03, 0.005], method: bh)
 0.015
 NA
 0.03
 0.015
+
+// Benjamini and Yekutieli's procedure, and no adjustment.
+> p_adjust(p, method: by)
+> p_adjust(p, method: none)
+0.0570833
+0.114167
+0.114167
+0.0570833
+0.456667
+0.01
+0.04
+0.03
+0.005
+0.2
+
+// A variable of p-values in a frame: six tests adjusted as one family.
 > let tests = frame(outcome = ["wage", "wage", "wage", "hours", "hours", "hours"], arm = [1, 2, 3, 1, 2, 3], p_value = [0.01, 0.04, 0.03, 0.2, 0.001, 0.02])
 > tests.add(p_holm = p_adjust(p_value))
 frame · 6 rows × 4 variables
@@ -142,6 +199,8 @@ frame · 6 rows × 4 variables
   4   hours       1       0.2      0.2
   5   hours       2     0.001    0.006
   6   hours       3      0.02     0.08
+
+// Each outcome as a family of its own, with `by:`.
 > tests.add(p_holm = p_adjust(p_value), by: outcome)
 frame · 6 rows × 4 variables
 
@@ -152,6 +211,8 @@ frame · 6 rows × 4 variables
   4   hours       1       0.2      0.2
   5   hours       2     0.001    0.003
   6   hours       3      0.02     0.04
+
+// The rows that stay below 0.05 at a false discovery rate controlled within each outcome.
 > tests.add(p_bh = p_adjust(p_value, method: bh), by: outcome).where(p_bh < 0.05)
 frame · 5 rows × 4 variables
 

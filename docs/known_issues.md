@@ -76,6 +76,13 @@ is never listed here as accepted: it is fixed or the function is withdrawn.
   error; the standard errors themselves agree to 13 digits, and R's `lm` reaches the same 5.8.
   The digits are what sixteen-digit arithmetic leaves on that design. (Since 0.4.0; found at
   0.9.0.)
+- **The exact rank-sum test is slow on tied samples near fifty values a group.** With ties,
+  `wilcoxon_test(y, group: g)` counts the distribution of the tied ranks again at each shift it
+  tries for the interval. In the test build that is 4 seconds for two groups of 20, about a
+  minute for two of 30 and two minutes for 38 and 36; without ties the same sizes take a
+  quarter of a second. The figures are right. `exact: false` gives the normal approximation at
+  once, and from 50 values in either group the approximation is the default. (Since 0.7.0;
+  met at 0.9.0.)
 - **A warning is said once for a statement, not once for a script.** The same observation
   driving three fits made in one statement is one warning with a count (W1006, since 0.8.0);
   three fits on three lines are three warnings. The passes of a loop are counted as one since

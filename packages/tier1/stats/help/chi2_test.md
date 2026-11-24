@@ -3,6 +3,12 @@
 ## Summary
 Chi-squared test of independence or of goodness of fit
 
+## In brief
+- `d.chi2_test(union, female)`: independence of two variables, from their cross-table.
+- `d.chi2_test(party, p: [0.5, 0.3, 0.2])`: the fit of one variable's frequencies to given proportions.
+- `levels:` names the categories of a fit, among them those that no row holds.
+- `correct: true` applies Yates's correction to a 2 × 2 table.
+
 ## Description
 Pearson's chi-squared test: of independence between two variables, from their cross-table, or of
 goodness of fit of one variable's frequencies to the proportions `p:`, one per value in the
@@ -42,6 +48,9 @@ A `TestResult`, with the result interface (`summary`, `estimates`, `p_values`, `
 no estimate. Its own methods `statistic()`, `df()`, `effect_size()`, `h0()`, `h1()` and
 `alternative()` give the figures as values.
 
+## Missing values
+A row with `NA` in a variable tested is left out, and a note gives the count; `NA` is never a category of the table. With `weights:`, a row whose weight is missing is left out as well.
+
 ## Details
 Independence: expected counts E = (row total × column total) / N, χ² = Σ (|O − E| − c)² / E with
 c = ½ on a corrected 2 × 2 table (never more than the smallest |O − E|) and 0 otherwise, on
@@ -51,6 +60,31 @@ names, a category never observed having O = 0. In R the same test is
 `chisq.test(table(factor(x, levels = lev)), p = p)`. The proportions must sum to 1, where R's
 `chisq.test` rescales them only when asked.
 The p-value is the upper tail of the chi-squared distribution, computed directly.
+
+## A common mistake
+Giving the proportions of a fit as percentages. They are shares that sum to one:
+
+> dataset(wages).chi2_test(female, p: [50, 50])
+error[Z0401]: `p:` of `chi2_test` must be positive proportions that sum to 1, but these sum to 100
+  = help: divide each by their total, or write them as shares such as `p: [0.5, 0.3, 0.2]`
+
+Write `p: [0.5, 0.5]`.
+
+## Coming from R or Stata
+| d.chi2_test(a, b) | chisq.test(table(d$a, d$b), correct = FALSE) | tabulate a b, chi2 |
+| d.chi2_test(a, b, correct: true) | chisq.test(table(d$a, d$b)) | (none of its own) |
+| d.chi2_test(a, p: [0.5, 0.3, 0.2]) | chisq.test(table(d$a), p = c(0.5, 0.3, 0.2)) | (none of its own) |
+| d.chi2_test(a, p: p, levels: lev) | chisq.test(table(factor(d$a, levels = lev)), p = p) | (none of its own) |
+
+R corrects a 2 × 2 table for continuity unless `correct = FALSE` is written; here, as in Stata,
+there is no correction unless it is asked for. Stata's `tabulate, chi2` is the test of
+independence of a two-way table.
+
+## Related tasks
+- For an exact test when expected counts are small, use `fisher_test`.
+- For one proportion against a value, or two proportions with an interval for their difference, use `proportion_test`.
+- For the table itself, with percentages, use `tabulate`.
+- For a binary outcome on several variables at once, use `glm`.
 
 ## References
 Pearson (1900), On the criterion that a given system of deviations from the probable in the case
@@ -63,6 +97,7 @@ Journal of the Royal Statistical Society 1, 217–235.
 fisher_test, proportion_test, tabulate
 
 ## Examples
+// Independence of two variables: is union membership the same among men and women?
 > let wages = dataset(wages)
 > wages.chi2_test(union, female)
 chi2_test · independence · union × female
@@ -77,6 +112,8 @@ chi2_test · independence · union × female
 
 chi2(1) = 1.91   p = 0.167
 decision at α = 0.05: fail to reject H0 (p = 0.167)
+
+// The fit of one variable to given proportions: are men and women equally many?
 > wages.chi2_test(female, p: [0.5, 0.5])
 chi2_test · goodness of fit · female
   H0: the population proportions of female equal the given p                     π = p
@@ -90,6 +127,8 @@ chi2_test · goodness of fit · female
 
 chi2(1) = 17.65   p < 0.001
 decision at α = 0.05: reject H0 (p < 0.001)
+
+// A category that no row holds, named with `levels:`: three parties, of which one got no vote.
 > let votes = frame(party = ["a", "a", "b", "a", "b", "a", "a", "b", "a", "a"])
 > votes.chi2_test(party, p: [0.5, 0.3, 0.2], levels: ["a", "b", "c"])
 chi2_test · goodness of fit · party
@@ -107,3 +146,34 @@ chi2(2) = 2.80   p = 0.247
 decision at α = 0.05: fail to reject H0 (p = 0.247)
 warning[W0211]: 2 of 3 expected counts are below 5, so the chi-squared approximation may be poor (line 5)
   = help: `fisher_test` is exact for a small table; merging sparse values raises the expected counts
+
+// A table given as counts, one row for each cell, with frequency weights.
+> let tab = frame(treated = ["yes", "yes", "no", "no"], improved = ["yes", "no", "yes", "no"], count = [18, 7, 9, 16])
+> tab.chi2_test(treated, improved, weights: count, weight_type: frequency)
+chi2_test · independence · treated × improved
+  H0: treated and improved are independent in the population
+  H1: treated and improved are associated in the population
+
+  treated   no   yes   Total
+  no        16     9      25
+  yes        7    18      25
+  ──────────────────────────
+  Total     23    27      50
+
+chi2(1) = 6.52   p = 0.011
+decision at α = 0.05: reject H0 (p = 0.011)
+
+// The same with Yates's correction, as R applies it to a 2 × 2 table unless told not to.
+> tab.chi2_test(treated, improved, correct: true, weights: count, weight_type: frequency)
+chi2_test · independence · treated × improved · continuity-corrected
+  H0: treated and improved are independent in the population
+  H1: treated and improved are associated in the population
+
+  treated   no   yes   Total
+  no        16     9      25
+  yes        7    18      25
+  ──────────────────────────
+  Total     23    27      50
+
+chi2(1) = 5.15   p = 0.023
+decision at α = 0.05: reject H0 (p = 0.023)
