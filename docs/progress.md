@@ -128,7 +128,9 @@ Step 42a `[engine]` (42 split in four): `x.attempt()` is `attempt(x)`, where it 
 
 Step 42d `[engine]`, taken before 42b so that the weekly run is on the final code: the exact rank-sum interval on tied samples counts a run of equal shifts once, and its count no longer walks sums that cannot occur. Tied scores that took two minutes take three seconds in the test build, with every figure the same; samples with few ties near 50 values a group stay slow, as in R, and the known issue says so.
 
-**Next.** Step 42b `[engine]`: the weekly job on the release's code (`glm` added, the shards of the kernels and of `results` made smaller, the job started by hand with the coverage run); then steps 43 and 44 while it runs, 42c when it has ended, and step 45, the reader test, which waits on the owner. Step 3, the weekly mutation run of Monday 23 November: started at 13:39 UTC on that day and not ended on the 24th (40 shards done, 19 cut off at the job's limit of 340 minutes, the rest running or waiting). It is read when it ends.
+Step 42b1 `[engine]` (42b split in two): the weekly mutation job laid out for this release: `glm` added in four shards, `results` in 32 and the kernels in 12, 112 in all, after the run of 23 November cut nineteen of their twenty shards off at its limit.
+
+**Next.** Step 42b2 `[engine]`: start the weekly job by hand on the release's code, with the coverage run, when the run of 23 November (45186076578) has ended; meanwhile steps 43 and 44; then 42c, the runs read, with step 3; and step 45, the reader test, which waits on the owner.
 
 **For the owner, from step 42a.** This machine's `emmeans` is 2.0.3 where the lock file and the continuous integration have 2.0.4; `Rscript tests/reference/r/install.R`, run by you, brings it into line (it installs into the repository's own ignored folder). Nothing waits on it.
 
