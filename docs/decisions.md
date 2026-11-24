@@ -7708,3 +7708,9 @@ The six are entered in `tools/mutants/recorded.txt`.
 **Step 43 is done.** With the local half (step 43a), every item of the step holds. The coverage report comes with the weekly job (step 42b2), and the mutation shards are read under step 42c.
 
 **Reason.** The testing handbook, section 2.4, items 2, 3 and 5; the checklist's step 43.
+
+## 24 November 2026 — release 0.9.0, step 42b1, a second part: the shards of `stats` made smaller too
+
+The entry of step 42b1 left the 24 shards of `stats` as they were until their turn in the run of 23 November could be read. It came: of the first five to end, three finished and two were cut off at the limit. By their logs the first pass of a shard, 170 mutants against the package's own tests, takes four to five hours, 85 to 105 seconds a mutant, and leaves three to eight mutants for the second pass at some seven minutes each; a shard whose first pass takes five hours has no room left. `stats` is dealt into 40 shards of about 100 mutants, so that a first pass ends within three hours. The job has 128 shards: the numeric kernel 24, the kernels 12, `results` 32, `regress` 16, `stats` 40 and `glm` 4, fourteen at once.
+
+**Held by.** The job file read back as valid, each package's shards numbered from 0 to one less than their count.

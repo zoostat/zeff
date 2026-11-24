@@ -128,7 +128,7 @@ Step 42a `[engine]` (42 split in four): `x.attempt()` is `attempt(x)`, where it 
 
 Step 42d `[engine]`, taken before 42b so that the weekly run is on the final code: the exact rank-sum interval on tied samples counts a run of equal shifts once, and its count no longer walks sums that cannot occur. Tied scores that took two minutes take three seconds in the test build, with every figure the same; samples with few ties near 50 values a group stay slow, as in R, and the known issue says so.
 
-Step 42b1 `[engine]` (42b split in two): the weekly mutation job laid out for this release: `glm` added in four shards, `results` in 32 and the kernels in 12, 112 in all, after the run of 23 November cut nineteen of their twenty shards off at its limit.
+Step 42b1 `[engine]` (42b split in two): the weekly mutation job laid out for this release: `glm` added in four shards, `results` in 32 and the kernels in 12 and `stats` in 40, 128 in all, after the run of 23 November cut nineteen of their twenty shards off at its limit.
 
 Step 43a `[engine]` (43 split in two): on a release build of 9b4fbaf the self-test passes 629 of 629 cases and the ten samples print their stored output; the new sample and its figure were read by eye; the sample script has eight diagnostics left, each of a later release or of the reader's own files; the bundle's measure now holds the limit of risk R4 to the size as the host sends it. The nightly, fuzz and benchmark jobs were started by hand on the commit.
 
