@@ -42,7 +42,7 @@ Two editions, each in two forms, plus the command line. Every product runs the s
 | Project panel, editor with the language server, console, log, objects | Yes | Yes |
 | Data, results and plot viewers, including sorting and filtering as view state, redraw to fit, compare, pop out and journal-size export | Yes | Yes |
 | Exports of tables, plots and frames, replication packages, Update engine, run records, packages panel | Yes | Yes |
-| Methods panel, dialogs and guides (section 6) | Yes | No; `zeff help` and hover give every function's help page |
+| Methods panel, dialogs and guides (section 6) | Yes | No; `zeff help`, F1 and the Help panel give every function's help page, and hover in a script gives its usage block (the one the call would run, where a name has two functions; from 0.2.4, #220) |
 | Formula, graph, model, plot-layer and recipe builders | Yes | No; written as Zeff |
 | Controls that write a statement: drag a data file into the editor, drag a frame onto a method, **Add to script** in the viewers, edits in the variable view, the import dialog | Yes | No; the variable view and the import preview are read-only |
 | **Copy as Zeff** in the data, plot and variable viewers: the statement equivalent to a sort, a filter or a change of type, label or contrast, put on the clipboard; never a selection of rows (zeff_open_decisions.md, #114) | No; **Add to script** writes the statement instead | Yes; the script changes only when the user pastes it |

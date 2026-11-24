@@ -958,3 +958,7 @@ The owner added four things of the Help place to Zemp Lite 0.2.4, passed on by t
 ## 24 November 2026 — zeff_open_decisions.md, entry #220
 
 The owner approved the drawing of the four Help changes of 0.2.4 ("Yes, as drawn"); noted in #220. No normative text changed.
+
+## 24 November 2026 — zemp_specification.md, section 3 (the table's Zemp Lite column, the row of the Methods panel)
+
+The Lite column said that `zeff help` and hover give every function's help page. From Zemp Lite 0.2.4 (#220, item 6, the owner's decision of 24 November 2026) the hover in a script shows the function's usage block alone, the one the call would run where a name has two functions, and F1 or the Help panel gives the whole page; a word that is not a function is shown as the language server describes it. The sentence is corrected to say so, at the step of 0.2.4 that built the hover, as agreed when #220 was recorded. Section 5's list of the ways to reach function help (hover, completion, F1, the Help panel, `:help`) stays true and is unchanged. No normative text of the engine changed.
