@@ -172,10 +172,11 @@ fn the_messages_exchanged_on_the_sample_scripts() {
         "plots",
         "tests",
         "instruments",
+        "binary",
     ] {
         documents.extend(sample(&fs, name));
     }
-    assert_eq!(documents.len(), 11);
+    assert_eq!(documents.len(), 12);
     let mut editor = Conversation::new(fs);
     editor.send(json!({
         "jsonrpc": "2.0",

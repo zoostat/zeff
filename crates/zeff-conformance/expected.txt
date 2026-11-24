@@ -605,6 +605,12 @@ instruments/stderr 6459536a561f2944
 instruments/exit_code a8c7f832281a39c5
 # instruments/exit_code bits 0000000000000000
 instruments/output/table_iv.tex 63b49f63950010d9
+binary/stdout 50d294c0f4b4656e
+binary/stderr 706e1f7218f17a54
+binary/exit_code a8c7f832281a39c5
+# binary/exit_code bits 0000000000000000
+binary/output/fig_roc.svg 1308c38e199128bb
+binary/output/table_union.tex 3aa079a1f421d24e
 help/examples cbf29ce484222325
 nist/lls/Norris/stdout 33354fb215beecb1
 nist/lls/Norris/lre ff6f9ad861ecbacb

@@ -302,6 +302,27 @@ expression: editor.told
 }
 --> {
   "jsonrpc": "2.0",
+  "method": "textDocument/didOpen",
+  "params": {
+    "textDocument": {
+      "languageId": "zeff",
+      "text": "(78 lines, the last: table_union.export(\"output/table_union.tex\"))",
+      "uri": "file:///s/binary/scripts/main.zeff",
+      "version": 1
+    }
+  }
+}
+<-- {
+  "jsonrpc": "2.0",
+  "method": "textDocument/publishDiagnostics",
+  "params": {
+    "diagnostics": [],
+    "uri": "file:///s/binary/scripts/main.zeff",
+    "version": 1
+  }
+}
+--> {
+  "jsonrpc": "2.0",
   "method": "textDocument/didChange",
   "params": {
     "contentChanges": [
@@ -1769,6 +1790,23 @@ expression: editor.told
   "params": {
     "diagnostics": [],
     "uri": "file:///s/instruments/scripts/main.zeff"
+  }
+}
+--> {
+  "jsonrpc": "2.0",
+  "method": "textDocument/didClose",
+  "params": {
+    "textDocument": {
+      "uri": "file:///s/binary/scripts/main.zeff"
+    }
+  }
+}
+<-- {
+  "jsonrpc": "2.0",
+  "method": "textDocument/publishDiagnostics",
+  "params": {
+    "diagnostics": [],
+    "uri": "file:///s/binary/scripts/main.zeff"
   }
 }
 --> {

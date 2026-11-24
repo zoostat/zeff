@@ -53,3 +53,8 @@ lines 11 to 12 become:
     |staff.summary([productivity, age, distance], by: training)
 lines 68 to 71 become:
     |table_iv.export("output/table_iv.tex")
+==== binary/scripts
+lines 10 to 11 become:
+    |wages.summary([educ, exper], by: union)
+lines 79 to 82 become:
+    |table_union.export("output/table_union.tex")

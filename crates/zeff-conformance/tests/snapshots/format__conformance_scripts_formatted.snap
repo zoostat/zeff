@@ -2883,6 +2883,85 @@ let table_iv = report([ols, iv, two],
 table_iv
 table_iv.export("output/table_iv.tex")
 ==== script 182
+// The sample project of release 0.9.0: a binary outcome end to end on the shipped wages, the
+// union membership of workers followed over the years. `zeff run` in this folder prints what
+// expected/stdout.txt holds, and its messages are expected/stderr.txt; the conformance suite
+// compares both byte for byte on every target, with the figure and the table the script
+// writes.
+
+// 1. The data: one row for each worker and year. `union` is 0 or 1, and about a third of the
+//    rows are members.
+let wages = dataset(wages)
+wages.tabulate(union)
+wages.summary([educ, exper], by: union)
+
+// 2. A logistic regression of membership. A worker is in the data in several years, so the
+//    rows of one worker are not independent, and the standard errors are clustered by worker.
+let lg = wages.glm(union ~ educ + exper + female + industry, family: binomial, cluster: worker)
+lg
+
+// 3. The same fit read as odds ratios: each coefficient exponentiated, with its interval.
+lg.summary(exponentiate: true)
+
+// 4. A probit regression of the same model. Its coefficients are on another scale, that of a
+//    normal score, so they are smaller than the logit's without the fits disagreeing.
+let pr = wages.glm(union ~ educ + exper + female + industry,
+                   family: binomial,
+                   link: probit,
+                   cluster: worker)
+pr
+
+// 5. What the two links agree on: the effect of each variable on the probability itself,
+//    averaged over the rows. Then the share of members the logit predicts at 5, 15 and 25
+//    years of experience, the other variables as they are.
+lg.margins([educ, exper, female])
+pr.margins([educ, exper, female])
+lg.margins(at: {exper: [5, 15, 25]})
+
+// 6. Two tests. Whether the industries matter at all, by the likelihood ratio of two fits on
+//    the same rows; and whether women differ from men, by a Wald test on the clustered errors.
+let with_industry = wages.glm(union ~ educ + exper + female + industry, family: binomial)
+let without = wages.glm(union ~ educ + exper + female, family: binomial)
+with_industry.compare(without)
+lg.test(female == 0)
+
+// 7. How well the fit tells members from the others. The ROC curve with the area under it,
+//    drawn to a file, and the classification table at the usual cutoff and at a lower one,
+//    which finds more of the members at the price of more false alarms.
+let roc = lg.curve(type: roc)
+roc
+print("area under the curve:", roc.statistic())
+roc.plot().export("output/fig_roc.svg")
+lg.confusion()
+lg.confusion(cutoff: 0.35)
+
+// 8. The same on rows the fit did not see: fitted to the years up to 2017, judged on the
+//    years after.
+let later = wages.where(year > 2017)
+let early = wages
+    .where(year <= 2017)
+    .glm(union ~ educ + exper + female + industry, family: binomial, cluster: worker)
+early.curve(newdata: later, type: roc)
+early.confusion(newdata: later, cutoff: 0.35)
+
+// 9. A fit that cannot be made. When one variable splits the outcomes perfectly the
+//    likelihood has no maximum; `attempt` keeps the failure as a value and the script goes on.
+let apart = frame(dose = [1, 2, 3, 4, 5, 6], cured = [0, 0, 0, 1, 1, 1])
+let tried = attempt(apart.glm(cured ~ dose, family: binomial))
+tried
+print("the fit failed:", tried.is(Failed))
+
+// 10. The publication table: the logit beside the probit, printed and exported to LaTeX.
+let table_union = report([lg, pr],
+                         stats: [n_obs, aic],
+                         labels: {educ: "Years of schooling",
+                                  exper: "Years of experience",
+                                  female: "Female",
+                                  industry: "Industry"},
+                         title: "Table 1. Union membership: logit and probit")
+table_union
+table_union.export("output/table_union.tex")
+==== script 183
 let d = import("data/Norris.csv")
 let m = d.reg(y ~ x)
 print(to(m.coef(`(intercept)`), Str))
@@ -2899,7 +2978,7 @@ print(to(ssr / 1, Str))
 print(to((ssr / 1) / (rss / 34), Str))
 print(to(rss, Str))
 print(to(rss / 34, Str))
-==== script 183
+==== script 184
 let d = import("data/Pontius.csv")
 let m = d.reg(y ~ x + x^2)
 print(to(m.coef(`(intercept)`), Str))
@@ -2918,7 +2997,7 @@ print(to(ssr / 2, Str))
 print(to((ssr / 2) / (rss / 37), Str))
 print(to(rss, Str))
 print(to(rss / 37, Str))
-==== script 184
+==== script 185
 let d = import("data/NoInt1.csv")
 let m = d.reg(y ~ x - 1)
 print(to(m.coef(`x`), Str))
@@ -2933,7 +3012,7 @@ print(to(ssr / 1, Str))
 print(to((ssr / 1) / (rss / 10), Str))
 print(to(rss, Str))
 print(to(rss / 10, Str))
-==== script 185
+==== script 186
 let d = import("data/NoInt2.csv")
 let m = d.reg(y ~ x - 1)
 print(to(m.coef(`x`), Str))
@@ -2948,7 +3027,7 @@ print(to(ssr / 1, Str))
 print(to((ssr / 1) / (rss / 2), Str))
 print(to(rss, Str))
 print(to(rss / 2, Str))
-==== script 186
+==== script 187
 let d = import("data/Filip.csv")
 let m = d.reg(y ~ x + x^2 + x^3 + x^4 + x^5 + x^6 + x^7 + x^8 + x^9 + x^10)
 print(to(m.coef(`(intercept)`), Str))
@@ -2983,7 +3062,7 @@ print(to(ssr / 10, Str))
 print(to((ssr / 10) / (rss / 71), Str))
 print(to(rss, Str))
 print(to(rss / 71, Str))
-==== script 187
+==== script 188
 let d = import("data/Longley.csv")
 let m = d.reg(y ~ x1 + x2 + x3 + x4 + x5 + x6)
 print(to(m.coef(`(intercept)`), Str))
@@ -3010,7 +3089,7 @@ print(to(ssr / 6, Str))
 print(to((ssr / 6) / (rss / 9), Str))
 print(to(rss, Str))
 print(to(rss / 9, Str))
-==== script 188
+==== script 189
 let d = import("data/Wampler1.csv")
 let m = d.reg(y ~ x + x^2 + x^3 + x^4 + x^5)
 print(to(m.coef(`(intercept)`), Str))
@@ -3035,7 +3114,7 @@ print(to(ssr / 5, Str))
 print(to((ssr / 5) / (rss / 15), Str))
 print(to(rss, Str))
 print(to(rss / 15, Str))
-==== script 189
+==== script 190
 let d = import("data/Wampler2.csv")
 let m = d.reg(y ~ x + x^2 + x^3 + x^4 + x^5)
 print(to(m.coef(`(intercept)`), Str))
@@ -3060,7 +3139,7 @@ print(to(ssr / 5, Str))
 print(to((ssr / 5) / (rss / 15), Str))
 print(to(rss, Str))
 print(to(rss / 15, Str))
-==== script 190
+==== script 191
 let d = import("data/Wampler3.csv")
 let m = d.reg(y ~ x + x^2 + x^3 + x^4 + x^5)
 print(to(m.coef(`(intercept)`), Str))
@@ -3085,7 +3164,7 @@ print(to(ssr / 5, Str))
 print(to((ssr / 5) / (rss / 15), Str))
 print(to(rss, Str))
 print(to(rss / 15, Str))
-==== script 191
+==== script 192
 let d = import("data/Wampler4.csv")
 let m = d.reg(y ~ x + x^2 + x^3 + x^4 + x^5)
 print(to(m.coef(`(intercept)`), Str))
@@ -3110,7 +3189,7 @@ print(to(ssr / 5, Str))
 print(to((ssr / 5) / (rss / 15), Str))
 print(to(rss, Str))
 print(to(rss / 15, Str))
-==== script 192
+==== script 193
 let d = import("data/Wampler5.csv")
 let m = d.reg(y ~ x + x^2 + x^3 + x^4 + x^5)
 print(to(m.coef(`(intercept)`), Str))
@@ -3135,7 +3214,7 @@ print(to(ssr / 5, Str))
 print(to((ssr / 5) / (rss / 15), Str))
 print(to(rss, Str))
 print(to(rss / 15, Str))
-==== script 193
+==== script 194
 let d = import("data/PiDigits.csv").add(t = row_number(), one = 1)
 print(to(d.mean(y), Str))
 print(to(d.sd(y), Str))
@@ -3143,7 +3222,7 @@ let v = d
     .panel(unit: one, time: t)
     .add(c = (y - mean(y)) * (coalesce(lag(y), mean(y)) - mean(y)), q = (y - mean(y))^2)
 print(to(v.sum(c) / v.sum(q), Str))
-==== script 194
+==== script 195
 let d = import("data/Lottery.csv").add(t = row_number(), one = 1)
 print(to(d.mean(y), Str))
 print(to(d.sd(y), Str))
@@ -3151,7 +3230,7 @@ let v = d
     .panel(unit: one, time: t)
     .add(c = (y - mean(y)) * (coalesce(lag(y), mean(y)) - mean(y)), q = (y - mean(y))^2)
 print(to(v.sum(c) / v.sum(q), Str))
-==== script 195
+==== script 196
 let d = import("data/Lew.csv").add(t = row_number(), one = 1)
 print(to(d.mean(y), Str))
 print(to(d.sd(y), Str))
@@ -3159,7 +3238,7 @@ let v = d
     .panel(unit: one, time: t)
     .add(c = (y - mean(y)) * (coalesce(lag(y), mean(y)) - mean(y)), q = (y - mean(y))^2)
 print(to(v.sum(c) / v.sum(q), Str))
-==== script 196
+==== script 197
 let d = import("data/Mavro.csv").add(t = row_number(), one = 1)
 print(to(d.mean(y), Str))
 print(to(d.sd(y), Str))
@@ -3167,7 +3246,7 @@ let v = d
     .panel(unit: one, time: t)
     .add(c = (y - mean(y)) * (coalesce(lag(y), mean(y)) - mean(y)), q = (y - mean(y))^2)
 print(to(v.sum(c) / v.sum(q), Str))
-==== script 197
+==== script 198
 let d = import("data/Michelso.csv").add(t = row_number(), one = 1)
 print(to(d.mean(y), Str))
 print(to(d.sd(y), Str))
@@ -3175,7 +3254,7 @@ let v = d
     .panel(unit: one, time: t)
     .add(c = (y - mean(y)) * (coalesce(lag(y), mean(y)) - mean(y)), q = (y - mean(y))^2)
 print(to(v.sum(c) / v.sum(q), Str))
-==== script 198
+==== script 199
 let d = import("data/NumAcc1.csv").add(t = row_number(), one = 1)
 print(to(d.mean(y), Str))
 print(to(d.sd(y), Str))
@@ -3183,7 +3262,7 @@ let v = d
     .panel(unit: one, time: t)
     .add(c = (y - mean(y)) * (coalesce(lag(y), mean(y)) - mean(y)), q = (y - mean(y))^2)
 print(to(v.sum(c) / v.sum(q), Str))
-==== script 199
+==== script 200
 let d = import("data/NumAcc2.csv").add(t = row_number(), one = 1)
 print(to(d.mean(y), Str))
 print(to(d.sd(y), Str))
@@ -3191,7 +3270,7 @@ let v = d
     .panel(unit: one, time: t)
     .add(c = (y - mean(y)) * (coalesce(lag(y), mean(y)) - mean(y)), q = (y - mean(y))^2)
 print(to(v.sum(c) / v.sum(q), Str))
-==== script 200
+==== script 201
 let d = import("data/NumAcc3.csv").add(t = row_number(), one = 1)
 print(to(d.mean(y), Str))
 print(to(d.sd(y), Str))
@@ -3199,7 +3278,7 @@ let v = d
     .panel(unit: one, time: t)
     .add(c = (y - mean(y)) * (coalesce(lag(y), mean(y)) - mean(y)), q = (y - mean(y))^2)
 print(to(v.sum(c) / v.sum(q), Str))
-==== script 201
+==== script 202
 let d = import("data/NumAcc4.csv").add(t = row_number(), one = 1)
 print(to(d.mean(y), Str))
 print(to(d.sd(y), Str))
@@ -3207,57 +3286,57 @@ let v = d
     .panel(unit: one, time: t)
     .add(c = (y - mean(y)) * (coalesce(lag(y), mean(y)) - mean(y)), q = (y - mean(y))^2)
 print(to(v.sum(c) / v.sum(q), Str))
-==== script 202
+==== script 203
 let d = import("data/SiRstv.csv")
 let a = d.anova(y, group: g, equal_var: true)
 print(to(a.statistic(), Str))
 print(to(a.effect_size(), Str))
-==== script 203
+==== script 204
 let d = import("data/SmLs01.csv")
 let a = d.anova(y, group: g, equal_var: true)
 print(to(a.statistic(), Str))
 print(to(a.effect_size(), Str))
-==== script 204
+==== script 205
 let d = import("data/SmLs02.csv")
 let a = d.anova(y, group: g, equal_var: true)
 print(to(a.statistic(), Str))
 print(to(a.effect_size(), Str))
-==== script 205
+==== script 206
 let d = import("data/SmLs03.csv")
 let a = d.anova(y, group: g, equal_var: true)
 print(to(a.statistic(), Str))
 print(to(a.effect_size(), Str))
-==== script 206
+==== script 207
 let d = import("data/AtmWtAg.csv")
 let a = d.anova(y, group: g, equal_var: true)
 print(to(a.statistic(), Str))
 print(to(a.effect_size(), Str))
-==== script 207
+==== script 208
 let d = import("data/SmLs04.csv")
 let a = d.anova(y, group: g, equal_var: true)
 print(to(a.statistic(), Str))
 print(to(a.effect_size(), Str))
-==== script 208
+==== script 209
 let d = import("data/SmLs05.csv")
 let a = d.anova(y, group: g, equal_var: true)
 print(to(a.statistic(), Str))
 print(to(a.effect_size(), Str))
-==== script 209
+==== script 210
 let d = import("data/SmLs06.csv")
 let a = d.anova(y, group: g, equal_var: true)
 print(to(a.statistic(), Str))
 print(to(a.effect_size(), Str))
-==== script 210
+==== script 211
 let d = import("data/SmLs07.csv")
 let a = d.anova(y, group: g, equal_var: true)
 print(to(a.statistic(), Str))
 print(to(a.effect_size(), Str))
-==== script 211
+==== script 212
 let d = import("data/SmLs08.csv")
 let a = d.anova(y, group: g, equal_var: true)
 print(to(a.statistic(), Str))
 print(to(a.effect_size(), Str))
-==== script 212
+==== script 213
 let d = import("data/SmLs09.csv")
 let a = d.anova(y, group: g, equal_var: true)
 print(to(a.statistic(), Str))

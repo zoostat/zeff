@@ -1,0 +1,78 @@
+// The sample project of release 0.9.0: a binary outcome end to end on the shipped wages, the
+// union membership of workers followed over the years. `zeff run` in this folder prints what
+// expected/stdout.txt holds, and its messages are expected/stderr.txt; the conformance suite
+// compares both byte for byte on every target, with the figure and the table the script
+// writes.
+
+// 1. The data: one row for each worker and year. `union` is 0 or 1, and about a third of the
+//    rows are members.
+let wages = dataset(wages)
+wages.tabulate(union)
+wages.summary([educ, exper], by: union)
+
+// 2. A logistic regression of membership. A worker is in the data in several years, so the
+//    rows of one worker are not independent, and the standard errors are clustered by worker.
+let lg = wages.glm(union ~ educ + exper + female + industry, family: binomial, cluster: worker)
+lg
+
+// 3. The same fit read as odds ratios: each coefficient exponentiated, with its interval.
+lg.summary(exponentiate: true)
+
+// 4. A probit regression of the same model. Its coefficients are on another scale, that of a
+//    normal score, so they are smaller than the logit's without the fits disagreeing.
+let pr = wages.glm(union ~ educ + exper + female + industry,
+                   family: binomial,
+                   link: probit,
+                   cluster: worker)
+pr
+
+// 5. What the two links agree on: the effect of each variable on the probability itself,
+//    averaged over the rows. Then the share of members the logit predicts at 5, 15 and 25
+//    years of experience, the other variables as they are.
+lg.margins([educ, exper, female])
+pr.margins([educ, exper, female])
+lg.margins(at: {exper: [5, 15, 25]})
+
+// 6. Two tests. Whether the industries matter at all, by the likelihood ratio of two fits on
+//    the same rows; and whether women differ from men, by a Wald test on the clustered errors.
+let with_industry = wages.glm(union ~ educ + exper + female + industry, family: binomial)
+let without = wages.glm(union ~ educ + exper + female, family: binomial)
+with_industry.compare(without)
+lg.test(female == 0)
+
+// 7. How well the fit tells members from the others. The ROC curve with the area under it,
+//    drawn to a file, and the classification table at the usual cutoff and at a lower one,
+//    which finds more of the members at the price of more false alarms.
+let roc = lg.curve(type: roc)
+roc
+print("area under the curve:", roc.statistic())
+roc.plot().export("output/fig_roc.svg")
+lg.confusion()
+lg.confusion(cutoff: 0.35)
+
+// 8. The same on rows the fit did not see: fitted to the years up to 2017, judged on the
+//    years after.
+let later = wages.where(year > 2017)
+let early = wages
+    .where(year <= 2017)
+    .glm(union ~ educ + exper + female + industry, family: binomial, cluster: worker)
+early.curve(newdata: later, type: roc)
+early.confusion(newdata: later, cutoff: 0.35)
+
+// 9. A fit that cannot be made. When one variable splits the outcomes perfectly the
+//    likelihood has no maximum; `attempt` keeps the failure as a value and the script goes on.
+let apart = frame(dose = [1, 2, 3, 4, 5, 6], cured = [0, 0, 0, 1, 1, 1])
+let tried = attempt(apart.glm(cured ~ dose, family: binomial))
+tried
+print("the fit failed:", tried.is(Failed))
+
+// 10. The publication table: the logit beside the probit, printed and exported to LaTeX.
+let table_union = report([lg, pr],
+                         stats: [n_obs, aic],
+                         labels: {educ: "Years of schooling",
+                                  exper: "Years of experience",
+                                  female: "Female",
+                                  industry: "Industry"},
+                         title: "Table 1. Union membership: logit and probit")
+table_union
+table_union.export("output/table_union.tex")

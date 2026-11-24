@@ -383,9 +383,24 @@ pub const INSTRUMENTS: Sample = Sample {
     stderr: include_str!("../../../samples/instruments/expected/stderr.txt"),
 };
 
+/// The sample of binary outcomes of release 0.9.0 (step 41), on the shipped wages: a logit and
+/// a probit of union membership with errors clustered by worker, the odds ratios, the average
+/// marginal effects of both, a likelihood-ratio and a Wald test, the ROC curve drawn to a file
+/// and the classification table, in the sample and on years kept back, a separated fit caught
+/// with `attempt`, and the table of the two fits exported to LaTeX.
+pub const BINARY: Sample = Sample {
+    name: "binary",
+    manifest: include_str!("../../../samples/binary/zeff.toml"),
+    data: &[],
+    modules: &[],
+    script: include_str!("../../../samples/binary/scripts/main.zeff"),
+    stdout: include_str!("../../../samples/binary/expected/stdout.txt"),
+    stderr: include_str!("../../../samples/binary/expected/stderr.txt"),
+};
+
 /// Every sample project, oldest first; each adds three cases to the report, and one more for
 /// every file it writes under `output/`.
-pub const SAMPLES: [&Sample; 9] = [
+pub const SAMPLES: [&Sample; 10] = [
     &FIRST_ENGINE,
     &DATA_CLEANING,
     &SIMULATION,
@@ -395,6 +410,7 @@ pub const SAMPLES: [&Sample; 9] = [
     &PLOTS,
     &TESTS,
     &INSTRUMENTS,
+    &BINARY,
 ];
 
 /// Run a sample project on an in-memory copy of its files.

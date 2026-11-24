@@ -175,6 +175,7 @@ fn the_graphs_of_the_sample_scripts() {
         "plots",
         "tests",
         "instruments",
+        "binary",
     ] {
         let folder = root.join(name);
         let fs = MemoryFileSystem::new();

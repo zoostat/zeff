@@ -69,6 +69,7 @@ fn samples() -> Vec<(String, String)> {
         "plots",
         "tests",
         "instruments",
+        "binary",
     ] {
         for sub in ["scripts", "functions"] {
             let mut files: Vec<_> = std::fs::read_dir(root.join(name).join(sub))
@@ -83,7 +84,7 @@ fn samples() -> Vec<(String, String)> {
             }
         }
     }
-    assert_eq!(found.len(), 11);
+    assert_eq!(found.len(), 12);
     found
 }
 
