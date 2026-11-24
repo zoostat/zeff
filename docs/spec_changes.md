@@ -934,3 +934,7 @@ Open decision #217, the owner's ruling of 23 November 2026 ("Yes, into 0.9.0"), 
 ## 24 November 2026 — zemp_specification.md, section 15 (a row for Zemp Lite 0.2.4); zeff_open_decisions.md, new entry #220
 
 The owner's decision of 24 November 2026 ("Record for 0.2.4") on Zemp Lite's front page, its loading and project screens, and its name drawn as *Zemp* with a raised *Lite* badge, each drawn as a mockup and changed by him in three rounds. Open decision #220 is entered, decided; where the landing page lives (the root of the address, the app at `/app/`) is taken as recommended and is his to overturn. Section 15 gains a row for 0.2.4, on Zeff 0.8.0, between 0.2.3 and 0.3. The welcome screen's text in section 5 is unchanged: it names neither the zip action nor the layout. No normative text of the engine changed. The Zemp Lite session copies the change into its repository, as before.
+
+## 24 November 2026 — zeff_open_decisions.md, new entry #221
+
+The owner's decision of 24 November 2026 ("Yes and similarly revise other pages too") on the website's home page, drawn after a modern language's home page in the look of #146, with the other pages to follow in the same style. Entered decided for the home page; the other pages are recorded when he has seen them. No normative text changed.
