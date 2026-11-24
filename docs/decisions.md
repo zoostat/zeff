@@ -7724,3 +7724,13 @@ The test is the owner's to run (testing handbook, section 2.4, item 4; his answe
 - *The scripts* themselves (`scripts/1.zeff` to `10.zeff`).
 
 Step 45 stays unticked: it is done when the owner reports the test, or decides again.
+
+## 24 November 2026 — release 0.9.0, step 3, the second part, and step 42b2: the run of 23 November ended, and the run on the release's code started
+
+**The run of 23 November (45186076578) ended** at 16:28 UTC on 24 November, 27 hours after it began, its conclusion "cancelled" because shards of it were cut off at the job's limit. Of its 84 mutation shards 49 finished and 35 were cut off: the numeric kernel 24 of 24, `regress` 16 of 16, the kernels none of 4, `results` 1 of 16, `stats` 8 of 24.
+
+**The shards of `stats` that finished** (eight, read as they ended): 50 survivors and timeouts read, all 50 on the recorded list, none new; none ended by running out of memory. With the first part of this step, the 49 finished shards show 566 survivors read, 559 recorded and 7 new, the seven of `results` that the first part gave a test or a reason. The shards that were cut off are not read from this run: their packages are in the run that follows, in smaller shards. Step 3 is done.
+
+**A request to end the run early was not carried out.** When eight of its shards of `stats` had been cut off and twelve were still running, a session's own attempt to cancel what was left, so that the release's run could begin five hours sooner, was refused by the permission rules of the session: a run is the owner's to cancel. Nothing was cancelled by hand; the run ended by itself.
+
+**The run on the release's code (step 42b2): 45437619962**, started by hand at 16:28 UTC on 24 November on 6af2614, the head of `main` (the code of step 3's first part, 057ba57, with documents after it), by a watcher on this machine that waited for the run before it to end, so that two runs did not ask for the runners at once. It is the weekly job whole: the 128 mutation shards of the new layout (the numeric kernel 24, the kernels 12, `results` 32, `regress` 16, `stats` 40, `glm` 4) and the coverage report. With fourteen shards at once it is expected to take a day and a half. Step 42c reads it.

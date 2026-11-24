@@ -138,7 +138,9 @@ Step 3 `[engine]`, the first part: the 41 shards of the run of 23 November that 
 
 Step 43b `[engine]`: the jobs on 9b4fbaf are green: the four targets; the nightly (357 test programs, the truth runs of `glm` among them); the fuzzing (2.7 million inputs, no crash); the benchmark; and a trial of the release workflow, whose installation check passed on four clean machines (629 of 629 cases on each, a tampered archive refused). The engine a browser loads is 4,062.7 kB as the host sends it, 81 per cent of the limit, with a cold start of 109 ms.
 
-**Next.** Step 42b2 `[engine]`: the weekly job on the release's code starts by itself when the run of 23 November (45186076578) has ended (a watcher on this machine starts it; "Continue" starts it by hand if the machine slept). Then step 3's second part, the shards of `stats` of that run; 42c, the new run read, a day and a half after it starts; and step 45, the reader test, which waits on the owner. For "Release 0.9.0" the owner's signing key is needed (see below).
+Steps 3 and 42b2 `[engine]`: the run of 23 November ended on the 24th at 16:28 UTC with 49 of its 84 shards finished; they show 566 survivors read, 559 recorded and 7 new, each given a test or a reason. The weekly job was started on the release's code at once: run 45437619962, on 6af2614, 128 mutation shards and the coverage report, expected to take a day and a half.
+
+**Next.** Step 42c `[engine]`: read run 45437619962 when it has ended (about 26 November): each new survivor and each untested place of this release given a test or a recorded reason; its coverage figures and the mutation figures go into step 43b's record and the notes. Then only step 45 is open, the reader test, which waits on the owner. For "Release 0.9.0" the owner's signing key is needed (see below).
 
 **For the owner, from step 42a.** This machine's `emmeans` is 2.0.3 where the lock file and the continuous integration have 2.0.4; `Rscript tests/reference/r/install.R`, run by you, brings it into line (it installs into the repository's own ignored folder). Nothing waits on it.
 
