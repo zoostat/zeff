@@ -4542,6 +4542,10 @@ Raised on 24 November 2026 by the owner: "See the rust website: https://rust-lan
 
 The Zemp Lite session's drawing: `~/dev/handbook/zemp-lite-0.2.4-help-mockup.html`. The owner approved it the same day: "Yes, as drawn".
 
+**The bar when the engine is kept (24 November 2026, the owner: "Yes, make it glide").** Seen on the live site at step 9: where the browser already keeps the engine, the three steps finish in under half a second and the bar is full before it can be seen; on a first visit the fetching takes about two seconds and the bar moves as before. So, added to item 3:
+
+10. **The bar glides.** However fast the steps finish, the bar fills smoothly over about a second, and **Open Zemp Lite** turns violet when the bar reaches the end. Where the engine was not fetched over the network but taken from the browser's keeping, the first step says so ("already in this browser") instead of the size that travels, so that the screen never claims a download that did not happen.
+
 Engine: none. Deadline: Zemp Lite 0.2.4, on the engine it carries (Zeff 0.8.0 unless 0.9.0 is released before it starts).
 
 ### 221. The website's home page redrawn, and its other pages in the same style

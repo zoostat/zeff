@@ -962,3 +962,7 @@ The owner approved the drawing of the four Help changes of 0.2.4 ("Yes, as drawn
 ## 24 November 2026 — zemp_specification.md, section 3 (the table's Zemp Lite column, the row of the Methods panel)
 
 The Lite column said that `zeff help` and hover give every function's help page. From Zemp Lite 0.2.4 (#220, item 6, the owner's decision of 24 November 2026) the hover in a script shows the function's usage block alone, the one the call would run where a name has two functions, and F1 or the Help panel gives the whole page; a word that is not a function is shown as the language server describes it. The sentence is corrected to say so, at the step of 0.2.4 that built the hover, as agreed when #220 was recorded. Section 5's list of the ways to reach function help (hover, completion, F1, the Help panel, `:help`) stays true and is unchanged. No normative text of the engine changed.
+
+## 24 November 2026 — zeff_open_decisions.md, entry #220 (item 10, the loading bar when the engine is kept)
+
+The owner saw no moving bar on the live loading screen of Zemp Lite 0.2.4: his browser keeps the engine, so the steps finish in under half a second. Asked whether the bar should glide even then, he answered "Yes, make it glide". Item 10 is added to #220: the bar fills over about a second however fast the steps finish, **Open Zemp Lite** turns violet when it reaches the end, and the first step says "already in this browser" where nothing was fetched. Section 15's row for 0.2.4 is unchanged; it already names the loading screen. No normative text of the engine changed.
