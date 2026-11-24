@@ -938,3 +938,7 @@ The owner's decision of 24 November 2026 ("Record for 0.2.4") on Zemp Lite's fro
 ## 24 November 2026 — zeff_open_decisions.md, new entry #221
 
 The owner's decision of 24 November 2026 ("Yes and similarly revise other pages too") on the website's home page, drawn after a modern language's home page in the look of #146, with the other pages to follow in the same style. Entered decided for the home page; the other pages are recorded when he has seen them. No normative text changed.
+
+## 24 November 2026 — zeff_open_decisions.md, entry #221
+
+The owner, shown the other pages of the website revised in the style of the new home page, answered "Record them"; the entry now records them as settled and says what changed on every page. No normative text changed.
