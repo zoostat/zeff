@@ -61,9 +61,9 @@ expression: all
 0:8-0:19, a function
     dist.normal — The normal distribution with a mean and a standard deviation  dist · tier 1 · since 0.3.0 · 1.0 · distribution
     
-    USAGE
-        dist.normal(mean: Float = 0, sd: Float = 1)
-    (and 55 lines more)
+    IN BRIEF
+        - `dist.normal()`: the standard normal, with mean 0 and standard deviation 1.
+    (and 104 lines more)
 ----
 > let d = import("data/small.csv")
 > data::s|d(d, a)

@@ -110,7 +110,9 @@ Step 38d2 `[function]`: the last eight pages (`iqr`, `mad`, `skewness`, `kurtosi
 
 Step 38e `[engine]`: the faults met in the pages of `data`, mended. `update(wage = NA, where: …)` makes values missing, `NA` taking the type of its variable as section 3.7 of the Language Reference has it, typed or alone; `merge` drops a panel declaration whose variable its suffixes renamed, with a note; `mad` counts the missing rows once, under the name the script gave; `dataset("wages")` is told how a dataset is named. One message is left: a type error raised inside a function written in Zeff names the inner function (`skewness` of a category says that `mean` needs a number).
 
-**Next.** Step 39a `[function]`: the pages of the families of `dist`. Step 3, the weekly mutation run of Monday 23 November: GitHub started it at 13:39 UTC on that day and it was still running on the 24th, behind the release's own continuous-integration runs; it is read when it ends.
+Step 39a `[function]`: the twelve pages of the distribution families to the contract (`dist.normal`, `dist.lognormal`, `dist.t`, `dist.chi2`, `dist.f`, `dist.binomial`, `dist.poisson`, `dist.negbinomial`, `dist.uniform`, `dist.exponential`, `dist.gamma`, `dist.beta`), each with a table of R's four functions and Stata's beside the methods.
+
+**Next.** Step 39b `[function]`: the methods `pdf`, `cdf`, `quantile` and `draw`, and `dist.truncated`, `dist.mixture`, `dist.tukey`; then step 40, the thirteen pages of `stats`. Step 3, the weekly mutation run of Monday 23 November: GitHub started it at 13:39 UTC on that day and it was still running on the 24th, behind the release's own continuous-integration runs; it is read when it ends.
 
 **For the owner, from step 37.** The citation file takes your name as family name Patra, given name Sabyasachi, with no affiliation and no ORCID; say if any of these should change. The archive's link (question 7c) is still yours to make.
 
