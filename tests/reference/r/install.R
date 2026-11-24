@@ -32,11 +32,31 @@ if (Sys.info()[["sysname"]] == "Linux" && file.exists("/etc/os-release")) {
 # p.adjust() does not have. DescTools brings some thirty packages with it and emmeans one.
 wanted <- c(sandwich = "3.1.1", wooldridge = "1.4-7", fixest = "0.14.2", nortest = "1.0-4", car = "3.1-5",
             DescTools = "0.99.60", emmeans = "2.0.4")
+# A dated snapshot serves one version of a package, the one current on its day, and that is not
+# always the one the references were made with: on 1 October 2026 it serves sandwich 3.1-3, and
+# the references are of 3.1-1 (found on 21 November 2026, when the continuous integration
+# installed the one and renv.lock named the other; release 0.9.0, step 42a). A version named
+# here is taken from the snapshot's archive, as a source package, after the snapshot's own has
+# brought its dependencies; sandwich has no compiled code, so this needs no compiler.
+archived <- c(sandwich = "3.1-1")
 for (name in names(wanted)) {
   present <- requireNamespace(name, quietly = TRUE) && packageVersion(name) == wanted[[name]]
   if (!present) {
     cat("installing", name, wanted[[name]], "into", lib, "from", repos, "\n")
     install.packages(name, lib = lib, repos = repos, quiet = TRUE)
+    if (packageVersion(name, lib.loc = lib) != wanted[[name]] && name %in% names(archived)) {
+      file <- sprintf("%s/src/contrib/Archive/%s/%s_%s.tar.gz", snapshot, name, name, archived[[name]])
+      cat("installing", name, archived[[name]], "from the archive of the snapshot,", file, "\n")
+      install.packages(file, lib = lib, repos = NULL, type = "source", quiet = TRUE)
+    }
   }
   cat(name, as.character(packageVersion(name, lib.loc = .libPaths())), "\n")
+}
+# The versions are the ones renv.lock records, or the references are not rebuilt at all: a
+# reference made with another version is not the reference.
+found <- vapply(names(wanted), function(name) as.character(packageVersion(name, lib.loc = .libPaths())), "")
+differ <- names(wanted)[package_version(found) != package_version(unname(wanted))]
+if (length(differ) > 0) {
+  stop("not the versions of renv.lock: ",
+       paste(sprintf("%s is %s, wanted %s", differ, found[differ], wanted[differ]), collapse = "; "))
 }

@@ -84,6 +84,11 @@ fn z_for(level: f64, alternative: Alternative) -> f64 {
     }
 }
 
+/// `x` squared, as one multiplication.
+fn square(x: f64) -> f64 {
+    x * x
+}
+
 /// Wilson's score interval, with Yates's correction when `yates` is 0.5, as `prop.test`
 /// computes it; bounds clipped to [0, 1].
 fn wilson(c: Counts, z: f64, yates: f64) -> (f64, f64) {
@@ -593,8 +598,8 @@ fn two_groups(
             let (l1, u1) = wilson(c1, zq, correction);
             let (l2, u2) = wilson(c2, zq, correction);
             (
-                delta - ((p1 - l1).powi(2) + (u2 - p2).powi(2)).sqrt(),
-                delta + ((u1 - p1).powi(2) + (p2 - l2).powi(2)).sqrt(),
+                delta - (square(p1 - l1) + square(u2 - p2)).sqrt(),
+                delta + (square(u1 - p1) + square(p2 - l2)).sqrt(),
             )
         }
     };

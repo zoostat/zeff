@@ -21,6 +21,7 @@ use zeff_core::value::{
     Align, Alternative, Distribution, Estimate, Hypotheses, Statistic, Table, TestResult, Value,
 };
 use zeff_diagnostics::{Diagnostic, count};
+use zeff_numeric::maths;
 use zeff_numeric::order::median;
 
 use crate::testing;
@@ -145,14 +146,15 @@ pub fn bartlett(samples: &[Vec<f64>]) -> Option<Tested> {
     let logs = samples
         .iter()
         .zip(&variances)
-        .map(|(s, v)| (s.len() - 1) as f64 * v.ln())
+        .map(|(s, v)| (s.len() - 1) as f64 * maths::log(*v))
         .sum::<f64>();
     let inverse = samples
         .iter()
         .map(|s| 1.0 / (s.len() - 1) as f64)
         .sum::<f64>();
     let df = (k - 1) as f64;
-    let statistic = (total * pooled.ln() - logs) / (1.0 + (inverse - 1.0 / total) / (3.0 * df));
+    let statistic =
+        (total * maths::log(pooled) - logs) / (1.0 + (inverse - 1.0 / total) / (3.0 * df));
     let p = if statistic.is_nan() {
         f64::NAN
     } else {

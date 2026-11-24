@@ -148,7 +148,7 @@ pub fn round(x: f64, digits: i32, mode: RoundingMode) -> f64 {
         }
         even
     } else {
-        let unit = 10f64.powi(-digits);
+        let unit = crate::powi(10.0, -digits);
         let scaled = x / unit;
         let rounded = match mode {
             RoundingMode::Even => scaled.round_ties_even(),

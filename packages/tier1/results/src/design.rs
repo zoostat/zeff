@@ -2359,7 +2359,10 @@ pub fn orthonormal_polynomials(k: usize) -> Vec<Vec<f64>> {
     let mut basis: Vec<Vec<f64>> = vec![vec![1.0 / (k as f64).sqrt(); k]];
     let mut out = Vec::with_capacity(k - 1);
     for degree in 1..k {
-        let mut v: Vec<f64> = x.iter().map(|xi| xi.powi(degree as i32)).collect();
+        let mut v: Vec<f64> = x
+            .iter()
+            .map(|xi| zeff_numeric::powi(*xi, degree as i32))
+            .collect();
         for _ in 0..2 {
             for q in &basis {
                 let c = dot(&v, q);

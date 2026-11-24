@@ -6102,6 +6102,16 @@ impl Checker<'_> {
         if receiver.is_none() && callee.segments.len() == 1 && name == "attempt" {
             return self.attempt(args, callee_span, span, expected);
         }
+        // Written as a method, `x.attempt()` is `attempt(x)` (section 3.1, "Methods"): the
+        // receiver is the expression under the catch, so its failure is caught too.
+        if let Some(tried) = receiver
+            && callee.segments.len() == 1
+            && name == "attempt"
+        {
+            let mut all = vec![ast::Arg::Positional(tried.clone())];
+            all.extend(args.iter().cloned());
+            return self.attempt(&all, callee_span, span, expected);
+        }
         // `timer(expr)` is the interpreter's too: the expression between two readings of the
         // clock (catalogue row 64).
         if receiver.is_none() && callee.segments.len() == 1 && name == "timer" {

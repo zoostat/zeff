@@ -158,7 +158,7 @@ fn linear(expr: &ColumnExpr, fit: &Fit) -> Result<Linear, NotLinear> {
                 }
                 Op::Div => Err(NotLinear::Shape("a division by a coefficient".to_string())),
                 Op::Pow if is_constant(&a) && is_constant(&b) => {
-                    Ok(constant(a.constant.powf(b.constant)))
+                    Ok(constant(zeff_numeric::pow(a.constant, b.constant)))
                 }
                 Op::Pow => Err(NotLinear::Shape("a power of a coefficient".to_string())),
                 Op::Eq => Err(NotLinear::Shape(
@@ -736,16 +736,16 @@ fn dual(expr: &ColumnExpr, fit: &Fit) -> Result<Dual, NotSmooth> {
                     -a.value / (b.value * b.value),
                 ),
                 Op::Pow => {
-                    let value = a.value.powf(b.value);
+                    let value = zeff_numeric::pow(a.value, b.value);
                     if b.grad.iter().all(|g| *g == 0.0) {
                         // A constant power: b a^(b − 1).
-                        a.map(value, b.value * a.value.powf(b.value - 1.0))
+                        a.map(value, b.value * zeff_numeric::pow(a.value, b.value - 1.0))
                     } else {
                         // a^b: b a^(b − 1) da + a^b ln a db.
                         a.combine(
                             &b,
                             value,
-                            b.value * a.value.powf(b.value - 1.0),
+                            b.value * zeff_numeric::pow(a.value, b.value - 1.0),
                             value * maths::log(a.value),
                         )
                     }

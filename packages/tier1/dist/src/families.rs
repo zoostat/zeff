@@ -291,7 +291,7 @@ fn discrete_quantile(d: &Distribution, p: f64, start: f64, upper_bound: f64) -> 
     // The bracket widens by doubling from a step that is one at small start and a fraction of the
     // start at large, so that a quantile near 1e300 is bracketed in about forty evaluations of F
     // rather than a thousand.
-    let first_step = (k * 2.0f64.powi(-40)).max(1.0);
+    let first_step = (k * zeff_numeric::powi(2.0, -40)).max(1.0);
     // Bracket: lo has F(lo) < p (or lo = -1), hi has F(hi) >= p.
     let (mut lo, mut hi);
     if f(k) >= p {

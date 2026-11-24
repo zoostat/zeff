@@ -125,9 +125,54 @@ pub fn pow(x: f64, y: f64) -> f64 {
     libm::pow(x, y)
 }
 
+/// `x` to a whole power, by squaring and multiplying in one fixed order (Engine Specification,
+/// section 8.3, point 3): the bits of the exponent are read from the lowest, the running square
+/// multiplied in where a bit is set, and a negative power is one over the positive one. The
+/// standard library's `powi` leaves its precision unspecified, so that it may differ between
+/// targets and compilers; this is the order its usual expansion follows, written out, so the
+/// figures are the same everywhere. A power of 2 is `x * x` exactly.
+pub fn powi(x: f64, n: i32) -> f64 {
+    let mut square = x;
+    let mut left = n.unsigned_abs();
+    let mut product = 1.0;
+    loop {
+        if left & 1 == 1 {
+            product *= square;
+        }
+        left >>= 1;
+        if left == 0 {
+            break;
+        }
+        square *= square;
+    }
+    if n < 0 { 1.0 / product } else { product }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    /// A whole power is the product written out: exact where the product is, and the same
+    /// order of multiplications everywhere (release 0.9.0, step 42a).
+    #[test]
+    fn a_whole_power_is_squaring_and_multiplying_in_one_order() {
+        assert_eq!(powi(3.0, 0), 1.0);
+        assert_eq!(powi(3.0, 1), 3.0);
+        assert_eq!(powi(-1.5, 2).to_bits(), (-1.5f64 * -1.5).to_bits());
+        assert_eq!(powi(0.1, 2).to_bits(), (0.1f64 * 0.1).to_bits());
+        // x³ is x · x², the square first.
+        assert_eq!(powi(0.1, 3).to_bits(), (0.1f64 * (0.1 * 0.1)).to_bits());
+        // x⁵ is x · (x²)².
+        let square = 1.1f64 * 1.1;
+        assert_eq!(powi(1.1, 5).to_bits(), (1.1 * (square * square)).to_bits());
+        // Powers of ten are exact to 10²², and a negative power is one over the positive.
+        assert_eq!(powi(10.0, 22), 1e22);
+        assert_eq!(powi(10.0, -3).to_bits(), (1.0f64 / 1000.0).to_bits());
+        assert_eq!(powi(2.0, -40), 1.0 / 1_099_511_627_776.0);
+        assert_eq!(powi(2.0, i32::MIN), 0.0);
+        assert!(powi(f64::NAN, 2).is_nan());
+        assert_eq!(powi(f64::NAN, 0), 1.0);
+    }
 
     /// The plain left-to-right sum, for what the compensated sum must improve on.
     fn plain_sum(values: &[f64]) -> f64 {

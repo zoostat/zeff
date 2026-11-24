@@ -140,7 +140,8 @@ pub fn measures(fit: &Fit) -> Vec<(f64, f64, f64)> {
             if h >= 1.0 || df <= 1.0 {
                 return (h, f64::NAN, f64::NAN);
             }
-            let cooks = (e / (fit.sigma * (1.0 - h))).powi(2) * h / k;
+            let studentized = e / (fit.sigma * (1.0 - h));
+            let cooks = studentized * studentized * h / k;
             let sigma2_without = (rss - e * e / (1.0 - h)) / (df - 1.0);
             let studentized = if sigma2_without > 0.0 {
                 e / ((1.0 - h).sqrt() * sigma2_without.sqrt())
