@@ -974,3 +974,7 @@ The Zemp Lite session found, at step 6b of 0.2.4, that the host serving Zemp Lit
 ## 24 November 2026 — zeff_open_decisions.md, entries #211, #215 and #220; zeff_risk_register.md, R4 (the release of Zemp Lite 0.2.4)
 
 The owner said "Release 0.2.4", and Zemp Lite 0.2.4 is tagged v0.2.4 at commit `fc8567f` of zemp-lite. #220 is marked done, all ten items built, with the two details the build settled (the percentage rounded down; **Recent** alone until the list has been read). #211 notes item 13 built as changed, and #215 notes the hover showing the usage of the function the call would run. R4's section of 24 November gains the release's figures (about 4.1 MB as the host sends it, 0.9 MB of room, no early warning) and the run of seven red checks. The summary table of the risk register is unchanged; R4's rating is with the owner. No normative text of the engine changed.
+
+## 24 November 2026 — zeff_open_decisions.md, new entry #224
+
+The owner's proposal of 24 November 2026, after Zemp Lite 0.2.4 ("enter tight packing as a proposal for the next release"): the engine's WebAssembly packed once at Brotli's highest setting and sent as it is, about 2.9 MB in place of 4.1 MB, to be tried at the address before it is promised. Entered as proposed, with the deadline of the next Zemp Lite release opened. No normative text changed.
