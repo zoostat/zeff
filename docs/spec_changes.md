@@ -990,3 +990,7 @@ The owner wrote: "open zemp lite ->" should be replaced by "Start". The loading 
 ## 24 November 2026 — zeff_open_decisions.md, #224 (the trial held); zeff_risk_register.md, R4
 
 The Zemp Lite session tried the tight packing of #224 at step 4 of 0.2.5: it held and is live, the engine travelling as 2,929,528 bytes in place of about 4,082,000 with the first start no slower. #224 records the trial and how it is done, to be marked done at the release; R4's section of 24 November records the new figure (about 2.93 MB of 5 MB) and the limit of the host's function (100,000 first fetches a day on the free plan). The summary table is unchanged. No normative text changed.
+
+## 24 November 2026 — zeff_risk_register.md, R4 (the owner's rating)
+
+The owner kept R4's likelihood at Low ("Yes, keep it Low"), once the tight packing of #224 had brought the engine to about 2.93 MB of the 5 MB limit. The summary table is unchanged. No normative text changed.
