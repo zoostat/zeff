@@ -23,10 +23,6 @@ stats proportion_test
 stats shapiro_test
 stats ks_test
 stats p_adjust
-dist pdf
-dist cdf
-dist quantile
-dist draw
 stats posthoc
 plot plot
 plot coef_plot
@@ -51,8 +47,6 @@ regress vif
 results compare
 results test
 regress event
-dist dist.truncated
-dist dist.mixture
 regress interact
 results derive
 plot points
@@ -76,7 +70,6 @@ plot labels
 plot legend
 plot theme
 plot annotate
-dist dist.tukey
 results statistic
 results df
 results effect_size

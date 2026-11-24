@@ -116,7 +116,9 @@ Step 39a `[function]`: the twelve pages of the distribution families to the cont
 
 Step 8d `[function]`: odds ratios, `fit.summary(exponentiate: true)` on a `glm` fit with a logit link (#217): exp(b) under "odds ratio", the interval exponentiated end by end, the standard error by the delta method, z and p unchanged; refused for a probit link, a regression and a test (Z0401). Held to R's `exp(coef())` and `exp(confint.default())` on the shipped wages.
 
-**Next.** Step 39b `[function]`: the methods `pdf`, `cdf`, `quantile` and `draw`, and `dist.truncated`, `dist.mixture`, `dist.tukey`; then step 40, the thirteen pages of `stats`. Step 3, the weekly mutation run of Monday 23 November: GitHub started it at 13:39 UTC on that day and it was still running on the 24th, behind the release's own continuous-integration runs; it is read when it ends.
+Step 39b `[function]`: the last seven pages of `dist` to the contract (`pdf`, `cdf`, `quantile`, `draw`, `dist.truncated`, `dist.mixture`, `dist.tukey`); all nineteen are revised and 74 pages remain on the list (13 of `stats` at this release, 61 at 0.10.0). The figures of the examples agree with base R but one, where R is the one in error: far in the tail on 5 degrees of freedom `ptukey` gives twice the value of the integral worked out directly, and the page says so.
+
+**Next.** Step 40 `[function]`: the thirteen pages of `stats`; then step 41, `samples/binary`. Step 3, the weekly mutation run of Monday 23 November: started at 13:39 UTC on that day and not ended on the 24th. Its 24 shards of the numeric kernel finished; the four shards of the kernels and nine of `results` were cancelled at the job's limit of 340 minutes, in the second pass, where the tests of the packages that use the crate are run; the rest wait their turn. It is read when it ends, and the size of the shards is step 42's to mend.
 
 **For the owner, from step 8d.** The option is named `exponentiate:`, as recommended, since you did not answer the question of the name; `odds_ratios:` and Stata's `eform` were the alternatives. Say if another name is wanted before 1.0.
 

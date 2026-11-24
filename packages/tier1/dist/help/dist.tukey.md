@@ -10,7 +10,7 @@ independent estimate of their standard deviation that has `df:` degrees of freed
 reference distribution of Tukey's honest significant difference. When each of k group means is the
 mean of n observations and s² is the within-group mean square on ν degrees of freedom, the largest
 of the differences |ȳᵢ − ȳⱼ| / (s/√n) follows `dist.tukey(groups: k, df: ν)` if the population
-means are equal. Like R's `ptukey` and `qtukey` and Stata's `tukeyprob()` and `invtukeyprob()`.
+means are equal.
 
 ## Arguments
 - groups: The number of means compared, a whole number of 2 or more. Anything else is refused
@@ -58,8 +58,30 @@ The p-value of Tukey's test is the upper tail, `dist.tukey(groups: 3, df: 20).cd
 true)`, and the 5% critical value is `quantile(0.95)`. Every value costs a double integral, so
 `draw`, which inverts the distribution function once for each value drawn, is slow for a large `n`.
 
-## See also
-dist.t, dist.f, dist.normal, posthoc
+## A common mistake
+Giving one group. A range is of two means or more:
+
+> dist.tukey(groups: 1, df: 20)
+error[Z0413]: `groups` of `dist.tukey` must be a whole number of 2 or more, but this is 1
+  = help: `zeff help dist.tukey` gives the domain of every parameter
+
+`groups:` is the number of means compared, 2 or more: `dist.tukey(groups: 3, df: 20)`.
+
+## Coming from R or Stata
+| dist.tukey(groups: k, df: v).cdf(q) | ptukey(q, k, v) | tukeyprob(k, v, q) |
+| dist.tukey(groups: k, df: v).cdf(q, upper: true) | ptukey(q, k, v, lower.tail = FALSE) | 1 - tukeyprob(k, v, q) |
+| dist.tukey(groups: k, df: v).quantile(p) | qtukey(p, k, v) | invtukeyprob(k, v, p) |
+
+R's `ptukey` and `qtukey` give not-a-number below two degrees of freedom; here the
+distribution is defined from one. On few degrees of freedom R's values are approximate far in
+the tail: for the last example below R 4.6.0 gives 9.35e-06, where the integral worked out
+directly is 4.71e-06, as printed here. Stata has the lower probability alone, so its upper
+tail is one minus it and loses its digits far out.
+
+## Related tasks
+- For the comparisons of every pair of groups after an analysis of variance, which use it, use `posthoc`.
+- For the analysis of variance itself, use `anova`.
+- For two means alone, use `dist.t`.
 
 ## References
 - Tukey, J. W. (1949). Comparing individual means in the analysis of variance. *Biometrics*, 5,
@@ -72,13 +94,23 @@ dist.t, dist.f, dist.normal, posthoc
 - Trefethen, L. N. and Weideman, J. A. C. (2014). The exponentially convergent trapezoidal rule.
   *SIAM Review*, 56, 385–458.
 
+## See also
+dist.t, dist.f, dist.normal, posthoc
+
 ## Examples
+// The studentized range of three means on 20 degrees of freedom.
 > let q = dist.tukey(groups: 3, df: 20)
 > q
 tukey distribution · groups: 3, df: 20
+
+// The critical value at five per cent, which Tukey's honest significant difference uses.
 > q.quantile(0.95)
 3.57793
+
+// The p-value of a range of 3.2: the upper tail.
 > q.cdf(3.2, upper: true)
 0.0848265
+
+// Far in the tail it keeps its digits.
 > dist.tukey(groups: 10, df: 5).cdf(50, upper: true)
 4.71352e-06

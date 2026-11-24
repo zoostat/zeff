@@ -3,14 +3,16 @@
 ## Summary
 A distribution truncated to an interval, exact in every method
 
+## In brief
+- `dist.truncated(d, lower: 0)`: the part of `d` above 0, scaled to a distribution.
+- `dist.truncated(d, lower: -1, upper: 2)`: the part between two bounds.
+
 ## Description
 A `Distribution` value for another distribution restricted to the interval [`lower:`, `upper:`]:
 the values outside are dropped and the probability inside is scaled back to one, which is the
 distribution of the variable given that it fell in the interval. Either bound may be left open
 (`-Inf` and `Inf` by default). It takes any distribution, a discrete one included, and another
-truncation or a mixture. The value prints as the inner distribution with its bounds. Like the
-`truncdist` package of R (`dtrunc`, `ptrunc`, `qtrunc`, `rtrunc`) and Stata's `rnormal()` with
-rejection written by hand, which Zeff never needs.
+truncation or a mixture. The value prints as the inner distribution with its bounds.
 
 ## Arguments
 - d: The distribution to truncate, a `Distribution` value such as `dist.normal()`.
@@ -56,8 +58,28 @@ kept and its quantile at 1 the last, or the largest the distribution can give wh
 smaller; a bound that is not a whole number is never returned. A draw is the inverse CDF of one
 uniform number of the stream, so it is exact and never rejects.
 
-## See also
-dist.mixture, dist.normal, dist.poisson
+## A common mistake
+Giving the bounds the wrong way round:
+
+> dist.truncated(dist.normal(), lower: 2, upper: -1)
+error[Z0413]: `upper` of `dist.truncated` must exceed `lower`
+  = help: `zeff help dist.truncated` gives the domain of every parameter
+
+`upper:` is above `lower:`: `dist.truncated(dist.normal(), lower: -1, upper: 2)`.
+
+## Coming from R or Stata
+| dist.truncated(dist.normal(), lower: a, upper: b).cdf(x) | truncdist::ptrunc(x, "norm", a = a, b = b) | (normal(x) - normal(a)) / (normal(b) - normal(a)) |
+| dist.truncated(dist.normal(), lower: a, upper: b).draw(n) | truncdist::rtrunc(n, "norm", a = a, b = b) | invnormal(normal(a) + runiform() * (normal(b) - normal(a))) |
+
+Neither R's base nor Stata has a truncated distribution: the package `truncdist` builds one
+from the name of a family, and in Stata the formulas are written out. Far in a tail those
+formulas subtract two numbers that are nearly equal; here each method is computed on the side
+that keeps its digits.
+
+## Related tasks
+- For the density, a probability, a quantile or draws of it, use its methods, as for any distribution: `pdf`, `cdf`, `quantile` and `draw`.
+- For a population made of several distributions, use `dist.mixture`.
+- To pull the values of data into bounds, which is not truncation, use `clamp`.
 
 ## References
 - Nadarajah, S. and Kotz, S. (2006). R programs for truncated distributions. *Journal of
@@ -65,27 +87,35 @@ dist.mixture, dist.normal, dist.poisson
 - Johnson, N. L., Kotz, S. and Balakrishnan, N. (1994). *Continuous Univariate Distributions*,
   volume 1, 2nd edition, section 13.10. Wiley.
 
+## See also
+dist.mixture, dist.normal, dist.poisson
+
 ## Examples
+// A standard normal kept between −1 and 2.
 > let tn = dist.truncated(dist.normal(), lower: -1, upper: 2)
 > tn
 normal distribution · mean: 0, sd: 1 · truncated to [-1, 2]
+
+// Its probability below 0.5, and its upper end at probability one.
 > tn.cdf(0.5)
-0.65088
 > tn.quantile(1)
+0.65088
 2
+
+// A count distribution: a Poisson kept from 1 to 6, as counts with the zeros left out.
 > let tp = dist.truncated(dist.poisson(lambda: 3), lower: 1, upper: 6)
 > tp
-poisson distribution · lambda: 3 · truncated to [1, 6]
 > tp.pdf(1)
-0.162933
 > tp.draw(4, seed: 3)
+poisson distribution · lambda: 3 · truncated to [1, 6]
+0.162933
 Column<Int> · 4 values
 4
 4
 2
 2
+
+// One bound alone: the normal above 9, far in its tail, with its median.
 > let far = dist.truncated(dist.normal(), lower: 9)
 > far.quantile(0.5)
 9.07579
-> dist.truncated(dist.normal(), lower: 0, upper: 2).cdf(1.196288e-12)
-1e-12
