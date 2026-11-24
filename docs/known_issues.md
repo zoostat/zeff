@@ -5,51 +5,36 @@ each release (testing handbook, section 2.4) and copied into the release notes. 
 release that introduced it and, where one is planned, the release that removes it. A wrong result
 is never listed here as accepted: it is fixed or the function is withdrawn.
 
-## As of 0.8.0
+## As of 0.9.0
 
-- **`ivreg` is two-stage least squares, with the standard errors of `reg`.** Limited-information
-  maximum likelihood and the generalised method of moments are after 1.0. The standard errors
-  divide by N − k and use the t table, as R's `ivreg`, fixest and Stata's `ivregress 2sls,
-  small` do; Stata's default, which divides by N and uses the normal table, gives slightly
-  smaller ones (open decision #150). `influence` and `vif` take a fit of `reg` only. (Since
-  0.8.0.)
-- **The Anderson–Rubin confidence set is for one instrumented regressor.** With several,
-  `ar_test` gives the joint test that all their coefficients are zero and no set. Under
-  clustered errors the test needs more clusters than instruments outside the equation, and so
-  do the F of the first stage and the Kleibergen–Paap F, which print as "not available" below
-  that: a clustered variance has no higher rank than the clusters less one. (Since 0.8.0.)
-- **A first stage that fits exactly prints an F of twenty-one digits.** An instrumented
-  regressor that is an exact combination of the instruments has no residual in its first
-  stage; its F is infinite, and what prints is the rounding of a division by nearly nothing.
-  The estimates are those of least squares and are right. R warns of an "essentially perfect
-  fit" in the same place; Zeff does so for `reg` and not yet for a first stage. (Since 0.8.0.)
-- **`export` writes Typst, and the engine sets no PDF from it.** A `.typ` file is set by a Typst
-  the user has installed; the library is not inside the engine, for its size and for the
-  licences of some of its hyphenation patterns (open decisions #73 and #172). In the LaTeX
-  form the notes of a test's result are rows across the table and widen its last column when
-  they are long, which the Typst form no longer does; and a table exported without a title
-  writes an empty comment line as its second line. (Since 0.8.0; the LaTeX form since 0.4.0.)
-- **145 help pages are not yet of the quality of the rest.** The pages of `core`, `text` and
-  `time` (94) carry what release 0.8.0 asks of a page: the commonest forms first, missing
-  values under their own heading, a caption on every example, a common mistake with its real
-  message, and the equivalents in R and Stata. The pages of `data`, `datasets`, `dist` and
-  `stats` (84) follow at 0.9.0, and those of `results`, `regress` and `plot` (61) at 0.10.0;
-  the functions new at 0.8.0 have theirs. The Stata column of the revised pages was written
-  from Stata's documented behaviour and has not been run in Stata. (Since 0.8.0; open decision
-  #103.)
-- **A probability below the smallest double has few digits, and a truncation far in a tail
-  shows it.** A double holds a number below 2.2e-308 with fewer digits and nothing below
-  4.9e-324, so `dist.normal().cdf(-38.4)` is 6.4e-323 to two digits, in Zeff as in R. Inside a
-  truncation that lies wholly that far out the same loss appears in probabilities of ordinary
-  size: for `dist.truncated(dist.normal(), upper: -37)` the distribution function is right to
-  nine digits down to −37.8, 5 per cent off at −38.4 and 0 from −38.5 (R on the log scale:
-  1.15e-23 at −38.4), and `quantile(1e-300)` is −38.49 where −52.44 is right; an exponential
-  cut at 700 mean lifetimes behaves the same beyond 740. Nearer than 37 standard deviations
-  nothing is lost. A log scale for the tails, as R's `log.p`, is open decision #173. (Since 0.3.0 for the
-  distributions; seen in a truncation at 0.8.0.)
-- **`dist.truncated` refuses equal bounds.** A count distribution cannot be cut to one number by
-  writing it twice, `lower: 2, upper: 2`; `lower: 2, upper: 2.5` does it, since a truncated
-  count distribution keeps the whole numbers of its interval. (Since 0.3.0.)
+- **`glm` fits a binary outcome, and nothing else yet.** `family: binomial` with the logit or the
+  probit link is the whole of it at this release: the other families of the catalogue (Poisson,
+  negative binomial, gamma) and fixed effects absorbed by `fe:` are of a later release, and
+  `fe:` on `glm` is refused until then (Z0304); a category among the regressors does the same
+  for a few groups. Analytic weights are refused, since the variance of a 0 or 1 is fixed by its
+  mean. The intervals of the coefficients are Wald's, estimate plus and minus a normal quantile
+  of its standard error, as R's `confint.default` and Stata give; R's `confint` of a `glm` fit
+  gives profile-likelihood intervals, which differ a little in small samples. Odds ratios,
+  `summary(exponentiate: true)`, are for the logit link, where a coefficient is the logarithm
+  of one. (Since 0.9.0.)
+- **`margins` gives effects and predictions, each with its own interval, and does not compare
+  them.** The rows of one table, the effect at several held values or the predictions of
+  several groups, are separate statements; a test of one against another, a contrast or a
+  second difference, is not given. A prediction from a fit with absorbed fixed effects needs
+  the level of each effect and is refused (Z0401); the effects of its variables are given.
+  Standard errors are by the delta method from the fit's own variance. (Since 0.9.0.)
+- **`curve` draws the ROC curve alone.** `type: roc` is its one type; the precision and recall
+  curve and the calibration of a binary fit are proposed for 0.10.0 (open decision #218).
+  (Since 0.9.0.)
+- **61 help pages are not yet of the quality of the rest.** The pages of `core`, `text`, `time`,
+  `data`, `datasets`, `dist` and `stats`, and of the functions new at 0.8.0 and 0.9.0, carry
+  what release 0.8.0 asks of a page: the commonest forms first, missing values under their own
+  heading, a caption on every example, a common mistake with its real message, and the
+  equivalents in R and Stata. The pages of `results` (23), `regress` (7) and `plot` (31) follow
+  at 0.10.0. The Stata column of the revised pages was written from Stata's documented
+  behaviour and has not been run in Stata; where a Stata command could not be named with
+  certainty the page says "none of its own" and no more. (Since 0.8.0, when 145 pages were
+  listed; open decision #103.)
 - **NIST's Filip problem is not solved: the tenth power is dropped as collinear.** The problem
   fits a polynomial of degree ten in one variable, the hardest of NIST's linear-regression
   problems. The collinearity rule of the Language Reference (section 7.2: a pivot below 1e-7
@@ -86,16 +71,64 @@ is never listed here as accepted: it is fixed or the function is withdrawn.
   searches in the same way), and more as the groups near 50. The figures are right.
   `exact: false` gives the normal approximation at once, and from 50 values in either group
   the approximation is the default. (Since 0.7.0.)
+- **Three small things met at this release are not yet mended.** `mean(x, na.rm: true)`, a habit
+  from R, is answered with a message about an interaction in a formula (Z0306), which does not
+  say what the reader needs: that missing values are skipped without asking, with a warning
+  that counts them. `mad(x, constant: -1)` takes a negative constant and gives a negative
+  spread, as R does, where a constant that is not above zero should be refused. And a message
+  raised inside a built-in written in Zeff may still name an inner function (see the entry of
+  0.5.0). None gives a wrong number for a call that makes sense. (Since 0.5.0 and 0.7.0; noted
+  at 0.9.0.)
+- **No reader outside the project has read Zeff's scripts yet.** The testing handbook asks, from
+  0.8.0, that short scripts be given to students and referees who have not written Zeff and that
+  what they misread be corrected (section 2.4, item 4). The test was not run at 0.8.0, by the
+  owner's decision of 20 November 2026. At this release it is one test for Zeff and Zemp Lite,
+  on the hosted alpha of Zemp Lite with readers the owner chooses (his answer of 21 November
+  2026); its sheet and key are ready, and it had not been reported when this list was written.
+  Until it is run, that a script reads as it computes is the project's own judgement. (Since
+  0.8.0.)
+
+## As of 0.8.0
+
+- **`ivreg` is two-stage least squares, with the standard errors of `reg`.** Limited-information
+  maximum likelihood and the generalised method of moments are after 1.0. The standard errors
+  divide by N − k and use the t table, as R's `ivreg`, fixest and Stata's `ivregress 2sls,
+  small` do; Stata's default, which divides by N and uses the normal table, gives slightly
+  smaller ones (open decision #150). `influence` and `vif` take a fit of `reg` only. (Since
+  0.8.0.)
+- **The Anderson–Rubin confidence set is for one instrumented regressor.** With several,
+  `ar_test` gives the joint test that all their coefficients are zero and no set. Under
+  clustered errors the test needs more clusters than instruments outside the equation, and so
+  do the F of the first stage and the Kleibergen–Paap F, which print as "not available" below
+  that: a clustered variance has no higher rank than the clusters less one. (Since 0.8.0.)
+- **A first stage that fits exactly prints an F of twenty-one digits.** An instrumented
+  regressor that is an exact combination of the instruments has no residual in its first
+  stage; its F is infinite, and what prints is the rounding of a division by nearly nothing.
+  The estimates are those of least squares and are right. R warns of an "essentially perfect
+  fit" in the same place; Zeff does so for `reg` and not yet for a first stage. (Since 0.8.0.)
+- **`export` writes Typst, and the engine sets no PDF from it.** A `.typ` file is set by a Typst
+  the user has installed; the library is not inside the engine, for its size and for the
+  licences of some of its hyphenation patterns (open decisions #73 and #172). In the LaTeX
+  form the notes of a test's result are rows across the table and widen its last column when
+  they are long, which the Typst form no longer does; and a table exported without a title
+  writes an empty comment line as its second line. (Since 0.8.0; the LaTeX form since 0.4.0.)
+- **A probability below the smallest double has few digits, and a truncation far in a tail
+  shows it.** A double holds a number below 2.2e-308 with fewer digits and nothing below
+  4.9e-324, so `dist.normal().cdf(-38.4)` is 6.4e-323 to two digits, in Zeff as in R. Inside a
+  truncation that lies wholly that far out the same loss appears in probabilities of ordinary
+  size: for `dist.truncated(dist.normal(), upper: -37)` the distribution function is right to
+  nine digits down to −37.8, 5 per cent off at −38.4 and 0 from −38.5 (R on the log scale:
+  1.15e-23 at −38.4), and `quantile(1e-300)` is −38.49 where −52.44 is right; an exponential
+  cut at 700 mean lifetimes behaves the same beyond 740. Nearer than 37 standard deviations
+  nothing is lost. A log scale for the tails, as R's `log.p`, is open decision #173. (Since 0.3.0 for the
+  distributions; seen in a truncation at 0.8.0.)
+- **`dist.truncated` refuses equal bounds.** A count distribution cannot be cut to one number by
+  writing it twice, `lower: 2, upper: 2`; `lower: 2, upper: 2.5` does it, since a truncated
+  count distribution keeps the whole numbers of its interval. (Since 0.3.0.)
 - **A warning is said once for a statement, not once for a script.** The same observation
   driving three fits made in one statement is one warning with a count (W1006, since 0.8.0);
   three fits on three lines are three warnings. The passes of a loop are counted as one since
   0.9.0 (see "Resolved at 0.9.0"). (Since 0.8.0 for the count; before it, every repetition.)
-- **No reader outside the project has read Zeff's scripts yet.** The testing handbook asks, from
-  0.8.0, that short scripts be given to students and referees who have not written Zeff and that
-  what they misread be corrected (section 2.4, item 4). The test was not run at this release, by the
-  owner's decision of 20 November 2026; a sheet of eight scripts with its key is ready, and the test
-  is owed at 0.9.0. Until it is run, that a script reads as it computes is the project's own
-  judgement. (Since 0.8.0.)
 
 ## As of 0.7.0
 
@@ -542,6 +575,27 @@ is never listed here as accepted: it is fixed or the function is withdrawn.
 - **A warning repeated word for word in the passes of a loop** was printed in every pass. It
   is said once, with the count of passes, as a note has been since 0.8.0 (#149, step 30).
   Warnings of two statements are still two. Listed since 0.8.0.
+
+- **A test said nothing of a row its weight left out.** Under `weights:`, a row whose weight was
+  missing or zero was left out of `t_test`, `wilcoxon_test`, the one-way `anova`,
+  `kruskal_test`, `chi2_test`, `fisher_test` and `proportion_test` without a word, so the note
+  on the rows dropped counted too few: 26 where 29 were left out, in a weighted t-test on the
+  wages of 2019. The N of the table and every figure of the test were right. The note counts
+  such rows and names the weight, and says how many rows a zero weight left out (step 40b).
+  From 0.7.0 to 0.8.0.
+- **Three calls that were refused or failed without cause.** `update(x = NA, where: …)`, typed
+  or alone, was refused with a message that advised the very form it refused (step 38e).
+  `merge` with `suffixes:` kept a panel declaration that named a variable the suffix had
+  renamed; the declaration is dropped with a note (step 38e). `x.attempt()`, the method form,
+  ended in an internal error or let the failure through; it is `attempt(x)` (step 42a). Each
+  was an error or a wrong header, never a wrong number.
+- **84 help pages were brought to the quality of the rest**: those of `data`, `datasets`, `dist`
+  and `stats` (steps 38a1 to 40), of the 145 listed at 0.8.0. The 61 that remain are in the
+  section of 0.9.0.
+- **The exact rank-sum test on heavily tied samples took minutes.** Two groups of 38 and 36
+  scores on a scale of five took two minutes in the test build; a run of equal shifts is now
+  counted once (step 42d), and they take a quarter of a second in the released build. The
+  figures did not change. What remains slow is in the section of 0.9.0. Since 0.7.0.
 
 ## Resolved at 0.8.0
 
