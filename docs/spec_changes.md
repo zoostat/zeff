@@ -950,3 +950,7 @@ The owner's decision of 24 November 2026 ("Yes, switch them"): from Zeff 0.10.0 
 ## 24 November 2026 — zeff_open_decisions.md, new entry #223
 
 The owner's first answers on two mockups of Zemp Lite's Help (one page rather than tabs, long parts always whole, the line about the reader's own script kept, a release of its own after 0.2.4), passed on by the Zemp Lite session. Entered as partly decided; the order of a page's parts and the first mockup's Home and search are still open. No normative text changed.
+
+## 24 November 2026 — zemp_specification.md, section 15 (the row of 0.2.4); zeff_open_decisions.md, entries #220 and #211
+
+The owner added four things of the Help place to Zemp Lite 0.2.4, passed on by the Zemp Lite session: hover in a script shows the usage block alone; **On this page** is always shown as part of the Help page, without a button or a pane (this replaces #211 item 13, noted there); each start of the app opens the Script place and the first click on Help shows its landing page with Topics closed; Help's landing page takes the look of 0.2.4's screens. Entered in #220 as items 6 to 9, and in the row of 0.2.4. The Lite column of the table in section 3, which says hover gives every function's help page, is amended at the 0.2.4 step that builds the new hover, not now.
