@@ -130,7 +130,9 @@ Step 42d `[engine]`, taken before 42b so that the weekly run is on the final cod
 
 Step 42b1 `[engine]` (42b split in two): the weekly mutation job laid out for this release: `glm` added in four shards, `results` in 32 and the kernels in 12, 112 in all, after the run of 23 November cut nineteen of their twenty shards off at its limit.
 
-**Next.** Step 42b2 `[engine]`: start the weekly job by hand on the release's code, with the coverage run, when the run of 23 November (45186076578) has ended; meanwhile steps 43 and 44; then 42c, the runs read, with step 3; and step 45, the reader test, which waits on the owner.
+Step 43a `[engine]` (43 split in two): on a release build of 9b4fbaf the self-test passes 629 of 629 cases and the ten samples print their stored output; the new sample and its figure were read by eye; the sample script has eight diagnostics left, each of a later release or of the reader's own files; the bundle's measure now holds the limit of risk R4 to the size as the host sends it. The nightly, fuzz and benchmark jobs were started by hand on the commit.
+
+**Next.** Step 42b2 `[engine]`: start the weekly job by hand when the run of 23 November (45186076578) has ended. Step 43b: read the nightly (45353244465), the fuzzing (45353249836), the benchmark (45353255238), the trial of the release workflow with its installation check, and the bundle's size as sent. Step 44, the documents; then 42c, the runs read, with step 3; and step 45, the reader test, which waits on the owner.
 
 **For the owner, from step 42a.** This machine's `emmeans` is 2.0.3 where the lock file and the continuous integration have 2.0.4; `Rscript tests/reference/r/install.R`, run by you, brings it into line (it installs into the repository's own ignored folder). Nothing waits on it.
 

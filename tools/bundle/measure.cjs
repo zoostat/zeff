@@ -2,6 +2,14 @@
 // Risks R2 and R4: the compressed bundle must stay under 5 MB until 0.7.0, and a cold start must
 // stay inside its budget (docs/decisions.md records the thresholds).
 //
+// "Compressed" is as the host sends it. The host that serves Zemp Lite compresses each file as
+// it sends it, with Brotli at a low setting, and that is what a visitor downloads: measured on
+// the live address on 24 November 2026, the engine of Zeff 0.8.0 travels as 4,080,713 bytes,
+// where Brotli at its highest setting, the only figure printed until then, gives 2,922,126.
+// Brotli at setting 2 is within half a per cent of what the host sends, so that is the figure
+// held to the limit; the highest setting and gzip are printed beside it, for what a host that
+// compressed ahead of time would send (risk register, R4; release 0.9.0, step 43).
+//
 // Usage: node measure.cjs <wasm-bindgen output folder> <entry module name> <output json>
 //          [--limit-bytes N] [--limit-ms N] [--runs N] [--web]
 // With --web the folder is the engine's worker build (crates/zeff-web), what a browser loads:
@@ -26,10 +34,17 @@ function median(numbers) {
   return sorted.length % 2 ? sorted[middle] : (sorted[middle - 1] + sorted[middle]) / 2;
 }
 
-function brotli(buffer) {
+const HOST_BROTLI_QUALITY = 2; // within half a per cent of what the host of Zemp Lite sends
+
+function brotli(buffer, quality = 11) {
   return zlib.brotliCompressSync(buffer, {
-    params: { [zlib.constants.BROTLI_PARAM_QUALITY]: 11, [zlib.constants.BROTLI_PARAM_SIZE_HINT]: buffer.length },
+    params: { [zlib.constants.BROTLI_PARAM_QUALITY]: quality, [zlib.constants.BROTLI_PARAM_SIZE_HINT]: buffer.length },
   }).length;
+}
+
+// The size of a file as the host sends it.
+function sent(buffer) {
+  return brotli(buffer, HOST_BROTLI_QUALITY);
 }
 
 function gzip(buffer) {
@@ -44,17 +59,17 @@ function sizes(folder) {
     .sort();
   const rows = files.map((name) => {
     const buffer = fs.readFileSync(path.join(folder, name));
-    return { name, raw: buffer.length, brotli: brotli(buffer), gzip: gzip(buffer) };
+    return { name, raw: buffer.length, sent: sent(buffer), brotli: brotli(buffer), gzip: gzip(buffer) };
   });
   const total = (key) => rows.reduce((sum, row) => sum + row[key], 0);
-  return { files: rows, raw: total("raw"), brotli: total("brotli"), gzip: total("gzip") };
+  return { files: rows, raw: total("raw"), sent: total("sent"), brotli: total("brotli"), gzip: total("gzip") };
 }
 
 // The problems (empty when both limits hold).
 function evaluate(report, limits) {
   const problems = [];
-  if (report.size.brotli > limits.bytes) {
-    problems.push(`the compressed bundle is ${report.size.brotli} bytes, over the limit of ${limits.bytes}`);
+  if (report.size.sent > limits.bytes) {
+    problems.push(`the compressed bundle is ${report.size.sent} bytes as the host sends it, over the limit of ${limits.bytes}`);
   }
   if (report.cold_start_ms > limits.ms) {
     problems.push(`the cold start takes ${report.cold_start_ms.toFixed(1)} ms, over the limit of ${limits.ms} ms`);
@@ -70,10 +85,14 @@ function markdown(report, limits, problems) {
   const lines = [
     report.web ? "### The engine's worker build: bundle and cold start" : "### Browser engine bundle and cold start",
     "",
-    "| File | Raw | Brotli | Gzip |",
-    "| --- | ---: | ---: | ---: |",
-    ...report.size.files.map((f) => `| ${f.name} | ${kilobytes(f.raw)} | ${kilobytes(f.brotli)} | ${kilobytes(f.gzip)} |`),
-    `| **Total** | ${kilobytes(report.size.raw)} | **${kilobytes(report.size.brotli)}** | ${kilobytes(report.size.gzip)} |`,
+    "| File | Raw | As the host sends it | Brotli at its highest | Gzip |",
+    "| --- | ---: | ---: | ---: | ---: |",
+    ...report.size.files.map(
+      (f) => `| ${f.name} | ${kilobytes(f.raw)} | ${kilobytes(f.sent)} | ${kilobytes(f.brotli)} | ${kilobytes(f.gzip)} |`,
+    ),
+    `| **Total** | ${kilobytes(report.size.raw)} | **${kilobytes(report.size.sent)}** | ${kilobytes(report.size.brotli)} | ${kilobytes(report.size.gzip)} |`,
+    "",
+    `As the host sends it: Brotli at setting ${HOST_BROTLI_QUALITY}, which is what a visitor downloads and what the limit is held to (${((100 * report.size.sent) / limits.bytes).toFixed(0)} per cent of it used).`,
     "",
     `Cold start under Node ${report.node}: **${report.cold_start_ms.toFixed(1)} ms** (median of ${report.runs.length} fresh processes: load ${median(report.runs.map((r) => r.load_ms)).toFixed(1)} ms, first call ${median(report.runs.map((r) => r.first_call_ms)).toFixed(1)} ms, a one-line script).`,
     "",
@@ -83,7 +102,7 @@ function markdown(report, limits, problems) {
           `The whole conformance report, for information: ${report.report_ms.toFixed(1)} ms (not limited; it grows with every case).`,
           "",
         ]),
-    `Limits: ${kilobytes(limits.bytes)} compressed (risk R4), ${limits.ms} ms cold start. ` +
+    `Limits: ${kilobytes(limits.bytes)} as the host sends it (risk R4), ${limits.ms} ms cold start. ` +
       (problems.length ? `**Exceeded:** ${problems.join("; ")}.` : "Both hold."),
     "",
   ];
@@ -167,5 +186,5 @@ function main(args) {
   }
 }
 
-module.exports = { median, evaluate, sizes, markdown };
+module.exports = { median, evaluate, sizes, markdown, brotli, sent };
 if (require.main === module) main(process.argv.slice(2));

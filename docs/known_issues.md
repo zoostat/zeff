@@ -80,12 +80,12 @@ is never listed here as accepted: it is fixed or the function is withdrawn.
   ties, `wilcoxon_test(y, group: g)` searches its exact interval shift by shift and counts the
   distribution of the tied ranks at each. Where most values are tied, as with scores on a short
   scale, the same shifts repeat and are counted once (since 0.9.0: two groups of 38 and 36
-  scores take three seconds in the test build, where they took two minutes). Where few are
+  scores take a quarter of a second in the released build). Where few are
   tied, as with measurements rounded to a decimal, nearly every shift is its own: two groups of
-  40 take over a minute and a half in the test build, and twelve seconds in R 4.6.0, which
-  searches in the same way. The figures are right. `exact: false` gives the normal
-  approximation at once, and from 50 values in either group the approximation is the default.
-  (Since 0.7.0.)
+  40 take about five seconds in the released build on a recent laptop (twelve in R 4.6.0, which
+  searches in the same way), and more as the groups near 50. The figures are right.
+  `exact: false` gives the normal approximation at once, and from 50 values in either group
+  the approximation is the default. (Since 0.7.0.)
 - **A warning is said once for a statement, not once for a script.** The same observation
   driving three fits made in one statement is one warning with a count (W1006, since 0.8.0);
   three fits on three lines are three warnings. The passes of a loop are counted as one since

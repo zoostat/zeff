@@ -7629,3 +7629,21 @@ Taken before step 42b, so that the weekly run that step starts is on the code as
 - *The start is held* until the run of 23 November has ended. Two runs at once would ask for 28 runners of the account's 20, and the checks of every push would wait behind them, as on 19 November. Step 42b2.
 
 **Held by.** The job file read back as valid, with every package's shards numbered from 0 to one less than their count.
+
+## 24 November 2026 — release 0.9.0, step 43a: the self-test, the samples and the bundle's measure
+
+Step 43 is split in two: what is run on this machine, here; and the jobs on GitHub, recorded when they have ended (43b).
+
+**The commit.** 9b4fbaf. The scheduled jobs were started on it by hand at 08:06 UTC: the nightly (45353244465), the fuzzing (45353249836) and the benchmark of the reduction shape (45353255238). The weekly job waits for the run of 23 November to end (step 42b2).
+
+**The self-test and the samples.** On this machine, from a release build of the commit: `zeff selftest` reports 629 of 629 cases conformant (ARM64); 551 at 0.8.0. The ten sample projects (`first_engine`, `data_cleaning`, `simulation`, `regression`, `user_functions`, `panel`, `tests`, `plots`, `instruments`, and the new `binary`) each print their stored output and their stored messages byte for byte; the files they write (the 31 figures of `plots`, the three of `regression`, the tables of `panel` and `instruments`, the figure and the table of `binary`) are held by the self-test's digests.
+
+**Read by eye.** The new sample, `binary`, whole: about a third of the rows are members; the logit and the probit tell one story on two scales, and their average marginal effects agree to the fourth decimal (0.0061 a year of experience by both); the predicted share of members rises from 0.26 at 5 years of experience to 0.38 at 25; the industries matter (a likelihood-ratio chi-squared of 969 on 11 degrees of freedom) and sex does not; the fit ranks members above the others 65 times in 100, in the sample and on the years kept back; at a cutoff of 0.35 it finds 55 per cent of the members where 0.5 finds 12; the separated fit is kept as a value and the script goes on. It reads as the story its comments tell. Its figure, the ROC curve, was drawn as a picture and looked at: the curve lies above the diagonal, the axes are named, the caption gives the area. The older samples print what they printed at 0.8.0 except where this release meant them to change (the layouts of #171, the notes of #149).
+
+**The specification's sample script.** Eight diagnostics remain, where twelve did at 0.8.0: `logistic` and `probit` are gone with #112, and what is left is each a module of the reader's own (`robustness`, twice), a data root of the reader's own (`lfs`), or a function or block of a later release (`reliability`, the `dag` block and its two functions, `check`). Its section 10, on binary outcomes, runs whole (step 41).
+
+**The bundle's measure (risk R4).** The planning session measured the live address of Zemp Lite on 24 November: the host compresses each file as it sends it, with Brotli at a low setting, so the engine of 0.8.0 travels as 4,080,713 bytes, where the figure the continuous integration printed, Brotli at its highest setting, was 2,922,126. The risk register now says that "compressed" means as the host sends it. `tools/bundle/measure.cjs` therefore prints a third figure, Brotli at setting 2, which is within half a per cent of what the host sends, and holds the limit of 5 MB to that figure and no longer to the highest setting; the table says what share of the limit is used. On 7a7a8ee the worker build was 15,208,424 bytes raw and 2,929,732 at the highest setting, 62 kB and 8 kB more than at 0.8.0; its figure as sent is printed from the next push on and recorded at step 43b.
+
+**The exact rank-sum test in the released build** (after step 42d): the 38 and 36 tied scores take 0.22 seconds, and the two groups of 40 measurements with few ties 4.7, against 12.5 in R 4.6.0. The known issue gives these figures in the place of those of the test build.
+
+**Reason.** The testing handbook, section 2.4, items 2 and 3; the checklist's step 43.
