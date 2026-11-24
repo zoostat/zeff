@@ -986,3 +986,7 @@ The owner's decisions of 24 November 2026, after Zemp Lite 0.2.4: the app moves 
 ## 24 November 2026 — zeff_open_decisions.md, #225 (item 5) and #220; zemp_specification.md, section 15 (the row of 0.2.5)
 
 The owner wrote: "open zemp lite ->" should be replaced by "Start". The loading screen's button is named **Start**, placed in Zemp Lite 0.2.5 as recommended. #225 gains item 5, #220 notes the new name of its item 3's button, and the row of 0.2.5 in section 15 names it. No normative text of the engine changed.
+
+## 24 November 2026 — zeff_open_decisions.md, #224 (the trial held); zeff_risk_register.md, R4
+
+The Zemp Lite session tried the tight packing of #224 at step 4 of 0.2.5: it held and is live, the engine travelling as 2,929,528 bytes in place of about 4,082,000 with the first start no slower. #224 records the trial and how it is done, to be marked done at the release; R4's section of 24 November records the new figure (about 2.93 MB of 5 MB) and the limit of the host's function (100,000 first fetches a day on the free plan). The summary table is unchanged. No normative text changed.
