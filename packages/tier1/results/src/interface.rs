@@ -591,9 +591,12 @@ fn test_table(test: &TestResult) -> Table {
 /// result gives its printed form.
 pub fn summary(ctx: &mut CallContext<'_>, args: Args) -> Result<Value, Fail> {
     let flag = |i: usize| matches!(args.get(i), Some(Value::Bool(true)));
-    let (standardized, fit_measures) = (flag(1), flag(2));
+    let (standardized, fit_measures, exponentiate) = (flag(1), flag(2), flag(3));
     match receiver(ctx, &args, "summary")? {
         Receiver::Fit(fit) => {
+            if exponentiate {
+                on_a_log_scale(ctx, &fit)?;
+            }
             let mut table = fit.summary.clone();
             if standardized && fit.likelihood.is_some() {
                 // Which standardization a binary model's coefficients take is not settled (open
@@ -612,13 +615,89 @@ pub fn summary(ctx: &mut CallContext<'_>, args: Args) -> Result<Value, Fail> {
             if standardized {
                 insert_betas(&fit, &mut table);
             }
+            if exponentiate {
+                exponentiated(&fit, &mut table);
+            }
             if fit_measures {
                 table.after.push(fit_measures_line(&fit));
             }
             Ok(Value::Table(table))
         }
+        Receiver::Test(_) if exponentiate => Err(fail(
+            Diagnostic::error(
+                "Z0401",
+                "`exponentiate:` is for a fitted model: a test's result has no coefficients",
+            )
+            .in_file(ctx.script)
+            .primary(ctx.span_of(3), "not for a test")
+            .help("a `glm` fit with a logit link gives odds ratios: `fit.summary(exponentiate: true)`"),
+        )),
         Receiver::Test(test) => Ok(Value::Table(test_table(&test))),
     }
+}
+
+/// `exponentiate:` is refused where the coefficients are not logarithms of a ratio (open
+/// decision #217; release 0.9.0, step 8d): a regression, whose coefficients are differences in
+/// the outcome, and a probit link, whose coefficients shift a normal quantile. At this release
+/// the one scale that qualifies is the logit; a log link, when `glm` has one, joins it.
+fn on_a_log_scale(ctx: &CallContext<'_>, fit: &Fit) -> Result<(), Fail> {
+    let refused = match fit.likelihood.as_deref() {
+        Some(likelihood) if likelihood.link == "logit" => return Ok(()),
+        Some(likelihood) => Diagnostic::error(
+            "Z0401",
+            format!(
+                "`exponentiate:` needs a logit link: the coefficients of a {} link are not logarithms of a ratio",
+                likelihood.link
+            ),
+        )
+        .primary(ctx.span_of(3), format!("the link is {}", likelihood.link))
+        .help("odds ratios belong to `link: logit`; `margins` gives the effects of any binary fit as changes in the probability"),
+        None => Diagnostic::error(
+            "Z0401",
+            format!(
+                "`exponentiate:` is for a `glm` fit with a logit link: the coefficients of `{}` are differences in the outcome, not logarithms of a ratio",
+                fit.method
+            ),
+        )
+        .primary(ctx.span_of(3), "not for a regression")
+        .help("where the outcome is in logs, one coefficient is exponentiated by hand: `exp(fit.coef(x))`"),
+    };
+    Err(fail(refused.in_file(ctx.script)))
+}
+
+/// The table of a fit with its coefficients exponentiated (open decision #217): exp(b) under
+/// the heading "odds ratio"; its standard error exp(b) × se(b), by the delta method, as
+/// Stata's `logit, or` gives it; each end of the interval for b exponentiated, so that the
+/// interval is the one of b carried to the ratio's scale and not exp(b) ± a multiple of that
+/// error; z and p as they were, since they test b = 0, which is a ratio of 1. The intercept's
+/// row is the odds where every regressor is zero. A term omitted as collinear keeps its row.
+fn exponentiated(fit: &Fit, table: &mut Table) {
+    let at = |heading: &str| table.columns.iter().position(|(h, _)| h == heading);
+    let (Some(estimate), Some(error)) = (at("estimate"), at("std.error")) else {
+        return;
+    };
+    let interval = table.columns.len() - 1;
+    table.columns[estimate].0 = "odds ratio".to_string();
+    for row in &mut table.rows {
+        let Some(i) = fit.terms.iter().position(|t| *t == row[0]) else {
+            continue;
+        };
+        if row.len() <= interval {
+            continue;
+        }
+        let ratio = zeff_numeric::maths::exp(fit.estimates[i]);
+        row[estimate] = fixed(ratio, 4);
+        row[error] = fixed(ratio * fit.std_errors[i], 4);
+        row[interval] = format!(
+            "[{}, {}]",
+            fixed(zeff_numeric::maths::exp(fit.intervals[i].0), 4),
+            fixed(zeff_numeric::maths::exp(fit.intervals[i].1), 4)
+        );
+    }
+    table.before.push(
+        "odds ratios: exp of the coefficients, standard errors by the delta method; z and p are those of the coefficients"
+            .to_string(),
+    );
 }
 
 // ----- the estimator interface, part 1 (step 16) -----

@@ -286,7 +286,7 @@ error[Z0401]: `standardized` of `summary` must be a Bool, but this is an Int
 2 | m.summary(standardized: 1)
   |                         ^ an Int
   |
-  = help: usage: `fit.summary(standardized: Bool = false, fit_measures: Bool = false)`
+  = help: usage: `fit.summary(standardized: Bool = false, fit_measures: Bool = false, exponentiate: Bool = false)`
 [exit 1]
 
 > dataset(wages).std_errors()

@@ -114,7 +114,11 @@ Step 39a `[function]`: the twelve pages of the distribution families to the cont
 
 24 November, beside the release, on the owner's word in this session ("Yes, enter them"): three rulings he gave in the planning session on the 23rd are entered. Odds ratios come into 0.9.0 as `fit.summary(exponentiate: true)` (#217; step 8d added to the checklist, the name taken as recommended); #172 is decided for option A and Paper is placed in three stages, the first at Zemp 0.3 (the Zemp Specification's sections 8 and 15, logged); three proposals for 0.10.0 are #218 and a fourth, values written to a `.typ` file, #219.
 
-**Next.** Step 8d `[function]`: odds ratios in `summary`. Then step 39b `[function]`: the methods `pdf`, `cdf`, `quantile` and `draw`, and `dist.truncated`, `dist.mixture`, `dist.tukey`; then step 40, the thirteen pages of `stats`. Step 3, the weekly mutation run of Monday 23 November: GitHub started it at 13:39 UTC on that day and it was still running on the 24th, behind the release's own continuous-integration runs; it is read when it ends.
+Step 8d `[function]`: odds ratios, `fit.summary(exponentiate: true)` on a `glm` fit with a logit link (#217): exp(b) under "odds ratio", the interval exponentiated end by end, the standard error by the delta method, z and p unchanged; refused for a probit link, a regression and a test (Z0401). Held to R's `exp(coef())` and `exp(confint.default())` on the shipped wages.
+
+**Next.** Step 39b `[function]`: the methods `pdf`, `cdf`, `quantile` and `draw`, and `dist.truncated`, `dist.mixture`, `dist.tukey`; then step 40, the thirteen pages of `stats`. Step 3, the weekly mutation run of Monday 23 November: GitHub started it at 13:39 UTC on that day and it was still running on the 24th, behind the release's own continuous-integration runs; it is read when it ends.
+
+**For the owner, from step 8d.** The option is named `exponentiate:`, as recommended, since you did not answer the question of the name; `odds_ratios:` and Stata's `eform` were the alternatives. Say if another name is wanted before 1.0.
 
 **For the owner, from step 37.** The citation file takes your name as family name Patra, given name Sabyasachi, with no affiliation and no ORCID; say if any of these should change. The archive's link (question 7c) is still yours to make.
 

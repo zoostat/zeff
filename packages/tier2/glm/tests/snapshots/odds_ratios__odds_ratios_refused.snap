@@ -1,0 +1,54 @@
+---
+source: packages/tier2/glm/tests/odds_ratios.rs
+expression: all
+---
+dataset(wages).glm(union ~ educ, family: binomial, link: probit).summary(exponentiate: true)
+error[Z0401]: `exponentiate:` needs a logit link: the coefficients of a probit link are not logarithms of a ratio
+ --> scripts/main.zeff:1:88
+  |
+1 | dataset(wages).glm(union ~ educ, family: binomial, link: probit).summary(exponentiate: true)
+  |                                                                                        ^^^^ the link is probit
+  |
+  = help: odds ratios belong to `link: logit`; `margins` gives the effects of any binary fit as changes in the probability
+
+====
+dataset(wages).reg(log(wage) ~ educ).summary(exponentiate: true)
+error[Z0401]: `exponentiate:` is for a `glm` fit with a logit link: the coefficients of `reg` are differences in the outcome, not logarithms of a ratio
+ --> scripts/main.zeff:1:60
+  |
+1 | dataset(wages).reg(log(wage) ~ educ).summary(exponentiate: true)
+  |                                                            ^^^^ not for a regression
+  |
+  = help: where the outcome is in logs, one coefficient is exponentiated by hand: `exp(fit.coef(x))`
+
+====
+dataset(staff).ivreg(productivity ~ training + age, instruments: training ~ offer).summary(exponentiate: true)
+error[Z0401]: `exponentiate:` is for a `glm` fit with a logit link: the coefficients of `ivreg` are differences in the outcome, not logarithms of a ratio
+ --> scripts/main.zeff:1:106
+  |
+1 | dataset(staff).ivreg(productivity ~ training + age, instruments: training ~ offer).summary(exponentiate: true)
+  |                                                                                                          ^^^^ not for a regression
+  |
+  = help: where the outcome is in logs, one coefficient is exponentiated by hand: `exp(fit.coef(x))`
+
+====
+dataset(sleep).t_test(extra, group: group).summary(exponentiate: true)
+error[Z0401]: `exponentiate:` is for a fitted model: a test's result has no coefficients
+ --> scripts/main.zeff:1:66
+  |
+1 | dataset(sleep).t_test(extra, group: group).summary(exponentiate: true)
+  |                                                                  ^^^^ not for a test
+  |
+  = help: a `glm` fit with a logit link gives odds ratios: `fit.summary(exponentiate: true)`
+
+====
+dataset(wages).glm(union ~ educ, family: binomial).summary(standardized: true, exponentiate: true)
+error[Z0401]: `standardized:` is for a regression: a `glm` fit has no standardized coefficients in this release
+ --> scripts/main.zeff:1:74
+  |
+1 | dataset(wages).glm(union ~ educ, family: binomial).summary(standardized: true, exponentiate: true)
+  |                                                                          ^^^^ not for a fit by maximum likelihood
+  |
+  = help: to compare regressors on one scale, standardize them before fitting: `add(z = standardize(x))`
+
+====

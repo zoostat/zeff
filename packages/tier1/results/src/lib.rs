@@ -103,6 +103,7 @@ pub fn functions() -> Vec<Function> {
             vec![
                 ParamSpec::option_with_default("standardized", "Bool", "false"),
                 ParamSpec::option_with_default("fit_measures", "Bool", "false"),
+                ParamSpec::option_with_default("exponentiate", "Bool", "false"),
             ],
             "Table",
             vec![],

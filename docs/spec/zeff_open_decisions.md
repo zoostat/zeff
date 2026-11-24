@@ -4474,7 +4474,7 @@ Question 3 of #99 lists, among the routine options R and Stata give, odds ratios
 
 *The name.* He did not answer the separate question of the name. `exponentiate:` was recommended (it says what is done and holds for every link on a log scale; `odds_ratios:` fits only a logit; Stata's `eform` is a word of its own), and is taken under his standing instruction, his to overturn before 1.0.
 
-Built at step 8d of release 0.9.0. The same option on `coef_plot` is part of #218.
+**Status (24 November 2026).** Built at step 8d of release 0.9.0, as decided, and held to R on the shipped wages: the odds ratios, their standard errors and their intervals agree with `exp(coef(m))`, `exp(coef(m))` times the standard errors, and `exp(confint.default(m))` in every figure printed. The refusal carries Z0401, the code of an argument a function cannot take here, as the refusal of `standardized:` on a `glm` fit does; no new code was needed. A line above the table says what the figures are. The same option on `coef_plot` is part of #218.
 
 ### 218. Three moves proposed for 0.10.0: regression diagnostic plots, checks of a binary `glm`, odds ratios in the coefficient plot
 

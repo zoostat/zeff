@@ -1,0 +1,19 @@
+---
+source: packages/tier2/glm/tests/odds_ratios.rs
+expression: "parts[1]"
+---
+glm · union ~ educ + exper + female · binomial, logit
+N = 18,390 (22 rows dropped for NA in model variables)
+standard errors: robust (HC1)
+odds ratios: exp of the coefficients, standard errors by the delta method; z and p are those of the coefficients
+
+  term          odds ratio   std.error   z value   p value   90% CI
+  (intercept)       0.2931      0.0320    -11.24    <0.001   [0.2449, 0.3507]
+  educ              1.0009      0.0067      0.14     0.891   [0.9899, 1.0120]
+  exper             1.0281      0.0023     12.17    <0.001   [1.0242, 1.0319]
+  female            1.0571      0.0336      1.75     0.081   [1.0032, 1.1140]
+
+log-likelihood -11,415.06 · AIC 22,838.13 · McFadden R² 0.007
+deviance 22,830.13 on 18,386 df · null deviance 23,001.97 on 18,389 df
+converged in 5 iterations of Fisher scoring
+BIC 22,869.41
