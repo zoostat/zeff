@@ -7,7 +7,7 @@
 /// scaled by a positive factor, and moved by no single outlier. The medians are taken over the
 /// values present, with the reducers' warning for the rows with `NA` skipped (section 4.1 of
 /// the Language Reference), once for each median; one value gives 0, and two give the constant
-/// times half their distance. Like R's `mad(x, constant =)`.
+/// times half their distance.
 ///
 /// data: The frame.
 /// var: The variable.
@@ -16,12 +16,28 @@
 /// details: The deviations are computed in one pass over the frame and their median taken by `median`, the midpoint of the two middle values for an even count; 1.4826 is 1 / Φ⁻¹(3/4) to four decimals, the value R uses, not the exact quantile.
 /// reference: Hampel, F. R. (1974) The influence curve and its role in robust estimation, Journal of the American Statistical Association 69(346), 383–393.
 /// reference: R Core Team, the `mad` function of the stats package.
+/// missing values: The two medians are taken over the values present, with a warning for the rows skipped, once for each median. A variable with no value left gives `NA`.
+/// coming from: d.mad(wage) | mad(d$wage, na.rm = TRUE) | no command of its own
+/// coming from: d.mad(wage, constant: 1) | mad(d$wage, constant = 1, na.rm = TRUE) | egen m = mad(wage)
+/// coming from: R's `mad` multiplies by 1.4826 unless told, as here; Stata's `egen` function `mad()` gives the raw median deviation, which is `constant: 1`.
+/// related: For the distance between the quartiles, use `iqr`.
+/// related: For the standard deviation, which the default constant makes this estimate under normality, use `sd`.
+/// related: For the median itself, use `median`.
 /// see also: median, iqr, sd, abs
-/// > let d = frame(x = [1, 2, 4, 7, 11])
-/// > d.mad(x)
-/// 4.4478
-/// > d.mad(x, constant: 1)
-/// 3
+/// example: The median absolute deviation of the wages, scaled to estimate a standard deviation; beside it the standard deviation, which the long right tail of wages makes larger.
+/// > let wages = dataset(wages)
+/// > wages.mad(wage)
+/// > wages.sd(wage)
+/// 11.4753
+/// warning[W0201]: 211 rows with NA in wage were skipped (line 2)
+/// warning[W0201]: 211 rows with NA in deviation were skipped (line 2)
+/// 14.0269
+/// warning[W0201]: 211 rows with NA in wage were skipped (line 3)
+/// example: The raw median deviation, with a constant of 1.
+/// > wages.mad(wage, constant: 1)
+/// 7.74
+/// warning[W0201]: 211 rows with NA in wage were skipped (line 4)
+/// warning[W0201]: 211 rows with NA in deviation were skipped (line 4)
 fn mad(data: Frame, var: Var, constant: Float = 1.4826) -> Float {
     let centre = data.median(var)
     // The deviations are taken outside the frame, as a column: inside one of its methods a

@@ -18,12 +18,27 @@
 /// details: Joanes and Gill's g1 and G1 (their b1 is not offered); the moments are the means of the squared and cubed deviations from the mean, each a compensated sum, and n is the count of values present.
 /// reference: Joanes, D. N. and Gill, C. A. (1998) Comparing measures of sample skewness and kurtosis, Journal of the Royal Statistical Society, Series D (The Statistician) 47(1), 183–189.
 /// reference: Stata, `summarize` with the `detail` option; IBM SPSS Statistics, `DESCRIPTIVES` and `FREQUENCIES`; Microsoft Excel, SKEW.
+/// missing values: The moments are taken over the values present, with a warning for the rows skipped. Fewer than three values for the adjusted form, or two for the plain one, give `NA` with a warning.
+/// coming from: d.skewness(wage) | e1071::skewness(d$wage, na.rm = TRUE, type = 2) | no command of its own
+/// coming from: d.skewness(wage, adjusted: false) | moments::skewness(d$wage, na.rm = TRUE) | summarize wage, detail, then display r(skewness)
+/// coming from: The default here is the form adjusted for the size of the sample, which SPSS and Excel report; Stata and the R package `moments` report the plain one, which `adjusted: false` gives.
+/// related: For the weight of the tails, use `kurtosis`.
+/// related: For a test of normality, which looks at both, use `shapiro_test`.
+/// related: To compare the mean with the middle value, use `median`.
 /// see also: kurtosis, mean, sd, median
-/// > let d = frame(x = [2, 4, 4, 4, 5, 5, 7, 9])
-/// > d.skewness(x)
-/// 0.818488
-/// > d.skewness(x, adjusted: false)
-/// 0.65625
+/// example: The skewness of the wages: positive, for a long right tail. The warning counts the rows with no wage.
+/// > let wages = dataset(wages)
+/// > wages.skewness(wage)
+/// 1.57162
+/// warning[W0201]: 211 rows with NA in wage were skipped (line 2)
+/// example: The plain form, as Stata reports it.
+/// > wages.skewness(wage, adjusted: false)
+/// 1.57149
+/// warning[W0201]: 211 rows with NA in wage were skipped (line 3)
+/// example: The logarithm of a wage is nearly symmetric.
+/// > wages.add(lwage = log(wage)).skewness(lwage)
+/// 0.00353816
+/// warning[W0201]: 211 rows with NA in lwage were skipped (line 4)
 fn skewness(data: Frame, var: Var, adjusted: Bool = true) -> Float {
     let centre = data.mean(var)
     let clean = data.where(!is_missing(var))

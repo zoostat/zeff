@@ -34,9 +34,9 @@ expression: all
 1:2-1:9, a function
     summary — Table of N, missing, mean, SD, min and max                   data · tier 1 · since 0.1.0 · 1.0 · closed form
     
-    USAGE
-        data.summary(vars: Vars, stats: List<n | missing | mean | sd | min | max>, by: Vars, weights: Var,
-    (and 79 lines more)
+    IN BRIEF
+        - `d.summary()`: every variable of numbers, one row each: N, missing, mean, sd, min and max.
+    (and 143 lines more)
 ----
 > let d = import("data/small.csv")
 > d

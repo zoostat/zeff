@@ -20,12 +20,30 @@
 /// details: Joanes and Gill's g2 and G2 (their b2 is not offered); `excess: false` adds 3 to either form; the moments are the means of the squared and fourth-power deviations from the mean, each a compensated sum, and n is the count of values present.
 /// reference: Joanes, D. N. and Gill, C. A. (1998) Comparing measures of sample skewness and kurtosis, Journal of the Royal Statistical Society, Series D (The Statistician) 47(1), 183–189.
 /// reference: Stata, `summarize` with the `detail` option; IBM SPSS Statistics, `DESCRIPTIVES` and `FREQUENCIES`; Microsoft Excel, KURT.
+/// in brief: `d.kurtosis(wage)`: the excess over the normal distribution's 3, adjusted for the size of the sample.
+/// in brief: `d.kurtosis(wage, excess: false)`: with the 3 left in.
+/// in brief: `d.kurtosis(wage, excess: false, adjusted: false)`: the plain fourth standardised moment, as Stata reports it.
+/// missing values: The moments are taken over the values present, with a warning for the rows skipped. Fewer than four values for the adjusted form, or two for the plain one, give `NA` with a warning.
+/// coming from: d.kurtosis(wage) | e1071::kurtosis(d$wage, na.rm = TRUE, type = 2) | no command of its own
+/// coming from: d.kurtosis(wage, excess: false, adjusted: false) | moments::kurtosis(d$wage, na.rm = TRUE) | summarize wage, detail, then display r(kurtosis)
+/// coming from: The default here is the excess over the normal distribution's 3, adjusted for the size of the sample, which SPSS and Excel report. Stata and the R package `moments` report the plain form with the 3 left in, so a normal sample is near 3 there and near 0 here.
+/// related: For the asymmetry, use `skewness`.
+/// related: For a test of normality, which looks at both, use `shapiro_test`.
+/// related: For the spread, use `sd`.
 /// see also: skewness, mean, sd, variance
-/// > let d = frame(x = [2, 4, 4, 4, 5, 5, 7, 9])
-/// > d.kurtosis(x)
-/// 0.940625
-/// > d.kurtosis(x, excess: false, adjusted: false)
-/// 2.78125
+/// example: The kurtosis of the wages, as excess over the normal distribution: positive, for tails heavier than the normal. The warning counts the rows with no wage.
+/// > let wages = dataset(wages)
+/// > wages.kurtosis(wage)
+/// 4.18959
+/// warning[W0201]: 211 rows with NA in wage were skipped (line 2)
+/// example: The plain form with the 3 left in, as Stata reports it.
+/// > wages.kurtosis(wage, excess: false, adjusted: false)
+/// 7.18811
+/// warning[W0201]: 211 rows with NA in wage were skipped (line 3)
+/// example: The logarithm of a wage is near the normal: an excess near 0.
+/// > wages.add(lwage = log(wage)).kurtosis(lwage)
+/// -0.0532942
+/// warning[W0201]: 211 rows with NA in lwage were skipped (line 4)
 fn kurtosis(data: Frame, var: Var, excess: Bool = true, adjusted: Bool = true) -> Float {
     let centre = data.mean(var)
     let clean = data.where(!is_missing(var))

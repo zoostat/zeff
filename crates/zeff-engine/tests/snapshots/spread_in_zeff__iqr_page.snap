@@ -12,8 +12,7 @@ DESCRIPTION
     under the quantile definition `type:` names (the nine definitions of Hyndman and Fan, as `quantile`
     offers them; 7 unless given, R's default). A robust measure of spread: half of the values lie within it,
     and one outlier cannot move it. The quartiles are taken over the values present, with the reducers'
-    warning for the rows with `NA` skipped (section 4.1 of the Language Reference), once for each quartile;
-    one value gives 0. Like R's `IQR(x, type =)`.
+    warning for the rows with `NA` skipped (section 4.1 of the Language Reference); one value gives 0.
 
 ARGUMENTS
     data        Frame. The frame.
@@ -22,6 +21,10 @@ ARGUMENTS
 
 VALUE
     The range, a Float, printed as `mean` prints.
+
+MISSING VALUES
+    The two quartiles are taken over the values present, with a warning for the rows skipped. A variable
+    with no value left gives `NA`.
 
 DETAILS
     The two quartiles come from `quantile` under one definition and are subtracted; nothing else is
@@ -32,6 +35,21 @@ WARNINGS AND NOTES
     Z0401   `type:` is not 1 to 9, or the variable is not numeric
     Z0101   the variable is not in the frame
     W0205   the quantile falls between Inf and -Inf
+
+COMING FROM R OR STATA
+    Equivalents: R IQR().
+
+    Zeff                   R                                     Stata
+    d.iqr(wage)            IQR(d$wage, na.rm = TRUE)             summarize wage, detail, then display r(p75) - r(p25)
+    d.iqr(wage, type: 6)   IQR(d$wage, na.rm = TRUE, type = 6)   no option of its own
+
+    The definitions are numbered as R numbers them. Stata's `summarize, detail` takes its percentiles by
+    another of the nine than R's default, so its figure may differ a little from R's and from this one.
+
+RELATED TASKS
+    - For the two quartiles themselves, use `quantile`.
+    - For another spread that extreme values do not move, use `mad`.
+    - For the standard deviation, use `sd`.
 
 ACCURACY
     Closed form.
@@ -44,8 +62,20 @@ SEE ALSO
     quantile, mad, sd, median
 
 EXAMPLES
-    > let d = frame(x = [1, 2, 4, 7, 11])
-    > d.iqr(x)
-    5
-    > d.iqr(x, type: 6)
-    7.5
+    // The distance between the quartiles of the wages: half of the wages lie within it. The warning counts
+    // the rows with no wage.
+    > let wages = dataset(wages)
+    > wages.iqr(wage)
+    16.17
+    warning[W0201]: 211 rows with NA in wage were skipped (line 2)
+
+    // Under another definition of the quantile.
+    > wages.iqr(wage, type: 6)
+    16.175
+    warning[W0201]: 211 rows with NA in wage were skipped (line 3)
+
+    // It is the difference of the two quartiles.
+    > wages.quantile(wage, p: 0.75) - wages.quantile(wage, p: 0.25)
+    16.17
+    warning[W0201]: 211 rows with NA in wage were skipped (line 4)
+    warning[W0201]: 211 rows with NA in wage were skipped (line 4)

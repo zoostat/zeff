@@ -7497,3 +7497,12 @@ Open decision #153, option A. Step 36 is split in three in the checklist: the re
 - *A message noted and left:* `d.mean(wage, na.rm: true)`, which a reader from R may try, is answered "`:` is an interaction and belongs in a formula" (Z0306), because of the point in `na.rm`. It belongs with the R names of #213.
 
 **Held by.** The help contract in full for the nine pages, now off the list (6 pages of `data` remain, 101 in all); the example runner on every example and mistake.
+
+## 24 November 2026 — release 0.9.0, step 38d2: the last eight pages of `data` and `datasets`
+
+- *The pages:* `summary` and `n_distinct` (the specification `pages_m.py`), `dataset` and `datasets` of the package `datasets` (`pages_n.py`), and `iqr`, `mad`, `skewness` and `kurtosis`, written in Zeff and revised by hand. With them all 52 pages of `data` and `datasets` meet the contract of 0.8.0.
+- *The examples* run on the shipped wages: the spread by the quartiles and by the median deviation beside the standard deviation, which the long right tail of wages makes larger (11.5 against 14.0); a skewness of 1.57 for wages and 0.004 for their logarithm, an excess kurtosis of 4.19 and −0.05, in the forms SPSS and Excel report and in those Stata reports.
+- *What is said of R and Stata* is what is certain: `IQR` and `mad` with their arguments; that `egen`'s `mad()` is the raw median deviation; `moments::skewness` and `moments::kurtosis` for the plain forms and `e1071` with `type = 2` for the adjusted ones; `r(skewness)` and `r(kurtosis)` after `summarize, detail`; that R's `summary` gives quartiles and no standard deviation; `egen tag()` and its option `missing`; `data()` and `sysuse`. Stata's percentile definition is said to be another of the nine, without its number.
+- *Three more messages for step 38e,* met while the pages were written: `mad` warns of `NA` in `deviation`, a variable of its own body, beside the warning for the variable the script named; `skewness` of a category says that `mean` needs a number; `dataset("wages")` advises naming "a variable of the frame". The page of `mad` prints its two warnings as the engine prints them today and is renewed when the step is done.
+
+**Held by.** The help contract in full for the eight pages, now off the list (93 pages remain: 19 of `dist` and 13 of `stats` for this release, 61 for 0.10.0); the example runner on every example and mistake.
