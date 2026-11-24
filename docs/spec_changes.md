@@ -978,3 +978,7 @@ The owner said "Release 0.2.4", and Zemp Lite 0.2.4 is tagged v0.2.4 at commit `
 ## 24 November 2026 — zeff_open_decisions.md, new entry #224
 
 The owner's proposal of 24 November 2026, after Zemp Lite 0.2.4 ("enter tight packing as a proposal for the next release"): the engine's WebAssembly packed once at Brotli's highest setting and sent as it is, about 2.9 MB in place of 4.1 MB, to be tried at the address before it is promised. Entered as proposed, with the deadline of the next Zemp Lite release opened. No normative text changed.
+
+## 24 November 2026 — zemp_specification.md, section 15 (a row for Zemp Lite 0.2.5); zeff_open_decisions.md, new entry #225, and #220, #223 and #224 amended
+
+The owner's decisions of 24 November 2026, after Zemp Lite 0.2.4: the app moves back to the root of `lite.zeff-lang.dev` and the landing page of 0.2.4 is removed ("Remove it"), in a small release, 0.2.5 ("A small release now, 0.2.5"), which carries #224 as its second step ("Yes, as a second step"). Open decision #225 is entered, decided. #220 notes that its items 1 and 2 are undone by #225. #224 is placed at 0.2.5. #223's deadline, "the release after 0.2.4", is read as its own release after 0.2.5, since 0.2.5 was opened for #225 and #224 alone. Section 15 gains a row for 0.2.5, on Zeff 0.8.0; the row of 0.2.4 stays as the record of what that release shipped. No normative text of the engine changed.
