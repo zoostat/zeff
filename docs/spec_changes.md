@@ -994,3 +994,7 @@ The Zemp Lite session tried the tight packing of #224 at step 4 of 0.2.5: it hel
 ## 24 November 2026 — zeff_risk_register.md, R4 (the owner's rating)
 
 The owner kept R4's likelihood at Low ("Yes, keep it Low"), once the tight packing of #224 had brought the engine to about 2.93 MB of the 5 MB limit. The summary table is unchanged. No normative text changed.
+
+## 24 November 2026 — zeff_risk_register.md, new risk R13
+
+The Zemp Lite session found, at the pre-release routine of 0.2.5, that the host answers a missing built file with the app's page under a year's keeping, so that a browser asking in the seconds after a deployment could keep a wrong file for a year. The engine is guarded from 0.2.5; the other built files are not. Entered as R13 (Low likelihood, Medium impact), its mitigation an engineering choice of the Zemp Lite session at its next release. No normative text changed.

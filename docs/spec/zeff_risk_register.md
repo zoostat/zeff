@@ -20,6 +20,7 @@ Likelihood and impact are rated High, Medium or Low. The owner is the project le
 | R10 | Adoption: researchers stay with R and Stata | High | High | Zemp Lite preview, 0.8.0 |
 | R11 | Momentum: a long solo build with no users | Medium | High | Any release that slips twice |
 | R12 | The specification grows faster than the code | Low | Medium | Now |
+| R13 | A browser keeps a wrong file of Zemp Lite for a year | Low | Medium | Zemp Lite 0.2.5 (seen); every deployment |
 
 ## Risks
 
@@ -108,6 +109,13 @@ The two specification volumes, catalogue and companion documents changed many ti
 
 - **Early warning:** more specification edits than commits in a month once coding starts.
 - **Mitigation (recommended; open decision #40 of `zeff_open_decisions.md`, to be taken at 0.1.0):** freeze the specification for 0.1.0 to 0.3.0 except for bugs found while coding; let the code push back on the specification; record further design work as open decisions with a deadline release rather than editing the normative text.
+
+### R13 · A browser keeps a wrong file of Zemp Lite for a year
+
+Found by the Zemp Lite session at the pre-release routine of 0.2.5 (24 November 2026), and so since Zemp Lite 0.2, step 17. The host answers an address under `/assets/` that holds no file with the app's own page, status 200, and with the headers of a built file (`Cache-Control: public, max-age=31536000, immutable`). For some seconds after a deployment a place of the host may not yet hold a new file, so a browser that asks then can be sent the page in place of a script, a style, a font or the engine, and told to keep it for a year: for that visitor the app would not start until the browser's data is cleared. From 0.2.5 the engine is guarded: the host's function that sends it answers 503, not to be kept, where the host would send its page, and **Try again** fetches afresh. The app's other built files are not guarded. One check at the trial address needed its second try at 0.2.5, with no cause recorded; that check now prints what the loading screen says, should it recur.
+
+- **Early warning:** a check after a deployment that fails on a file which is not the one asked for; a report of a Zemp Lite that will not start in one browser and starts once that browser's data is cleared.
+- **Mitigation:** an engineering choice of the Zemp Lite session at its next release, among: the host's function over every built file (about nineteen calls for each first visit, against the free plan's 100,000 a day); a page for a missing file, so that the host answers an unknown address with "not found" and never with the app's page (to be checked against the host); or the year's keeping given only where the file is known to be the one asked, with a short keeping and revalidation elsewhere. The notes of Zemp Lite 0.2.5 list it among the known issues.
 
 ## The first test of the register
 
