@@ -4540,7 +4540,7 @@ Raised on 24 November 2026 by the owner: "See the rust website: https://rust-lan
 8. **Each start of the app** opens the Script place. The first click on Help after a start shows Help's landing page with every section of Topics closed; later in the same visit Help returns to the page being read.
 9. **Help's landing page** takes the look of 0.2.4's screens: cards with hexagon icons and the name drawn as *Zemp* with its *Lite* badge; what it holds is unchanged (#211 item 14).
 
-The Zemp Lite session's drawing: `~/dev/handbook/zemp-lite-0.2.4-help-mockup.html`.
+The Zemp Lite session's drawing: `~/dev/handbook/zemp-lite-0.2.4-help-mockup.html`. The owner approved it the same day: "Yes, as drawn".
 
 Engine: none. Deadline: Zemp Lite 0.2.4, on the engine it carries (Zeff 0.8.0 unless 0.9.0 is released before it starts).
 
