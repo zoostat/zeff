@@ -141,23 +141,28 @@ pub fn signed_rank_plain(n: usize) -> Exact {
 pub fn rank_sum(ranks: &[f64], m: usize) -> Exact {
     let f = scale(ranks);
     let z = scaled(ranks, f);
-    let total_sum: usize = z.iter().sum();
-    // counts[c][s]: ways to choose c of the ranks seen so far with sum s.
-    let mut table = vec![vec![0u128; total_sum + 1]; m + 1];
-    table[0][0] = 1;
-    for &r in &z {
-        for c in (1..=m).rev() {
-            for s in (r..=total_sum).rev() {
-                table[c][s] += table[c - 1][s - r];
-            }
-        }
-    }
     // W = sum − m(m + 1)/2 on the scaled grid: the smallest possible scaled sum is that of the
     // m smallest ranks, which is f · m(m + 1)/2 exactly when the ranks are 1..N with ties
     // averaged (the sum of any m ranks of N tied-averaged ranks is at least the sum of 1..m).
     let shift = (f as usize) * m * (m + 1) / 2;
     let n = z.len() - m;
     let width = (f as usize) * m * n + 1;
+    // No m of the ranks sum to more than the m largest do, so the sums beyond that are not
+    // counted; and of the first k ranks at most k are chosen. Both leave every count as it
+    // was and spare more than half the additions (release 0.9.0, step 42d).
+    let mut largest = z.clone();
+    largest.sort_unstable();
+    let most: usize = largest.iter().rev().take(m).sum();
+    // counts[c][s]: ways to choose c of the ranks seen so far with sum s.
+    let mut table = vec![vec![0u128; most.max(shift + width - 1) + 1]; m + 1];
+    table[0][0] = 1;
+    for (seen, &r) in z.iter().enumerate() {
+        for c in (1..=m.min(seen + 1)).rev() {
+            for s in (r..=most).rev() {
+                table[c][s] += table[c - 1][s - r];
+            }
+        }
+    }
     let counts: Vec<u128> = table[m][shift..shift + width].to_vec();
     let total: u128 = counts.iter().sum();
     Exact {
@@ -235,5 +240,45 @@ mod tests {
         assert_eq!(d.count(3), 2); // W = 1.5
         assert_eq!(d.count(5), 2); // W = 2.5
         assert_eq!(d.count(8), 1); // W = 4
+    }
+
+    #[test]
+    fn the_rank_sum_count_is_every_choice_counted_whatever_the_ties() {
+        // The count against every choice of m of the ranks written out, for ranks with ties
+        // of every kind, as R's `rank` averages them, and every size of the first sample: the
+        // sums beyond the m largest ranks and the sizes beyond the ranks seen are not walked
+        // (release 0.9.0, step 42d), and no count may move for it.
+        let samples: [&[f64]; 6] = [
+            &[1.0, 2.0, 3.0, 4.0, 5.0, 6.0, 7.0, 8.0, 9.0, 10.0],
+            &[1.5, 1.5, 3.0, 4.5, 4.5, 6.0, 7.0, 8.5, 8.5, 10.0],
+            &[2.0, 2.0, 2.0, 5.5, 5.5, 5.5, 5.5, 9.0, 9.0, 9.0],
+            &[5.5, 5.5, 5.5, 5.5, 5.5, 5.5, 5.5, 5.5, 5.5, 5.5],
+            &[1.0, 3.0, 3.0, 3.0, 5.0, 6.5, 6.5, 8.0, 9.0, 10.0, 11.0],
+            &[10.0, 1.5, 8.5, 3.0, 1.5, 8.5, 4.5, 6.0, 4.5, 7.0],
+        ];
+        for ranks in samples {
+            let total = ranks.len();
+            for m in 1..total {
+                let d = rank_sum(ranks, m);
+                let least = (m * (m + 1)) as f64 / 2.0;
+                let mut written = vec![0u128; d.len()];
+                let mut chosen = 0u128;
+                for subset in 0u32..(1 << total) {
+                    if subset.count_ones() as usize != m {
+                        continue;
+                    }
+                    let sum: f64 = (0..total)
+                        .filter(|i| subset & (1 << i) != 0)
+                        .map(|i| ranks[i])
+                        .sum();
+                    let place = ((sum - least) / d.step()).round() as usize;
+                    written[place] += 1;
+                    chosen += 1;
+                }
+                assert_eq!(d.counts, written, "{ranks:?}, m = {m}");
+                assert_eq!(d.total(), chosen, "{ranks:?}, m = {m}");
+                assert_eq!(d.len(), (total - m) * m * (1.0 / d.step()) as usize + 1);
+            }
+        }
     }
 }

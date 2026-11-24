@@ -374,13 +374,32 @@ fn signed_rank_interval(
 /// R's search for the bounds of an exact interval when ties or zeros stop the order statistics
 /// being used directly: the first Walsh average (or pairwise difference) past which the tail
 /// exceeds α, from each end.
+///
+/// The tail at a shift is counted afresh from the ranks of the shifted sample, and that count
+/// is nearly all the work. Among tied values the same shift is asked for many times over, since
+/// two equal neighbours have their own value for a midpoint: 74 scores on a scale of five have
+/// 1,368 differences and nine distinct ones. The last answer of each tail is kept, so a run of
+/// equal shifts is counted once; the search itself, its order and its stopping are untouched,
+/// and so is every figure (release 0.9.0, step 42d).
 fn searched_interval(
     diffs: &[f64],
     alpha: f64,
     alternative: Alternative,
-    ptail: &dyn Fn(f64, bool) -> f64,
+    counted: &dyn Fn(f64, bool) -> f64,
 ) -> (f64, f64) {
     let n_d = diffs.len();
+    let last: [std::cell::Cell<Option<(u64, f64)>>; 2] = Default::default();
+    let ptail = |shift: f64, lower: bool| -> f64 {
+        let kept = &last[usize::from(lower)];
+        if let Some((bits, tail)) = kept.get()
+            && bits == shift.to_bits()
+        {
+            return tail;
+        }
+        let tail = counted(shift, lower);
+        kept.set(Some((shift.to_bits(), tail)));
+        tail
+    };
     let lower = |alpha: f64| -> f64 {
         let alpha = alpha + TOLER;
         if ptail(diffs[0] - 1.0, false) > alpha {
@@ -1128,4 +1147,139 @@ fn rank_sum_form(
         n: x.len() + y.len(),
         dropped,
     })))
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use std::cell::RefCell;
+
+    /// The search as it stood before the last answer was kept: every shift counted.
+    fn plain(
+        diffs: &[f64],
+        alpha: f64,
+        alternative: Alternative,
+        ptail: &dyn Fn(f64, bool) -> f64,
+    ) -> (f64, f64) {
+        let n_d = diffs.len();
+        let lower = |alpha: f64| -> f64 {
+            let alpha = alpha + TOLER;
+            if ptail(diffs[0] - 1.0, false) > alpha {
+                return f64::NEG_INFINITY;
+            }
+            for k in 0..n_d - 1 {
+                if ptail((diffs[k] + diffs[k + 1]) / 2.0, false) > alpha {
+                    return diffs[k];
+                }
+            }
+            diffs[n_d - 1]
+        };
+        let upper = |alpha: f64| -> f64 {
+            let alpha = alpha + TOLER;
+            if ptail(diffs[n_d - 1] + 1.0, true) > alpha {
+                return f64::INFINITY;
+            }
+            for k in (0..n_d - 1).rev() {
+                if ptail((diffs[k] + diffs[k + 1]) / 2.0, true) > alpha {
+                    return diffs[k + 1];
+                }
+            }
+            diffs[0]
+        };
+        match alternative {
+            Alternative::TwoSided => (lower(alpha / 2.0), upper(alpha / 2.0)),
+            Alternative::Greater => (lower(alpha), f64::INFINITY),
+            Alternative::Less => (f64::NEG_INFINITY, upper(alpha)),
+        }
+    }
+
+    /// Two samples of scores, as counts of each score from 1 to 5.
+    fn scores(counts: [usize; 5]) -> Vec<f64> {
+        (1..=5)
+            .zip(counts)
+            .flat_map(|(score, n)| std::iter::repeat_n(score as f64, n))
+            .collect()
+    }
+
+    /// The exact tail of the rank-sum statistic at a shift, as `rank_sum_interval` counts it.
+    fn tail(x: &[f64], y: &[f64], mu: f64, lower: bool) -> f64 {
+        let m = x.len();
+        let pooled: Vec<f64> = x.iter().map(|v| v - mu).chain(y.iter().copied()).collect();
+        let z = ranks(&pooled);
+        let w: f64 = z[..m].iter().sum::<f64>() - (m * (m + 1)) as f64 / 2.0;
+        let dist = rank_sum(&z, m);
+        if lower {
+            dist.below_or_at(w)
+        } else {
+            dist.above(w - 0.25)
+        }
+    }
+
+    #[test]
+    fn a_run_of_equal_shifts_is_counted_once_and_the_interval_is_the_same() {
+        let x = scores([1, 3, 5, 3, 2]);
+        let y = scores([3, 4, 4, 1, 0]);
+        let mut diffs: Vec<f64> = x
+            .iter()
+            .flat_map(|a| y.iter().map(move |b| a - b))
+            .collect();
+        diffs.sort_by(f64::total_cmp);
+        assert_eq!(diffs.len(), 168);
+        for alternative in [
+            Alternative::TwoSided,
+            Alternative::Greater,
+            Alternative::Less,
+        ] {
+            for alpha in [0.01, 0.05, 0.1, 0.5] {
+                let asked = RefCell::new(Vec::new());
+                let counted = |mu: f64, lower: bool| {
+                    asked.borrow_mut().push((mu.to_bits(), lower));
+                    tail(&x, &y, mu, lower)
+                };
+                let kept = searched_interval(&diffs, alpha, alternative, &counted);
+                let every = plain(&diffs, alpha, alternative, &|mu, lower| {
+                    tail(&x, &y, mu, lower)
+                });
+                assert_eq!(
+                    (kept.0.to_bits(), kept.1.to_bits()),
+                    (every.0.to_bits(), every.1.to_bits()),
+                    "{alternative:?} at {alpha}"
+                );
+                // No shift is counted twice for the same tail: at most the nine distinct
+                // differences, the eight midpoints between them and the two ends beyond.
+                let asked = asked.into_inner();
+                let mut distinct = asked.clone();
+                distinct.sort_unstable();
+                distinct.dedup();
+                assert_eq!(asked.len(), distinct.len(), "{alternative:?} at {alpha}");
+                assert!(asked.len() <= 2 * 19, "{} counts", asked.len());
+            }
+        }
+    }
+
+    #[test]
+    fn without_ties_nothing_is_spared_and_nothing_changes() {
+        // Distinct differences: every midpoint is its own shift, and the search asks what it
+        // asked before, in the same order.
+        let diffs: Vec<f64> = (0..40).map(|k| f64::from(k) * 0.37 - 5.0).collect();
+        let step = |mu: f64, lower: bool| {
+            let share = ((mu + 5.0) / 14.8).clamp(0.0, 1.0);
+            if lower { 1.0 - share } else { share }
+        };
+        for alpha in [0.02, 0.05, 0.2] {
+            let asked = RefCell::new(Vec::new());
+            let counted = |mu: f64, lower: bool| {
+                asked.borrow_mut().push((mu.to_bits(), lower));
+                step(mu, lower)
+            };
+            let kept = searched_interval(&diffs, alpha, Alternative::TwoSided, &counted);
+            let before = RefCell::new(Vec::new());
+            let every = plain(&diffs, alpha, Alternative::TwoSided, &|mu, lower| {
+                before.borrow_mut().push((mu.to_bits(), lower));
+                step(mu, lower)
+            });
+            assert_eq!(kept, every);
+            assert_eq!(asked.into_inner(), before.into_inner());
+        }
+    }
 }
