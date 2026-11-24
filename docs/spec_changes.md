@@ -942,3 +942,7 @@ The owner's decision of 24 November 2026 ("Yes and similarly revise other pages 
 ## 24 November 2026 — zeff_open_decisions.md, entry #221
 
 The owner, shown the other pages of the website revised in the style of the new home page, answered "Record them"; the entry now records them as settled and says what changed on every page. No normative text changed.
+
+## 24 November 2026 — zeff_open_decisions.md, new entry #222
+
+The owner's decision of 24 November 2026 ("Yes, switch them"): from Zeff 0.10.0 the engine draws figures in Atkinson Hyperlegible Next and JetBrains Mono, the fonts of the website and Zemp Lite, in place of IBM Plex. Entered decided with deadline 0.10.0. Section 7.6 of the Language Reference still names IBM Plex: under the freeze it is amended at the 0.10.0 step that changes the fonts, not now.
