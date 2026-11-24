@@ -982,3 +982,7 @@ The owner's proposal of 24 November 2026, after Zemp Lite 0.2.4 ("enter tight pa
 ## 24 November 2026 — zemp_specification.md, section 15 (a row for Zemp Lite 0.2.5); zeff_open_decisions.md, new entry #225, and #220, #223 and #224 amended
 
 The owner's decisions of 24 November 2026, after Zemp Lite 0.2.4: the app moves back to the root of `lite.zeff-lang.dev` and the landing page of 0.2.4 is removed ("Remove it"), in a small release, 0.2.5 ("A small release now, 0.2.5"), which carries #224 as its second step ("Yes, as a second step"). Open decision #225 is entered, decided. #220 notes that its items 1 and 2 are undone by #225. #224 is placed at 0.2.5. #223's deadline, "the release after 0.2.4", is read as its own release after 0.2.5, since 0.2.5 was opened for #225 and #224 alone. Section 15 gains a row for 0.2.5, on Zeff 0.8.0; the row of 0.2.4 stays as the record of what that release shipped. No normative text of the engine changed.
+
+## 24 November 2026 — zeff_open_decisions.md, #225 (item 5) and #220; zemp_specification.md, section 15 (the row of 0.2.5)
+
+The owner wrote: "open zemp lite ->" should be replaced by "Start". The loading screen's button is named **Start**, placed in Zemp Lite 0.2.5 as recommended. #225 gains item 5, #220 notes the new name of its item 3's button, and the row of 0.2.5 in section 15 names it. No normative text of the engine changed.
