@@ -36,6 +36,8 @@
 #                of the bounds of the studentized range over its grid of 240 points runs on,
 #                so that the suite ends late or past the job's limit: caught in the run of
 #                19 November, a timeout in that of 20 November (docs/decisions.md)
+# From 24 November 2026 the code release 0.9.0 added is read under the same keys, as its
+# shards finish (release 0.9.0, steps 3 and 42c; docs/decisions.md).
 kernel/zeff-kernels/src/demean.rs	delete ! in without_singletons	2	hang
 kernel/zeff-kernels/src/demean.rs	replace && with || in demean	1	earlier
 kernel/zeff-kernels/src/demean.rs	replace < with <= in demean	4	earlier
@@ -299,12 +301,18 @@ packages/tier1/results/src/inference.rs	replace match guard plain(name) with tru
 packages/tier1/results/src/inference.rs	replace || with && in test	2	fence
 packages/tier1/results/src/interface.rs	replace < with <= in level_text	1	earlier
 packages/tier1/results/src/interface.rs	replace > with >= in ci	1	earlier
+packages/tier1/results/src/likelihood.rs	replace * with + in self_check	1	guard
+packages/tier1/results/src/likelihood.rs	replace + with - in self_check	1	guard
+packages/tier1/results/src/likelihood.rs	replace > with == in self_check	1	guard
+packages/tier1/results/src/margins.rs	replace < with <= in set_to	1	edge
+packages/tier1/results/src/options.rs	replace * with / in checked_variance	1	guard
 packages/tier1/results/src/report.rs	delete ! in report	1	hang
 packages/tier1/results/src/report.rs	replace + with * in numbered	1	hang
 packages/tier1/results/src/report.rs	replace + with * in tests_report	1	fence
 packages/tier1/results/src/report.rs	replace + with - in tests_report	2	fence
 packages/tier1/results/src/report.rs	replace += with *= in numbered	1	hang
 packages/tier1/results/src/report.rs	replace - with + in tests_report	1	hang
+packages/tier1/results/src/report.rs	replace < with <= in report	1	edge
 packages/tier1/results/src/report.rs	replace < with > in numbered	1	hang
 packages/tier1/results/src/summary.rs	replace - with + in deviations	2	earlier
 packages/tier1/results/src/summary.rs	replace - with + in deviations	1	hang

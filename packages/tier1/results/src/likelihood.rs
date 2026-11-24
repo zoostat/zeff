@@ -504,6 +504,34 @@ mod tests {
         (x, model, solution, vcov)
     }
 
+    /// A certain outcome adds nothing to the log-likelihood however far out the index is.
+    /// Under the probit link the logarithm of the other tail is then minus infinity, and
+    /// nought times it is not a number: the term of an outcome that did not happen is left
+    /// out, not multiplied by nought (found by the mutation run of 23 November 2026, where
+    /// a `<` turned `<=` survived; release 0.9.0, step 3).
+    #[test]
+    fn a_certain_outcome_adds_nothing_at_an_extreme_index() {
+        let model = Binomial::new(vec![1.0, 0.0], Link::Probit);
+        for observed in [false, true] {
+            // A success where the model is certain of success.
+            let success = model.at(0, 1.0e200, observed);
+            assert_eq!(success.log_likelihood, 0.0, "observed: {observed}");
+            // A failure where the model is certain of failure.
+            let failure = model.at(1, -1.0e200, observed);
+            assert_eq!(failure.log_likelihood, 0.0, "observed: {observed}");
+        }
+        // The same outcomes where the model is certain of the opposite: minus infinity, which
+        // the optimiser reads as a step too far, and never not-a-number.
+        assert_eq!(
+            model.at(0, -1.0e200, false).log_likelihood,
+            f64::NEG_INFINITY
+        );
+        assert_eq!(
+            model.at(1, 1.0e200, false).log_likelihood,
+            f64::NEG_INFINITY
+        );
+    }
+
     #[test]
     fn a_sound_fit_passes_its_self_checks() {
         let (x, model, solution, vcov) = small_fit();

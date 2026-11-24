@@ -134,6 +134,8 @@ Step 43a `[engine]` (43 split in two): on a release build of 9b4fbaf the self-te
 
 Step 44 `[engine]`: the known-issues list has its section of 0.9.0 (ten entries) and four more resolved; its data form is unchanged, no wrong result of a released version having been found; the catalogue's counts agree with section 8.2 (279 functions in 1.0, 266 implemented, 673 in all); the material of the notes is in `docs/decisions.md`: seven changes for a script of 0.8.0 with their rewrites, the functions by package, the reference versions, the validation figures with NIST's table, the alpha's state and the two figures held for the risk register.
 
+Step 3 `[engine]`, the first part: the 41 shards of the run of 23 November that finished (the numeric kernel, `regress`, one of `results`) show 516 survivors read, 509 recorded and 7 new, all on this release's lines of `results`: one given a test (a certain outcome at an extreme index of the probit likelihood), six recorded as guards and edges. The shards of `stats` are read when the run ends.
+
 **Next.** Step 42b2 `[engine]`: start the weekly job by hand when the run of 23 November (45186076578) has ended. Step 43b: read the nightly (45353244465), the fuzzing (45353249836), the benchmark (45353255238, green), the trial of the release workflow with its installation check (45353923781), and the bundle's size as sent. Then 42c, the runs read, with step 3; and step 45, the reader test, which waits on the owner.
 
 **For the owner, from step 42a.** This machine's `emmeans` is 2.0.3 where the lock file and the continuous integration have 2.0.4; `Rscript tests/reference/r/install.R`, run by you, brings it into line (it installs into the repository's own ignored folder). Nothing waits on it.
