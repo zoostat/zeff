@@ -45,7 +45,7 @@ and the hypotheses. Its own methods `statistic()`, `df()`, `effect_size()`, `h0(
 `alternative()` give the figures as values.
 
 ## Missing values
-A row with `NA` in the variable counted or in `group:` is left out, and a note gives the count. With `weights:`, a row whose weight is missing is left out as well.
+A row with `NA` in the variable counted or in `group:` is left out, and a note gives the count. With `weights:`, a row whose weight is `NA` is dropped and counted with them, and the note names the weight; a row whose weight is zero is left out, and the note says how many.
 
 ## Details
 One proportion: z = (x − n p) / √(n p (1 − p)), the correction subtracting ½ from |x − n p|

@@ -41,7 +41,7 @@ interval, and no statistic of its own. Its own methods `statistic()`, `df()`, `e
 `h0()`, `h1()` and `alternative()` give the figures as values.
 
 ## Missing values
-A row with `NA` in either variable is left out, and a note gives the count; `NA` is never a category of the table. With `weights:`, a row whose weight is missing is left out as well.
+A row with `NA` in either variable is left out, and a note gives the count; `NA` is never a category of the table. With `weights:`, a row whose weight is `NA` is dropped and counted with them, and the note names the weight; a row whose weight is zero is left out, and the note says how many.
 
 ## Details
 Given the margins of a 2 × 2 table, the first cell has the hypergeometric distribution under

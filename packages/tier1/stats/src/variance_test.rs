@@ -268,8 +268,12 @@ pub fn variance_test(ctx: &mut CallContext<'_>, args: Args) -> Result<Value, Fai
         Some(Value::Word(w)) if w == "mean" => Center::Mean,
         _ => Center::Median,
     };
-    let (rows, dropped) =
-        testing::complete_rows(ctx, &frame, &[(&var, column), (&group_name, group_column)]);
+    let (rows, dropped) = testing::complete_rows(
+        ctx,
+        &frame,
+        &[(&var, column), (&group_name, group_column)],
+        None,
+    );
     let found = testing::groups(ctx, group_column, &group_name, GROUP, "variance_test")?;
     let mut labels: Vec<String> = Vec::new();
     let mut samples: Vec<Vec<f64>> = Vec::new();

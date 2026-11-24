@@ -9,7 +9,7 @@
 //! count and are refused; sampling weights are refused by the shared rule (Z0411).
 
 use std::rc::Rc;
-use zeff_columns::{Column, ColumnType, Value as Cell, WeightType, Weights};
+use zeff_columns::{Column, ColumnType, Value as Cell, WeightType};
 use zeff_core::display::{fixed, format_float};
 use zeff_core::runtime::{Args, CallContext, Fail, fail};
 use zeff_core::value::{
@@ -20,6 +20,7 @@ use zeff_diagnostics::messages::no_variable;
 use zeff_diagnostics::{Diagnostic, count};
 
 use crate::testing;
+use crate::testing::TestWeights;
 
 const VAR: usize = 1;
 const P: usize = 2;
@@ -153,7 +154,7 @@ fn counts(
     name: &str,
     column: &Column,
     rows: &[usize],
-    weights: Option<&Weights>,
+    weights: Option<&TestWeights>,
     slot: usize,
 ) -> Result<Counts, Fail> {
     let mut successes = 0.0;
@@ -244,7 +245,7 @@ fn frequency_weights(
     frame: &Frame,
     args: &Args,
     name: &str,
-) -> Result<Option<Weights>, Fail> {
+) -> Result<Option<TestWeights>, Fail> {
     let weights = testing::weights(ctx, frame, args, WEIGHTS, WEIGHT_TYPE, name)?;
     if let Some(w) = &weights
         && w.kind() == WeightType::Analytic
@@ -389,7 +390,7 @@ struct Options<'a> {
     alternative: Alternative,
     level: f64,
     alpha: f64,
-    weights: Option<&'a Weights>,
+    weights: Option<&'a TestWeights>,
 }
 
 fn internal(ctx: &CallContext<'_>, what: &str) -> Fail {
@@ -426,7 +427,7 @@ fn one_sample(
     p0: f64,
     o: Options<'_>,
 ) -> Result<Value, Fail> {
-    let (rows, dropped) = testing::complete_rows(ctx, frame, &[(var, column)]);
+    let (rows, dropped) = testing::complete_rows(ctx, frame, &[(var, column)], o.weights);
     let c = counts(ctx, var, column, &rows, o.weights, VAR)?;
     if c.n <= 0.0 {
         return Err(no_trials(ctx, var, VAR));
@@ -525,8 +526,12 @@ fn two_groups(
             .help("`ci: wilson` gives Newcombe's score interval for the difference, `ci: wald` the interval of R's `prop.test`; `fisher_test` is the exact test of the 2 × 2 table"),
         ));
     }
-    let (rows, dropped) =
-        testing::complete_rows(ctx, frame, &[(var, column), (group_name, group_column)]);
+    let (rows, dropped) = testing::complete_rows(
+        ctx,
+        frame,
+        &[(var, column), (group_name, group_column)],
+        o.weights,
+    );
     let groups = testing::two_groups(ctx, group_column, group_name, GROUP, "proportion_test")?;
     let kept = |members: &[usize]| -> Vec<usize> {
         members

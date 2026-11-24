@@ -47,7 +47,7 @@ methods `statistic()`, `df()`, `effect_size()`, `h0()`, `h1()` and `alternative(
 as values.
 
 ## Missing values
-A row with `NA` in the variable tested or in `group:` is left out, and a note gives the count. In the paired form a row is left out when either of its two measurements is missing. With `weights:`, a row whose weight is missing is left out as well.
+A row with `NA` in the variable tested or in `group:` is left out, and a note gives the count. In the paired form a row is left out when either of its two measurements is missing. With `weights:`, a row whose weight is `NA` is dropped and counted with them, and the note names the weight; a row whose weight is zero is left out, and the note says how many.
 
 ## Details
 Welch's degrees of freedom are the Welch–Satterthwaite equation. Cohen's d divides the difference

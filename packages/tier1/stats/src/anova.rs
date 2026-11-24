@@ -15,7 +15,7 @@
 //! row is step 17.
 
 use std::rc::Rc;
-use zeff_columns::{Column, ColumnType, Weights};
+use zeff_columns::{Column, ColumnType};
 use zeff_core::display::fixed;
 use zeff_core::runtime::{Args, CallContext, Fail, fail};
 use zeff_core::value::{
@@ -25,7 +25,7 @@ use zeff_core::value::{
 use zeff_diagnostics::{Diagnostic, count};
 
 use crate::testing;
-use crate::testing::Sample;
+use crate::testing::{Sample, TestWeights};
 
 /// The argument slots, in the order of the registration.
 pub(crate) const VAR: usize = 1;
@@ -430,10 +430,14 @@ pub fn anova(ctx: &mut CallContext<'_>, args: Args) -> Result<Value, Fail> {
     };
     let equal_var = matches!(args.get(EQUAL_VAR), Some(Value::Bool(true)));
     let which = effect(ctx, &args)?;
-    let weights: Option<Weights> =
+    let weights: Option<TestWeights> =
         testing::weights(ctx, &frame, &args, WEIGHTS, WEIGHT_TYPE, "anova")?;
-    let (rows, dropped) =
-        testing::complete_rows(ctx, &frame, &[(&var, column), (&group_name, group_column)]);
+    let (rows, dropped) = testing::complete_rows(
+        ctx,
+        &frame,
+        &[(&var, column), (&group_name, group_column)],
+        weights.as_ref(),
+    );
     testing::not_oversized(ctx, &var, column, &rows, VAR)?;
     let found = testing::groups(ctx, group_column, &group_name, GROUP, "anova")?;
     let mut labels: Vec<String> = Vec::new();

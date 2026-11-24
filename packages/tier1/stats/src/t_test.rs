@@ -12,7 +12,7 @@
 //! refused (Z0411). Rows with `NA` in a tested variable are dropped and counted in a note.
 
 use std::rc::Rc;
-use zeff_columns::{Column, Weights};
+use zeff_columns::Column;
 use zeff_core::display::{fixed, format_float};
 use zeff_core::runtime::{Args, CallContext, Fail, fail};
 use zeff_core::value::{
@@ -23,7 +23,7 @@ use zeff_diagnostics::messages::no_variable;
 use zeff_diagnostics::{Diagnostic, count};
 
 use crate::testing;
-use crate::testing::Sample;
+use crate::testing::{Sample, TestWeights};
 
 /// The argument slots of `t_test`, in the order of its registration.
 const VAR: usize = 1;
@@ -312,7 +312,7 @@ struct Options<'a> {
     alternative: Alternative,
     level: f64,
     alpha: f64,
-    weights: Option<&'a Weights>,
+    weights: Option<&'a TestWeights>,
 }
 
 /// The one-sample form: `var` against `mu`.
@@ -325,9 +325,9 @@ fn one_sample(
     alternative: Alternative,
     level: f64,
     alpha: f64,
-    weights: Option<&Weights>,
+    weights: Option<&TestWeights>,
 ) -> Result<Value, Fail> {
-    let (rows, dropped) = testing::complete_rows(ctx, frame, &[(var, column)]);
+    let (rows, dropped) = testing::complete_rows(ctx, frame, &[(var, column)], weights);
     testing::not_oversized(ctx, var, column, &rows, VAR)?;
     let sample = Sample::of(column, &rows, weights);
     let n = sample.n();
@@ -401,9 +401,10 @@ fn paired_form(
     alternative: Alternative,
     level: f64,
     alpha: f64,
-    weights: Option<&Weights>,
+    weights: Option<&TestWeights>,
 ) -> Result<Value, Fail> {
-    let (rows, dropped) = testing::complete_rows(ctx, frame, &[(a, a_column), (b, b_column)]);
+    let (rows, dropped) =
+        testing::complete_rows(ctx, frame, &[(a, a_column), (b, b_column)], weights);
     testing::not_oversized(ctx, a, a_column, &rows, VAR)?;
     testing::not_oversized(ctx, b, b_column, &rows, B)?;
     let sample = Sample::differences(a_column, b_column, &rows, weights);
@@ -484,8 +485,12 @@ fn two_groups(
     (group_name, group_column): (&str, &Column),
     options: Options<'_>,
 ) -> Result<Value, Fail> {
-    let (rows, dropped) =
-        testing::complete_rows(ctx, frame, &[(var, column), (group_name, group_column)]);
+    let (rows, dropped) = testing::complete_rows(
+        ctx,
+        frame,
+        &[(var, column), (group_name, group_column)],
+        options.weights,
+    );
     testing::not_oversized(ctx, var, column, &rows, VAR)?;
     let groups = testing::two_groups(ctx, group_column, group_name, GROUP, "t_test")?;
     // The groups' rows among the rows kept.

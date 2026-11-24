@@ -364,7 +364,7 @@ pub fn ks_test(ctx: &mut CallContext<'_>, args: Args) -> Result<Value, Fail> {
             .help("give the distribution with its parameters and drop `estimated:`; a test of normality with the parameters estimated is also `shapiro_test`"),
         ));
     }
-    let (rows, dropped) = testing::complete_rows(ctx, &frame, &[(&var, column)]);
+    let (rows, dropped) = testing::complete_rows(ctx, &frame, &[(&var, column)], None);
     let mut values: Vec<f64> = rows.iter().map(|&r| testing::number(column, r)).collect();
     let n = values.len();
     let smallest = if estimated { LILLIEFORS_SMALLEST } else { 1 };

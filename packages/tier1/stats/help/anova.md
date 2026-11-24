@@ -86,7 +86,7 @@ lists the terms. A table of several terms has no single hypothesis, effect size 
 printed.
 
 ## Missing values
-A row with `NA` in the variable, in `group:`, or in any variable of the formula is left out, and a note gives the count. With `weights:`, a row whose weight is missing is left out as well. A group left with no row is not a group of the test.
+A row with `NA` in the variable, in `group:`, or in any variable of the formula is left out, and a note gives the count. With `weights:`, a row whose weight is `NA` is dropped and counted with them, and the note names the weight; a row whose weight is zero is left out, and the note says how many. A group left with no row is not a group of the test.
 
 ## Details
 One-way. With k groups of sizes nᵢ, means mᵢ and variances sᵢ², Welch's F weights each group by

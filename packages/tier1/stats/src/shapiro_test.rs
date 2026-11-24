@@ -196,7 +196,7 @@ pub fn shapiro_test(ctx: &mut CallContext<'_>, args: Args) -> Result<Value, Fail
         return Err(testing::internal(ctx, "`shapiro_test` has no variable"));
     };
     numeric(ctx, &var, column)?;
-    let (rows, dropped) = testing::complete_rows(ctx, &frame, &[(&var, column)]);
+    let (rows, dropped) = testing::complete_rows(ctx, &frame, &[(&var, column)], None);
     let mut values: Vec<f64> = rows.iter().map(|&r| testing::number(column, r)).collect();
     let n = values.len();
     if n < SMALLEST {

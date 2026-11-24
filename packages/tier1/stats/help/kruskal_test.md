@@ -26,7 +26,7 @@ statistic, its degrees of freedom, the p-value and the hypotheses. Its own metho
 `df()`, `effect_size()`, `h0()`, `h1()` and `alternative()` give the figures as values.
 
 ## Missing values
-A row with `NA` in the variable or in `group:` is left out, and a note gives the count. With `weights:`, a row whose weight is missing is left out as well. A group left with no row is not a group of the test.
+A row with `NA` in the variable or in `group:` is left out, and a note gives the count. With `weights:`, a row whose weight is `NA` is dropped and counted with them, and the note names the weight; a row whose weight is zero is left out, and the note says how many. A group left with no row is not a group of the test.
 
 ## Details
 Every value is ranked in the pooled sample, ties taking the average rank. With N values in k

@@ -34,6 +34,7 @@ error[Z0401]: `fisher_test` needs at least two values of `b`, but there is one
   |
   = help: a cross-table needs at least two rows and two columns; check the rows kept and the `NA`s dropped
 
+note: 2 rows with zero weight left out (line 1)
 error[Z0401]: `fisher_test` needs at least two values of `a` with rows, but there is one
  --> scripts/main.zeff:1:73
   |

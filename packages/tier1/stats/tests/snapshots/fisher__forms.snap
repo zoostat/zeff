@@ -130,4 +130,5 @@ p = 1.000
 decision at α = 0.05: fail to reject H0 (p = 1.000)
 exact p-value from the distribution of the first cell given the margins, 3 outcomes
 ---
+note: 2 rows with zero weight left out (line 13)
 note: 1 row with NA in a or b dropped (line 15)

@@ -249,7 +249,7 @@ tests/variance/stderr 49031bc9f38f16c7
 core/print/stdout cbf29ce484222325
 core/print/stderr 2b95943dc310df04
 tests/fisher/stdout 7f517681ac48644e
-tests/fisher/stderr b83be8741898d11e
+tests/fisher/stderr 7f2386a6c7511b94
 tests/fields/stdout cbf29ce484222325
 tests/fields/stderr 066add1139daf971
 tests/shapiro/stdout bb094c197a0d6c4d

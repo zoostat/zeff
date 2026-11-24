@@ -18,7 +18,7 @@
 //! samples are small.
 
 use std::rc::Rc;
-use zeff_columns::{Column, ColumnType, Value as Cell, WeightType, Weights};
+use zeff_columns::{Column, ColumnType, Value as Cell, WeightType};
 use zeff_core::display::{fixed, format_float};
 use zeff_core::runtime::{Args, CallContext, Fail, fail};
 use zeff_core::value::{
@@ -34,6 +34,7 @@ use zeff_numeric::wilcoxon::{Exact, rank_sum, rank_sum_plain, signed_rank, signe
 use crate::proportion_test::z_p_value;
 use crate::selection::{Pairs, rank_sum_at, signed_rank_at};
 use crate::testing;
+use crate::testing::TestWeights;
 
 const VAR: usize = 1;
 const B: usize = 2;
@@ -740,7 +741,7 @@ fn number(column: &Column, row: usize) -> f64 {
 }
 
 /// The values of `column` in `rows`, each repeated by its frequency weight.
-fn values(column: &Column, rows: &[usize], weights: Option<&Weights>) -> Vec<f64> {
+fn values(column: &Column, rows: &[usize], weights: Option<&TestWeights>) -> Vec<f64> {
     let mut out = Vec::with_capacity(rows.len());
     for &row in rows {
         let copies = match weights {
@@ -759,7 +760,7 @@ fn frequency_weights(
     ctx: &CallContext<'_>,
     frame: &Frame,
     args: &Args,
-) -> Result<Option<Weights>, Fail> {
+) -> Result<Option<TestWeights>, Fail> {
     let weights = testing::weights(ctx, frame, args, WEIGHTS, WEIGHT_TYPE, "wilcoxon_test")?;
     if let Some(w) = &weights
         && w.kind() == WeightType::Analytic
@@ -810,7 +811,7 @@ struct Options<'a> {
     alternative: Alternative,
     level: f64,
     alpha: f64,
-    weights: Option<&'a Weights>,
+    weights: Option<&'a TestWeights>,
 }
 
 /// `data.wilcoxon_test(var, b, mu:, exact:, correct:, group:, paired:, alternative:, level:,
@@ -918,7 +919,7 @@ fn signed_rank_form(
         Some((b, bc)) => vec![(var, column), (b, bc)],
         None => vec![(var, column)],
     };
-    let (rows, dropped) = testing::complete_rows(ctx, frame, &columns);
+    let (rows, dropped) = testing::complete_rows(ctx, frame, &columns, o.weights);
     let x: Vec<f64> = match second {
         Some((_, bc)) => {
             let a = values(column, &rows, o.weights);
@@ -1025,8 +1026,12 @@ fn rank_sum_form(
     (group_name, group_column): (&str, &Column),
     o: Options<'_>,
 ) -> Result<Value, Fail> {
-    let (rows, dropped) =
-        testing::complete_rows(ctx, frame, &[(var, column), (group_name, group_column)]);
+    let (rows, dropped) = testing::complete_rows(
+        ctx,
+        frame,
+        &[(var, column), (group_name, group_column)],
+        o.weights,
+    );
     let groups = testing::two_groups(ctx, group_column, group_name, GROUP, "wilcoxon_test")?;
     let kept = |members: &[usize]| -> Vec<usize> {
         members

@@ -559,10 +559,10 @@ fn complete_rows_drop_and_count_with_a_note() {
         width: zeff_core::display::PAGE_WIDTH,
         shown: None,
     };
-    let (kept, dropped) = testing::complete_rows(&mut ctx, &frame, &[("x", &x), ("y", &y)]);
+    let (kept, dropped) = testing::complete_rows(&mut ctx, &frame, &[("x", &x), ("y", &y)], None);
     assert_eq!(kept, vec![0, 3]);
     assert_eq!(dropped, 2);
-    let (kept_one, dropped_one) = testing::complete_rows(&mut ctx, &frame, &[("x", &x)]);
+    let (kept_one, dropped_one) = testing::complete_rows(&mut ctx, &frame, &[("x", &x)], None);
     assert_eq!((kept_one.len(), dropped_one), (3, 1));
     drop(ctx);
     assert_eq!(messages.len(), 2);

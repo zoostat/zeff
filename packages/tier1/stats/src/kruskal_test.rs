@@ -6,7 +6,7 @@
 //! repeat rows; analytic weights are refused, since ranks cannot be scaled.
 
 use std::rc::Rc;
-use zeff_columns::{Column, ColumnType, WeightType, Weights};
+use zeff_columns::{Column, ColumnType, WeightType};
 use zeff_core::display::fixed;
 use zeff_core::runtime::{Args, CallContext, Fail, fail};
 use zeff_core::value::{
@@ -17,6 +17,7 @@ use zeff_numeric::association::ranks;
 use zeff_numeric::order::median;
 
 use crate::testing;
+use crate::testing::TestWeights;
 
 const VAR: usize = 1;
 const GROUP: usize = 2;
@@ -110,7 +111,7 @@ fn frequency_weights(
     ctx: &CallContext<'_>,
     frame: &Frame,
     args: &Args,
-) -> Result<Option<Weights>, Fail> {
+) -> Result<Option<TestWeights>, Fail> {
     let weights = testing::weights(ctx, frame, args, WEIGHTS, WEIGHT_TYPE, "kruskal_test")?;
     if let Some(w) = &weights
         && w.kind() == WeightType::Analytic
@@ -153,8 +154,12 @@ pub fn kruskal_test(ctx: &mut CallContext<'_>, args: Args) -> Result<Value, Fail
         ));
     };
     let weights = frequency_weights(ctx, &frame, &args)?;
-    let (rows, dropped) =
-        testing::complete_rows(ctx, &frame, &[(&var, column), (&group_name, group_column)]);
+    let (rows, dropped) = testing::complete_rows(
+        ctx,
+        &frame,
+        &[(&var, column), (&group_name, group_column)],
+        weights.as_ref(),
+    );
     let found = testing::groups(ctx, group_column, &group_name, GROUP, "kruskal_test")?;
     let mut labels: Vec<String> = Vec::new();
     let mut samples: Vec<Vec<f64>> = Vec::new();

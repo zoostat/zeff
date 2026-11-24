@@ -57,6 +57,43 @@ pub fn alpha(level: f64) -> f64 {
     ((1.0 - level) * 1e10).round() / 1e10
 }
 
+/// The weights of a test with what its note says of them (Language Reference, section 4.1,
+/// "Weights"): the variable they were read from, and the rows whose weight is `NA`, which are
+/// dropped and counted with the rows that have `NA` in a variable tested. It reads as the
+/// weights themselves wherever a weight is asked for.
+#[derive(Debug, Clone, PartialEq)]
+pub struct TestWeights {
+    weights: Weights,
+    name: String,
+    /// One mark for every row of the frame: the weight of the row is `NA`.
+    missing: Vec<bool>,
+}
+
+impl TestWeights {
+    /// The variable named in `weights:`.
+    pub fn name(&self) -> &str {
+        &self.name
+    }
+
+    /// Whether the weight of `row` is `NA`.
+    pub fn is_missing(&self, row: usize) -> bool {
+        self.missing.get(row).copied().unwrap_or(false)
+    }
+
+    /// Whether the weight of `row` is zero: present, and counting for nothing.
+    pub fn is_zero(&self, row: usize) -> bool {
+        !self.is_missing(row) && !self.weights.counts(row)
+    }
+}
+
+impl std::ops::Deref for TestWeights {
+    type Target = Weights;
+
+    fn deref(&self) -> &Weights {
+        &self.weights
+    }
+}
+
 /// The weights of a test, read from `weights:` and `weight_type:`: frequency or analytic
 /// weights are taken, sampling weights, the default kind, are refused (Z0411, section 6), since a
 /// test's p-value rests on a distribution that a design weight does not give; `None` without
@@ -68,7 +105,7 @@ pub fn weights(
     weights_slot: usize,
     weight_type_slot: usize,
     name: &str,
-) -> Result<Option<Weights>, Fail> {
+) -> Result<Option<TestWeights>, Fail> {
     let Some(Value::Var(var)) = args.get(weights_slot) else {
         return Ok(None);
     };
@@ -100,7 +137,17 @@ pub fn weights(
             &columns,
         )));
     };
-    Weights::from_column(column, kind).map(Some).map_err(|e| {
+    let missing: Vec<bool> = (0..column.len())
+        .map(|row| matches!(column.get(row), None | Some(Cell::Na)))
+        .collect();
+    let read = Weights::from_column(column, kind).map(|weights| {
+        Some(TestWeights {
+            weights,
+            name: var.clone(),
+            missing,
+        })
+    });
+    read.map_err(|e| {
         // The rows named, 1-based, the first twenty at most, as the reducers name them.
         let listed = |rows: &[usize], total: usize| -> String {
             let shown: Vec<String> = rows.iter().map(|r| count(*r as u64)).collect();
@@ -361,7 +408,7 @@ pub struct Sample {
 
 impl Sample {
     /// The values of `column` in `rows`, weighted by `weights` (one for every row of the frame).
-    pub fn of(column: &Column, rows: &[usize], weights: Option<&Weights>) -> Sample {
+    pub fn of(column: &Column, rows: &[usize], weights: Option<&TestWeights>) -> Sample {
         let mut values = Vec::with_capacity(rows.len());
         let mut ws = Vec::with_capacity(rows.len());
         for &row in rows {
@@ -373,7 +420,7 @@ impl Sample {
             values.push(number(column, row));
             ws.push(weights.map_or(1.0, |w| w.of(row)));
         }
-        let kind = match weights.map(Weights::kind) {
+        let kind = match weights.map(|w| w.kind()) {
             Some(WeightType::Frequency) => WeightKind::Frequency,
             Some(WeightType::Analytic) => WeightKind::Analytic,
             Some(WeightType::Sampling) => WeightKind::Sampling,
@@ -391,7 +438,7 @@ impl Sample {
         a: &Column,
         b: &Column,
         rows: &[usize],
-        weights: Option<&Weights>,
+        weights: Option<&TestWeights>,
     ) -> Sample {
         let mut sample = Sample::of(a, rows, weights);
         let second = Sample::of(b, rows, weights);
@@ -420,7 +467,7 @@ impl Sample {
 }
 
 /// The values of `column` in `rows`, each repeated by its frequency weight.
-pub fn replicated(column: &Column, rows: &[usize], weights: Option<&Weights>) -> Vec<f64> {
+pub fn replicated(column: &Column, rows: &[usize], weights: Option<&TestWeights>) -> Vec<f64> {
     let mut out = Vec::with_capacity(rows.len());
     for &row in rows {
         let copies = match weights {
@@ -437,10 +484,19 @@ pub fn replicated(column: &Column, rows: &[usize], weights: Option<&Weights>) ->
 
 /// The rows with a value in every one of `columns`, in order, and the note on the rows dropped
 /// (section 4.1): `228 rows with NA in educ or exper dropped`, nothing when none was.
+///
+/// Under `weights:` the note also says what the weights leave out, as the section's "Weights"
+/// has it: a row whose weight is `NA` is counted with the rows dropped, the weight named after
+/// the variables, and the rows a zero weight leaves out are given beside them, `29 rows with NA
+/// in wage, female or hours dropped; 2 rows with zero weight left out`. The rows returned are
+/// those complete in `columns`; a row without a weight that counts is among them and is passed
+/// over where the weights are read (`Sample::of`, `replicated`, `cross_table`), so that a value
+/// all of whose rows the weights leave out is still a value of the variable.
 pub fn complete_rows(
     ctx: &mut CallContext<'_>,
     frame: &Frame,
     columns: &[(&str, &Column)],
+    weights: Option<&TestWeights>,
 ) -> (Vec<usize>, usize) {
     let total = frame.table.rows();
     let kept: Vec<usize> = (0..total)
@@ -450,19 +506,37 @@ pub fn complete_rows(
                 .all(|(_, c)| !matches!(c.get(row), None | Some(Cell::Na)))
         })
         .collect();
-    let dropped = total - kept.len();
+    let without_weight = weights.map_or(0, |w| kept.iter().filter(|&&r| w.is_missing(r)).count());
+    let zero_weight = weights.map_or(0, |w| kept.iter().filter(|&&r| w.is_zero(r)).count());
+    let dropped = total - kept.len() + without_weight;
+    let rows = |n: usize| {
+        format!(
+            "{} {}",
+            count(n as u64),
+            if n == 1 { "row" } else { "rows" }
+        )
+    };
+    let mut parts: Vec<String> = Vec::new();
     if dropped > 0 {
-        let names: Vec<&str> = columns.iter().map(|(n, _)| *n).collect();
+        let mut names: Vec<&str> = columns.iter().map(|(n, _)| *n).collect();
+        if let Some(w) = weights
+            && w.missing() > 0
+            && !names.contains(&w.name())
+        {
+            names.push(w.name());
+        }
         let listed = match names.len() {
             0 => String::new(),
             1 => names[0].to_string(),
             n => format!("{} or {}", names[..n - 1].join(", "), names[n - 1]),
         };
-        ctx.message(Diagnostic::plain_note(format!(
-            "{} {} with NA in {listed} dropped",
-            count(dropped as u64),
-            if dropped == 1 { "row" } else { "rows" }
-        )));
+        parts.push(format!("{} with NA in {listed} dropped", rows(dropped)));
+    }
+    if zero_weight > 0 {
+        parts.push(format!("{} with zero weight left out", rows(zero_weight)));
+    }
+    if !parts.is_empty() {
+        ctx.message(Diagnostic::plain_note(parts.join("; ")));
     }
     (kept, dropped)
 }
@@ -500,10 +574,10 @@ pub fn cross_table(
     (a, a_column): (&str, &Column),
     (b, b_column): (&str, &Column),
     slots: (usize, usize),
-    weights: Option<&Weights>,
+    weights: Option<&TestWeights>,
     name: &str,
 ) -> Result<CrossTable, Fail> {
-    let (rows, dropped) = complete_rows(ctx, frame, &[(a, a_column), (b, b_column)]);
+    let (rows, dropped) = complete_rows(ctx, frame, &[(a, a_column), (b, b_column)], weights);
     let kept = frame.table.take_rows(&rows);
     let a_kept = kept
         .column(a)

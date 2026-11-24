@@ -8,7 +8,7 @@
 //! as for `proportion_test`; sampling weights by the shared rule (Z0411).
 
 use std::rc::Rc;
-use zeff_columns::{Column, Groups, WeightType, Weights};
+use zeff_columns::{Column, Groups, WeightType};
 use zeff_core::display::{fixed, fixed_grouped, format_float, labelled_cell};
 use zeff_core::runtime::{Args, CallContext, Fail, fail};
 use zeff_core::value::{
@@ -18,6 +18,7 @@ use zeff_diagnostics::messages::no_variable;
 use zeff_diagnostics::{Diagnostic, count};
 
 use crate::testing;
+use crate::testing::TestWeights;
 
 const A: usize = 1;
 const B: usize = 2;
@@ -124,7 +125,7 @@ fn frequency_weights(
     ctx: &CallContext<'_>,
     frame: &Frame,
     args: &Args,
-) -> Result<Option<Weights>, Fail> {
+) -> Result<Option<TestWeights>, Fail> {
     let weights = testing::weights(ctx, frame, args, WEIGHTS, WEIGHT_TYPE, "chi2_test")?;
     if let Some(w) = &weights
         && w.kind() == WeightType::Analytic
@@ -285,9 +286,10 @@ fn independence(
     (a, a_column): (&str, &Column),
     (b, b_column): (&str, &Column),
     correct: bool,
-    weights: Option<&Weights>,
+    weights: Option<&TestWeights>,
 ) -> Result<Value, Fail> {
-    let (rows, dropped) = testing::complete_rows(ctx, frame, &[(a, a_column), (b, b_column)]);
+    let (rows, dropped) =
+        testing::complete_rows(ctx, frame, &[(a, a_column), (b, b_column)], weights);
     let kept = frame.table.take_rows(&rows);
     let a_kept = kept
         .column(a)
@@ -436,9 +438,9 @@ fn goodness_of_fit(
     (var, column): (&str, &Column),
     proportions: &[f64],
     named: Option<&[String]>,
-    weights: Option<&Weights>,
+    weights: Option<&TestWeights>,
 ) -> Result<Value, Fail> {
-    let (rows, dropped) = testing::complete_rows(ctx, frame, &[(var, column)]);
+    let (rows, dropped) = testing::complete_rows(ctx, frame, &[(var, column)], weights);
     let kept = frame.table.take_rows(&rows);
     let kept_column = kept
         .column(var)

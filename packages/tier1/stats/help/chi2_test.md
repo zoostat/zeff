@@ -49,7 +49,7 @@ no estimate. Its own methods `statistic()`, `df()`, `effect_size()`, `h0()`, `h1
 `alternative()` give the figures as values.
 
 ## Missing values
-A row with `NA` in a variable tested is left out, and a note gives the count; `NA` is never a category of the table. With `weights:`, a row whose weight is missing is left out as well.
+A row with `NA` in a variable tested is left out, and a note gives the count; `NA` is never a category of the table. With `weights:`, a row whose weight is `NA` is dropped and counted with them, and the note names the weight; a row whose weight is zero is left out, and the note says how many.
 
 ## Details
 Independence: expected counts E = (row total × column total) / N, χ² = Σ (|O − E| − c)² / E with

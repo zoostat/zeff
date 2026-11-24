@@ -476,7 +476,7 @@ pub fn functions() -> Vec<Function> {
                 returns: "TestResult",
                 diagnostics: vec![
                     DiagnosticDecl::note(
-                        "rows with NA in a tested variable dropped, with the count",
+                        "rows with NA in a tested variable dropped, with the count; under `weights:`, rows with NA in the weight counted with them and rows with zero weight left out, with the count",
                     ),
                     DiagnosticDecl::new("Z0101", "a variable the frame does not have"),
                     DiagnosticDecl::new(
@@ -527,7 +527,7 @@ pub fn functions() -> Vec<Function> {
                 returns: "TestResult",
                 diagnostics: vec![
                     DiagnosticDecl::note(
-                        "rows with NA in a tested variable dropped, with the count",
+                        "rows with NA in a tested variable dropped, with the count; under `weights:`, rows with NA in the weight counted with them and rows with zero weight left out, with the count",
                     ),
                     DiagnosticDecl::new("Z0101", "a variable the frame does not have"),
                     DiagnosticDecl::new(
@@ -574,7 +574,7 @@ pub fn functions() -> Vec<Function> {
                 returns: "TestResult",
                 diagnostics: vec![
                     DiagnosticDecl::note(
-                        "rows with NA in a tested variable dropped, with the count",
+                        "rows with NA in a tested variable dropped, with the count; under `weights:`, rows with NA in the weight counted with them and rows with zero weight left out, with the count",
                     ),
                     DiagnosticDecl::new("W0211", "an expected count below 5"),
                     DiagnosticDecl::new("Z0101", "a variable the frame does not have"),
@@ -628,7 +628,7 @@ pub fn functions() -> Vec<Function> {
                 returns: "TestResult",
                 diagnostics: vec![
                     DiagnosticDecl::note(
-                        "rows with NA in a tested variable dropped, with the count",
+                        "rows with NA in a tested variable dropped, with the count; under `weights:`, rows with NA in the weight counted with them and rows with zero weight left out, with the count",
                     ),
                     DiagnosticDecl::new("Z0101", "a variable the frame does not have"),
                     DiagnosticDecl::new(
@@ -666,7 +666,7 @@ pub fn functions() -> Vec<Function> {
                 returns: "TestResult",
                 diagnostics: vec![
                     DiagnosticDecl::note(
-                        "rows with NA in the variable or the groups dropped, with the count",
+                        "rows with NA in the variable or the groups dropped, with the count; under `weights:`, rows with NA in the weight counted with them and rows with zero weight left out, with the count",
                     ),
                     DiagnosticDecl::new("Z0101", "a variable the frame does not have"),
                     DiagnosticDecl::new(
@@ -741,7 +741,7 @@ pub fn functions() -> Vec<Function> {
                 returns: "TestResult",
                 diagnostics: vec![
                     DiagnosticDecl::note(
-                        "rows with NA in a tested variable dropped, with the count",
+                        "rows with NA in a tested variable dropped, with the count; under `weights:`, rows with NA in the weight counted with them and rows with zero weight left out, with the count",
                     ),
                     DiagnosticDecl::new("Z0101", "a variable the frame does not have"),
                     DiagnosticDecl::new(
@@ -856,7 +856,7 @@ pub fn functions() -> Vec<Function> {
                 returns: "TestResult",
                 diagnostics: vec![
                     DiagnosticDecl::note(
-                        "rows with NA in the variable or the groups dropped, with the count; with a formula, rows with NA in a model variable or a zero weight, a column determined by the others, a term left without degrees of freedom, and a model without a category; under effect: omega, omega_f or epsilon, an estimate that is negative because F is below 1",
+                        "rows with NA in the variable or the groups dropped, with the count; under `weights:`, rows with NA in the weight counted with them and rows with zero weight left out, with the count; with a formula, rows with NA in a model variable or a zero weight, a column determined by the others, a term left without degrees of freedom, and a model without a category; under effect: omega, omega_f or epsilon, an estimate that is negative because F is below 1",
                     ),
                     DiagnosticDecl::new("Z0101", "a variable the frame does not have"),
                     DiagnosticDecl::new(
