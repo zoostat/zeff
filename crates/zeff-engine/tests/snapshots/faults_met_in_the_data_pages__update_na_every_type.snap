@@ -1,0 +1,13 @@
+---
+source: crates/zeff-engine/tests/faults_met_in_the_data_pages.rs
+expression: stdout
+---
+frame · 4 rows × 6 variables
+
+  variable   type    non-missing   missing   example
+  id         Int               4         0   1
+  x          Float             2         2   1.5
+  k          Int               3         1   10
+  s          Str               3         1   a
+  f          Bool              3         1   true
+  day        Date              3         1   2026-01-05

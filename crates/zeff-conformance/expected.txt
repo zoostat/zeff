@@ -157,7 +157,7 @@ control/vif/stderr cbf29ce484222325
 control/moments/stdout 556d89db012b5b98
 control/moments/stderr 863f87d24f827097
 control/spread/stdout ede5c48e00baab72
-control/spread/stderr 90de154cdcad211b
+control/spread/stderr 6954ffed2771d29c
 control/drop_missing/stdout b040d903ac347919
 control/drop_missing/stderr 78a3b48639a6f067
 control/rows/stdout 52b69cf23ce489b9

@@ -67,8 +67,8 @@ fn the_edge_cases() {
         "1\n1\n"
     );
     // NA skipped with the reducers' warning, placed at the call and said once for a call where
-    // two reducers word it alike (release 0.8.0, step 8o): `iqr` once; `mad` once for its
-    // median of `x` and once for the median of its own `deviation`, a known issue.
+    // two reducers word it alike (release 0.8.0, step 8o): `iqr` once, and `mad` once: the
+    // median of its own `deviation` is not warned of again (release 0.9.0, step 38e).
     let (out, err) = runs("let d = frame(x = [1, 2, 4, 7, NA, 11])\nd.iqr(x)\nd.mad(x)\n");
     assert_eq!(out, "5\n4.4478\n");
     assert_eq!(
@@ -77,9 +77,9 @@ fn the_edge_cases() {
         1,
         "{err}"
     );
-    assert_eq!(err.matches("(line 3)").count(), 2, "{err}");
+    assert_eq!(err.matches("(line 3)").count(), 1, "{err}");
     assert!(
-        err.contains("1 row with NA in deviation was skipped (line 3)"),
+        err.contains("1 row with NA in x was skipped (line 3)") && !err.contains("deviation"),
         "{err}"
     );
     // All NA: the medians are NA, so both are NA.

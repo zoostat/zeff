@@ -21,7 +21,7 @@ and counted in a note. A name the frame does not have is an error that points to
 A `Frame` with the same rows and variables, the values changed where asked.
 
 ## Missing values
-A row where the `where:` condition is `NA` is left as it was, and a note counts those rows. `NA` alone has no type and is refused; a value is made missing with an `NA` that has the variable's type, as `wage * NA` has: `update(wage = wage * NA, where: wage > 500)`.
+A row where the `where:` condition is `NA` is left as it was, and a note counts those rows. A value is made missing with `NA`, which takes the type of the variable it is given to: `update(wage = NA, where: wage > 500)`.
 
 ## A common mistake
 Naming a variable the frame does not have. `update` changes a variable that is there:
@@ -76,7 +76,7 @@ frame · 3 rows × 4 variables
 18412
 note: 211 rows where `wage > 100` was NA were left unchanged (line 4)
 
-// A value made missing: `wage * NA` is an `NA` of the type of `wage`. The 211 wages missing before are among those counted.
-> dataset(wages).update(wage = wage * NA, where: wage > 150).where(is_missing(wage)).n_rows()
+// A value made missing: `NA` takes the type of the variable. The 211 wages missing before are among those counted.
+> dataset(wages).update(wage = NA, where: wage > 150).where(is_missing(wage)).n_rows()
 212
 note: 211 rows where `wage > 150` was NA were left unchanged (line 5)

@@ -7009,6 +7009,11 @@ impl Checker<'_> {
                         )
                     };
                     let help = match ty {
+                        // `dataset` takes a name that is no variable of any frame: the name
+                        // of a shipped dataset (release 0.9.0, step 38e).
+                        Ty::Var if fname == "dataset" => {
+                            "name the dataset without quotes, as in `dataset(wages)`; `datasets()` lists them".to_string()
+                        }
                         Ty::Var => "name a variable of the frame, without quotes".to_string(),
                         Ty::Vars => {
                             "name the variables in a list, as in `[lwage, educ]`".to_string()

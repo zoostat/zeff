@@ -92,7 +92,8 @@ fn the_name_of_the_variable_itself_does_not_change_the_answer() {
 
 #[test]
 fn the_rows_with_na_are_skipped_as_before() {
-    // The warnings name the user's variable, then the deviations: as before the correction.
+    // The warnings name the user's variable. `mad` warned a second time, of its own
+    // `deviation`, until step 38e of release 0.9.0; it counts the rows once now.
     let out = run(
         "let d = frame(x = [1.0, 2, NA, 3, 9], centre = [5.0, 5, 5, 5, 5])\nd.mad(x)\nd.skewness(x)\nd.kurtosis(x)\n",
     );
@@ -101,7 +102,6 @@ fn the_rows_with_na_are_skipped_as_before() {
     assert_eq!(
         out.output.stderr,
         "warning[W0201]: 1 row with NA in x was skipped (line 2)\n\
-         warning[W0201]: 1 row with NA in deviation was skipped (line 2)\n\
          warning[W0201]: 1 row with NA in x was skipped (line 3)\n\
          warning[W0201]: 1 row with NA in x was skipped (line 4)\n"
     );

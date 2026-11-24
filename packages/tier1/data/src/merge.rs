@@ -377,6 +377,26 @@ pub fn merge(ctx: &mut CallContext<'_>, args: Args) -> Result<Value, Fail> {
         )));
         metadata.panel = None;
     }
+    // A declaration names two variables of the frame. A column that both frames have and
+    // that `suffixes:` told apart is no longer there under its own name, so a declaration that
+    // names it is dropped, as `select` drops one whose variable it leaves out (release 0.9.0,
+    // step 38e): the header said `panel worker × year` over a frame with `year_a` and `year_b`.
+    if let Some((unit, time)) = metadata.panel.clone() {
+        let gone: Vec<&str> = [unit.as_str(), time.as_str()]
+            .into_iter()
+            .filter(|name| table.position(name).is_none())
+            .collect();
+        if !gone.is_empty() {
+            ctx.message(Diagnostic::plain_note(format!(
+                "the panel declaration `{unit} × {time}` dropped: `merge` gave {} a suffix",
+                gone.iter()
+                    .map(|name| format!("`{name}`"))
+                    .collect::<Vec<_>>()
+                    .join(" and ")
+            )));
+            metadata.panel = None;
+        }
+    }
     Ok(derived(table.with_metadata(metadata)))
 }
 

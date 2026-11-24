@@ -34,7 +34,7 @@ that tell them apart.
 ## Value
 A frame with the left frame's columns, then the right frame's non-key columns; labels, value
 labels and categories are kept on both sides, and a panel declaration on other keys is kept
-unless the merge repeated or added rows.
+unless the merge repeated or added rows, or gave one of its two variables a suffix.
 
 ## Missing values
 A key that is `NA` matches nothing, on either side: its row is counted as unmatched, and kept or not as `join:` says. A left row with no match has `NA` in every column that comes from the right frame.

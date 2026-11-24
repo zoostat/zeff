@@ -351,10 +351,11 @@ is never listed here as accepted: it is fixed or the function is withdrawn.
   `n_missing`; anywhere else it is Z0220 reporting the failure it holds, so a list of fits made
   under `attempt` is read in a loop that steps over the failed ones. (Since 0.5.0; by design,
   section 3.7.)
-- **A message raised inside a built-in written in Zeff may name what the body used, not what the
-  script wrote**: an inner function (`median` needs a Bool, Int or Float, from `mad`) or the body's
-  own column (`deviation`, from `mad`; from step 8o of 0.8.0 `winsorize`, `standardize` and
-  `center` name the argument as written, and warn once). The message is placed at the
+- **A message raised inside a built-in written in Zeff may name an inner function, not the one
+  the script called**: `median` needs a Bool, Int or Float, from `mad`; `mean`, from `skewness`
+  and `kurtosis`. The body's own column is no longer named: from step 8o of 0.8.0 `winsorize`,
+  `standardize` and `center` name the argument as written and warn once, and from 0.9.0 `mad`
+  does, where it warned a second time of `deviation`. The message is placed at the
   script's call and its code is on the function's page. (Since 0.5.0; the warning of `skewness`
   and `kurtosis` for too few values carries W0205 from step 4.3 of 0.7.0.)
 - **The mean of values that cancel is within a rounding of the largest input, not of the

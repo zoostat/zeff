@@ -533,7 +533,15 @@ pub fn update(ctx: &mut CallContext<'_>, args: Args) -> Result<Value, Fail> {
             .column_at(position)
             .cloned()
             .ok_or_else(|| internal(ctx, "a column position without a column"))?;
-        let new = definition_column(ctx, "update", name, value, rows, span)?;
+        // `NA` takes the type of the variable it is given to: `update` keeps a variable's type,
+        // so there is one type the missing value can have, whether it was written alone or
+        // as `to(NA, Float)`, which the help of Z0219 advises and which arrives here as `NA`
+        // (release 0.9.0, step 38e). In `add`, where a new variable has no type yet, `NA`
+        // alone is still refused.
+        let new = match value {
+            Value::Na => Column::missing(old.ty(), rows),
+            _ => definition_column(ctx, "update", name, value, rows, span)?,
+        };
         let changed = |row: usize| mask.as_ref().is_none_or(|m| m[row]);
         let refuse = |found: &str| {
             fail(

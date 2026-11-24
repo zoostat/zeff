@@ -1,0 +1,11 @@
+---
+source: crates/zeff-engine/tests/faults_met_in_the_data_pages.rs
+expression: stderr
+---
+error[Z0401]: `name` of `dataset` must be a Var, but this is a Str
+ --> scripts/main.zeff:1:9
+  |
+1 | dataset("wages")
+  |         ^^^^^^^ a Str
+  |
+  = help: name the dataset without quotes, as in `dataset(wages)`; `datasets()` lists them

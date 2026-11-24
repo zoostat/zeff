@@ -6,7 +6,7 @@
 /// gives the raw median deviation. A robust measure of spread: it is unchanged by a shift,
 /// scaled by a positive factor, and moved by no single outlier. The medians are taken over the
 /// values present, with the reducers' warning for the rows with `NA` skipped (section 4.1 of
-/// the Language Reference), once for each median; one value gives 0, and two give the constant
+/// the Language Reference); one value gives 0, and two give the constant
 /// times half their distance.
 ///
 /// data: The frame.
@@ -16,7 +16,7 @@
 /// details: The deviations are computed in one pass over the frame and their median taken by `median`, the midpoint of the two middle values for an even count; 1.4826 is 1 / Φ⁻¹(3/4) to four decimals, the value R uses, not the exact quantile.
 /// reference: Hampel, F. R. (1974) The influence curve and its role in robust estimation, Journal of the American Statistical Association 69(346), 383–393.
 /// reference: R Core Team, the `mad` function of the stats package.
-/// missing values: The two medians are taken over the values present, with a warning for the rows skipped, once for each median. A variable with no value left gives `NA`.
+/// missing values: The two medians are taken over the values present, with one warning for the rows skipped. A variable with no value left gives `NA`.
 /// coming from: d.mad(wage) | mad(d$wage, na.rm = TRUE) | no command of its own
 /// coming from: d.mad(wage, constant: 1) | mad(d$wage, constant = 1, na.rm = TRUE) | egen m = mad(wage)
 /// coming from: R's `mad` multiplies by 1.4826 unless told, as here; Stata's `egen` function `mad()` gives the raw median deviation, which is `constant: 1`.
@@ -30,17 +30,20 @@
 /// > wages.sd(wage)
 /// 11.4753
 /// warning[W0201]: 211 rows with NA in wage were skipped (line 2)
-/// warning[W0201]: 211 rows with NA in deviation were skipped (line 2)
 /// 14.0269
 /// warning[W0201]: 211 rows with NA in wage were skipped (line 3)
 /// example: The raw median deviation, with a constant of 1.
 /// > wages.mad(wage, constant: 1)
 /// 7.74
 /// warning[W0201]: 211 rows with NA in wage were skipped (line 4)
-/// warning[W0201]: 211 rows with NA in deviation were skipped (line 4)
 fn mad(data: Frame, var: Var, constant: Float = 1.4826) -> Float {
     let centre = data.median(var)
     // The deviations are taken outside the frame, as a column: inside one of its methods a
     // name of this body could be a variable of the frame given.
-    constant * frame(deviation = abs(data[name_of(var)] - centre)).median(deviation)
+    // The rows with `NA` are those the median above has counted in its warning, under the
+    // name the script gave; the second median would count them again under a name of this
+    // body (release 0.9.0, step 38e).
+    // zeff: allow(W0201) the rows with NA are counted once, by the median of the variable itself
+    let spread = frame(deviation = abs(data[name_of(var)] - centre)).median(deviation)
+    constant * spread
 }

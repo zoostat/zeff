@@ -108,9 +108,9 @@ Step 38d1 `[function]`: the nine reducer pages of `data` to the contract (`mean`
 
 Step 38d2 `[function]`: the last eight pages (`iqr`, `mad`, `skewness`, `kurtosis`, `summary`, `n_distinct`, `dataset`, `datasets`). All 52 pages of `data` and `datasets` are now to the contract of 0.8.0; 93 pages remain on the list (`dist` 19 and `stats` 13 at this release, 61 at 0.10.0).
 
-**Next.** Step 38e `[engine]`: the faults met in these pages (`update` and a typed `NA`; a panel declaration kept by `merge` with suffixes; three messages that name an inner part). Then step 39a `[function]`: the families of `dist`. Step 3, the weekly mutation run of Monday 23 November: GitHub started it at 13:39 UTC on that day and it was still running on the 24th, behind the release's own continuous-integration runs; it is read when it ends.
+Step 38e `[engine]`: the faults met in the pages of `data`, mended. `update(wage = NA, where: …)` makes values missing, `NA` taking the type of its variable as section 3.7 of the Language Reference has it, typed or alone; `merge` drops a panel declaration whose variable its suffixes renamed, with a note; `mad` counts the missing rows once, under the name the script gave; `dataset("wages")` is told how a dataset is named. One message is left: a type error raised inside a function written in Zeff names the inner function (`skewness` of a category says that `mean` needs a number).
 
-**For the owner, from step 38a2.** Step 38e will let `update` take an `NA` of its variable's type; recommended also for a bare `NA` there (`update(wage = NA, where: wage > 500)`), since the variable gives the type. Say if a bare `NA` should stay refused.
+**Next.** Step 39a `[function]`: the pages of the families of `dist`. Step 3, the weekly mutation run of Monday 23 November: GitHub started it at 13:39 UTC on that day and it was still running on the 24th, behind the release's own continuous-integration runs; it is read when it ends.
 
 **For the owner, from step 37.** The citation file takes your name as family name Patra, given name Sabyasachi, with no affiliation and no ORCID; say if any of these should change. The archive's link (question 7c) is still yours to make.
 
