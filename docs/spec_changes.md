@@ -930,3 +930,7 @@ The owner's decision of 23 November 2026 on open decision #172 (option A: "Yes, 
 ## 24 November 2026 — zeff_functions.csv, row 159 (`summary` of `results`)
 
 Open decision #217, the owner's ruling of 23 November 2026 ("Yes, into 0.9.0"), built at step 8d of release 0.9.0. The usage gains `exponentiate: Bool`, and the description says what it gives: the odds ratios of a `glm` fit with a logit link, exp(b), with the interval exponentiated and the standard error by the delta method. No function is added and no count changes. The Language Reference does not describe the options of a fit's `summary`, so no other text changes.
+
+## 24 November 2026 — zemp_specification.md, section 15 (a row for Zemp Lite 0.2.4); zeff_open_decisions.md, new entry #220
+
+The owner's decision of 24 November 2026 ("Record for 0.2.4") on Zemp Lite's front page, its loading and project screens, and its name drawn as *Zemp* with a raised *Lite* badge, each drawn as a mockup and changed by him in three rounds. Open decision #220 is entered, decided; where the landing page lives (the root of the address, the app at `/app/`) is taken as recommended and is his to overturn. Section 15 gains a row for 0.2.4, on Zeff 0.8.0, between 0.2.3 and 0.3. The welcome screen's text in section 5 is unchanged: it names neither the zip action nor the layout. No normative text of the engine changed. The Zemp Lite session copies the change into its repository, as before.
