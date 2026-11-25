@@ -7931,3 +7931,23 @@ Step 42c4b is split once more as its parts end: 42c4b3 (this entry), what had en
 **Held by.** The comparison tool on the fifteen shards of `regress` together; the tool's own output, read; the first changed line of each file against the line where its tests begin.
 
 **Reason.** The testing handbook, sections 1 (mutation testing) and 2.4; the checklist's step 42c4b.
+
+## 25 November 2026 — release 0.9.0, step 42c4b4: the seventh shard cut off, `regress` read whole, and the first shard of `stats`
+
+Step 42c4b is split once more as its parts end: 42c4b4 (this entry), what had ended by 16:55 UTC on 25 November; 42c4b5, the rest when run 45437619962 has ended.
+
+**Shard 31 of `results` was cut off at the job's limit**, the sixth of its package and the seventh of the run, and on a slow machine as the others were: a first pass of 146 minutes, 19 for the check of the second pass's tests, 24 mutants left. `results` has ended in this run: 26 of its 32 shards whole and read (steps 42c4a to 42c4b2), six cut off (1, 3, 5, 7, 30, 31).
+
+**The command takes it up.** `tools/mutants/rerun.py --run 45437619962` names fourteen shards for the seven cut off: `zeff-kernels` 2 and 14 of 24, and `zeff-results` 1, 3, 5, 7, 30, 31, 33, 35, 37, 39, 62 and 63 of 64. Nothing was started.
+
+**`regress` is read whole.** Shard 14, the last: 86 mutants, 11 survivors, all on the recorded list. The sixteen shards together: 1,382 mutants, which is the whole package, 142 survivors, 142 on the list, none new.
+
+**Nine entries of the list struck.** With a package read whole, the list can be read the other way: it held 151 survivors of `regress` and the run met 142. Six were of `checked_variance` and `cluster_and_weight_warnings` in `reg.rs`: the two routines moved to the variance layer in `results` at this release (`options.rs`), where the same changes were met and recorded at steps 42c4a and 42c4b1, and `reg.rs` has no such mutants any more. Three are caught now by the package's own tests, in the first pass: a `-` turned `+` in the building of the two designs (`iv.rs`), and a `<` turned `<=` and a `>` turned `>=` in `ar_test` (`ivreg.rs`), each a survivor in the run of 19 November and caught in those of 20, 23 and 24 November, by the tests written on the 20th (release 0.8.0, step 24a2). The list now holds 142 for `regress`, the number the run leaves.
+
+The numeric kernel, read whole at step 42c4b2, holds six entries the run did not meet, all of the kind `late` in the studentized range: mutants that time out on a slower machine and are caught on a faster one. They stay.
+
+**`stats`, shard 1, the first of its package to end: 103 mutants, 3 survivors and timeouts, all on the recorded list.** It took 156 minutes: a first pass of 132, 7 for the check, and 7 for each of the two mutants left. A shard of 100 mutants has room. The package's shards are compared together when they are in, as step 42c4b2 has it; fourteen were running and twenty-five waited.
+
+**Held by.** The tool's own output, read; the comparison tool on the sixteen shards of `regress` together, on the numeric kernel's and on those of `results` read so far, after the list was changed (142 of 142, 367 of 367, 95 of 137 with 42 that tests now catch).
+
+**Reason.** The testing handbook, sections 1 (mutation testing) and 2.4; the checklist's step 42c4b.

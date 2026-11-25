@@ -550,7 +550,6 @@ packages/tier2/regress/src/iv.rs	replace + with - in noncentral_chi_square_point
 packages/tier2/regress/src/iv.rs	replace += with *= in <impl Estimator for SecondStage<'_>>::fit	1	guard
 packages/tier2/regress/src/iv.rs	replace += with -= in <impl Estimator for SecondStage<'_>>::fit	1	guard
 packages/tier2/regress/src/iv.rs	replace += with -= in TwoStage::hansen_j	2	identity
-packages/tier2/regress/src/iv.rs	replace - with + in Designs::build_full	1	fence
 packages/tier2/regress/src/iv.rs	replace - with + in TwoStage::diagnostics	1	identity
 packages/tier2/regress/src/iv.rs	replace - with + in noncentral_chi_square_point	1	margin
 packages/tier2/regress/src/iv.rs	replace - with / in noncentral_chi_square_point	2	margin
@@ -588,9 +587,8 @@ packages/tier2/regress/src/iv.rs	replace || with && in TwoStage::anderson_rubin	
 packages/tier2/regress/src/iv.rs	replace || with && in TwoStage::weak	1	unavailable
 packages/tier2/regress/src/ivreg.rs	replace && with || in ivreg	1	fence
 packages/tier2/regress/src/ivreg.rs	replace && with || in stage_tables	1	edge
-packages/tier2/regress/src/ivreg.rs	replace < with <= in ar_test	2	edge
+packages/tier2/regress/src/ivreg.rs	replace < with <= in ar_test	1	edge
 packages/tier2/regress/src/ivreg.rs	replace == with != in clusters_for	1	identity
-packages/tier2/regress/src/ivreg.rs	replace > with >= in ar_test	1	edge
 packages/tier2/regress/src/ivreg.rs	replace > with >= in ivreg	1	edge
 packages/tier2/regress/src/ivreg.rs	replace > with >= in stage_tables	1	edge
 packages/tier2/regress/src/ivreg.rs	replace match guard shared.kind == Kind::Cluster && weak.df1 as u64 > second with true in stage_tables	1	edge
@@ -601,18 +599,12 @@ packages/tier2/regress/src/ols.rs	replace += with *= in <impl Estimator for Ols>
 packages/tier2/regress/src/ols.rs	replace += with -= in <impl Estimator for Ols>::fit	2	earlier
 packages/tier2/regress/src/ols.rs	replace > with >= in <impl Estimator for Ols>::fit	1	earlier
 packages/tier2/regress/src/reg.rs	replace && with || in formula_variables::of_expr	1	earlier
-packages/tier2/regress/src/reg.rs	replace * with + in checked_variance	1	guard
-packages/tier2/regress/src/reg.rs	replace * with / in checked_variance	1	guard
 packages/tier2/regress/src/reg.rs	replace + with * in driving_observations	2	fence
 packages/tier2/regress/src/reg.rs	replace + with - in driving_observations	1	fence
 packages/tier2/regress/src/reg.rs	replace += with -= in driving_observations	1	earlier
 packages/tier2/regress/src/reg.rs	replace - with + in essentially_perfect	2	earlier
 packages/tier2/regress/src/reg.rs	replace == with != in fit_with_effects	1	fence
 packages/tier2/regress/src/reg.rs	replace == with != in reg	1	earlier
-packages/tier2/regress/src/reg.rs	replace > with == in checked_variance	1	guard
-packages/tier2/regress/src/reg.rs	replace > with >= in checked_variance	1	guard
-packages/tier2/regress/src/reg.rs	replace > with >= in cluster_and_weight_warnings	1	edge
 packages/tier2/regress/src/reg.rs	replace > with >= in driving_observations	1	earlier
 packages/tier2/regress/src/reg.rs	replace > with >= in reg	2	earlier
-packages/tier2/regress/src/reg.rs	replace || with && in checked_variance	1	guard
 packages/tier2/regress/src/reg.rs	replace || with && in driving_observations	1	earlier
