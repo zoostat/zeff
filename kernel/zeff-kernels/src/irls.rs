@@ -484,4 +484,394 @@ mod tests {
             }
         );
     }
+
+    // The tests below are of release 0.9.0, step 42c: the first weekly run of the mutation job
+    // on this file (45437619962, 24 November 2026) left eighteen changes of it that the tests
+    // above, and every fit of `glm`, let pass.
+
+    /// One row and one column of ones, with the row's terms given point by point: the linear
+    /// predictor is the coefficient, and every value the iteration meets is the test's choice.
+    struct Scripted<F: Fn(f64) -> (f64, f64, f64)>(F);
+
+    impl<F: Fn(f64) -> (f64, f64, f64)> IndexModel for Scripted<F> {
+        fn rows(&self) -> usize {
+            1
+        }
+        fn at(&self, _row: usize, eta: f64, _observed: bool) -> RowTerms {
+            let (log_likelihood, score, weight) = (self.0)(eta);
+            RowTerms {
+                log_likelihood,
+                score,
+                weight,
+            }
+        }
+    }
+
+    fn scripted(terms: impl Fn(f64) -> (f64, f64, f64)) -> Result<Solution, Stop> {
+        let x = Matrix::from_fn(1, 1, |_, _| 1.0);
+        irls(&x, &Scripted(terms), &[0.0], &Control::default())
+    }
+
+    /// The fall of the log-likelihood that a step may make from a log-likelihood of zero: the
+    /// tolerance times a tenth.
+    fn allowed_fall() -> f64 {
+        Control::default().tolerance * 0.1
+    }
+
+    #[test]
+    fn a_step_that_lowers_the_log_likelihood_by_no_more_than_rounding_is_taken() {
+        // From 0 the first step goes to 1, where the log-likelihood is zero, and the second
+        // to 2, where it is lower by half the fall allowed, and then by exactly the fall
+        // allowed: both are taken whole, and the fit rests at 2, where the score is zero.
+        for fall in [0.5 * allowed_fall(), allowed_fall()] {
+            let solution = scripted(|eta| match eta {
+                0.0 => (-1.0, 1.0, 1.0),
+                1.0 => (0.0, 1.0, 1.0),
+                2.0 => (-fall, 0.0, 1.0),
+                _ => (-1.0, 0.0, 1.0),
+            })
+            .unwrap();
+            assert_eq!(solution.coefficients, vec![2.0], "a fall of {fall}");
+            assert_eq!(solution.halvings, 0);
+            assert_eq!(solution.iterations, 3);
+            assert!(solution.converged);
+            assert_eq!(solution.history, vec![-1.0, 0.0, -fall, -fall]);
+        }
+    }
+
+    #[test]
+    fn a_step_that_lowers_the_log_likelihood_by_more_is_halved() {
+        // The step to 2 would lower the log-likelihood by five times the fall allowed: half
+        // of it is taken, to 1.5, where the log-likelihood is no lower and the score is zero.
+        let solution = scripted(|eta| match eta {
+            0.0 => (-1.0, 1.0, 1.0),
+            1.0 => (0.0, 1.0, 1.0),
+            2.0 => (-5.0 * allowed_fall(), 0.0, 1.0),
+            1.5 => (0.0, 0.0, 1.0),
+            _ => (-1.0, 0.0, 1.0),
+        })
+        .unwrap();
+        assert_eq!(solution.coefficients, vec![1.5]);
+        assert_eq!(solution.halvings, 1);
+        assert_eq!(solution.iterations, 3);
+        assert!(solution.converged);
+    }
+
+    #[test]
+    fn a_step_with_no_point_above_the_present_one_ends_the_fit_where_it_stands() {
+        // After the first step every point along the second, down to a billionth of it, has a
+        // lower log-likelihood: the present point is the maximum as nearly as it can be
+        // found, no step is counted for the iteration that took none, and the thirty halvings
+        // are.
+        let solution = scripted(|eta| match eta {
+            0.0 => (-1.0, 1.0, 1.0),
+            1.0 => (0.0, 1.0, 1.0),
+            _ => (-1.0, 0.0, 1.0),
+        })
+        .unwrap();
+        assert_eq!(solution.coefficients, vec![1.0]);
+        assert_eq!(solution.iterations, 1);
+        assert_eq!(solution.halvings, 30);
+        assert!(solution.converged);
+        assert_eq!(solution.history, vec![-1.0, 0.0]);
+    }
+
+    #[test]
+    fn a_step_into_what_is_not_finite_stops_the_fit() {
+        let stopped = scripted(|eta| match eta {
+            0.0 => (-1.0, 1.0, 1.0),
+            1.0 => (0.0, 1.0, 1.0),
+            _ => (f64::NAN, 0.0, 1.0),
+        })
+        .unwrap_err();
+        assert_eq!(stopped, Stop::NotFinite { iteration: 2 });
+    }
+
+    #[test]
+    fn a_first_step_into_what_is_not_finite_stops_the_fit() {
+        // The first step is taken as it comes, but not into a log-likelihood that is not a
+        // number: there are no earlier coefficients to halve it towards.
+        let stopped = scripted(|eta| match eta {
+            0.0 => (-1.0, 1.0, 1.0),
+            _ => (f64::NAN, 0.0, 1.0),
+        })
+        .unwrap_err();
+        assert_eq!(stopped, Stop::NotFinite { iteration: 1 });
+    }
+
+    #[test]
+    fn no_iterations_leave_coefficients_of_zero() {
+        let y = [1.0, 2.0, 3.0];
+        let x = Matrix::from_fn(3, 2, |i, j| if j == 0 { 1.0 } else { i as f64 });
+        let solution = irls(
+            &x,
+            &Poisson { y: &y },
+            &[0.5; 3],
+            &Control {
+                max_iterations: 0,
+                ..Control::default()
+            },
+        )
+        .unwrap();
+        assert_eq!(solution.coefficients, vec![0.0, 0.0]);
+        assert_eq!(solution.iterations, 0);
+        assert!(!solution.converged);
+        assert_eq!(solution.eta, vec![0.5; 3]);
+    }
+
+    #[test]
+    fn one_term_that_is_not_finite_at_the_start_stops_the_fit() {
+        // Each of the three terms alone: the log-likelihood, the score and the weight.
+        for terms in [
+            (f64::NEG_INFINITY, 1.0, 1.0),
+            (-1.0, f64::INFINITY, 1.0),
+            (-1.0, f64::NAN, 1.0),
+            (-1.0, 1.0, f64::INFINITY),
+            (-1.0, 1.0, f64::NAN),
+        ] {
+            let stopped = scripted(|_| terms).unwrap_err();
+            assert_eq!(stopped, Stop::NotFinite { iteration: 0 }, "{terms:?}");
+        }
+    }
+
+    /// The Poisson model with rows that carry no information: where `dead` holds, the row's
+    /// terms are zero at every linear predictor.
+    struct WithDeadRows<'a> {
+        y: &'a [f64],
+        dead: &'a [bool],
+    }
+
+    impl IndexModel for WithDeadRows<'_> {
+        fn rows(&self) -> usize {
+            self.y.len()
+        }
+        fn at(&self, row: usize, eta: f64, observed: bool) -> RowTerms {
+            if self.dead[row] {
+                RowTerms {
+                    log_likelihood: 0.0,
+                    score: 0.0,
+                    weight: 0.0,
+                }
+            } else {
+                Poisson { y: self.y }.at(row, eta, observed)
+            }
+        }
+    }
+
+    #[test]
+    fn a_row_with_no_weight_adds_nothing_to_the_fit() {
+        let y = [0.0, 1.0, 3.0, 2.0, 4.0, 1.0, 0.0, 5.0, 2.0, 7.0];
+        let regressor = |i: usize| i as f64 / 3.0;
+        let x = Matrix::from_fn(10, 2, |i, j| if j == 0 { 1.0 } else { regressor(i) });
+        let dead = [
+            false, false, true, false, false, false, false, true, false, false,
+        ];
+        let with = irls(
+            &x,
+            &WithDeadRows { y: &y, dead: &dead },
+            &[0.5; 10],
+            &Control::default(),
+        )
+        .unwrap();
+        // The same fit on the eight rows that count.
+        let kept: Vec<usize> = (0..10).filter(|&i| !dead[i]).collect();
+        let y_kept: Vec<f64> = kept.iter().map(|&i| y[i]).collect();
+        let x_kept = Matrix::from_fn(8, 2, |i, j| if j == 0 { 1.0 } else { regressor(kept[i]) });
+        let without = irls(
+            &x_kept,
+            &Poisson { y: &y_kept },
+            &[0.5; 8],
+            &Control::default(),
+        )
+        .unwrap();
+        assert!(with.converged && without.converged);
+        for (a, b) in with.coefficients.iter().zip(&without.coefficients) {
+            assert!((a - b).abs() < 1e-12 * b.abs().max(1.0), "{a} and {b}");
+        }
+        assert!((with.log_likelihood - without.log_likelihood).abs() < 1e-12);
+    }
+
+    #[test]
+    fn a_column_within_the_tolerance_of_another_is_found_under_large_weights() {
+        // The third column is the second but for a part in 10¹³, below the tolerance of a part
+        // in 10¹² at which a column counts as lost. The means are near a million, so the
+        // weights are large and the diagonal of R is in the thousands: the tolerance is a
+        // share of the largest entry of that diagonal, whatever its size.
+        let n = 40;
+        let a: Vec<f64> = (0..n).map(|i| ((i * 7) % 11) as f64 / 5.0 - 1.0).collect();
+        let u: Vec<f64> = (0..n).map(|i| ((i * 5) % 13) as f64 / 6.0 - 1.0).collect();
+        let y: Vec<f64> = (0..n).map(|i| 1e6 + ((i * 3) % 5) as f64).collect();
+        let x = Matrix::from_fn(n, 3, |i, j| match j {
+            0 => 1.0,
+            1 => a[i],
+            _ => a[i] + 1e-13 * u[i],
+        });
+        let start = vec![1e6_f64.ln(); n];
+        let stopped = irls(&x, &Poisson { y: &y }, &start, &Control::default()).unwrap_err();
+        assert_eq!(
+            stopped,
+            Stop::RankLost {
+                iteration: 1,
+                column: 2
+            }
+        );
+    }
+
+    #[test]
+    fn the_iterations_stop_when_the_log_likelihood_and_the_coefficient_are_both_still() {
+        // The second step is of a part in 10¹², within the step tolerance, and the fit rests
+        // after it. Where that step raises the log-likelihood by less than the bound (the
+        // tolerance times the log-likelihood's size and a tenth), both are still and two
+        // iterations are counted; where it raises it by more, a third is needed.
+        for (rise, iterations) in [(0.5e-14, 2), (1e-13, 3)] {
+            let solution = scripted(|eta| match eta {
+                0.0 => (-1.0, 1.0, 1.0),
+                1.0 => (0.0, 1e-12, 1.0),
+                e if e > 1.0 && e < 1.5 => (rise, 0.0, 1.0),
+                _ => (-1.0, 0.0, 1.0),
+            })
+            .unwrap();
+            assert!(solution.converged);
+            assert_eq!(solution.iterations, iterations, "a rise of {rise}");
+            assert_eq!(solution.halvings, 0);
+        }
+    }
+
+    #[test]
+    fn a_step_is_measured_as_a_share_of_a_large_coefficient() {
+        // At 1,000 a step of five parts in 10⁹ is five parts in 10¹² of the coefficient,
+        // within the step tolerance: the fit has converged with that step.
+        let solution = scripted(|eta| match eta {
+            0.0 => (-1.0, 1000.0, 1.0),
+            1000.0 => (0.0, 5e-9, 1.0),
+            e if e > 1000.0 && e < 1000.5 => (0.0, 0.0, 1.0),
+            _ => (-1.0, 0.0, 1.0),
+        })
+        .unwrap();
+        assert!(solution.converged);
+        assert_eq!(solution.iterations, 2);
+        assert!((solution.coefficients[0] - (1000.0 + 5e-9)).abs() < 1e-12);
+    }
+
+    #[test]
+    fn steps_that_do_not_shrink_while_the_log_likelihood_stands_still_end_the_fit() {
+        // The log-likelihood is flat and the score sends the fit to and fro between 1 and
+        // 1.01, a step of a hundredth each time: after the first of them, two more that are
+        // no smaller than half the one before are rounding, and the fit has converged.
+        let solution = scripted(|eta| match eta {
+            0.0 => (-1.0, 1.0, 1.0),
+            e if e > 1.005 => (0.0, -0.01, 1.0),
+            _ => (0.0, 0.01, 1.0),
+        })
+        .unwrap();
+        assert!(solution.converged);
+        assert_eq!(solution.iterations, 4);
+        assert!((solution.coefficients[0] - 1.01).abs() < 1e-12);
+        // To and fro between 1 and 100: each step is measured as a share of where it lands,
+        // 0.99 on the way up and 99 on the way down, and neither is under half the other.
+        let solution = scripted(|eta| match eta {
+            0.0 => (-1.0, 1.0, 1.0),
+            e if e > 50.0 => (0.0, -99.0, 1.0),
+            _ => (0.0, 99.0, 1.0),
+        })
+        .unwrap();
+        assert!(solution.converged);
+        assert_eq!(solution.iterations, 3);
+        assert_eq!(solution.coefficients, vec![1.0]);
+    }
+
+    #[test]
+    fn steps_that_shrink_are_followed_to_the_step_tolerance() {
+        // The log-likelihood is flat again, but each step covers three quarters of what is
+        // left to 2, so each is a quarter of the one before: none is rounding, and the
+        // iterations go on until a step is within the step tolerance.
+        let solution = scripted(|eta| match eta {
+            0.0 => (-1.0, 1.0, 1.0),
+            e => (0.0, 0.75 * (2.0 - e), 1.0),
+        })
+        .unwrap();
+        assert!(solution.converged);
+        assert!((solution.coefficients[0] - 2.0).abs() < 1e-11);
+        assert_eq!(solution.iterations, 20);
+    }
+
+    /// Least squares as a likelihood, with an observed information that is twice the expected
+    /// one (no model has that; the test is of which of the two the iteration asks for).
+    struct Flagged<'a> {
+        y: &'a [f64],
+    }
+
+    impl IndexModel for Flagged<'_> {
+        fn rows(&self) -> usize {
+            self.y.len()
+        }
+        fn at(&self, row: usize, eta: f64, observed: bool) -> RowTerms {
+            let residual = self.y[row] - eta;
+            RowTerms {
+                log_likelihood: -0.5 * residual * residual,
+                score: residual,
+                weight: if observed { 2.0 } else { 1.0 },
+            }
+        }
+    }
+
+    #[test]
+    fn scoring_asks_for_the_expected_information_and_newton_for_the_observed() {
+        let y = [1.0, 3.0, 2.0, 5.0, 4.0, 7.0];
+        let x = Matrix::from_fn(6, 2, |i, j| if j == 0 { 1.0 } else { (i * i) as f64 });
+        let model = Flagged { y: &y };
+        let scoring = irls(&x, &model, &[0.0; 6], &Control::default()).unwrap();
+        // The columns are brought to unit norm: the scales are one over each column's norm.
+        let norms = [
+            6.0_f64.sqrt(),
+            (1.0_f64 + 16.0 + 81.0 + 256.0 + 625.0).sqrt(),
+        ];
+        for (scale, norm) in scoring.scales.iter().zip(norms) {
+            assert!((scale * norm - 1.0).abs() < 1e-15, "{scale} and {norm}");
+        }
+        // With the expected information the first step is the least-squares fit, and the
+        // second finds nothing to move.
+        assert!(scoring.converged);
+        assert_eq!(scoring.iterations, 2);
+        // R is of the scaled columns with weights of one: its first entry is the norm of a
+        // column of unit norm.
+        assert!((scoring.r.get(0, 0).abs() - 1.0).abs() < 1e-14);
+        let newton = irls(
+            &x,
+            &model,
+            &[0.0; 6],
+            &Control {
+                method: Method::Newton,
+                ..Control::default()
+            },
+        )
+        .unwrap();
+        // With an information twice too large each step goes half of the way.
+        assert!(newton.converged);
+        assert!(newton.iterations > 30, "{}", newton.iterations);
+        assert!((newton.r.get(0, 0).abs() - 2.0_f64.sqrt()).abs() < 1e-14);
+        for (a, b) in scoring.coefficients.iter().zip(&newton.coefficients) {
+            assert!((a - b).abs() < 1e-9 * a.abs().max(1.0), "{a} and {b}");
+        }
+    }
+
+    #[test]
+    fn the_iterations_end_at_their_cap() {
+        let y = [1.0, 3.0, 2.0, 5.0, 4.0, 7.0];
+        let x = Matrix::from_fn(6, 2, |i, j| if j == 0 { 1.0 } else { (i * i) as f64 });
+        let solution = irls(
+            &x,
+            &Flagged { y: &y },
+            &[0.0; 6],
+            &Control {
+                method: Method::Newton,
+                max_iterations: 3,
+                ..Control::default()
+            },
+        )
+        .unwrap();
+        assert!(!solution.converged);
+        assert_eq!(solution.iterations, 3);
+        assert_eq!(solution.history.len(), 4);
+    }
 }

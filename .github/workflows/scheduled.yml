@@ -349,7 +349,7 @@ jobs:
     # and the tool's own baseline, which runs the package's tests only, could not show it
     # (docs/decisions.md, 19 November 2026). A mutant that timed out in the first pass is a
     # hang or a slow failure under its own package's tests and is listed as that; it is not
-    # tested again, where it would cost fifteen minutes to learn the same.
+    # tested again, where it would cost half an hour to learn the same.
     # From 0.9.0 (step 42b) the `glm` package is in the job, with four shards of its 252 mutants,
     # and its tests are among those of the second pass for `zeff-results` and `zeff-kernels`,
     # whose margins, summaries and iterations they exercise. The shards of those two are
@@ -362,6 +362,13 @@ jobs:
     # shards of about 100 mutants, where it was in 24 of 170: the first pass of such a shard,
     # against the package's own tests, took four to five hours in the same run, and the shards
     # that took five were cut off with three to eight mutants still to retest.
+    # From step 42c the kernels are in 16 shards (63 mutants). In the first run on the
+    # release's code (45437619962, 24 November 2026) a shard of 84 left 18 to 26 for the second
+    # pass, almost all of them in the two kernels the release added, and the five packages'
+    # tests of that pass take eleven to sixteen minutes for each mutant they do not catch: the
+    # shard with 26 was cut off at the job's limit with one still to test. The tests written
+    # on reading that run settle most of those mutants in the first pass, so a shard now has a
+    # handful left; the smaller shards are for the next kernel that arrives with few tests.
     name: weekly (mutation testing, ${{ matrix.package }} ${{ matrix.shard }} of ${{ matrix.of }})
     if: >-
       github.event_name == 'workflow_dispatch' && (inputs.job == 'both' || inputs.job == 'weekly')
@@ -404,18 +411,22 @@ jobs:
           - { package: zeff-numeric, shard: 21, of: 24, uses: "zeff-dist zeff-stats zeff-kernels zeff-conformance" }
           - { package: zeff-numeric, shard: 22, of: 24, uses: "zeff-dist zeff-stats zeff-kernels zeff-conformance" }
           - { package: zeff-numeric, shard: 23, of: 24, uses: "zeff-dist zeff-stats zeff-kernels zeff-conformance" }
-          - { package: zeff-kernels, shard: 0, of: 12, uses: "zeff-results zeff-regress zeff-glm zeff-stats zeff-conformance" }
-          - { package: zeff-kernels, shard: 1, of: 12, uses: "zeff-results zeff-regress zeff-glm zeff-stats zeff-conformance" }
-          - { package: zeff-kernels, shard: 2, of: 12, uses: "zeff-results zeff-regress zeff-glm zeff-stats zeff-conformance" }
-          - { package: zeff-kernels, shard: 3, of: 12, uses: "zeff-results zeff-regress zeff-glm zeff-stats zeff-conformance" }
-          - { package: zeff-kernels, shard: 4, of: 12, uses: "zeff-results zeff-regress zeff-glm zeff-stats zeff-conformance" }
-          - { package: zeff-kernels, shard: 5, of: 12, uses: "zeff-results zeff-regress zeff-glm zeff-stats zeff-conformance" }
-          - { package: zeff-kernels, shard: 6, of: 12, uses: "zeff-results zeff-regress zeff-glm zeff-stats zeff-conformance" }
-          - { package: zeff-kernels, shard: 7, of: 12, uses: "zeff-results zeff-regress zeff-glm zeff-stats zeff-conformance" }
-          - { package: zeff-kernels, shard: 8, of: 12, uses: "zeff-results zeff-regress zeff-glm zeff-stats zeff-conformance" }
-          - { package: zeff-kernels, shard: 9, of: 12, uses: "zeff-results zeff-regress zeff-glm zeff-stats zeff-conformance" }
-          - { package: zeff-kernels, shard: 10, of: 12, uses: "zeff-results zeff-regress zeff-glm zeff-stats zeff-conformance" }
-          - { package: zeff-kernels, shard: 11, of: 12, uses: "zeff-results zeff-regress zeff-glm zeff-stats zeff-conformance" }
+          - { package: zeff-kernels, shard: 0, of: 16, uses: "zeff-results zeff-regress zeff-glm zeff-stats zeff-conformance" }
+          - { package: zeff-kernels, shard: 1, of: 16, uses: "zeff-results zeff-regress zeff-glm zeff-stats zeff-conformance" }
+          - { package: zeff-kernels, shard: 2, of: 16, uses: "zeff-results zeff-regress zeff-glm zeff-stats zeff-conformance" }
+          - { package: zeff-kernels, shard: 3, of: 16, uses: "zeff-results zeff-regress zeff-glm zeff-stats zeff-conformance" }
+          - { package: zeff-kernels, shard: 4, of: 16, uses: "zeff-results zeff-regress zeff-glm zeff-stats zeff-conformance" }
+          - { package: zeff-kernels, shard: 5, of: 16, uses: "zeff-results zeff-regress zeff-glm zeff-stats zeff-conformance" }
+          - { package: zeff-kernels, shard: 6, of: 16, uses: "zeff-results zeff-regress zeff-glm zeff-stats zeff-conformance" }
+          - { package: zeff-kernels, shard: 7, of: 16, uses: "zeff-results zeff-regress zeff-glm zeff-stats zeff-conformance" }
+          - { package: zeff-kernels, shard: 8, of: 16, uses: "zeff-results zeff-regress zeff-glm zeff-stats zeff-conformance" }
+          - { package: zeff-kernels, shard: 9, of: 16, uses: "zeff-results zeff-regress zeff-glm zeff-stats zeff-conformance" }
+          - { package: zeff-kernels, shard: 10, of: 16, uses: "zeff-results zeff-regress zeff-glm zeff-stats zeff-conformance" }
+          - { package: zeff-kernels, shard: 11, of: 16, uses: "zeff-results zeff-regress zeff-glm zeff-stats zeff-conformance" }
+          - { package: zeff-kernels, shard: 12, of: 16, uses: "zeff-results zeff-regress zeff-glm zeff-stats zeff-conformance" }
+          - { package: zeff-kernels, shard: 13, of: 16, uses: "zeff-results zeff-regress zeff-glm zeff-stats zeff-conformance" }
+          - { package: zeff-kernels, shard: 14, of: 16, uses: "zeff-results zeff-regress zeff-glm zeff-stats zeff-conformance" }
+          - { package: zeff-kernels, shard: 15, of: 16, uses: "zeff-results zeff-regress zeff-glm zeff-stats zeff-conformance" }
           - { package: zeff-results, shard: 0, of: 32, uses: "zeff-regress zeff-glm zeff-stats zeff-plot zeff-conformance" }
           - { package: zeff-results, shard: 1, of: 32, uses: "zeff-regress zeff-glm zeff-stats zeff-plot zeff-conformance" }
           - { package: zeff-results, shard: 2, of: 32, uses: "zeff-regress zeff-glm zeff-stats zeff-plot zeff-conformance" }
@@ -563,12 +574,17 @@ jobs:
           mkdir -p pass1 && cp mutants/mutants.out/*.txt pass1/ || true
           echo "Pass one, against the package's own tests: caught $(wc -l < pass1/caught.txt | tr -d ' '), missed $(wc -l < pass1/missed.txt | tr -d ' '), timed out $(wc -l < pass1/timeout.txt | tr -d ' '), unviable $(wc -l < pass1/unviable.txt | tr -d ' ')"
           # Pass two: what pass one missed, against the tests of the packages that use this one,
-          # with a floor of fifteen minutes. Those tests take about ten minutes on the unmutated
+          # with a floor of thirty minutes. Those tests take about ten minutes on the unmutated
           # code where the plot package is among them (586 seconds in the run of 20 November
           # 2026, 44653636848, 489 the day before), and cargo stops at the first test program
           # that fails: under the floor of ten minutes that stood until then, a mutant caught
           # by one of the last programs was cut off before that program ran and reported as a
-          # timeout, and so was every mutant that no test catches. `--iterate` skips the mutants a previous run caught, but it cuts its shards
+          # timeout, and so was every mutant that no test catches. The floor of fifteen minutes
+          # that followed was outgrown at release 0.9.0 (step 42c): with the tests of `glm`
+          # among them, those of the kernels' second pass take 630 to 790 seconds on most
+          # runners and over 900 on the slower ones, where five shards of the run of 24
+          # November 2026 (45437619962) reported every mutant no test catches as a timeout, 75
+          # in all. `--iterate` skips the mutants a previous run caught, but it cuts its shards
           # afresh from what is left of the whole package, so a second run with `--shard` tests
           # other shards' mutants (the run of 15 November 2026 by hand, 43675253535, tested 106
           # where 14 were left). So the second pass takes no shard: every mutant of the package
@@ -605,7 +621,7 @@ jobs:
             fi
             echo "The guard: $(grep -c '^test result: ok' guard.log) test programs of pass two pass on the unmutated code under its limit"
             cargo clean
-            (cargo mutants --package ${{ matrix.package }} --iterate $TEST_PACKAGES --timeout-multiplier 5 --minimum-test-timeout 900 --output mutants -- -- $SKIPS || true) 2>&1 | tail -40
+            (cargo mutants --package ${{ matrix.package }} --iterate $TEST_PACKAGES --timeout-multiplier 5 --minimum-test-timeout 1800 --output mutants -- -- $SKIPS || true) 2>&1 | tail -40
             # A mutant that asks for memory without bound is caught by the limit, and rightly;
             # but if most of the mutants of pass two end so, the limit is catching the tests and
             # not the mutants. The count is printed for the reader of the note.

@@ -79,6 +79,17 @@ is never listed here as accepted: it is fixed or the function is withdrawn.
   raised inside a built-in written in Zeff may still name an inner function (see the entry of
   0.5.0). None gives a wrong number for a call that makes sense. (Since 0.5.0 and 0.7.0; noted
   at 0.9.0.)
+- **The separation check gives no answer on one kind of large, exactly balanced design.** Before
+  a fit, `glm` decides by a linear program whether the outcomes are separated. Where every
+  column of the design has the same sum over the rows of outcome 1 as over the rows of outcome
+  0, each step of that program is a step in place, and with forty columns and more of unrelated
+  numbers it can end without a verdict (found by a test written at this release: a design of
+  drawn numbers in which each row is met once with each outcome). The fit then goes ahead as if
+  unchecked, and nothing wrong is printed: such outcomes overlap. A separated design on which
+  the check gave no answer would be met by the fit's own warnings, of fitted probabilities
+  numerically 0 or 1 or of a fit that did not converge, in place of Z0803. With matched pairs
+  and a dummy for each pair, the design in which such balance is met in practice, the check
+  answers at 200 pairs. To be mended at 0.10.0 (open decision #226). (Since 0.9.0.)
 - **No reader outside the project has read Zeff's scripts yet.** The testing handbook asks, from
   0.8.0, that short scripts be given to students and referees who have not written Zeff and that
   what they misread be corrected (section 2.4, item 4). The test was not run at 0.8.0, by the

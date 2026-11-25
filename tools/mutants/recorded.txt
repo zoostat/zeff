@@ -38,6 +38,12 @@
 #                19 November, a timeout in that of 20 November (docs/decisions.md)
 # From 24 November 2026 the code release 0.9.0 added is read under the same keys, as its
 # shards finish (release 0.9.0, steps 3 and 42c; docs/decisions.md).
+# One key is of that code alone, read on 25 November 2026 (step 42c).
+#   path         another route of the simplex of the separation check to the same answer:
+#                which of two equal candidates enters or leaves, when Bland's rule takes
+#                over, when the basis is rebuilt, or a shortcut whose answer the general
+#                route gives as well; the verdict is held against a search over every
+#                direction, on designs small enough to search
 kernel/zeff-kernels/src/demean.rs	delete ! in without_singletons	2	hang
 kernel/zeff-kernels/src/demean.rs	replace && with || in demean	1	earlier
 kernel/zeff-kernels/src/demean.rs	replace < with <= in demean	4	earlier
@@ -45,9 +51,31 @@ kernel/zeff-kernels/src/demean.rs	replace < with == in demean	1	earlier
 kernel/zeff-kernels/src/demean.rs	replace > with >= in demean	1	earlier
 kernel/zeff-kernels/src/demean.rs	replace || with && in demean	1	earlier
 kernel/zeff-kernels/src/eigen.rs	replace != with == in symmetric_eigen	1	fence
+kernel/zeff-kernels/src/irls.rs	replace && with || in irls	1	fence
+kernel/zeff-kernels/src/irls.rs	replace > with >= in irls	1	fence
 kernel/zeff-kernels/src/qr.rs	replace += with *= in pivoted_qr	1	hang
 kernel/zeff-kernels/src/qr.rs	replace -= with /= in pivoted_qr	1	hang
 kernel/zeff-kernels/src/qr.rs	replace < with <= in pivoted_qr	1	earlier
+kernel/zeff-kernels/src/separation.rs	replace % with + in separation	1	path
+kernel/zeff-kernels/src/separation.rs	replace % with / in separation	1	path
+kernel/zeff-kernels/src/separation.rs	replace * with + in separation	1	margin
+kernel/zeff-kernels/src/separation.rs	replace * with / in separation	2	margin
+kernel/zeff-kernels/src/separation.rs	replace + with * in rebuild	1	identity
+kernel/zeff-kernels/src/separation.rs	replace + with * in separation	2	margin
+kernel/zeff-kernels/src/separation.rs	replace + with * in separation	1	path
+kernel/zeff-kernels/src/separation.rs	replace + with - in separation	1	margin
+kernel/zeff-kernels/src/separation.rs	replace += with *= in separation	1	path
+kernel/zeff-kernels/src/separation.rs	replace / with * in separation	1	margin
+kernel/zeff-kernels/src/separation.rs	replace < with <= in separation	1	edge
+kernel/zeff-kernels/src/separation.rs	replace < with <= in separation	2	path
+kernel/zeff-kernels/src/separation.rs	replace < with == in separation	1	margin
+kernel/zeff-kernels/src/separation.rs	replace < with > in separation	1	path
+kernel/zeff-kernels/src/separation.rs	replace == with != in separation	2	path
+kernel/zeff-kernels/src/separation.rs	replace > with >= in rebuild	1	path
+kernel/zeff-kernels/src/separation.rs	replace > with >= in separation	3	edge
+kernel/zeff-kernels/src/separation.rs	replace > with >= in separation	1	fence
+kernel/zeff-kernels/src/separation.rs	replace >= with < in separation	1	path
+kernel/zeff-kernels/src/separation.rs	replace || with && in separation	1	path
 kernel/zeff-numeric/src/association.rs	replace * with / in kendall	1	earlier
 kernel/zeff-numeric/src/association.rs	replace + with * in kendall	1	earlier
 kernel/zeff-numeric/src/association.rs	replace + with * in ranks	1	hang
@@ -67,6 +95,8 @@ kernel/zeff-numeric/src/association.rs	replace < with <= in spearman_exact_tail	
 kernel/zeff-numeric/src/association.rs	replace < with <= in tie_groups	1	earlier
 kernel/zeff-numeric/src/association.rs	replace > with >= in kendall	1	earlier
 kernel/zeff-numeric/src/association.rs	replace > with >= in spearman_exact_tail	1	earlier
+kernel/zeff-numeric/src/lib.rs	replace < with <= in powi	1	identity
+kernel/zeff-numeric/src/lib.rs	replace == with != in powi	1	hang
 kernel/zeff-numeric/src/maths.rs	replace / with * in div_float	1	earlier
 kernel/zeff-numeric/src/maths.rs	replace < with <= in div_float	2	earlier
 kernel/zeff-numeric/src/maths.rs	replace < with <= in div_int	2	earlier
