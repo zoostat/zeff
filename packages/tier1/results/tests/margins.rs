@@ -436,3 +436,107 @@ fn the_result_read_by_row_reported_and_exported() {
     }
     insta::assert_snapshot!(out);
 }
+
+// ----- places no test reached (release 0.9.0, step 42c2) -----
+
+/// Slopes through terms the differentiator had not been sent through by any test: a minus
+/// sign before the variable, inside a function and under a power, which are differentiated
+/// term by term, and `min` and a logarithm to a base, which are differenced. Against R 4.6.0
+/// on the shipped wages, the effect written out from each term's derivative on an `lm` fit
+/// (`mean(d) * b` with the delta-method standard error): −exp(−x/10)/10; 2x; one below 20,
+/// a half at 20 and nought above, which is what a central difference gives at the corner;
+/// and 1/((x + 1) log 10).
+#[test]
+fn slopes_through_a_minus_sign_a_corner_and_a_logarithm_to_a_base_agree_with_r() {
+    let wages = table_of("wages");
+    let cases = [
+        (
+            "log(wage) ~ educ + exp(-exper / 10)",
+            0.022716660679,
+            0.000453640706,
+            1e-9,
+        ),
+        (
+            "log(wage) ~ educ + (-exper)^2",
+            0.0187508727231,
+            0.0004411905913,
+            1e-9,
+        ),
+        (
+            "log(wage) ~ educ + min(exper, 20)",
+            0.0203061840118,
+            0.0004062558075,
+            1e-7,
+        ),
+        (
+            "log(wage) ~ educ + log(exper + 1, 10)",
+            0.025726274184,
+            0.000525196698,
+            1e-7,
+        ),
+    ];
+    for (formula, estimate, std_error, tolerance) in cases {
+        let fit = fit_with(
+            &wages,
+            formula,
+            &Options {
+                level: Some(0.95),
+                ..Options::default()
+            },
+        );
+        assert_eq!(fit.n, 18_179, "{formula}");
+        let result = effects(&fit, &["exper"]);
+        let row = &result.terms[0];
+        let ours = row.estimate.as_ref().expect("an estimate").value;
+        assert!(
+            close(ours, estimate, tolerance, 0.0),
+            "{formula}: {ours:e} against R's {estimate:e}"
+        );
+        let ours = row.std_error.expect("a standard error");
+        assert!(
+            close(ours, std_error, tolerance, 0.0),
+            "{formula}: standard error {ours:e} against R's {std_error:e}"
+        );
+    }
+}
+
+/// What the coverage report of the release's code showed that no test printed: `at:` with a
+/// number that is not finite; a category held at a number, at a Bool and at a record; two
+/// effects that rest on omitted terms, said in the plural; the interval of an effect that is
+/// not estimable, which is `NA`; the slope through a term dropped as nought; and the slopes of
+/// the test above with the lines that say how each was taken.
+#[test]
+fn the_forms_the_coverage_report_showed_unprinted() {
+    const M: &str =
+        "let wages = dataset(wages)\nlet m = wages.reg(log(wage) ~ educ + exper + industry)\n";
+    let scripts = [
+        format!("{M}m.margins(educ, at: {{exper: exp(1000)}})\n"),
+        format!("{M}m.margins(educ, at: {{industry: 2.5}})\n"),
+        format!("{M}m.margins(educ, at: {{industry: true}})\n"),
+        format!("{M}m.margins(educ, at: {{industry: {{a: 1}}}})\n"),
+        format!(
+            "{W}let w = wages.add(twice = educ * 2, thrice = exper * 3)\nw.reg(log(wage) ~ educ + exper + twice + thrice).margins([twice, thrice])\n"
+        ),
+        // An effect that is not estimable has no interval, and a term that is nought in
+        // every row is dropped: the slope through it is nought, with nothing to test.
+        format!(
+            "{W}let w = wages.add(twice = educ * 2)\nlet e = w.reg(log(wage) ~ educ + twice).margins([educ, twice])\nprint(e.ci(twice))\nprint(e.std_errors(twice))\nwages.reg(log(wage) ~ educ + abs(exper - exper)).margins(exper)\n"
+        ),
+        // A 0/1 variable of which one value alone is labelled: the contrast is `1 − 0`.
+        format!(
+            "{W}let w = wages.add(one = to(union, Int) + 0).label(one, [1 => \"member\"])\nw.reg(log(wage) ~ educ + one).margins(one)\n"
+        ),
+        format!(
+            "{W}wages.reg(log(wage) ~ educ + exp(-exper / 10)).margins(exper)\nwages.reg(log(wage) ~ educ + (-exper)^2).margins(exper)\nwages.reg(log(wage) ~ educ + min(exper, 20)).margins(exper)\nwages.reg(log(wage) ~ educ + log(exper + 1, 10)).margins(exper)\n"
+        ),
+    ];
+    let mut out = String::new();
+    for script in &scripts {
+        out.push_str(&format!(
+            "=== {} ===\n{}\n",
+            script.trim_end(),
+            printed(script)
+        ));
+    }
+    insta::assert_snapshot!(out);
+}

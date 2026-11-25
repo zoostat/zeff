@@ -293,3 +293,35 @@ fn the_signed_rank_interval_at_exact_levels_in_small_samples_and_past_the_level(
         );
     }
 }
+
+/// A level the sample cannot reach (release 0.9.0, step 42c2; no test had asked for one): with
+/// three values the exact signed-rank distribution has eight points, and with three and three
+/// the rank sum has twenty arrangements, so no interval short of the whole line has 99 per
+/// cent. R 4.6.0's `wilcox.test(..., conf.int = TRUE, conf.level = 0.99)` gives the same: the
+/// estimate, the p-value and an interval from `-Inf` to `Inf`, for each alternative.
+#[test]
+fn an_exact_interval_at_a_level_the_sample_cannot_reach_is_the_whole_line() {
+    let cases = [
+        ("", "V = 6.00   p = 0.250"),
+        (", alternative: greater", "V = 6.00   p = 0.125"),
+        (", alternative: less", "V = 6.00   p = 1.000"),
+    ];
+    for (alternative, statistic) in cases {
+        let out = printed(&format!(
+            "frame(y = [1.5, 2.5, 4.0]).wilcoxon_test(y, mu: 0{alternative}, level: 0.99)\n"
+        ));
+        assert!(
+            out.contains("pseudomedian = 2.625   99% CI (-Inf, Inf)\n"),
+            "{out}"
+        );
+        assert!(out.contains(statistic), "{out}");
+    }
+    let out = printed(
+        "frame(y = [1.5, 2.5, 4.0, 0.7, 3.1, 2.2], g = [1, 1, 1, 2, 2, 2]).wilcoxon_test(y, group: g, level: 0.99)\n",
+    );
+    assert!(
+        out.contains("location shift (g=1 \u{2212} g=2) = 0.800   99% CI (-Inf, Inf)\n"),
+        "{out}"
+    );
+    assert!(out.contains("W = 6.00   p = 0.700"), "{out}");
+}

@@ -1,0 +1,146 @@
+---
+source: packages/tier1/results/tests/margins.rs
+expression: out
+---
+=== let wages = dataset(wages)
+let m = wages.reg(log(wage) ~ educ + exper + industry)
+m.margins(educ, at: {exper: exp(1000)}) ===
+--- messages ---
+error[Z0401]: `at:` holds `exper` at a finite number
+ --> scripts/main.zeff:3:21
+  |
+3 | m.margins(educ, at: {exper: exp(1000)})
+  |                     ^^^^^^^^^^^^^^^^^^ in `at:`
+  |
+  = help: write a number: `at: {exper: 10}`
+[exit 1]
+
+=== let wages = dataset(wages)
+let m = wages.reg(log(wage) ~ educ + exper + industry)
+m.margins(educ, at: {industry: 2.5}) ===
+--- messages ---
+error[Z0401]: `2.5` is not a level of `industry` in this model
+ --> scripts/main.zeff:3:21
+  |
+3 | m.margins(educ, at: {industry: 2.5})
+  |                     ^^^^^^^^^^^^^^^ in `at:`
+  |
+  = help: its levels are `Agriculture`, `Mining`, `Utilities`, `Construction`, `Manufacturing`, `Retail`, `Transport`, `Finance`, `Services`, `Education`, `Health`, `Public administration`
+[exit 1]
+
+=== let wages = dataset(wages)
+let m = wages.reg(log(wage) ~ educ + exper + industry)
+m.margins(educ, at: {industry: true}) ===
+--- messages ---
+error[Z0401]: `true` is not a level of `industry` in this model
+ --> scripts/main.zeff:3:21
+  |
+3 | m.margins(educ, at: {industry: true})
+  |                     ^^^^^^^^^^^^^^^^ in `at:`
+  |
+  = help: its levels are `Agriculture`, `Mining`, `Utilities`, `Construction`, `Manufacturing`, `Retail`, `Transport`, `Finance`, `Services`, `Education`, `Health`, `Public administration`
+[exit 1]
+
+=== let wages = dataset(wages)
+let m = wages.reg(log(wage) ~ educ + exper + industry)
+m.margins(educ, at: {industry: {a: 1}}) ===
+--- messages ---
+error[Z0401]: `at:` holds the category `industry` at one of its levels, but this is a Record
+ --> scripts/main.zeff:3:21
+  |
+3 | m.margins(educ, at: {industry: {a: 1}})
+  |                     ^^^^^^^^^^^^^^^^^^ in `at:`
+  |
+  = help: write the level as text: `at: {industry: "Agriculture"}`
+[exit 1]
+
+=== let wages = dataset(wages)
+let w = wages.add(twice = educ * 2, thrice = exper * 3)
+w.reg(log(wage) ~ educ + exper + twice + thrice).margins([twice, thrice]) ===
+margins · log(wage) ~ educ + exper + twice + thrice · average marginal effects
+averaged over the 18,179 observations the fit used
+standard errors: classical, by the delta method
+
+  variable   contrast   estimate   std.error   t value   p value   95% CI
+  twice      dy/dx            NA          NA        NA        NA   NA
+  thrice     dy/dx            NA          NA        NA        NA   NA
+
+`twice` and `thrice` rest on a term the fit omitted as collinear, so they are not estimable
+--- messages ---
+note: `twice`, `thrice` are collinear with the columns before them and were dropped (line 3)
+[exit 0]
+
+=== let wages = dataset(wages)
+let w = wages.add(twice = educ * 2)
+let e = w.reg(log(wage) ~ educ + twice).margins([educ, twice])
+print(e.ci(twice))
+print(e.std_errors(twice))
+wages.reg(log(wage) ~ educ + abs(exper - exper)).margins(exper) ===
+NA
+NA
+margins · log(wage) ~ educ + abs(exper - exper) · average marginal effects
+averaged over the 18,179 observations the fit used
+standard errors: classical, by the delta method
+
+  variable   contrast   estimate   std.error   t value   p value   95% CI
+  exper      dy/dx        0.0000          NA        NA        NA   NA
+
+the slope of `exper` is taken through `abs(exper - exper)`
+--- messages ---
+note: `twice` is collinear with the columns before it and was dropped (line 3)
+note: `abs(exper - exper)` is zero in every row used and was dropped (line 6)
+[exit 0]
+
+=== let wages = dataset(wages)
+let w = wages.add(one = to(union, Int) + 0).label(one, [1 => "member"])
+w.reg(log(wage) ~ educ + one).margins(one) ===
+margins · log(wage) ~ educ + one · average marginal effects
+averaged over the 18,201 observations the fit used
+standard errors: classical, by the delta method
+
+  variable   contrast   estimate   std.error   t value   p value   95% CI
+  one        1 − 0        0.1183      0.0074     16.07    <0.001   [0.1039, 0.1328]
+--- messages ---
+[exit 0]
+
+=== let wages = dataset(wages)
+wages.reg(log(wage) ~ educ + exp(-exper / 10)).margins(exper)
+wages.reg(log(wage) ~ educ + (-exper)^2).margins(exper)
+wages.reg(log(wage) ~ educ + min(exper, 20)).margins(exper)
+wages.reg(log(wage) ~ educ + log(exper + 1, 10)).margins(exper) ===
+margins · log(wage) ~ educ + exp(-exper / 10) · average marginal effects
+averaged over the 18,179 observations the fit used
+standard errors: classical, by the delta method
+
+  variable   contrast   estimate   std.error   t value   p value   95% CI
+  exper      dy/dx        0.0227      0.0005     50.08    <0.001   [0.0218, 0.0236]
+
+the slope of `exper` is taken through `exp(-exper / 10)`
+margins · log(wage) ~ educ + (-exper)^2 · average marginal effects
+averaged over the 18,179 observations the fit used
+standard errors: classical, by the delta method
+
+  variable   contrast   estimate   std.error   t value   p value   95% CI
+  exper      dy/dx        0.0188      0.0004     42.50    <0.001   [0.0179, 0.0196]
+
+the slope of `exper` is taken through `(-exper)^2`
+margins · log(wage) ~ educ + min(exper, 20) · average marginal effects
+averaged over the 18,179 observations the fit used
+standard errors: classical, by the delta method
+
+  variable   contrast   estimate   std.error   t value   p value   95% CI
+  exper      dy/dx        0.0203      0.0004     49.98    <0.001   [0.0195, 0.0211]
+
+the slope of `exper` is taken through `min(exper, 20)`
+the slope of `exper` through `min(exper, 20)` is a central difference with a step of 0.00022, right where the term is smooth
+margins · log(wage) ~ educ + log(exper + 1, 10) · average marginal effects
+averaged over the 18,179 observations the fit used
+standard errors: classical, by the delta method
+
+  variable   contrast   estimate   std.error   t value   p value   95% CI
+  exper      dy/dx        0.0257      0.0005     48.98    <0.001   [0.0247, 0.0268]
+
+the slope of `exper` is taken through `log(exper + 1, 10)`
+the slope of `exper` through `log(exper + 1, 10)` is a central difference with a step of 0.00022, right where the term is smooth
+--- messages ---
+[exit 0]

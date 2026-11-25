@@ -79,6 +79,16 @@ is never listed here as accepted: it is fixed or the function is withdrawn.
   raised inside a built-in written in Zeff may still name an inner function (see the entry of
   0.5.0). None gives a wrong number for a call that makes sense. (Since 0.5.0 and 0.7.0; noted
   at 0.9.0.)
+- **`margins` takes a slope through a term that jumps as if it were smooth.** A term that the
+  engine cannot differentiate by rule (`floor`, `round`, `min`, `max`, a logarithm to a base) is
+  differenced: the term a small step above each row less the term a small step below, over the
+  two steps. The lines under the table say so, and that the slope is right where the term is
+  smooth. Where the data sit on the jumps it is not: after `reg(wage ~ educ + floor(exper / 10))`
+  on the shipped wages of 2019, whose `exper` is in whole years, `margins(exper)` prints a slope
+  of 908.67 with an interval, the jump of the rows at 10, 20, 30 and 40 years divided by a step
+  of 0.0002. At a corner (`min(exper, 20)` at 20) the difference gives half the slope, which is
+  the usual convention and agrees with R. No message tells the two cases apart yet (open
+  decision #227). (Since 0.9.0.)
 - **The separation check gives no answer on one kind of large, exactly balanced design.** Before
   a fit, `glm` decides by a linear program whether the outcomes are separated. Where every
   column of the design has the same sum over the rows of outcome 1 as over the rows of outcome

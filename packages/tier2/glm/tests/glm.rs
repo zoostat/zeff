@@ -1492,3 +1492,64 @@ fn the_textbook_example_agrees_with_r_and_with_the_book() {
         }
     }
 }
+
+// ----- places no test reached (release 0.9.0, step 42c2) -----
+
+/// The frame of the tests below: eight rows whose outcome overlaps in `a`, a counter `s`, a
+/// regressor too small and one too large to be scaled, and a copy of `a` doubled.
+const SMALL: &str = "let d = frame(y = [0, 0, 0, 1, 1, 1, 0, 1], a = [1.0, 2, 3, 4, 5, 6, 3.5, 3.2], s = [1, 2, 3, 4, 5, 6, 7, 8], tiny = [1e-170, 2e-170, 3e-170, 1e-170, 5e-170, 2e-170, 1e-170, 4e-170], big = [1e160, 2e160, 3e160, 1e160, 5e160, 2e160, 1e160, 4e160]).add(twice = 2 * a)\n";
+
+/// What the coverage report of the release's code showed that no test printed (the weekly run
+/// of 24 November 2026): two regressors that each separate the outcome, and three that do so
+/// together; a regressor too small and one too large to be scaled, each dropped with its note;
+/// a term written twice, in the same words and in others; `confusion` and `curve` after a fit
+/// with a term omitted as collinear, whose coefficient counts as nought; new rows of which
+/// some are left out for `NA`, counted in the line under the title; new rows with one outcome
+/// only; and the curve of a model with a constant alone, which has one point.
+#[test]
+fn the_forms_the_coverage_report_showed_unprinted() {
+    let scripts = [
+        "frame(y = [0, 0, 0, 1, 1, 1], a = [1.0, 2, 3, 4, 5, 6], b = [1.0, 1, 2, 5, 6, 6]).glm(y ~ a + b, family: binomial)\n".to_string(),
+        format!("{SMALL}d.glm(y ~ a + s + a:s + s:a, family: binomial)\n"),
+        format!("{SMALL}d.glm(y ~ a + tiny, family: binomial)\n"),
+        format!("{SMALL}d.glm(y ~ a + big, family: binomial)\n"),
+        format!("{SMALL}d.glm(y ~ a + a, family: binomial)\n"),
+        format!("{SMALL}d.glm(y ~ a - 1, family: binomial)\n"),
+        format!(
+            "{SMALL}let fresh = frame(y = [0, 1, 1, 0, 1], a = [2.0, NA, 5, 3.4, 4.1], s = [3, 1, 4, NA, 5]).add(twice = 2 * a)\nlet m = d.glm(y ~ a + s + twice, family: binomial)\nm.confusion()\nm.confusion(newdata: fresh)\nm.curve(type: roc, newdata: fresh)\nm.confusion(newdata: fresh.where(y == 1))\nm.curve(type: roc, newdata: fresh.where(y == 1))\n"
+        ),
+        format!("{SMALL}d.glm(y ~ 1, family: binomial).curve(type: roc)\n"),
+    ];
+    let all = scripts
+        .iter()
+        .map(|s| format!("{s}---\n{}", printed(s)))
+        .collect::<Vec<_>>()
+        .join("\n====\n");
+    insta::assert_snapshot!("glm_untested_places", all);
+}
+
+/// A model without a constant against R 4.6.0 (`glm(y ~ a - 1, family = binomial)` on the same
+/// eight rows): the estimate and its standard error, the log-likelihood and the deviance, and
+/// the null deviance, which is that of a linear predictor of nought and has all eight degrees
+/// of freedom.
+#[test]
+fn a_model_without_a_constant_agrees_with_r() {
+    let script = format!(
+        "{SMALL}let m = d.glm(y ~ a - 1, family: binomial)\nprint(m.coef())\nprint(m.std_errors())\nprint(m.fit_measures())\n"
+    );
+    let out = printed(&script);
+    for wanted in [
+        "a => 0.160489",
+        "a => 0.20107",
+        "log_likelihood: -5.20409",
+        "deviance: 10.4082",
+        "null_deviance: 11.0904",
+    ] {
+        assert!(out.contains(wanted), "wanted `{wanted}` in\n{out}");
+    }
+    let table = printed(&format!("{SMALL}d.glm(y ~ a - 1, family: binomial)\n"));
+    assert!(
+        table.contains("deviance 10.41 on 7 df · null deviance 11.09 on 8 df"),
+        "{table}"
+    );
+}

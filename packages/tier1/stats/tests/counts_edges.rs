@@ -203,3 +203,32 @@ fn chi2_test_names_the_variable_with_one_value() {
         "{message}"
     );
 }
+
+/// `levels:` of the goodness-of-fit test given as Bools and as decimals (release 0.9.0, step
+/// 42c2; the tests named levels as text and as whole numbers only): each names its category,
+/// and a level no row holds counts nought. R 4.6.0: `chisq.test(c(3, 1), p = c(0.5, 0.5))`
+/// gives 1 and `chisq.test(c(3, 1, 0), p = c(0.5, 0.25, 0.25))` gives 1.5.
+#[test]
+fn the_levels_of_a_fit_may_be_bools_or_decimals() {
+    const D: &str = "let d = frame(b = [true, false, true, true], f = [1.5, 2.5, 1.5, 1.5])\n";
+    let out = printed(&format!(
+        "{D}d.chi2_test(b, p: [0.5, 0.5], levels: [true, false])\n"
+    ));
+    assert!(
+        out.contains("  true           3        2.0   0.5\n"),
+        "{out}"
+    );
+    assert!(
+        out.contains("  false          1        2.0   0.5\n"),
+        "{out}"
+    );
+    assert!(out.contains("chi2(1) = 1.00   p = 0.317"), "{out}");
+    let out = printed(&format!(
+        "{D}d.chi2_test(f, p: [0.5, 0.25, 0.25], levels: [1.5, 2.5, 3.5])\n"
+    ));
+    assert!(
+        out.contains("  3.5            0        1.0   0.25\n"),
+        "{out}"
+    );
+    assert!(out.contains("chi2(2) = 1.50   p = 0.472"), "{out}");
+}
