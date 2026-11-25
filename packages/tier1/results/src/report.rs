@@ -839,4 +839,48 @@ mod tests {
             ["(1) to (3) note: a", "(2), (3) note: b", "(3) note: c"]
         );
     }
+
+    /// A coefficient that is nought, or not a number, prints at the table's decimals as any
+    /// other does: only one that is not nought and prints as zeros is written to two digits
+    /// (release 0.9.0, step 42c4; a surviving mutant sent a coefficient of nought that way).
+    #[test]
+    fn a_coefficient_of_nought_prints_at_the_tables_decimals() {
+        let pair = |value: f64, error: f64| {
+            let (a, b) = shown_pair(value, error, 3);
+            (a, b)
+        };
+        assert_eq!(pair(0.0, 0.125), ("0.000".to_string(), "0.125".to_string()));
+        // Minus nought is nought, without a sign.
+        assert_eq!(
+            pair(-0.0, 0.125),
+            ("0.000".to_string(), "0.125".to_string())
+        );
+        assert_eq!(
+            pair(f64::NAN, 0.125),
+            ("NA".to_string(), "0.125".to_string())
+        );
+        assert_eq!(
+            pair(0.25, 0.125),
+            ("0.250".to_string(), "0.125".to_string())
+        );
+        assert_eq!(
+            pair(-0.00042, 0.00011),
+            ("-0.00042".to_string(), "0.00011".to_string())
+        );
+    }
+
+    /// Two digits are written plainly down to one in a million and with an exponent below it:
+    /// the limit is at an exponent of −6 after rounding.
+    #[test]
+    fn two_digits_are_plain_down_to_one_in_a_million() {
+        assert_eq!(two_significant(1.2e-6), ("0.0000012".to_string(), Some(7)));
+        assert_eq!(
+            two_significant(-9.96e-7),
+            ("-0.0000010".to_string(), Some(7))
+        );
+        assert_eq!(two_significant(9.4e-7), ("9.4e-7".to_string(), None));
+        assert_eq!(two_significant(2.4e-9), ("2.4e-9".to_string(), None));
+        assert_eq!(two_significant(0.00045), ("0.00045".to_string(), Some(5)));
+        assert_eq!(two_significant(37.0), ("37".to_string(), Some(0)));
+    }
 }

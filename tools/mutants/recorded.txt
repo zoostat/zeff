@@ -61,8 +61,8 @@ kernel/zeff-kernels/src/separation.rs	replace % with / in separation	1	path
 kernel/zeff-kernels/src/separation.rs	replace * with + in separation	1	margin
 kernel/zeff-kernels/src/separation.rs	replace * with / in separation	2	margin
 kernel/zeff-kernels/src/separation.rs	replace + with * in rebuild	1	identity
-kernel/zeff-kernels/src/separation.rs	replace + with * in separation	2	margin
 kernel/zeff-kernels/src/separation.rs	replace + with * in separation	1	path
+kernel/zeff-kernels/src/separation.rs	replace + with * in separation	2	margin
 kernel/zeff-kernels/src/separation.rs	replace + with - in separation	1	margin
 kernel/zeff-kernels/src/separation.rs	replace += with *= in separation	1	path
 kernel/zeff-kernels/src/separation.rs	replace / with * in separation	1	margin
@@ -72,8 +72,8 @@ kernel/zeff-kernels/src/separation.rs	replace < with == in separation	1	margin
 kernel/zeff-kernels/src/separation.rs	replace < with > in separation	1	path
 kernel/zeff-kernels/src/separation.rs	replace == with != in separation	2	path
 kernel/zeff-kernels/src/separation.rs	replace > with >= in rebuild	1	path
-kernel/zeff-kernels/src/separation.rs	replace > with >= in separation	3	edge
 kernel/zeff-kernels/src/separation.rs	replace > with >= in separation	1	fence
+kernel/zeff-kernels/src/separation.rs	replace > with >= in separation	3	edge
 kernel/zeff-kernels/src/separation.rs	replace >= with < in separation	1	path
 kernel/zeff-kernels/src/separation.rs	replace || with && in separation	1	path
 kernel/zeff-numeric/src/association.rs	replace * with / in kendall	1	earlier
@@ -178,8 +178,8 @@ kernel/zeff-numeric/src/tukey.rs	replace && with || in quantile	1	earlier
 kernel/zeff-numeric/src/tukey.rs	replace * with + in expm1_minus	3	hang
 kernel/zeff-numeric/src/tukey.rs	replace * with + in inner	2	hang
 kernel/zeff-numeric/src/tukey.rs	replace * with + in ln_band	9	hang
-kernel/zeff-numeric/src/tukey.rs	replace * with + in log_integral	4	earlier
 kernel/zeff-numeric/src/tukey.rs	replace * with + in log_integral	2	hang
+kernel/zeff-numeric/src/tukey.rs	replace * with + in log_integral	4	earlier
 kernel/zeff-numeric/src/tukey.rs	replace * with + in studentized	1	late
 kernel/zeff-numeric/src/tukey.rs	replace * with + in tails	1	earlier
 kernel/zeff-numeric/src/tukey.rs	replace * with + in upper_tail	2	hang
@@ -187,10 +187,10 @@ kernel/zeff-numeric/src/tukey.rs	replace * with / in expm1_minus	2	hang
 kernel/zeff-numeric/src/tukey.rs	replace * with / in inner	1	late
 kernel/zeff-numeric/src/tukey.rs	replace * with / in ln_band	1	earlier
 kernel/zeff-numeric/src/tukey.rs	replace * with / in ln_band	8	hang
-kernel/zeff-numeric/src/tukey.rs	replace * with / in log_integral	6	earlier
 kernel/zeff-numeric/src/tukey.rs	replace * with / in log_integral	3	hang
-kernel/zeff-numeric/src/tukey.rs	replace * with / in quantile	2	earlier
+kernel/zeff-numeric/src/tukey.rs	replace * with / in log_integral	6	earlier
 kernel/zeff-numeric/src/tukey.rs	replace * with / in quantile	1	hang
+kernel/zeff-numeric/src/tukey.rs	replace * with / in quantile	2	earlier
 kernel/zeff-numeric/src/tukey.rs	replace * with / in range	1	late
 kernel/zeff-numeric/src/tukey.rs	replace * with / in tails	1	earlier
 kernel/zeff-numeric/src/tukey.rs	replace * with / in upper_tail	2	hang
@@ -206,8 +206,8 @@ kernel/zeff-numeric/src/tukey.rs	replace + with * in log_integral	6	hang
 kernel/zeff-numeric/src/tukey.rs	replace + with * in tails	1	earlier
 kernel/zeff-numeric/src/tukey.rs	replace + with - in inner	2	hang
 kernel/zeff-numeric/src/tukey.rs	replace + with - in ln_band	5	hang
-kernel/zeff-numeric/src/tukey.rs	replace + with - in log_integral	3	earlier
 kernel/zeff-numeric/src/tukey.rs	replace + with - in log_integral	2	hang
+kernel/zeff-numeric/src/tukey.rs	replace + with - in log_integral	3	earlier
 kernel/zeff-numeric/src/tukey.rs	replace + with - in quantile	1	hang
 kernel/zeff-numeric/src/tukey.rs	replace + with - in studentized	1	late
 kernel/zeff-numeric/src/tukey.rs	replace + with - in tails	1	earlier
@@ -297,6 +297,8 @@ packages/tier1/results/src/absorb.rs	replace > with >= in EffectGroups::over	1	e
 packages/tier1/results/src/absorb.rs	replace > with >= in effect_values	1	hang
 packages/tier1/results/src/absorb.rs	replace codes_of -> Option<Vec<i64>> with None	1	earlier
 packages/tier1/results/src/absorb.rs	replace || with && in effect_values	1	earlier
+packages/tier1/results/src/dependence.rs	replace + with - in differentiate	1	fence
+packages/tier1/results/src/dependence.rs	replace Design::source_keys -> &[String] with Vec::leak(vec![String::new()])	1	guard
 packages/tier1/results/src/design.rs	replace && with || in Builder<'_, '_>::expand	1	earlier
 packages/tier1/results/src/design.rs	replace && with || in Builder<'_, '_>::expression	1	earlier
 packages/tier1/results/src/design.rs	replace + with * in orthonormal_polynomials	1	hang
@@ -329,13 +331,26 @@ packages/tier1/results/src/inference.rs	replace match guard matches!(op, Op::Ne 
 packages/tier1/results/src/inference.rs	replace match guard plain(name) with false in test	1	fence
 packages/tier1/results/src/inference.rs	replace match guard plain(name) with true in test	1	fence
 packages/tier1/results/src/inference.rs	replace || with && in test	2	fence
+packages/tier1/results/src/interface.rs	replace < with <= in fit_measures	1	edge
 packages/tier1/results/src/interface.rs	replace < with <= in level_text	1	earlier
 packages/tier1/results/src/interface.rs	replace > with >= in ci	1	earlier
 packages/tier1/results/src/likelihood.rs	replace * with + in self_check	1	guard
+packages/tier1/results/src/likelihood.rs	replace + with * in self_check	1	guard
 packages/tier1/results/src/likelihood.rs	replace + with - in self_check	1	guard
+packages/tier1/results/src/likelihood.rs	replace < with <= in self_check	1	guard
 packages/tier1/results/src/likelihood.rs	replace > with == in self_check	1	guard
+packages/tier1/results/src/likelihood.rs	replace > with >= in lower_tail	1	edge
+packages/tier1/results/src/likelihood.rs	replace > with >= in self_check	1	guard
+packages/tier1/results/src/likelihood.rs	replace > with >= in softplus	1	identity
+packages/tier1/results/src/margins.rs	replace + with * in Model<'_>::levels	1	fence
+packages/tier1/results/src/margins.rs	replace + with - in Model<'_>::levels	1	fence
 packages/tier1/results/src/margins.rs	replace < with <= in set_to	1	edge
+packages/tier1/results/src/margins.rs	replace < with > in set_to	1	identity
+packages/tier1/results/src/margins.rs	replace == with != in set_to	1	identity
+packages/tier1/results/src/margins.rs	replace || with && in margins	1	unavailable
 packages/tier1/results/src/options.rs	replace * with / in checked_variance	1	guard
+packages/tier1/results/src/options.rs	replace > with >= in cluster_and_weight_warnings	1	edge
+packages/tier1/results/src/options.rs	replace || with && in checked_variance	1	guard
 packages/tier1/results/src/report.rs	delete ! in report	1	hang
 packages/tier1/results/src/report.rs	replace + with * in numbered	1	hang
 packages/tier1/results/src/report.rs	replace + with * in tests_report	1	fence
@@ -344,8 +359,8 @@ packages/tier1/results/src/report.rs	replace += with *= in numbered	1	hang
 packages/tier1/results/src/report.rs	replace - with + in tests_report	1	hang
 packages/tier1/results/src/report.rs	replace < with <= in report	1	edge
 packages/tier1/results/src/report.rs	replace < with > in numbered	1	hang
-packages/tier1/results/src/summary.rs	replace - with + in deviations	2	earlier
 packages/tier1/results/src/summary.rs	replace - with + in deviations	1	hang
+packages/tier1/results/src/summary.rs	replace - with + in deviations	2	earlier
 packages/tier1/results/src/summary.rs	replace - with + in linear_fit	1	earlier
 packages/tier1/results/src/summary.rs	replace - with + in linear_fit	1	hang
 packages/tier1/results/src/summary.rs	replace - with / in deviations	1	earlier

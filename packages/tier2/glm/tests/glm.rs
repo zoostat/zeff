@@ -1553,3 +1553,73 @@ fn a_model_without_a_constant_agrees_with_r() {
         "{table}"
     );
 }
+
+// ----- what the mutation run on the release's code left (release 0.9.0, step 42c4) -----
+
+/// The two matrices a fit keeps for the functions that read them, the information XᵀWX and
+/// its inverse, in the units of the regressors: the inverse is the classical variance of the
+/// estimates, and the two multiply to the identity. No function of this release reads them
+/// of a `glm` fit (`vif` is `reg`'s), so no test had looked at them.
+#[test]
+fn the_information_a_fit_keeps_and_its_inverse() {
+    let wages = zeff_datasets::table("wages").expect("the shipped wages");
+    for link in ["logit", "probit"] {
+        let fit = fit_of(&wages, "union ~ educ + exper + female", link).unwrap();
+        let k = fit.terms.len();
+        assert_eq!(k, 4);
+        assert_eq!((fit.gram.len(), fit.inverse_gram.len()), (k * k, k * k));
+        for i in 0..k {
+            for j in 0..k {
+                let kept = fit.inverse_gram[i * k + j];
+                let variance = fit.vcov[i * k + j];
+                assert!(
+                    (kept - variance).abs() <= 1e-9 * variance.abs(),
+                    "{link}, ({i}, {j}): {kept:e} against the variance {variance:e}"
+                );
+                let product: f64 = (0..k)
+                    .map(|l| fit.gram[i * k + l] * fit.inverse_gram[l * k + j])
+                    .sum();
+                let wanted = if i == j { 1.0 } else { 0.0 };
+                assert!(
+                    (product - wanted).abs() < 1e-8,
+                    "{link}, ({i}, {j}): {product}"
+                );
+            }
+        }
+        // The information of the constant is the sum of the rows' weights: p(1 − p) for the
+        // logit, at most a quarter, and φ²/(p(1 − p)) for the probit, at most 2/π.
+        let most = if link == "logit" {
+            0.25
+        } else {
+            std::f64::consts::FRAC_2_PI
+        };
+        assert!(fit.gram[0] > 0.0 && fit.gram[0] < most * fit.n as f64);
+    }
+}
+
+/// Two fits are compared on the same rows with the same weights: each alone is refused, rows
+/// that differ under no weights and weights that differ on the same rows.
+#[test]
+fn compare_refuses_other_rows_and_other_weights_each_alone() {
+    const A: &str =
+        "let w = dataset(wages)\nlet a = w.glm(union ~ educ + exper, family: binomial)\n";
+    let other_rows = printed(&format!(
+        "{A}a.compare(w.glm(union ~ educ + exper + wage, family: binomial))\n"
+    ));
+    assert!(
+        other_rows.contains("error[Z0416]: `compare` needs two fits on the same rows with the same weights, but these used 18,390 and 18,179 rows"),
+        "{other_rows}"
+    );
+    let other_weights = printed(&format!(
+        "{A}a.compare(w.glm(union ~ educ + exper + female, family: binomial, weights: age, weight_type: frequency))\n"
+    ));
+    assert!(
+        other_weights.contains("error[Z0416]: `compare` needs two fits on the same rows with the same weights, but these used 18,390 and 18,390 rows"),
+        "{other_weights}"
+    );
+    // The same rows and no weights: compared.
+    let compared = printed(&format!(
+        "{A}a.compare(w.glm(union ~ educ + exper + female, family: binomial))\n"
+    ));
+    assert!(!compared.contains("error["), "{compared}");
+}

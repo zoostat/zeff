@@ -445,7 +445,7 @@ fn the_result_read_by_row_reported_and_exported() {
 /// on the shipped wages, the effect written out from each term's derivative on an `lm` fit
 /// (`mean(d) * b` with the delta-method standard error): −exp(−x/10)/10; 2x; one below 20,
 /// a half at 20 and nought above, which is what a central difference gives at the corner;
-/// and 1/((x + 1) log 10).
+/// 1/((x + 1) log 10); and, for the variable taken away from a number, −1/(60 − x).
 #[test]
 fn slopes_through_a_minus_sign_a_corner_and_a_logarithm_to_a_base_agree_with_r() {
     let wages = table_of("wages");
@@ -473,6 +473,13 @@ fn slopes_through_a_minus_sign_a_corner_and_a_logarithm_to_a_base_agree_with_r()
             0.025726274184,
             0.000525196698,
             1e-7,
+        ),
+        // The variable taken away from a number (step 42c4): the slope is −1/(60 − x).
+        (
+            "log(wage) ~ educ + log(60 - exper)",
+            0.0215339946453752,
+            0.0004585042030439,
+            1e-9,
         ),
     ];
     for (formula, estimate, std_error, tolerance) in cases {
@@ -503,8 +510,9 @@ fn slopes_through_a_minus_sign_a_corner_and_a_logarithm_to_a_base_agree_with_r()
 /// What the coverage report of the release's code showed that no test printed: `at:` with a
 /// number that is not finite; a category held at a number, at a Bool and at a record; two
 /// effects that rest on omitted terms, said in the plural; the interval of an effect that is
-/// not estimable, which is `NA`; the slope through a term dropped as nought; and the slopes of
-/// the test above with the lines that say how each was taken.
+/// not estimable, which is `NA`; the slope through a term dropped as nought; a category made
+/// of two variables, through which neither has an effect of its own (step 42c4); and the
+/// slopes of the test above with the lines that say how each was taken.
 #[test]
 fn the_forms_the_coverage_report_showed_unprinted() {
     const M: &str =
@@ -521,6 +529,10 @@ fn the_forms_the_coverage_report_showed_unprinted() {
         // every row is dropped: the slope through it is nought, with nothing to test.
         format!(
             "{W}let w = wages.add(twice = educ * 2)\nlet e = w.reg(log(wage) ~ educ + twice).margins([educ, twice])\nprint(e.ci(twice))\nprint(e.std_errors(twice))\nwages.reg(log(wage) ~ educ + abs(exper - exper)).margins(exper)\n"
+        ),
+        // A category made of two variables: neither has an effect through it alone.
+        format!(
+            "{W}wages.head(2000).reg(log(wage) ~ educ + category(exper + age)).margins(exper)\n"
         ),
         // A 0/1 variable of which one value alone is labelled: the contrast is `1 − 0`.
         format!(
@@ -539,4 +551,86 @@ fn the_forms_the_coverage_report_showed_unprinted() {
         ));
     }
     insta::assert_snapshot!(out);
+}
+
+// ----- what the mutation run on the release's code left (release 0.9.0, step 42c4) -----
+
+/// The estimate of the term `name` of a fit.
+fn coefficient(fit: &Fit, name: &str) -> f64 {
+    let at = fit
+        .terms
+        .iter()
+        .position(|term| term == name)
+        .unwrap_or_else(|| panic!("no term `{name}` among {:?}", fit.terms));
+    fit.estimates[at]
+}
+
+/// The difference between the two values of a 0/1 variable is the term at one less the term at
+/// nought, which a term that is nought at nought cannot tell from their sum: through
+/// `abs(female - 1)`, which is one at nought and nought at one, the difference is minus the coefficient, and through `exp(female)` it is the
+/// coefficient times e − 1.
+#[test]
+fn the_difference_of_a_0_1_variable_through_a_term_that_is_not_nought_at_nought() {
+    let wages = table_of("wages");
+    let options = Options {
+        level: Some(0.95),
+        ..Options::default()
+    };
+    let fit = fit_with(&wages, "log(wage) ~ educ + abs(female - 1)", &options);
+    let effect = effects(&fit, &["female"]).terms[0]
+        .estimate
+        .as_ref()
+        .unwrap()
+        .value;
+    let b = coefficient(&fit, "abs(female - 1)");
+    assert!(b > 0.1, "{b}");
+    assert!(close(effect, -b, 1e-12, 0.0), "{effect} and {b}");
+    let fit = fit_with(&wages, "log(wage) ~ educ + exp(female)", &options);
+    let effect = effects(&fit, &["female"]).terms[0]
+        .estimate
+        .as_ref()
+        .unwrap()
+        .value;
+    let b = coefficient(&fit, "exp(female)");
+    assert!(
+        close(effect, b * (std::f64::consts::E - 1.0), 1e-12, 0.0),
+        "{effect} and {b}"
+    );
+}
+
+/// The levels of one category compared while another is held at a level: with `industry *
+/// category(year)` and the year held at 2019, the difference between a level of `industry`
+/// and the first is that level's coefficient and its interaction with 2019, read from the fit.
+#[test]
+fn the_levels_of_a_category_while_another_is_held() {
+    let wages = table_of("wages");
+    let fit = fit_with(
+        &wages,
+        "log(wage) ~ educ + industry * category(year)",
+        &Options {
+            level: Some(0.95),
+            ..Options::default()
+        },
+    );
+    let held = Value::Record(vec![("year".to_string(), Value::Int(2019))]);
+    let result = effects_at(&fit, &["industry"], Some(held), "ame");
+    assert_eq!(result.terms.len(), 11);
+    let table = result.table.as_ref().expect("a table");
+    let mut compared = 0;
+    for (row, cells) in result.terms.iter().zip(&table.rows) {
+        // The contrast names the level: `Mining − Agriculture`.
+        let level = cells[1].split(" \u{2212} ").next().unwrap();
+        let main = coefficient(&fit, &format!("industry={level}"));
+        let with_year = coefficient(&fit, &format!("industry={level}:year=2019"));
+        let ours = row.estimate.as_ref().unwrap().value;
+        assert!(
+            close(ours, main + with_year, 1e-10, 1e-12),
+            "{level}: {ours} against {main} + {with_year}"
+        );
+        // The interaction is not nothing: the effect at 2019 is not the main effect.
+        if (with_year / main).abs() > 0.05 {
+            compared += 1;
+        }
+    }
+    assert!(compared >= 5, "{compared}");
 }

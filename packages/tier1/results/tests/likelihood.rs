@@ -189,6 +189,71 @@ fn the_fit_is_the_same_bits_twice() {
     assert_eq!(first, second);
 }
 
+/// An outcome that is a share of its prior weight (release 0.9.0, step 42c4: the family's own
+/// routines take one, though `glm` gives them 0 and 1 at this release, and the mutation run
+/// showed no test did). Thirty per cent of four trials at a linear predictor of 0.7, against
+/// R 4.6.0: `m * (y * log(p) + (1 - y) * log(1 - p))` with `p = plogis(0.7)` and `pnorm(0.7)`,
+/// and the deviance as twice the saturated log-likelihood less it.
+#[test]
+fn a_share_of_its_trials_has_r_s_log_likelihood_and_deviance() {
+    use zeff_kernels::irls::IndexModel;
+    for (link, log_likelihood, deviance) in [
+        (Link::Logit, -3.5727441955418318, 2.2585739746445155),
+        (Link::Probit, -4.305538463020845, 3.724162509602542),
+    ] {
+        let family = Binomial {
+            y: vec![0.3],
+            prior: vec![4.0],
+            link,
+        };
+        let terms = family.at(0, 0.7, false);
+        close(
+            terms.log_likelihood,
+            log_likelihood,
+            1e-14,
+            "log-likelihood",
+        );
+        close(family.deviance(0, 0.7), deviance, 1e-13, "deviance");
+    }
+    // An outcome of 0 or 1 has a saturated log-likelihood of nought: the deviance is minus
+    // twice the log-likelihood.
+    for y in [0.0, 1.0] {
+        let family = Binomial::new(vec![y], Link::Logit);
+        let terms = family.at(0, 0.7, false);
+        close(
+            family.deviance(0, 0.7),
+            -2.0 * terms.log_likelihood,
+            1e-15,
+            "deviance of a 0 or a 1",
+        );
+    }
+}
+
+/// The logarithm of a probit probability near one keeps its digits: log Φ(5) and log Φ(3)
+/// against R's `pnorm(x, log.p = TRUE)`. Taken as the logarithm of the probability itself it
+/// would have ten digits at 5, where the probability is one less three parts in ten million.
+#[test]
+fn the_log_of_a_probit_probability_near_one_keeps_its_digits() {
+    use zeff_kernels::irls::IndexModel;
+    let family = Binomial::new(vec![1.0], Link::Probit);
+    for (eta, log_probability) in [
+        (3.0, -0.0013508099647481938),
+        (4.5, -3.3976788968344657e-06),
+        (5.0, -2.866516129637636e-07),
+        (6.0, -9.865876455243756e-10),
+        (7.5, -3.1908916729109475e-14),
+    ] {
+        let terms = family.at(0, eta, false);
+        // As a share of the value itself, which is small.
+        let apart = ((terms.log_likelihood - log_probability) / log_probability).abs();
+        assert!(
+            apart < 1e-13,
+            "log Φ({eta}): {:e} against R's {log_probability:e}",
+            terms.log_likelihood
+        );
+    }
+}
+
 proptest! {
     #![proptest_config(ProptestConfig::with_cases(16))]
 

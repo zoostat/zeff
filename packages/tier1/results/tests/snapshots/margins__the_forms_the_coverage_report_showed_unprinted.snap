@@ -92,6 +92,18 @@ note: `abs(exper - exper)` is zero in every row used and was dropped (line 6)
 [exit 0]
 
 === let wages = dataset(wages)
+wages.head(2000).reg(log(wage) ~ educ + category(exper + age)).margins(exper) ===
+--- messages ---
+error[Z0417]: `margins` cannot take the effect of `exper`: it enters the model through the category `category(exper + age)` and through another term, so no one difference or slope is its effect
+ --> scripts/main.zeff:2:72
+  |
+2 | wages.head(2000).reg(log(wage) ~ educ + category(exper + age)).margins(exper)
+  |                                                                        ^^^^^ no effect of this variable
+  |
+  = help: `margins` takes the slope of a number through arithmetic and the functions of `core`, and the difference between the levels of a category
+[exit 1]
+
+=== let wages = dataset(wages)
 let w = wages.add(one = to(union, Int) + 0).label(one, [1 => "member"])
 w.reg(log(wage) ~ educ + one).margins(one) ===
 margins · log(wage) ~ educ + one · average marginal effects
