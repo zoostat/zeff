@@ -1014,3 +1014,7 @@ The owner took option A of #228 ("Take A"): every text file of a project that Ze
 ## 25 November 2026 — zeff_open_decisions.md, new entry #229; a pointer under #134
 
 The owner had the replication strategy reviewed three times outside the project and asked that the points the specification does not answer be recorded ("Yes, record them"). #229 is entered, open, with eleven points on replication packages (the verdict of `zeff verify`, the first page, structured differences, the known-issues list's fields, data quoted in messages, stand-in data, results marked as planned or added, the author's key, anonymous review, a holder's certificate, and the run history of #134), recommending option A, deadline 0.11.0 with #134. #134 gains a paragraph pointing to it. No normative text changed.
+
+## 26 November 2026 — zeff_open_decisions.md, #229 (the owner's ruling)
+
+The owner ruled that a replication package is optional: the user chooses whether to make one ("replication in optional, user will choose whether to make replication package"). #229 records it: Zeff and Zemp never make a package unasked and never require one; the plan's levels bind only those who choose to make one; the run record is still kept in the project for `zeff audit`. The specification already has the package as a command of its own, so no normative text changed.
