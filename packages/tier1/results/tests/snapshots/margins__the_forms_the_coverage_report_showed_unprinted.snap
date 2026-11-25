@@ -104,6 +104,53 @@ error[Z0417]: `margins` cannot take the effect of `exper`: it enters the model t
 [exit 1]
 
 === let wages = dataset(wages)
+wages.reg(log(wage) ~ educ + exper + abs(exper)).margins(exper) ===
+margins · log(wage) ~ educ + exper + abs(exper) · average marginal effects
+averaged over the 18,179 observations the fit used
+standard errors: classical, by the delta method
+
+  variable   contrast   estimate   std.error   t value   p value   95% CI
+  exper      dy/dx            NA          NA        NA        NA   NA
+
+the slope of `exper` is taken through `exper` and `abs(exper)`
+`exper` rests on a term the fit omitted as collinear, so it is not estimable
+--- messages ---
+note: `abs(exper)` is collinear with the columns before it and was dropped (line 2)
+[exit 0]
+
+=== let wages = dataset(wages)
+let m = wages.add(long = hours > 40).reg(log(wage) ~ educ + long)
+m.margins(at: {long: 0.5})
+m.margins(at: {long: true})
+m.margins(at: {long: false}) ===
+margins · m · average adjusted prediction
+reg · log(wage) ~ educ + long
+averaged over the 18,167 observations the fit used
+at: long = 0.5
+standard errors: classical, by the delta method
+
+  quantity     estimate   std.error   t value   p value   95% CI
+  prediction     3.1941      0.0035    906.42    <0.001   [3.1872, 3.2010]
+margins · m · average adjusted prediction
+reg · log(wage) ~ educ + long
+averaged over the 18,167 observations the fit used
+at: long = true
+standard errors: classical, by the delta method
+
+  quantity     estimate   std.error   t value   p value   95% CI
+  prediction     3.2054      0.0055    587.52    <0.001   [3.1947, 3.2161]
+margins · m · average adjusted prediction
+reg · log(wage) ~ educ + long
+averaged over the 18,167 observations the fit used
+at: long = false
+standard errors: classical, by the delta method
+
+  quantity     estimate   std.error   t value   p value   95% CI
+  prediction     3.1828      0.0045    713.40    <0.001   [3.1740, 3.1915]
+--- messages ---
+[exit 0]
+
+=== let wages = dataset(wages)
 let w = wages.add(one = to(union, Int) + 0).label(one, [1 => "member"])
 w.reg(log(wage) ~ educ + one).margins(one) ===
 margins · log(wage) ~ educ + one · average marginal effects

@@ -7864,3 +7864,29 @@ Step 42c4 is split in two, since the owner asked for its first part while the ru
 **Held by.** The packages' tests; each of the 46 applied by hand to the file and tried against them, the file copied back; the job file read back as valid, each package's shards numbered from 0; the tool tried on the five shards and on the run, starting nothing.
 
 **Reason.** The testing handbook, sections 1 (mutation testing) and 2.4; the checklist's step 42c4.
+
+## 25 November 2026 — release 0.9.0, step 42c4b1: thirteen more shards of `results` and the first of `regress` read
+
+Step 42c4b is split as its parts end: 42c4b1 (this entry), the shards that had finished by 12:23 UTC on 25 November, read at the owner's word while the run goes on; 42c4b2, the rest when run 45437619962 has ended.
+
+**What had finished.** Shards 16 to 28 of `results`, all thirteen whole, and shard 5 of `regress`, the first of its package to end. Shards 29 to 31 of `results` and eleven of `regress` were running; `stats` and `glm` waited.
+
+**`regress`, shard 5: 87 mutants, 7 survivors, all on the recorded list, none new.** An hour and a quarter in all.
+
+**`results`, shards 16 to 28: 1,040 mutants, 61 survivors and timeouts read.** Against the list as the run had it, 36 recorded and 25 new; against the list as step 42c4a left it, 39 and 22, to which three are added that the list held once and these shards met again at another place. Each of the 25 was tried on this machine. Ten are now caught, fifteen recorded. With the twelve shards of step 42c4a, 25 of the 32 shards are read: 2,009 mutants, 133 survivors, 92 on the list and 41 that tests written since the run began now catch.
+
+The timeouts of the second pass in these shards are what the record says of them: two hangs in `effect_values` and one in the orthogonal polynomials, recorded as hangs since release 0.8.0, and in shard 20, on a slow machine, five survivors that met the old floor of fifteen minutes.
+
+*Already caught by tests written since the run began* (6): five more changes to the deviance of an outcome that is a share of its trials (step 42c4a), and one to the list of effects that are not estimable, which the slope through a term that is nought in every row catches (step 42c2).
+
+*Tests added, by what they hold* (4 more).
+- *A slope through a power with the variable in the base and in the power*, `abs(exper + 1)^(1 + exper / 40)`, against R 4.6.0 (0.014355500084632, standard error 0.0004366858794755, to nine digits). The rule for a^b with both moving, b a^(b − 1) a′ + a^b log(a) b′, had run in no test: a power that is another variable (`exper^(female + 1)`, `exper^(1 + educ / 20)`) goes by the rule for a constant power, since it does not move with `exper`. Those two are tested against R as well (0.0025949380439674 and 0.019503388208185).
+- *A slope through two terms of which the fit omitted one*, `exper + abs(exper)`: not estimable, with `NA` in the row and the sentence under the table, though the other term has its coefficient and a standard error. Every test of an effect that is not estimable had rested on an omitted term alone, where the standard error is nought and a second condition gave the same `NA`.
+- *A Bool held at a share*, `at: {long: 0.5}`: the prediction, 3.1941, is half-way between those at true, 3.2054, and at false, 3.1828. A change of one guard would have read the half as true.
+- *A row without information left out of the self-check's decrement*: the decrement of eight rows with a ninth that is a certain outcome far out under the probit link is that of the eight, to the bit, and nothing is set beside it.
+
+*Recorded, with the keys already there* (15): guards of the self-checks of a fit and of a variance (7, three of them at further places of a routine in which the list already held the same change once); comparisons at values never met exactly, the edge of the far tail and a response residual of nought (2); identities, the word `response` given by name or taken by default, a design built again where nothing is held, and a Bool set to true or false as a number (3); the scale of the columns in the decrement, which is a length along their span and does not depend on it (1); and second fences, a step of nought in the wording of a difference and an estimate that is not finite beside a standard error in a report (2).
+
+**Held by.** The packages' tests; each of the 25 applied by hand to its file and tried, the file copied back; the comparison tool on the 25 shards together (133 read, 92 recorded, 41 that the tests now catch).
+
+**Reason.** The testing handbook, sections 1 (mutation testing) and 2.4; the checklist's step 42c4b.

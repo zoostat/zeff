@@ -481,6 +481,28 @@ fn slopes_through_a_minus_sign_a_corner_and_a_logarithm_to_a_base_agree_with_r()
             0.0004585042030439,
             1e-9,
         ),
+        // A power that is another variable: b x^(b − 1), with b one or two, and with b
+        // between 1.4 and 2.
+        (
+            "log(wage) ~ educ + exper^(female + 1)",
+            0.0025949380439674,
+            0.0002474462701955,
+            1e-9,
+        ),
+        (
+            "log(wage) ~ educ + exper^(1 + educ / 20)",
+            0.019503388208185,
+            0.0004253456216208,
+            1e-9,
+        ),
+        // The variable in the base and in the power, a^b with both moving: b a^(b − 1) a′ +
+        // a^b log(a) b′, here (1 + x/40)(x + 1)^(x/40) + (x + 1)^(1 + x/40) log(x + 1)/40.
+        (
+            "log(wage) ~ educ + abs(exper + 1)^(1 + exper / 40)",
+            0.014355500084632,
+            0.0004366858794755,
+            1e-9,
+        ),
     ];
     for (formula, estimate, std_error, tolerance) in cases {
         let fit = fit_with(
@@ -533,6 +555,13 @@ fn the_forms_the_coverage_report_showed_unprinted() {
         // A category made of two variables: neither has an effect through it alone.
         format!(
             "{W}wages.head(2000).reg(log(wage) ~ educ + category(exper + age)).margins(exper)\n"
+        ),
+        // A slope through two terms of which the fit omitted one: not estimable, though the
+        // other term has its coefficient (step 42c4).
+        format!("{W}wages.reg(log(wage) ~ educ + exper + abs(exper)).margins(exper)\n"),
+        // A Bool held at a share: the prediction is half-way between those at its two values.
+        format!(
+            "{W}let m = wages.add(long = hours > 40).reg(log(wage) ~ educ + long)\nm.margins(at: {{long: 0.5}})\nm.margins(at: {{long: true}})\nm.margins(at: {{long: false}})\n"
         ),
         // A 0/1 variable of which one value alone is labelled: the contrast is `1 − 0`.
         format!(

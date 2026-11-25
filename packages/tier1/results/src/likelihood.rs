@@ -532,6 +532,31 @@ mod tests {
         );
     }
 
+    /// A row that carries no information, a certain outcome far out under the probit link, is
+    /// left out of the decrement and adds nothing to the scores set beside it: the decrement
+    /// of the eight rows with such a ninth is that of the eight (release 0.9.0, step 42c4; a
+    /// change that kept the row made the decrement not a number, and no test had such a row).
+    #[test]
+    fn a_row_without_information_is_left_out_of_the_decrement() {
+        let (x, model, solution, _) = small_fit();
+        let probit = Binomial::new(model.y.clone(), Link::Probit);
+        let (decrement, unweighted) =
+            newton_decrement(&x, &probit, &solution.eta, &solution.scales);
+        assert!(decrement.is_finite() && decrement > 0.0, "{decrement}");
+        assert_eq!(unweighted, 0.0);
+        let mut y = model.y.clone();
+        y.push(1.0);
+        let with_a_certain_row = Binomial::new(y, Link::Probit);
+        let wider = Matrix::from_fn(9, 2, |i, j| if i < 8 { x.get(i, j) } else { 1.0 });
+        let mut eta = solution.eta.clone();
+        eta.push(1.0e200);
+        assert_eq!(with_a_certain_row.at(8, 1.0e200, false).weight, 0.0);
+        let (with_row, beside) =
+            newton_decrement(&wider, &with_a_certain_row, &eta, &solution.scales);
+        assert_eq!(with_row.to_bits(), decrement.to_bits());
+        assert_eq!(beside, 0.0);
+    }
+
     #[test]
     fn a_sound_fit_passes_its_self_checks() {
         let (x, model, solution, vcov) = small_fit();

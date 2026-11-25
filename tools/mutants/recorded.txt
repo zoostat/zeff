@@ -334,21 +334,32 @@ packages/tier1/results/src/inference.rs	replace || with && in test	2	fence
 packages/tier1/results/src/interface.rs	replace < with <= in fit_measures	1	edge
 packages/tier1/results/src/interface.rs	replace < with <= in level_text	1	earlier
 packages/tier1/results/src/interface.rs	replace > with >= in ci	1	earlier
+packages/tier1/results/src/likelihood.rs	delete match arm "response" in ResidualKind::named	1	identity
 packages/tier1/results/src/likelihood.rs	replace * with + in self_check	1	guard
-packages/tier1/results/src/likelihood.rs	replace + with * in self_check	1	guard
+packages/tier1/results/src/likelihood.rs	replace * with / in newton_decrement	1	scale
+packages/tier1/results/src/likelihood.rs	replace + with * in self_check	2	guard
 packages/tier1/results/src/likelihood.rs	replace + with - in self_check	1	guard
+packages/tier1/results/src/likelihood.rs	replace < with <= in Binomial::residual	1	edge
+packages/tier1/results/src/likelihood.rs	replace < with <= in lower_tail	1	edge
 packages/tier1/results/src/likelihood.rs	replace < with <= in self_check	1	guard
 packages/tier1/results/src/likelihood.rs	replace > with == in self_check	1	guard
 packages/tier1/results/src/likelihood.rs	replace > with >= in lower_tail	1	edge
-packages/tier1/results/src/likelihood.rs	replace > with >= in self_check	1	guard
+packages/tier1/results/src/likelihood.rs	replace > with >= in self_check	3	guard
 packages/tier1/results/src/likelihood.rs	replace > with >= in softplus	1	identity
+packages/tier1/results/src/likelihood.rs	replace || with && in self_check	1	guard
 packages/tier1/results/src/margins.rs	replace + with * in Model<'_>::levels	1	fence
 packages/tier1/results/src/margins.rs	replace + with - in Model<'_>::levels	1	fence
 packages/tier1/results/src/margins.rs	replace < with <= in set_to	1	edge
 packages/tier1/results/src/margins.rs	replace < with > in set_to	1	identity
 packages/tier1/results/src/margins.rs	replace == with != in set_to	1	identity
+packages/tier1/results/src/margins.rs	replace match guard !at_means && at.is_empty() with false in margins	1	identity
+packages/tier1/results/src/margins.rs	replace match guard value == 0.0 || value == 1.0 with false in set_to	1	identity
 packages/tier1/results/src/margins.rs	replace || with && in margins	1	unavailable
+packages/tier1/results/src/margins.rs	replace || with && in significant	1	fence
+packages/tier1/results/src/options.rs	replace * with + in checked_variance	1	guard
 packages/tier1/results/src/options.rs	replace * with / in checked_variance	1	guard
+packages/tier1/results/src/options.rs	replace > with == in checked_variance	1	guard
+packages/tier1/results/src/options.rs	replace > with >= in checked_variance	1	guard
 packages/tier1/results/src/options.rs	replace > with >= in cluster_and_weight_warnings	1	edge
 packages/tier1/results/src/options.rs	replace || with && in checked_variance	1	guard
 packages/tier1/results/src/report.rs	delete ! in report	1	hang
@@ -359,6 +370,7 @@ packages/tier1/results/src/report.rs	replace += with *= in numbered	1	hang
 packages/tier1/results/src/report.rs	replace - with + in tests_report	1	hang
 packages/tier1/results/src/report.rs	replace < with <= in report	1	edge
 packages/tier1/results/src/report.rs	replace < with > in numbered	1	hang
+packages/tier1/results/src/report.rs	replace match guard estimate.value.is_finite() with true in Shown::cell	1	fence
 packages/tier1/results/src/summary.rs	replace - with + in deviations	1	hang
 packages/tier1/results/src/summary.rs	replace - with + in deviations	2	earlier
 packages/tier1/results/src/summary.rs	replace - with + in linear_fit	1	earlier
