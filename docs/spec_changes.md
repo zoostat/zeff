@@ -1018,3 +1018,7 @@ The owner had the replication strategy reviewed three times outside the project 
 ## 26 November 2026 — zeff_open_decisions.md, #229 (the owner's ruling)
 
 The owner ruled that a replication package is optional: the user chooses whether to make one ("replication in optional, user will choose whether to make replication package"). #229 records it: Zeff and Zemp never make a package unasked and never require one; the plan's levels bind only those who choose to make one; the run record is still kept in the project for `zeff audit`. The specification already has the package as a command of its own, so no normative text changed.
+
+## 26 November 2026 — zeff_open_decisions.md, #229 (the owner's ruling on time)
+
+The owner ruled that the time is recorded at each step of a run ("time should be recorded at each run step"). #229 records it: the run record of 0.11.0 keeps, for every statement, when it began and how long it took, widening #187; the times are never fingerprinted and never compared by `zeff verify`. No normative text changed.
