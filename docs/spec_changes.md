@@ -1006,3 +1006,7 @@ The owner said "Release 0.2.5", and Zemp Lite 0.2.5 is tagged v0.2.5 at commit `
 ## 25 November 2026 — zeff_open_decisions.md, new entry #228
 
 The owner asked how to view the LaTeX table that the Scratch project's instruments script exports (`output/table_iv.tex`) in Zemp Lite; on 0.2.5 the file is listed and does not open, since the app opens only `.zeff`, `.toml`, `.txt` and `.md` files. At his word ("Yes, record it") #228 is entered, open, recommending that every text file of a project open read-only in a tab, with its deadline the Zemp Lite release that takes it. No normative text changed.
+
+## 25 November 2026 — zeff_open_decisions.md, #228 (decided)
+
+The owner took option A of #228 ("Take A"): every text file of a project that Zemp Lite does not already open is opened in a tab to be read, not edited, with **Save a copy…** kept. Placed in the next Zemp Lite release (that of #223 if it comes before 0.3, otherwise 0.3), as recommended and his to move. No normative text changed.
