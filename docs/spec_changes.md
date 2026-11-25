@@ -1002,3 +1002,7 @@ The Zemp Lite session found, at the pre-release routine of 0.2.5, that the host 
 ## 24 November 2026 — zeff_open_decisions.md, #224 and #225; zeff_risk_register.md, R4 (the release of Zemp Lite 0.2.5)
 
 The owner said "Release 0.2.5", and Zemp Lite 0.2.5 is tagged v0.2.5 at commit `b6ded13` of zemp-lite. #225 is marked done, its five items built; #224 is marked done, the tight packing released. R4's section of 24 November gains the release's figures (2.93 MB of 5 MB, the first start no slower, no early warning). No normative text changed.
+
+## 25 November 2026 — zeff_open_decisions.md, new entry #228
+
+The owner asked how to view the LaTeX table that the Scratch project's instruments script exports (`output/table_iv.tex`) in Zemp Lite; on 0.2.5 the file is listed and does not open, since the app opens only `.zeff`, `.toml`, `.txt` and `.md` files. At his word ("Yes, record it") #228 is entered, open, recommending that every text file of a project open read-only in a tab, with its deadline the Zemp Lite release that takes it. No normative text changed.
