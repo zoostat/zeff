@@ -7890,3 +7890,30 @@ The timeouts of the second pass in these shards are what the record says of them
 **Held by.** The packages' tests; each of the 25 applied by hand to its file and tried, the file copied back; the comparison tool on the 25 shards together (133 read, 92 recorded, 41 that the tests now catch).
 
 **Reason.** The testing handbook, sections 1 (mutation testing) and 2.4; the checklist's step 42c4b.
+
+## 25 November 2026 — release 0.9.0, step 42c4b2: twelve more shards of `regress` and one of `results` read, and what a shard read alone cannot show
+
+Step 42c4b is split again as its parts end: 42c4b2 (this entry), the shards that had finished by 14:40 UTC on 25 November and were not yet read; 42c4b3, the rest when run 45437619962 has ended.
+
+**What had finished.** Shards 0 to 4 and 6 to 12 of `regress`, twelve, all whole, and shard 29 of `results`. Shards 13 to 15 of `regress`, 30 and 31 of `results` and the first nine of `stats` were running; the other 31 of `stats` and the four of `glm` waited.
+
+**`regress`, twelve shards: 1,037 mutants, 109 survivors.** Each shard's own note says that every one of its survivors is on the recorded list. A shard took two to three hours: a first pass of 51 to 77 minutes for 86 or 87 mutants, and seven minutes for each of the 5 to 14 that no test catches, the conformance suite being the whole of this package's second pass.
+
+**What a shard read alone cannot show.** The list records a change by its file, its words and its routine, with how many times it is accepted there, since lines move with every edit. A shard is compared with the list by itself, so a change the list holds once passes in two shards at two different places of one routine, and neither note says "new". Put together, the thirteen shards of `regress` read so far (1,124 mutants, 116 survivors) hold `replace < with <= in estimate` of `iv.rs` twice where the list holds it once. Both places are of release 0.8.0 and both have survived since: the order condition, where an outer comparison lets through what the inner one then decides (the fence the list records), and the list of instrumented regressors that remain, which with `<=` is written again as itself when none was dropped (an identity, now recorded beside it). Nothing was hidden that needed a test; but nothing had looked.
+
+**So every package read in this run was compared again, all its shards together.**
+- *The kernels* and *`results`* had been read together at steps 42c1, 42c4a and 42c4b1: nothing more.
+- *`regress`*: the one above.
+- *The numeric kernel*: twelve more, all in the studentized range (`tukey.rs`), where step 42c1 had read 24 notes and reported two new survivors. Five changes are met more often than the list holds them: `delete -` in `inner` (4 against 2), `*` to `+` and `*` to `/` in `ln_band` (12 against 9, 14 against 9), `+` to `-` and `>` to `==` in `log_integral` (6 against 5, 5 against 4). The reports of four runs, set side by side place by place, say what they are: each of the twelve was caught in the run of 19 November (44578380798) and has timed out in the first pass of every run since, that of 20 November (44653636848), of 23 November and this one. They are of the kind the list calls `late`: mutants that an older test catches by failing, and under which the test of the bounds over its grid of 240 points, added on 20 November, runs past the two minutes of the first pass. Step 24a2d of release 0.8.0 recorded sixteen of that kind from the same run and missed these twelve for the reason above: the list's counts for these five changes were those of 19 November, and no single shard of 20 November exceeded them. They are recorded as `late`. No mutant among them survives a test that could catch it: each is one the suite caught before it grew slow under them.
+
+With these, each package's shards together agree with the list: the numeric kernel 367 read and 367 recorded; `regress` 116 and 116.
+
+**`results`, shard 29: 80 mutants, 4 survivors and timeouts, 2 on the list and 2 new.** One, a change to the rule for a power with the variable in the base and in the power, is caught by the test of step 42c4b1 (tried on this machine). The other is a comparison at a value never met exactly, a null log-likelihood of nought, in the summary of a fit; the same comparison in `fit_measures` was recorded at step 42c4a, and this one is recorded beside it. With it, 26 of the 32 shards of `results` are read, together: 2,089 mutants, 137 survivors, 95 on the list and 42 that tests written since the run began now catch.
+
+**How the runs are read from now on.** A package is compared with the list twice: each shard's note as it ends, and all its shards together once they are in (`compare.py --part` with every shard's lists at once), which is the comparison that counts. Step 42c4b3 does so for `stats` and `glm`, whose shards of release 0.8.0 were read one by one as well, and adds a job at the end of the weekly run that prints the comparison of each package's shards together, so that it does not rest on the reader.
+
+**Seen, and left for the end of the run.** Shards 30 and 31 of `results` had run for 296 and 256 of their 340 minutes at 14:40 UTC; if they are cut off, the tool of step 42c4a names their halves with those of the other five.
+
+**Held by.** The comparison tool on each package's shards together (four packages, none new but what the tests now catch); the reports of the runs of 19, 20, 23 and 24 November for the twelve; the one change of `results` tried by hand, the file copied back.
+
+**Reason.** The testing handbook, sections 1 (mutation testing) and 2.4; the checklist's step 42c4b.

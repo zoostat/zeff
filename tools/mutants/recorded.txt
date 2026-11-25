@@ -170,6 +170,7 @@ kernel/zeff-numeric/src/special.rs	replace normal_quantile -> f64 with -1.0	1	ha
 kernel/zeff-numeric/src/special.rs	replace || with && in incomplete_gamma	1	earlier
 kernel/zeff-numeric/src/special.rs	replace || with && in normal_quantile	1	earlier
 kernel/zeff-numeric/src/tukey.rs	delete - in inner	2	hang
+kernel/zeff-numeric/src/tukey.rs	delete - in inner	2	late
 kernel/zeff-numeric/src/tukey.rs	delete - in ln_band	1	hang
 kernel/zeff-numeric/src/tukey.rs	delete - in log_integral	1	hang
 kernel/zeff-numeric/src/tukey.rs	replace && with || in ln_band	1	earlier
@@ -177,6 +178,7 @@ kernel/zeff-numeric/src/tukey.rs	replace && with || in log_integral	1	earlier
 kernel/zeff-numeric/src/tukey.rs	replace && with || in quantile	1	earlier
 kernel/zeff-numeric/src/tukey.rs	replace * with + in expm1_minus	3	hang
 kernel/zeff-numeric/src/tukey.rs	replace * with + in inner	2	hang
+kernel/zeff-numeric/src/tukey.rs	replace * with + in ln_band	3	late
 kernel/zeff-numeric/src/tukey.rs	replace * with + in ln_band	9	hang
 kernel/zeff-numeric/src/tukey.rs	replace * with + in log_integral	2	hang
 kernel/zeff-numeric/src/tukey.rs	replace * with + in log_integral	4	earlier
@@ -186,6 +188,7 @@ kernel/zeff-numeric/src/tukey.rs	replace * with + in upper_tail	2	hang
 kernel/zeff-numeric/src/tukey.rs	replace * with / in expm1_minus	2	hang
 kernel/zeff-numeric/src/tukey.rs	replace * with / in inner	1	late
 kernel/zeff-numeric/src/tukey.rs	replace * with / in ln_band	1	earlier
+kernel/zeff-numeric/src/tukey.rs	replace * with / in ln_band	5	late
 kernel/zeff-numeric/src/tukey.rs	replace * with / in ln_band	8	hang
 kernel/zeff-numeric/src/tukey.rs	replace * with / in log_integral	3	hang
 kernel/zeff-numeric/src/tukey.rs	replace * with / in log_integral	6	earlier
@@ -206,6 +209,7 @@ kernel/zeff-numeric/src/tukey.rs	replace + with * in log_integral	6	hang
 kernel/zeff-numeric/src/tukey.rs	replace + with * in tails	1	earlier
 kernel/zeff-numeric/src/tukey.rs	replace + with - in inner	2	hang
 kernel/zeff-numeric/src/tukey.rs	replace + with - in ln_band	5	hang
+kernel/zeff-numeric/src/tukey.rs	replace + with - in log_integral	1	late
 kernel/zeff-numeric/src/tukey.rs	replace + with - in log_integral	2	hang
 kernel/zeff-numeric/src/tukey.rs	replace + with - in log_integral	3	earlier
 kernel/zeff-numeric/src/tukey.rs	replace + with - in quantile	1	hang
@@ -254,6 +258,7 @@ kernel/zeff-numeric/src/tukey.rs	replace == with != in log_integral	1	earlier
 kernel/zeff-numeric/src/tukey.rs	replace > with < in log_integral	2	late
 kernel/zeff-numeric/src/tukey.rs	replace > with < in quantile	1	earlier
 kernel/zeff-numeric/src/tukey.rs	replace > with < in tails	1	earlier
+kernel/zeff-numeric/src/tukey.rs	replace > with == in log_integral	1	late
 kernel/zeff-numeric/src/tukey.rs	replace > with == in log_integral	2	earlier
 kernel/zeff-numeric/src/tukey.rs	replace > with == in log_integral	2	hang
 kernel/zeff-numeric/src/tukey.rs	replace > with == in quantile	2	earlier
@@ -378,6 +383,7 @@ packages/tier1/results/src/summary.rs	replace - with + in linear_fit	1	hang
 packages/tier1/results/src/summary.rs	replace - with / in deviations	1	earlier
 packages/tier1/results/src/summary.rs	replace / with * in deviations	1	hang
 packages/tier1/results/src/summary.rs	replace < with <= in level_heading	1	earlier
+packages/tier1/results/src/summary.rs	replace < with <= in likelihood_fit	1	edge
 packages/tier1/results/src/summary.rs	replace > with >= in deviations	1	hang
 packages/tier1/results/src/summary.rs	replace > with >= in linear_fit	1	earlier
 packages/tier1/results/src/variance.rs	replace * with + in layered	1	hang
@@ -554,6 +560,7 @@ packages/tier2/regress/src/iv.rs	replace / with % in TwoStage::weak	4	scale
 packages/tier2/regress/src/iv.rs	replace / with * in TwoStage::anderson_rubin	1	scale
 packages/tier2/regress/src/iv.rs	replace / with * in TwoStage::weak	4	scale
 packages/tier2/regress/src/iv.rs	replace < with <= in estimate	1	fence
+packages/tier2/regress/src/iv.rs	replace < with <= in estimate	1	identity
 packages/tier2/regress/src/iv.rs	replace < with <= in quadratic_set	2	fence
 packages/tier2/regress/src/iv.rs	replace == with != in Designs::build_full	2	fence
 packages/tier2/regress/src/iv.rs	replace == with != in TwoStage::anderson_rubin	2	guard
