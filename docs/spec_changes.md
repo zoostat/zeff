@@ -1010,3 +1010,7 @@ The owner asked how to view the LaTeX table that the Scratch project's instrumen
 ## 25 November 2026 — zeff_open_decisions.md, #228 (decided)
 
 The owner took option A of #228 ("Take A"): every text file of a project that Zemp Lite does not already open is opened in a tab to be read, not edited, with **Save a copy…** kept. Placed in the next Zemp Lite release (that of #223 if it comes before 0.3, otherwise 0.3), as recommended and his to move. No normative text changed.
+
+## 25 November 2026 — zeff_open_decisions.md, new entry #229; a pointer under #134
+
+The owner had the replication strategy reviewed three times outside the project and asked that the points the specification does not answer be recorded ("Yes, record them"). #229 is entered, open, with eleven points on replication packages (the verdict of `zeff verify`, the first page, structured differences, the known-issues list's fields, data quoted in messages, stand-in data, results marked as planned or added, the author's key, anonymous review, a holder's certificate, and the run history of #134), recommending option A, deadline 0.11.0 with #134. #134 gains a paragraph pointing to it. No normative text changed.
