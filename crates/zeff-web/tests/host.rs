@@ -747,3 +747,25 @@ fn a_print_that_cannot_be_given_is_said() {
         r#"{"type": "error", "message": "a print is at least 40 characters wide, and 39 was asked for"}"#
     );
 }
+
+/// A run of one statement that made one plot: what is said of a number that is not theirs
+/// counts each in the singular (release 0.9.0, step 42c3; no test had run so short a script).
+#[test]
+fn one_statement_and_one_plot_are_counted_as_one() {
+    let host = Host::new("demo");
+    let (_, done) = run(
+        &host,
+        "dataset(wages).head(50).scatter(educ, wage)\n",
+        None,
+        never,
+    );
+    assert!(done.contains(r#""exit_code": 0"#), "{done}");
+    assert_eq!(
+        host.plot_svg(3, 400.0, 300.0, None),
+        r#"{"type": "error", "message": "the last run made 1 plot, numbered 0, and none is numbered 3"}"#
+    );
+    assert_eq!(
+        host.print_at(2, 80),
+        r#"{"type": "error", "message": "the last run ran 1 statement, numbered 1, and none is numbered 2"}"#
+    );
+}

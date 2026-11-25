@@ -1,0 +1,31 @@
+---
+source: crates/zeff-launcher/tests/sayings.rs
+expression: out
+---
+----- a key on the key list that cannot be read
+error[Z0711]: a key on the key list cannot be read; nothing was unpacked
+  = help: fetch the key list again
+
+----- an entry that is a link
+error[Z0717]: `zeff-0.9.1-linux-x86_64.tar.zst` is refused: of its entry `zeff-0.9.1/bin/zeff`, it is a link; the store is as it was
+  = help: an engine's archive holds plain files and folders under the engine's own folder and nothing else; `zeff report-bug` writes a report
+
+----- a folder in the way
+error[Z0717]: the folder `/home/ada/.zeff/engines/0.9.1` is in the way and holds no engine; the store is as it was
+  = help: remove the folder, or move it aside, and install again
+
+----- a store that cannot be written
+error[Z0717]: the engine store cannot be written at `/home/ada/.zeff/engines`: this user may not; the store is as it was
+  = help: the store is the folder `ZEFF_HOME` names, by default `.zeff` in the home folder; it must be writable and have room for the engine
+
+----- a file larger than anything the launcher fetches, from the publisher's host [exit 1]
+error[Z0708]: the index could not be fetched from `https://zeff-lang.dev/engines.toml`: it is larger than anything the launcher fetches
+  = help: the launcher fetches from `https://zeff-lang.dev/`; `ZEFF_MIRROR` names a mirror of it; `zeff engine install --from <file>` installs an archive that is already on this machine
+
+----- no release at all for this kind of machine [exit 4]
+error[Z0710]: no release of Zeff is published for linux-arm64
+  = help: nothing is published for this kind of machine yet
+
+----- a store that cannot hold the download [exit 1]
+error[Z0717]: the engine store cannot be written at `/home/ada/.zeff/downloads`: the disk is full; the store is as it was
+  = help: the store is the folder `ZEFF_HOME` names, by default `.zeff` in the home folder; it must be writable and have room for the engine

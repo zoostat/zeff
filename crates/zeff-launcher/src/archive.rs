@@ -859,4 +859,191 @@ mod tests {
             prop_assert!(matches!(place(dir.path(), &name, &bytes), Ok(Placed::New(_))));
         }
     }
+
+    // The tests below are of release 0.9.0, step 42c3: forms of an archive that the coverage
+    // report of 24 November 2026 showed no test had given the launcher.
+
+    fn zstd(bytes: &[u8]) -> Vec<u8> {
+        ruzstd::encoding::compress_to_vec(bytes, ruzstd::encoding::CompressionLevel::Fastest)
+    }
+
+    fn broken(reason: &str) -> Result<Placed, Fault> {
+        Err(Fault::Broken {
+            reason: reason.to_string(),
+        })
+    }
+
+    #[test]
+    fn a_tar_that_names_its_folders_is_placed_as_one_that_does_not() {
+        let dir = tempfile::tempdir().unwrap();
+        let name = ArchiveName::of(&version("0.9.1"), Target::LinuxX86_64);
+        let top = "zeff-0.9.1-linux-x86-64/engines/0.9.1";
+        let bytes = raw_tar(&[
+            (&format!("{top}/"), tar::EntryType::Directory, b""),
+            (&format!("{top}/help/"), tar::EntryType::Directory, b""),
+            (&format!("{top}/zeff"), tar::EntryType::Regular, b"engine"),
+            (
+                &format!("{top}/help/reg.md"),
+                tar::EntryType::Regular,
+                b"# reg\n",
+            ),
+        ]);
+        let engine = dir.path().join("engines").join("0.9.1").join("zeff");
+        assert_eq!(place(dir.path(), &name, &bytes), Ok(Placed::New(engine)));
+        assert_eq!(
+            std::fs::read(dir.path().join("engines/0.9.1/help/reg.md")).unwrap(),
+            b"# reg\n"
+        );
+    }
+
+    #[test]
+    fn a_stream_that_holds_no_tar_is_broken_in_its_own_words() {
+        let name = ArchiveName::of(&version("0.9.1"), Target::LinuxX86_64);
+        let end = [0u8; 1024];
+        // Bytes that are no tar: there is no end of two empty blocks.
+        let dir = tempfile::tempdir().unwrap();
+        assert_eq!(
+            place(dir.path(), &name, &zstd(b"a letter, not an archive")),
+            broken("its tar has no end")
+        );
+        // A block that is no header, before a proper end.
+        let mut no_header = vec![b'A'; 512];
+        no_header.extend_from_slice(&end);
+        assert_eq!(
+            place(dir.path(), &name, &zstd(&no_header)),
+            broken("its tar cannot be read")
+        );
+        // A path that is not UTF-8.
+        let mut tar = tar::Builder::new(Vec::new());
+        let mut header = tar::Header::new_ustar();
+        header.as_old_mut().name[..4].copy_from_slice(&[b'z', 0xff, b'/', b'a']);
+        header.set_entry_type(tar::EntryType::Regular);
+        header.set_size(1);
+        header.set_mode(0o644);
+        header.set_cksum();
+        tar.append(&header, &b"x"[..]).unwrap();
+        assert_eq!(
+            place(dir.path(), &name, &zstd(&tar.into_inner().unwrap())),
+            broken("a path in it is not UTF-8")
+        );
+        assert_eq!(tree(dir.path()), [(dir.path().join("engines"), None)]);
+    }
+
+    /// What a zip made by hand holds at a path.
+    enum Zipped<'a> {
+        Folder,
+        File {
+            bytes: &'a [u8],
+            method: rawzip::CompressionMethod,
+            mode: u32,
+        },
+    }
+
+    /// A zip of entries written as given, with no check of their paths or kinds; the bytes of
+    /// a file are written as they are, whatever the method named.
+    fn raw_zip(entries: &[(&str, Zipped<'_>)]) -> Vec<u8> {
+        let mut zip = rawzip::ZipArchiveWriter::new(Vec::new());
+        for (path, entry) in entries {
+            match entry {
+                Zipped::Folder => {
+                    zip.new_dir(*path).create().unwrap();
+                }
+                Zipped::File {
+                    bytes,
+                    method,
+                    mode,
+                } => {
+                    let (mut entry, config) = zip
+                        .new_file(*path)
+                        .compression_method(*method)
+                        .unix_permissions(*mode)
+                        .start()
+                        .unwrap();
+                    let mut writer = config.wrap(&mut entry);
+                    writer.write_all(bytes).unwrap();
+                    let (_, descriptor) = writer.finish().unwrap();
+                    entry.finish(descriptor).unwrap();
+                }
+            }
+        }
+        zip.finish().unwrap()
+    }
+
+    fn stored(bytes: &[u8]) -> Zipped<'_> {
+        Zipped::File {
+            bytes,
+            method: rawzip::CompressionMethod::STORE,
+            mode: 0o755,
+        }
+    }
+
+    #[test]
+    fn a_zip_with_folders_and_stored_files_is_placed() {
+        let dir = tempfile::tempdir().unwrap();
+        let name = ArchiveName::of(&version("0.9.1"), Target::WindowsX86_64);
+        let top = "zeff-0.9.1-windows-x86-64/engines/0.9.1";
+        let bytes = raw_zip(&[
+            (&format!("{top}/"), Zipped::Folder),
+            (&format!("{top}/help/"), Zipped::Folder),
+            (&format!("{top}/zeff.exe"), stored(b"engine")),
+            (&format!("{top}/help/reg.md"), stored(b"# reg\n")),
+        ]);
+        let engine = dir.path().join("engines").join("0.9.1").join("zeff.exe");
+        assert_eq!(place(dir.path(), &name, &bytes), Ok(Placed::New(engine)));
+        assert_eq!(
+            std::fs::read(dir.path().join("engines/0.9.1/help/reg.md")).unwrap(),
+            b"# reg\n"
+        );
+    }
+
+    #[test]
+    fn a_zip_with_a_link_or_a_method_the_launcher_does_not_read_is_refused() {
+        let name = ArchiveName::of(&version("0.9.1"), Target::WindowsX86_64);
+        let top = "zeff-0.9.1-windows-x86-64/engines/0.9.1";
+        let engine = format!("{top}/zeff.exe");
+        let link = format!("{top}/cmd.exe");
+        let dir = tempfile::tempdir().unwrap();
+        let with_a_link = raw_zip(&[
+            (&engine, stored(b"engine")),
+            (
+                &link,
+                Zipped::File {
+                    bytes: b"C:/Windows/System32/cmd.exe",
+                    method: rawzip::CompressionMethod::STORE,
+                    mode: 0o120_777,
+                },
+            ),
+        ]);
+        assert_eq!(
+            place(dir.path(), &name, &with_a_link),
+            Err(Fault::Unsafe {
+                entry: link.clone(),
+                reason: "it is a link",
+            })
+        );
+        let shrunk = raw_zip(&[(
+            &engine,
+            Zipped::File {
+                bytes: b"engine",
+                method: rawzip::CompressionMethod::SHRUNK,
+                mode: 0o755,
+            },
+        )]);
+        assert_eq!(
+            place(dir.path(), &name, &shrunk),
+            broken(&format!(
+                "`{engine}` is compressed in a way the launcher does not read"
+            ))
+        );
+        assert_eq!(tree(dir.path()), [(dir.path().join("engines"), None)]);
+    }
+
+    #[test]
+    fn the_tar_of_an_archive_is_what_its_packing_compresses() {
+        let tar_name = ArchiveName::of(&version("0.9.1"), Target::LinuxArm64);
+        let tar = pack_tar(&tar_name, &contents()).expect("a tar").unwrap();
+        assert_eq!(zstd(&tar), pack(&tar_name, &contents()).unwrap());
+        let zip_name = ArchiveName::of(&version("0.9.1"), Target::WindowsArm64);
+        assert!(pack_tar(&zip_name, &contents()).is_none());
+    }
 }

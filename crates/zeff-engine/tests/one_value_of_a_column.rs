@@ -125,6 +125,19 @@ fn one_prediction_is_read_from_the_column() {
 
 // ----- the refusals -----
 
+/// A position outside a column of one row: the count is said in the singular (release 0.9.0,
+/// step 42c3; the messages were tested on columns of several rows).
+#[test]
+fn a_position_outside_a_column_of_one_row() {
+    let (code, _, stderr) = go("let one = frame(a = [5])\none.add(b = a[3])\n");
+    assert_eq!(code, 1, "{stderr}");
+    assert!(
+        stderr.contains("error[Z0207]: index 3 is outside 1..1\n"),
+        "{stderr}"
+    );
+    assert!(stderr.contains("^ the column has 1 row\n"), "{stderr}");
+}
+
 #[test]
 fn every_message() {
     let data = "let d = frame(x = [1.5, 2.5, NA], s = [\"a\", \"b\", \"c\"])\n";

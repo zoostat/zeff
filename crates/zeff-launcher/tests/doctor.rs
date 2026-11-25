@@ -406,3 +406,198 @@ fn doctor_takes_nothing_after_it_and_is_the_launchers() {
     );
     assert!(text.contains("fix: set `ZEFF_HOME`"), "{text}");
 }
+
+// ----- lines of the report no test had asked for (release 0.9.0, step 42c3) -----
+
+/// The lines of `zeff doctor` on a machine described by `pairs`, with the launcher at
+/// `own_path` and the free space as `free` tells it (`None`: the machine's own answer).
+fn report_of(
+    pairs: &[(&str, String)],
+    platform: Platform,
+    own_path: Option<PathBuf>,
+    network: &Answers,
+    free: Option<zeff_launcher::doctor::FreeSpace<'_>>,
+) -> Vec<zeff_launcher::doctor::Line> {
+    let args = vec!["doctor".to_string()];
+    let asked = read(&args).unwrap().unwrap();
+    let env = |name: &str| {
+        pairs
+            .iter()
+            .find(|(known, _)| *known == name)
+            .map(|(_, value)| value.clone())
+    };
+    let machine = Machine {
+        env: &env,
+        cwd: Path::new("."),
+        platform,
+        host: None,
+        key: None,
+        fetch: Some(network),
+    };
+    lines(
+        &asked,
+        &machine,
+        &Around {
+            own_path,
+            free_space: free,
+        },
+    )
+}
+
+fn found<'a>(report: &'a [zeff_launcher::doctor::Line], about: &str) -> &'a str {
+    report
+        .iter()
+        .find(|line| line.about == about)
+        .unwrap_or_else(|| panic!("no line about {about} in {report:?}"))
+        .found
+        .as_str()
+}
+
+#[test]
+fn a_store_not_made_yet_and_a_user_folder_the_environment_does_not_name() {
+    let dir = tempfile::tempdir().unwrap();
+    let home = dir.path().join("not-yet").join(".zeff");
+    let pairs = [("ZEFF_HOME", home.display().to_string())];
+    // The free space is the machine's own answer here: that of the nearest folder that
+    // exists, since the store does not yet.
+    let report = report_of(&pairs, Platform::Unix, None, &up(), None);
+    let store = found(&report, "store");
+    assert!(
+        store.ends_with("not made yet, the first install makes it"),
+        "{store}"
+    );
+    assert_eq!(
+        found(&report, "user folder"),
+        "not named by the environment"
+    );
+    assert_eq!(
+        found(&report, "completions"),
+        "`zeff completions <shell>` writes the file for bash, zsh, fish or powershell"
+    );
+    let disk = found(&report, "disk");
+    assert!(disk.ends_with(" free where the store is"), "{disk}");
+    // No launcher path was given, so nothing is said of PATH.
+    assert!(report.iter().all(|line| line.about != "PATH"));
+}
+
+#[test]
+fn free_space_that_cannot_be_told_is_said_and_is_no_problem() {
+    let dir = tempfile::tempdir().unwrap();
+    let pairs = [("ZEFF_HOME", dir.path().display().to_string())];
+    let untold = |_: &Path| None;
+    let report = report_of(&pairs, Platform::Unix, None, &up(), Some(&untold));
+    let line = report.iter().find(|line| line.about == "disk").unwrap();
+    assert_eq!(
+        line.found,
+        "the free space where the store is could not be read"
+    );
+    assert_eq!(line.fix, None);
+}
+
+#[test]
+fn a_shared_store_the_fix_for_path_on_windows_and_completions_for_bash() {
+    let dir = tempfile::tempdir().unwrap();
+    let user = dir.path().join("ada");
+    let home = user.join(".zeff");
+    let programs = dir.path().join("programs");
+    std::fs::create_dir_all(home.join("bin")).unwrap();
+    std::fs::create_dir_all(programs.join("Zeff").join("engines")).unwrap();
+    let completions = user.join(".local/share/bash-completion/completions");
+    std::fs::create_dir_all(&completions).unwrap();
+    std::fs::write(completions.join("zeff"), "").unwrap();
+    let pairs = [
+        ("ZEFF_HOME", home.display().to_string()),
+        ("USERPROFILE", user.display().to_string()),
+        ("ProgramFiles", programs.display().to_string()),
+        ("PATH", "C:/Windows".to_string()),
+        ("SHELL", "/usr/bin/bash".to_string()),
+    ];
+    let free = |_: &Path| Some(50 * GB);
+    let own = home.join("bin").join("zeff.exe");
+    let report = report_of(&pairs, Platform::Windows, Some(own), &up(), Some(&free));
+    let shared = found(&report, "shared store");
+    assert!(
+        shared.ends_with("read after the user's own") && shared.contains("Zeff"),
+        "{shared}"
+    );
+    let path = report.iter().find(|line| line.about == "PATH").unwrap();
+    assert!(path.found.ends_with("is not on PATH"), "{}", path.found);
+    let fix = path.fix.as_deref().unwrap();
+    assert!(
+        fix.starts_with("add `") && fix.ends_with("` to the user's PATH in the system's settings"),
+        "{fix}"
+    );
+    let completions = found(&report, "completions");
+    assert!(completions.starts_with("for bash, at `"), "{completions}");
+}
+
+#[test]
+fn a_mirror_of_the_settings_file_that_is_no_address_and_a_server_that_sends_too_much() {
+    let dir = tempfile::tempdir().unwrap();
+    let home = dir.path().join(".zeff");
+    std::fs::create_dir_all(&home).unwrap();
+    std::fs::write(
+        home.join("config.toml"),
+        "[network]\nmirror = \"mirror.example\"\n",
+    )
+    .unwrap();
+    let pairs = [("ZEFF_HOME", home.display().to_string())];
+    let free = |_: &Path| Some(50 * GB);
+    let report = report_of(&pairs, Platform::Unix, None, &up(), Some(&free));
+    let mirror = report.iter().find(|line| line.about == "mirror").unwrap();
+    assert_eq!(
+        mirror.found,
+        "`mirror.example`, from `[network] mirror` of `config.toml`, is not an address"
+    );
+    assert_eq!(
+        mirror.fix.as_deref(),
+        Some("a mirror begins with `https://` or `http://`")
+    );
+    // With a mirror that is an address, a server that sends more than an index is.
+    std::fs::remove_file(home.join("config.toml")).unwrap();
+    let pairs = [
+        ("ZEFF_HOME", home.display().to_string()),
+        ("ZEFF_MIRROR", "https://mirror.example/zeff".to_string()),
+    ];
+    let too_much = Answers(Err(FetchError::TooLarge));
+    let report = report_of(&pairs, Platform::Unix, None, &too_much, Some(&free));
+    let host = report
+        .iter()
+        .find(|line| line.about == "release host")
+        .unwrap();
+    assert!(
+        host.found
+            .ends_with(": the server sent more than an index is"),
+        "{}",
+        host.found
+    );
+    assert!(host.fix.is_some());
+}
+
+#[test]
+fn a_record_of_a_selftest_that_is_not_one_is_not_read() {
+    let world = World::new();
+    let folder = world.home().join("selftest");
+    std::fs::create_dir_all(&folder).unwrap();
+    let records = [
+        (
+            "0.9.4",
+            "conformant = true\ncases = \"many\"\ndiffering = 0\non = \"2026-11-22\"\n",
+        ),
+        (
+            "0.9.5",
+            "conformant = true\ncases = 558\non = \"2026-11-22\"\n",
+        ),
+        (
+            "0.9.6",
+            "conformant = true\ncases = 558\ndiffering = 0\non = 20261122\n",
+        ),
+        ("0.9.7", "conformant = true\ncases = 558\ndiffering = 0\n"),
+        ("0.9.8", "cases = 558\ndiffering = 0\non = \"2026-11-22\"\n"),
+        ("0.9.9", "conformant = [true\n"),
+    ];
+    for (version, text) in records {
+        std::fs::write(folder.join(format!("{version}.toml")), text).unwrap();
+        assert_eq!(last_selftest(&world.home(), version), None, "{version}");
+    }
+}

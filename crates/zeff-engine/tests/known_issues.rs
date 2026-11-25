@@ -158,6 +158,79 @@ fn a_list_that_is_not_whole_is_refused() {
     }
 }
 
+/// The refusals no test had asked for (release 0.9.0, step 42c3): an entry that is not a table,
+/// a name that is not text, no summary and no word on when a call is affected, and versions
+/// written in forms that are not versions.
+#[test]
+fn the_other_ways_a_list_is_not_whole() {
+    let entry = "[[issue]]\nnumber = 3\nsummary = \"s\"\nfunctions = [\"reg\"]\noptions = []\nfrom = \"0.9.0\"\nfixed = \"0.9.2\"\naffected_when = \"w\"\ndocument = \"d\"\n";
+    assert_eq!(
+        read(&format!("format = 1\n{entry}")).map(|issues| issues.len()),
+        Ok(1)
+    );
+    for (text, reason) in [
+        (
+            "format = 1\nissue = [3]\n".to_string(),
+            "`issue` is not a list of tables",
+        ),
+        (
+            format!("format = 1\n{}", entry.replace("[\"reg\"]", "[\"reg\", 3]")),
+            "issue 1 of the list has no `functions`, a list of names",
+        ),
+        (
+            format!(
+                "format = 1\n{}",
+                entry.replace("options = []", "options = [\"\"]")
+            ),
+            "issue 1 of the list has no `options`, a list of names",
+        ),
+        (
+            format!("format = 1\n{}", entry.replace("summary = \"s\"\n", "")),
+            "issue 1 of the list has no `summary`",
+        ),
+        (
+            format!(
+                "format = 1\n{}",
+                entry.replace("affected_when = \"w\"\n", "")
+            ),
+            "issue 1 of the list has no `affected_when`",
+        ),
+        // A hyphen with nothing after it, a part that is no number, and four parts.
+        (
+            format!(
+                "format = 1\n{}",
+                entry.replace("from = \"0.9.0\"", "from = \"0.9.0-\"")
+            ),
+            "issue 1 of the list has no `from`, a version",
+        ),
+        (
+            format!(
+                "format = 1\n{}",
+                entry.replace("from = \"0.9.0\"", "from = \"0.x.0\"")
+            ),
+            "issue 1 of the list has no `from`, a version",
+        ),
+        (
+            format!(
+                "format = 1\n{}",
+                entry.replace("from = \"0.9.0\"", "from = \"0.9.0.1\"")
+            ),
+            "issue 1 of the list has no `from`, a version",
+        ),
+    ] {
+        assert_eq!(read(&text), Err(reason.to_string()), "{text}");
+    }
+    // A version before its release is a version.
+    assert_eq!(
+        read(&format!(
+            "format = 1\n{}",
+            entry.replace("from = \"0.9.0\"", "from = \"0.9.0-rc.1\"")
+        ))
+        .map(|issues| issues[0].from.clone()),
+        Ok("0.9.0-rc.1".to_string())
+    );
+}
+
 /// The entries "A wrong result" of `docs/known_issues.md`, each from its bullet to the next.
 fn wrong_results(document: &str) -> Vec<String> {
     let mut entries: Vec<String> = Vec::new();

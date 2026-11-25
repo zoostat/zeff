@@ -100,6 +100,9 @@ fn a_day_and_a_call_as_they_are_said() {
     assert_eq!(day_said("2026-10-12", None), "12 October 2026");
     assert_eq!(day_said("2026-13-01", Some("2026")), "2026-13-01");
     assert_eq!(day_said("some day", None), "some day");
+    // Three parts of which the month or the day is no number: said as it is written.
+    assert_eq!(day_said("2026-ab-01", None), "2026-ab-01");
+    assert_eq!(day_said("2026-10-xx", Some("2026")), "2026-10-xx");
     let options =
         |names: &[&str]| -> Vec<String> { names.iter().map(|name| (*name).to_string()).collect() };
     assert_eq!(call_said("mad", &options(&[])), "`mad`");
@@ -255,6 +258,34 @@ fn every_form_of_the_report() {
         None,
     );
     insta::assert_snapshot!(out);
+}
+
+/// One run with no day recorded, and a list of one issue (release 0.9.0, step 42c3: the
+/// singular of each had no test).
+#[test]
+fn one_run_without_a_day_against_a_list_of_one_issue() {
+    let one: Vec<Issue> = issues()
+        .into_iter()
+        .filter(|issue| issue.number == 123)
+        .collect();
+    assert_eq!(one.len(), 1);
+    let records = [run(
+        "0.9.0",
+        None,
+        "scripts/main.zeff",
+        &[call("reg", &["weights"])],
+    )];
+    let report = audit(&records, &one, "0.9.3");
+    assert_eq!(report.affected.len(), 1);
+    assert_eq!(
+        report.affected[0].sentence(None),
+        "a run with no day recorded used `reg` with `weights:`, affected by issue 123, fixed in 0.9.2"
+    );
+    let text = report.text("0.9.3", None);
+    assert!(
+        text.ends_with("1 run read against the 1 issue known to Zeff 0.9.3\n"),
+        "{text}"
+    );
 }
 
 #[test]

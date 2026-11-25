@@ -517,3 +517,129 @@ fn every_refusal_of_engine_use_says_what_to_do() {
     ));
     insta::assert_snapshot!(out);
 }
+
+// ----- corners of the pieces no test had asked for (release 0.9.0, step 42c3) -----
+
+/// A record of the engine that lacks its file, or whose edit lacks a number, is passed over;
+/// the whole records beside it are still read.
+#[test]
+fn records_that_are_not_whole_are_passed_over() {
+    let edit = |fields: &str| {
+        format!(
+            "{{\"code\": \"Z0109\", \"file\": \"scripts/main.zeff\", \"message\": \"m\", \"fixes\": [{{\"edits\": [{{{fields}}}]}}]}}"
+        )
+    };
+    let whole = "\"line\": 2, \"column\": 9, \"end_line\": 2, \"end_column\": 13, \"replacement\": \"helpers::mean\"";
+    let json = format!(
+        "[{}, {}, {}, {}, {}]",
+        // No file.
+        "{\"code\": \"Z0109\", \"message\": \"m\", \"fixes\": [{\"edits\": [{}]}]}",
+        // No fix at all.
+        "{\"code\": \"Z0109\", \"file\": \"scripts/main.zeff\", \"message\": \"m\"}",
+        // An edit without its end column, and one whose line is not a number.
+        edit("\"line\": 2, \"column\": 9, \"end_line\": 2, \"replacement\": \"helpers::mean\""),
+        edit(
+            "\"line\": \"two\", \"column\": 9, \"end_line\": 2, \"end_column\": 13, \"replacement\": \"helpers::mean\""
+        ),
+        edit(whole),
+    );
+    let found = captured_names(&json);
+    assert_eq!(found.len(), 1, "{found:?}");
+    assert_eq!((found[0].line, found[0].column), (2, 9));
+    // What is not a list of records gives nothing.
+    assert!(captured_names("{\"code\": \"Z0109\"}").is_empty());
+    assert!(captured_names("not JSON").is_empty());
+}
+
+/// A place that is not in the text leaves the text unwritten: a column of nought or past the
+/// end of its line, a line past the end of the text, and an end before its start.
+#[test]
+fn a_place_that_is_not_in_the_text_leaves_it_unwritten() {
+    let text = "let a = mean(2.0)\nlet b = 3\n";
+    let at = |line: usize, column: usize, end_line: usize, end_column: usize| Captured {
+        file: "scripts/main.zeff".to_string(),
+        line,
+        column,
+        end_line,
+        end_column,
+        replacement: "helpers::mean".to_string(),
+        message: String::new(),
+    };
+    assert_eq!(
+        rewritten(text, &[at(1, 9, 1, 13)]).as_deref(),
+        Some("let a = helpers::mean(2.0)\nlet b = 3\n")
+    );
+    assert_eq!(rewritten(text, &[at(1, 0, 1, 13)]), None);
+    assert_eq!(rewritten(text, &[at(1, 40, 1, 44)]), None);
+    assert_eq!(rewritten(text, &[at(1, 9, 5, 1)]), None);
+    assert_eq!(rewritten(text, &[at(3, 1, 3, 2)]), None);
+    assert_eq!(rewritten(text, &[at(2, 5, 1, 9)]), None);
+}
+
+/// A pin whose quotes do not close is not a pin the launcher rewrites.
+#[test]
+fn a_pin_with_one_quote_is_not_moved() {
+    assert_eq!(with_pin("[project]\nzeff = \"0.9.0\n", "0.9.1"), None);
+    assert_eq!(with_pin("[project]\nzeff = 0.9\n", "0.9.1"), None);
+    assert_eq!(
+        with_pin("[project]\nzeff = \"0.9.0\"\n", "0.9.1").as_deref(),
+        Some("[project]\nzeff = \"0.9.1\"\n")
+    );
+}
+
+/// A script that stops on both engines with different errors has both said; one that stops
+/// with nothing written is said to stop with no message.
+#[test]
+fn two_stops_with_different_errors_and_a_stop_without_a_word() {
+    let said = |was: &Ran, is: &Ran| {
+        let mut out = Vec::new();
+        let differs = compared(("0.9.0", was), ("0.9.1", is), &mut out).unwrap();
+        (differs, String::from_utf8(out).unwrap())
+    };
+    let first = ran(
+        1,
+        "",
+        "error[Z0401]: `mean` cannot be called on a Str\n --> a.zeff:1:1\n",
+    );
+    let second = ran(
+        1,
+        "",
+        "error[Z0109]: `mean` is a function of Zeff\n --> a.zeff:1:1\n",
+    );
+    let (differs, text) = said(&first, &second);
+    assert!(differs);
+    assert!(
+        text.starts_with(
+            "  stops on both engines:\n    on Zeff 0.9.0: error[Z0401]: `mean` cannot be called on a Str\n    on Zeff 0.9.1: error[Z0109]: `mean` is a function of Zeff\n"
+        ),
+        "{text}"
+    );
+    let (differs, text) = said(&first, &first);
+    assert!(!differs, "{text}");
+    assert!(
+        text.starts_with("  stops on both engines, with the same error:\n"),
+        "{text}"
+    );
+    let silent = ran(3, "", "");
+    let (differs, text) = said(&ran(0, "", ""), &silent);
+    assert!(differs);
+    assert!(
+        text.starts_with("  runs on Zeff 0.9.0 and stops on Zeff 0.9.1:\n    with no message\n"),
+        "{text}"
+    );
+    let (differs, text) = said(&silent, &ran(0, "", ""));
+    assert!(differs);
+    assert!(
+        text.starts_with(
+            "  stops on Zeff 0.9.0 and runs on Zeff 0.9.1; on Zeff 0.9.0:\n    with no message\n"
+        ),
+        "{text}"
+    );
+    let (_, text) = said(&silent, &silent);
+    assert!(
+        text.starts_with(
+            "  stops on both engines, with the same error:\n    on Zeff 0.9.0: no message\n"
+        ),
+        "{text}"
+    );
+}

@@ -362,3 +362,25 @@ fn a_pass_of_a_loop_inside_a_built_in_is_not_in_the_chain() {
         "{record}"
     );
 }
+
+/// What the loop variable held, where it is a record (release 0.9.0, step 42c3): a small
+/// record of single values is shown as it is written, and one that holds a list by its type.
+#[test]
+fn a_loop_variable_that_is_a_record_is_shown_as_written_or_by_its_type() {
+    let held = |script: &str| {
+        let out = run(script);
+        assert_eq!(out.exit_code, 1, "{}", out.output.stderr);
+        let record = record(&out);
+        let chain = record["chain"].as_array().unwrap();
+        assert_eq!(chain.len(), 1, "{chain:?}");
+        chain[0]["value"].as_str().unwrap().to_string()
+    };
+    assert_eq!(
+        held("for r in [{a: 1, b: 2.5}] {\n    assert(r.a > 5, \"too small\")\n}\n"),
+        "{a: 1, b: 2.5}"
+    );
+    assert_eq!(
+        held("for r in [{a: 1, b: [1, 2]}] {\n    assert(r.a > 5, \"too small\")\n}\n"),
+        "Record"
+    );
+}

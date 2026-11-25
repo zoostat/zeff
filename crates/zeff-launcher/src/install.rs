@@ -205,3 +205,21 @@ pub fn said(refused: &Refused) -> Diagnostic {
         }
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::in_words;
+    use std::io::{Error, ErrorKind};
+
+    /// Why the disk refused, in the launcher's words for the four kinds it names and in the
+    /// system's own for any other (release 0.9.0, step 42c3).
+    #[test]
+    fn a_refusal_of_the_disk_is_said_in_the_same_words_on_every_system() {
+        let said = |kind: ErrorKind| in_words(&Error::new(kind, "the system's own words"));
+        assert_eq!(said(ErrorKind::NotFound), "there is no such file");
+        assert_eq!(said(ErrorKind::PermissionDenied), "this user may not");
+        assert_eq!(said(ErrorKind::StorageFull), "the disk is full");
+        assert_eq!(said(ErrorKind::InvalidData), "it is not text");
+        assert_eq!(said(ErrorKind::TimedOut), "the system's own words");
+    }
+}

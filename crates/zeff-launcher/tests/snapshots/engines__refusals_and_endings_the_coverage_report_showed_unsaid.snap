@@ -1,0 +1,28 @@
+---
+source: crates/zeff-launcher/tests/engines.rs
+expression: out
+---
+----- no home folder [exit 4]
+error[Z0710]: no Zeff engine can be found: this user has no home folder
+  = help: set `ZEFF_HOME` to the folder that holds `engines/`
+
+----- an archive, on a machine of no published kind [exit 1]
+error[Z0717]: no engine is published for this kind of machine
+  = help: engines are built for linux-x86-64, linux-arm64, macos-x86-64, macos-arm64, windows-x86-64, windows-arm64
+
+----- a version to fetch, on a machine of no published kind [exit 1]
+error[Z0717]: no engine is published for this kind of machine
+  = help: engines are built for linux-x86-64, linux-arm64, macos-x86-64, macos-arm64, windows-x86-64, windows-arm64
+
+----- a default named when nothing is installed [exit 4]
+error[Z0710]: Zeff 0.9.1 is not installed
+  = help: no engine is installed; `zeff engine install 0.9.1` installs it
+
+----- a default that is not among the two installed [exit 4]
+error[Z0710]: Zeff 0.7.0 is not installed
+  = help: the engines installed are 0.9.0, 0.9.1; `zeff engine install 0.7.0` installs it
+
+----- the only engine removed while it is the default [exit 0]
+removed Zeff 0.9.1 from `<tmp>/home/engines/0.9.1`
+note: a project that pins Zeff 0.9.1 will ask to install it again
+note: Zeff 0.9.1 was the default engine; no engine is installed now

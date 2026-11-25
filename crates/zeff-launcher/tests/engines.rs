@@ -703,3 +703,179 @@ fn the_launcher_answers_engine_commands_itself_and_hands_the_rest_over() {
         "{err}"
     );
 }
+
+// ----- what no test had asked of the engine commands (release 0.9.0, step 42c3) -----
+
+/// `zeff <args>` on a machine whose environment is `env` and which is of the kind `host`.
+fn zeff_on(
+    world: &World,
+    args: &[&str],
+    env: &dyn Fn(&str) -> Option<String>,
+    host: Option<Target>,
+) -> Ended {
+    let args = strings(args);
+    let asked = read(&args).expect("an engine command").expect("well asked");
+    let key = world.signer.public();
+    let (mut out, mut err) = (Vec::new(), Vec::new());
+    let code = run(
+        &asked,
+        &Machine {
+            env,
+            cwd: world.dir.path(),
+            platform: Platform::Unix,
+            host,
+            key: Some(&key),
+            fetch: None,
+        },
+        &mut out,
+        &mut err,
+    );
+    let clean = |bytes: Vec<u8>| {
+        String::from_utf8(bytes)
+            .unwrap()
+            .replace(&world.dir.path().display().to_string(), "<tmp>")
+    };
+    Ended {
+        code,
+        out: clean(out),
+        err: clean(err),
+    }
+}
+
+/// No home folder; a kind of machine no engine is published for, asked for an archive on
+/// this machine and for one to fetch; a default named when nothing is installed; and the
+/// only engine removed while it is the default.
+#[test]
+fn refusals_and_endings_the_coverage_report_showed_unsaid() {
+    let world = World::new();
+    let mut out = String::new();
+    let nothing = |_: &str| None;
+    let no_home = zeff_on(&world, &["engine", "list"], &nothing, Some(world.host));
+    assert_eq!(no_home.code, 4, "{no_home:?}");
+    out.push_str(&shown("no home folder", &no_home));
+
+    let home = world.home().display().to_string();
+    let env = move |name: &str| (name == "ZEFF_HOME").then(|| home.clone());
+    let archive = world.download("0.9.1");
+    let from = zeff_on(
+        &world,
+        &["engine", "install", "--from", archive.to_str().unwrap()],
+        &env,
+        None,
+    );
+    assert_eq!(from.code, 1, "{from:?}");
+    out.push_str(&shown(
+        "an archive, on a machine of no published kind",
+        &from,
+    ));
+    let fetched = zeff_on(&world, &["engine", "install", "0.9.1"], &env, None);
+    assert_eq!(fetched.code, 1, "{fetched:?}");
+    out.push_str(&shown(
+        "a version to fetch, on a machine of no published kind",
+        &fetched,
+    ));
+    assert!(!world.home().join("engines").exists());
+
+    let none = world.zeff(&["engine", "default", "0.9.1"]);
+    assert_eq!(none.code, 4, "{none:?}");
+    out.push_str(&shown("a default named when nothing is installed", &none));
+
+    let installed = world.zeff(&["engine", "install", "--from", archive.to_str().unwrap()]);
+    assert_eq!(installed.code, 0, "{installed:?}");
+    assert_eq!(world.zeff(&["engine", "default", "0.9.1"]).code, 0);
+    let older = world.download("0.9.0");
+    assert_eq!(
+        world
+            .zeff(&["engine", "install", "--from", older.to_str().unwrap()])
+            .code,
+        0
+    );
+    let other = world.zeff(&["engine", "default", "0.7.0"]);
+    assert_eq!(other.code, 4, "{other:?}");
+    out.push_str(&shown(
+        "a default that is not among the two installed",
+        &other,
+    ));
+    assert_eq!(world.zeff(&["engine", "remove", "0.9.0"]).code, 0);
+    let removed = world.zeff(&["engine", "remove", "0.9.1"]);
+    assert_eq!(removed.code, 0, "{removed:?}");
+    out.push_str(&shown(
+        "the only engine removed while it is the default",
+        &removed,
+    ));
+    assert_eq!(
+        default_setting(&std::fs::read_to_string(world.home().join("config.toml")).unwrap()),
+        None
+    );
+    insta::assert_snapshot!(out);
+}
+
+/// A settings file that cannot be read is said to be so, and the default is not changed.
+#[cfg(unix)]
+#[test]
+fn a_settings_file_that_cannot_be_read_stops_the_default() {
+    let world = World::new();
+    let archive = world.download("0.9.1");
+    assert_eq!(
+        world
+            .zeff(&["engine", "install", "--from", archive.to_str().unwrap()])
+            .code,
+        0
+    );
+    // A folder where the file should be: it is there, and it is not a file to read.
+    std::fs::create_dir_all(world.home().join("config.toml")).unwrap();
+    let ended = world.zeff(&["engine", "default", "0.9.1"]);
+    assert_eq!(ended.code, 1, "{ended:?}");
+    assert!(
+        ended
+            .err
+            .contains("`<tmp>/home/config.toml` cannot be read: "),
+        "{ended:?}"
+    );
+    assert!(world.home().join("config.toml").is_dir());
+}
+
+/// `zeff doctor` through the launcher's own entry: the report is written and the exit code is
+/// that of its problems. A folder inside an engine's folder counts in the engine's size.
+#[cfg(unix)]
+#[test]
+fn doctor_is_answered_by_the_engine_commands_and_a_size_counts_folders_within() {
+    let world = World::new();
+    let home = world.home().display().to_string();
+    let env = move |name: &str| (name == "ZEFF_HOME").then(|| home.clone());
+    let doctor = zeff_on(&world, &["doctor"], &env, Some(world.host));
+    assert!(doctor.code <= 1, "{doctor:?}");
+    assert!(doctor.out.contains("store"), "{doctor:?}");
+
+    let engine = world.home().join("engines").join("0.9.1");
+    std::fs::create_dir_all(engine.join("share").join("deep")).unwrap();
+    std::fs::write(engine.join("zeff"), vec![b'x'; 1_000]).unwrap();
+    std::fs::write(
+        engine.join("share").join("deep").join("notes"),
+        vec![b'y'; 234],
+    )
+    .unwrap();
+    let listed = world.zeff(&["engine", "list", "--format", "json"]);
+    assert_eq!(listed.code, 0, "{listed:?}");
+    assert!(listed.out.contains("\"bytes\": 1234"), "{listed:?}");
+    assert!(listed.out.contains("\"store\": \"user\""), "{listed:?}");
+}
+
+/// The JSON list says which store an engine is in.
+#[test]
+fn the_list_as_json_names_the_shared_store() {
+    let world = World::new();
+    let programs = world.dir.path().join("Program Files");
+    let system = programs.join("Zeff").join("engines").join("0.8.0");
+    std::fs::create_dir_all(&system).unwrap();
+    std::fs::write(system.join("zeff.exe"), "engine").unwrap();
+    let key = world.signer.public();
+    let listed = world.zeff_with(
+        &["engine", "list", "--format", "json"],
+        Some(&key),
+        Some(&programs),
+    );
+    assert_eq!(listed.code, 0, "{listed:?}");
+    assert!(listed.out.contains("\"version\": \"0.8.0\""), "{listed:?}");
+    assert!(listed.out.contains("\"store\": \"system\""), "{listed:?}");
+}

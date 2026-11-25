@@ -255,3 +255,89 @@ fn records_are_kept_by_their_day_and_time_and_read_in_order() {
         Vec::<(String, RunRecord)>::new()
     );
 }
+
+// ----- what no test had asked of a record (release 0.9.0, step 42c3) -----
+
+/// A file that is not a record of this form is not read as one: an exit code that is text or
+/// too large, calls that are not a list of tables, a call without its function or its package,
+/// options that are not a list of texts, and a record without its build or its script.
+#[test]
+fn a_file_that_is_not_a_record_in_any_part_is_not_read() {
+    let whole = "format = 0\nengine = \"0.9.1\"\nbuild = \"source\"\nscript = \"scripts/main.zeff\"\nexit_code = 0\n\n[[call]]\nfunction = \"reg\"\npackage = \"regress\"\noptions = [\"se\"]\n";
+    let read = RunRecord::read(whole).expect("a record");
+    assert_eq!(read.calls.len(), 1);
+    assert_eq!(read.calls[0].options, ["se"]);
+    for (from, to) in [
+        ("exit_code = 0", "exit_code = \"0\""),
+        ("exit_code = 0", "exit_code = 99999999999"),
+        ("build = \"source\"\n", ""),
+        ("script = \"scripts/main.zeff\"\n", ""),
+        ("function = \"reg\"\n", ""),
+        ("package = \"regress\"\n", ""),
+        ("package = \"regress\"", "package = 3"),
+        ("options = [\"se\"]\n", ""),
+        ("options = [\"se\"]", "options = \"se\""),
+        ("options = [\"se\"]", "options = [1]"),
+    ] {
+        assert!(whole.contains(from), "{from}");
+        let not = whole.replace(from, to);
+        assert_eq!(RunRecord::read(&not), None, "{not}");
+    }
+    let head = whole.split("\n\n").next().unwrap();
+    assert_eq!(RunRecord::read(&format!("{head}\ncall = 3\n")), None);
+    assert_eq!(RunRecord::read(&format!("{head}\ncall = [3]\n")), None);
+    assert!(RunRecord::read(&format!("{head}\n")).is_some());
+}
+
+/// A script's name with a line break or a control character in it is written so that it is
+/// read back.
+#[test]
+fn a_name_with_a_line_break_or_a_control_character_is_read_back() {
+    let odd = RunRecord {
+        engine: "0.9.1".to_string(),
+        build: "official".to_string(),
+        on: None,
+        at: None,
+        script: "scripts/two\nlines\u{1}.zeff".to_string(),
+        exit_code: 0,
+        calls: Vec::new(),
+    };
+    let text = odd.text();
+    assert!(
+        text.contains("script = \"scripts/two\\nlines\\u0001.zeff\""),
+        "{text}"
+    );
+    assert_eq!(RunRecord::read(&text), Some(odd));
+}
+
+/// A call of a function that takes any number of arguments is a call of the script like any
+/// other: `max` of three numbers and `print` of two values.
+#[test]
+fn a_call_with_any_number_of_arguments_is_recorded() {
+    let files = MemoryFileSystem::new();
+    files.add_file(
+        "/p/zeff.toml",
+        format!("[project]\nname = \"p\"\nzeff = \"{VERSION}\"\nedition = \"preview\"\n"),
+    );
+    let script = "print(max(1, 2, 3), min(4, 5))\n";
+    files.add_file("/p/scripts/main.zeff", script);
+    let fs = Clocked { files, now: None };
+    let project = Project::open(&fs, Path::new("/p")).expect("the project opens");
+    let registry = zeff_engine::registry::registry().expect("the registry builds");
+    let made = RunRecord::of(
+        &fs,
+        &project,
+        "scripts/main.zeff",
+        script,
+        0,
+        "source",
+        registry,
+    );
+    let functions: Vec<&str> = made
+        .calls
+        .iter()
+        .map(|call| call.function.as_str())
+        .collect();
+    assert_eq!(functions, ["max", "min", "print"], "{:?}", made.calls);
+    assert!(made.calls.iter().all(|call| call.options.is_empty()));
+}
