@@ -7917,3 +7917,17 @@ With these, each package's shards together agree with the list: the numeric kern
 **Held by.** The comparison tool on each package's shards together (four packages, none new but what the tests now catch); the reports of the runs of 19, 20, 23 and 24 November for the twelve; the one change of `results` tried by hand, the file copied back.
 
 **Reason.** The testing handbook, sections 1 (mutation testing) and 2.4; the checklist's step 42c4b.
+
+## 25 November 2026 — release 0.9.0, step 42c4b3: two more shards of `regress` read, and the sixth shard cut off
+
+Step 42c4b is split once more as its parts end: 42c4b3 (this entry), what had ended by 15:42 UTC on 25 November; 42c4b4, the rest when run 45437619962 has ended.
+
+**`regress`, shards 13 and 15: 172 mutants, 15 survivors, all on the recorded list.** Read together with the thirteen before them, as step 42c4b2 has it: fifteen of the sixteen shards, 1,296 mutants, 131 survivors, 131 recorded, none new. Shard 14 was still running.
+
+**Shard 30 of `results` was cut off at the job's limit**, the fifth of that package and the sixth of the run. It is of the same kind as the four of step 42c4a: a slow machine, by the check of the second pass's tests (19 minutes), with a first pass of 146 minutes and 22 mutants left.
+
+**The command takes it up.** `tools/mutants/rerun.py --run 45437619962` now names twelve shards for the six cut off: `zeff-kernels` 2 and 14 of 24, and `zeff-results` 1, 3, 5, 7, 30, 33, 35, 37, 39 and 62 of 64, shard 30 of 32 being shards 30 and 62 of 64. The halves hold the same mutants only while the two packages' code outside their tests is as the run had it: since 6af2614 four of their files have changed (`irls.rs`, `separation.rs`, `likelihood.rs`, `report.rs`), each from a line inside its own test module on, which the tool does not mutate. Nothing was started.
+
+**Held by.** The comparison tool on the fifteen shards of `regress` together; the tool's own output, read; the first changed line of each file against the line where its tests begin.
+
+**Reason.** The testing handbook, sections 1 (mutation testing) and 2.4; the checklist's step 42c4b.
