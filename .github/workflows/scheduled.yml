@@ -729,3 +729,59 @@ jobs:
             timeouts.txt
             compare.txt
             guard.log
+
+  mutation-together:
+    # Each shard's note compares its own survivors with the recorded list, and the list counts
+    # a change by its file, its words and its routine, since lines move with every edit. So a
+    # change the list holds once passes in two shards at two places of one routine, and
+    # neither note says "new": read shard by shard, the run of 24 November 2026 (45437619962)
+    # hid twelve timeouts of the studentized range and a second place in `ivreg`, some of them
+    # since release 0.8.0 (docs/decisions.md, 25 November 2026, step 42c4b2). This job reads
+    # every shard's lists of a package at once, which is the comparison that counts. It runs
+    # whatever became of the shards: one that was cut off at its limit has left the lists the
+    # tool wrote, and one that was not asked for (`shard`) has left nothing.
+    name: weekly (mutation testing, each package's shards together)
+    needs: mutation
+    if: >-
+      always() && (github.event_name == 'workflow_dispatch' && (inputs.job == 'both' || inputs.job == 'weekly')
+      || github.event.schedule == '41 3 * * 1')
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Check out the repository
+        uses: actions/checkout@v4
+
+      - name: Fetch the reports of every shard
+        uses: actions/download-artifact@v4
+        with:
+          pattern: mutation-reports-*
+          path: reports
+
+      - name: Each package's survivors against the recorded list
+        run: |
+          {
+            echo "## Weekly: mutation testing, each package's shards together"
+            echo
+            echo "A survivor is new when the package's shards together hold it more often than the recorded list does."
+            echo
+          } >> "$GITHUB_STEP_SUMMARY"
+          for package in zeff-numeric zeff-kernels zeff-results zeff-regress zeff-stats zeff-glm; do
+            shards=$(ls -d reports/mutation-reports-$package-* 2>/dev/null | wc -l | tr -d ' ')
+            if [ "$shards" = "0" ]; then
+              echo "$package: no shard of this run left a report"
+              continue
+            fi
+            # The lists the tool itself wrote, of both passes: a shard cut off at the job's
+            # limit never came to put its timeouts in one file.
+            lists=$(ls reports/mutation-reports-$package-*/mutants/mutants.out/missed.txt reports/mutation-reports-$package-*/mutants/mutants.out/timeout.txt reports/mutation-reports-$package-*/pass1/timeout.txt 2>/dev/null || true)
+            echo "$package, $shards shards of this run together:"
+            python3 -I tools/mutants/compare.py --part tools/mutants/recorded.txt $lists | tee together.txt
+            {
+              echo "### $package, $shards shards"
+              echo
+              echo '```'
+              cat together.txt
+              echo '```'
+              echo
+            } >> "$GITHUB_STEP_SUMMARY"
+          done

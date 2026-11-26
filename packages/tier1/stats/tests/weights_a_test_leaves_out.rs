@@ -12,6 +12,10 @@
 //! naming the weight among the variables, and says how many rows a zero weight left out. No
 //! figure changes: a test under such weights prints what it prints on the frame with those rows
 //! taken out by `where`.
+//!
+//! The file is among the tests of `stats` since step 42c4b5 of the same release: it was among
+//! the engine's, where the weekly mutation job does not look for a package's tests, and the
+//! job's first run on this code left six changes of the counting that these tests catch.
 
 use zeff_testkit::run;
 

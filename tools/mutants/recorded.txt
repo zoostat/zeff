@@ -395,7 +395,6 @@ packages/tier1/results/src/variance.rs	replace += with -= in layered	2	earlier
 packages/tier1/results/src/variance.rs	replace < with <= in symmetrised	1	earlier
 packages/tier1/results/src/variance.rs	replace > with >= in symmetrised	1	earlier
 packages/tier1/stats/src/anova.rs	replace && with || in sums_of_squares	1	earlier
-packages/tier1/stats/src/anova.rs	replace - with + in sums_of_squares	2	earlier
 packages/tier1/stats/src/anova.rs	replace > with >= in sums_of_squares	1	earlier
 packages/tier1/stats/src/anova.rs	replace match guard w == "epsilon" with true in effect	1	earlier
 packages/tier1/stats/src/anova_factorial.rs	replace && with || in factor	1	earlier
@@ -473,6 +472,8 @@ packages/tier1/stats/src/p_adjust.rs	replace - with / in hommel	1	earlier
 packages/tier1/stats/src/p_adjust.rs	replace < with <= in hommel	1	earlier
 packages/tier1/stats/src/posthoc.rs	replace && with || in posthoc	1	earlier
 packages/tier1/stats/src/posthoc.rs	replace match guard df == row.df with false in finish	1	earlier
+packages/tier1/stats/src/posthoc.rs	replace match guard df == row.df with false in finish	1	identity
+packages/tier1/stats/src/posthoc.rs	replace match guard method.own_variances() with true in one_way	1	fence
 packages/tier1/stats/src/proportion_test.rs	replace * with + in one_sample	1	earlier
 packages/tier1/stats/src/proportion_test.rs	replace * with / in one_sample	2	earlier
 packages/tier1/stats/src/proportion_test.rs	replace * with / in two_groups	1	earlier
@@ -497,14 +498,11 @@ packages/tier1/stats/src/testing.rs	replace match guard !w.counts(row) with fals
 packages/tier1/stats/src/testing.rs	replace match guard w == "greater" with true in alternative	1	earlier
 packages/tier1/stats/src/variance_test.rs	replace - with + in levene	2	identity
 packages/tier1/stats/src/variance_test.rs	replace - with + in variance	2	identity
-packages/tier1/stats/src/variance_test.rs	replace < with <= in bartlett	1	fence
-packages/tier1/stats/src/variance_test.rs	replace < with == in bartlett	1	fence
 packages/tier1/stats/src/variance_test.rs	replace || with && in bartlett	3	fence
 packages/tier1/stats/src/variance_test.rs	replace || with && in levene	1	fence
 packages/tier1/stats/src/wilcoxon_test.rs	delete ! in rank_sum_interval	1	hang
 packages/tier1/stats/src/wilcoxon_test.rs	replace * with / in correction	1	earlier
 packages/tier1/stats/src/wilcoxon_test.rs	replace *= with /= in asymptotic_interval	3	hang
-packages/tier1/stats/src/wilcoxon_test.rs	replace + with * in searched_interval	1	earlier
 packages/tier1/stats/src/wilcoxon_test.rs	replace + with * in tie_sum	1	hang
 packages/tier1/stats/src/wilcoxon_test.rs	replace + with - in tie_sum	1	hang
 packages/tier1/stats/src/wilcoxon_test.rs	replace += with *= in tie_sum	1	hang
@@ -527,6 +525,19 @@ packages/tier1/stats/src/wilcoxon_test.rs	replace has_ties -> bool with true	1	h
 packages/tier1/stats/src/wilcoxon_test.rs	replace match guard !w.counts(row) with false in values	1	earlier
 packages/tier1/stats/src/wilcoxon_test.rs	replace || with && in asymptotic_interval	1	earlier
 packages/tier1/stats/src/wilcoxon_test.rs	replace || with && in root	2	earlier
+packages/tier2/glm/src/binary.rs	replace && with || in glm_with	1	fence
+packages/tier2/glm/src/binary.rs	replace * with / in columns	1	scale
+packages/tier2/glm/src/binary.rs	replace / with % in columns	1	scale
+packages/tier2/glm/src/binary.rs	replace / with * in columns	1	scale
+packages/tier2/glm/src/binary.rs	replace < with <= in glm_with	1	edge
+packages/tier2/glm/src/binary.rs	replace < with <= in glm_with	1	fence
+packages/tier2/glm/src/binary.rs	replace > with >= in columns	1	edge
+packages/tier2/glm/src/binary.rs	replace > with >= in glm_with	1	fence
+packages/tier2/glm/src/binary.rs	replace > with >= in glm_with	2	edge
+packages/tier2/glm/src/confusion.rs	replace > with >= in share	1	identity
+packages/tier2/glm/src/curve.rs	replace += with *= in roc	1	hang
+packages/tier2/glm/src/curve.rs	replace match guard word == "roc" with true in curve	1	fence
+packages/tier2/glm/src/rows.rs	replace match guard fit.likelihood.is_some() with true in binary_fit	1	fence
 packages/tier2/regress/src/iv.rs	delete ! in Designs::build_full	2	fence
 packages/tier2/regress/src/iv.rs	delete - in TwoStage::hansen_j	1	edge
 packages/tier2/regress/src/iv.rs	replace != with == in TwoStage::weak	1	fence

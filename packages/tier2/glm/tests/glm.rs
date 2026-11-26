@@ -1623,3 +1623,81 @@ fn compare_refuses_other_rows_and_other_weights_each_alone() {
     ));
     assert!(!compared.contains("error["), "{compared}");
 }
+
+// ----- what the mutation run on the release's code left in `glm` (release 0.9.0, step 42c4b5) -----
+
+/// A model in other units is the same model: with schooling in hundred-millionths of a year
+/// and experience in millions of years no regressor is dropped, and the fit's measures are
+/// those of the model in years. The columns are brought to unit norm before the rule for
+/// collinear regressors is applied, so the rule does not see the units.
+#[test]
+fn a_model_in_other_units_is_the_same_model() {
+    let plain = printed(
+        "let w = dataset(wages)\nprint(w.glm(union ~ educ + exper, family: binomial).fit_measures())\n",
+    );
+    assert!(plain.starts_with("log_likelihood: "), "{plain}");
+    let other = printed(
+        "let w = dataset(wages).add(educ_big = educ * 1e8, exper_small = exper * 1e-6)\nlet m = w.glm(union ~ educ_big + exper_small, family: binomial)\nprint(m.fit_measures())\nm\n",
+    );
+    assert!(other.starts_with(&plain), "{other}\nagainst\n{plain}");
+    for word in ["omitted", "collinear", "too large", "too small"] {
+        assert!(!other.contains(word), "{other}");
+    }
+}
+
+/// The change of the log-likelihood that the refusal of a fit that has not converged gives
+/// is that of its last iteration: with four iterations, the fifth value of the history less
+/// the fourth (with two, the only test until now, the last but one is also the middle one).
+#[test]
+fn the_change_said_of_a_fit_that_has_not_converged_is_the_last() {
+    let wages = zeff_datasets::table("wages").expect("the shipped wages");
+    let said = |iterations: usize| {
+        let control = Control {
+            max_iterations: iterations,
+            ..Control::default()
+        };
+        let message = fit_with(&wages, "union ~ educ + exper + female", "logit", &control)
+            .expect_err("too few iterations to converge");
+        let found = message
+            .split("the log-likelihood still changed by ")
+            .nth(1)
+            .unwrap_or_else(|| panic!("{message}"));
+        found
+            .split(' ')
+            .next()
+            .unwrap()
+            .trim_end_matches(|c: char| !c.is_ascii_digit())
+            .to_string()
+    };
+    // The changes shrink from one iteration to the next: each is printed, and none is the
+    // one before it.
+    let (two, three, four) = (said(2), said(3), said(4));
+    let number = |text: &str| text.parse::<f64>().unwrap_or_else(|_| panic!("{text}"));
+    assert!(number(&two) > number(&three), "{two} and {three}");
+    assert!(number(&three) > number(&four), "{three} and {four}");
+    assert!(number(&four) > 0.0, "{four}");
+}
+
+/// `cutoff:` is strictly inside (0, 1): 1 is refused as 0 is. New rows of which none is left
+/// out are counted without a word on rows left out.
+#[test]
+fn a_cutoff_of_one_is_refused_and_new_rows_all_used_are_counted_plainly() {
+    const M: &str =
+        "let wages = dataset(wages)\nlet m = wages.glm(union ~ educ, family: binomial)\n";
+    for cutoff in ["1", "1.0", "0"] {
+        let out = printed(&format!("{M}m.confusion(cutoff: {cutoff})\n"));
+        assert!(
+            out.contains("error[Z0401]: `cutoff:` is a probability strictly between 0 and 1"),
+            "{cutoff}: {out}"
+        );
+    }
+    let out = printed(&format!(
+        "{M}m.confusion(newdata: wages.where(year == 2019))\nm.curve(type: roc, newdata: wages.where(year == 2019))\n"
+    ));
+    assert_eq!(
+        out.matches(" among the rows of `newdata`\n").count(),
+        2,
+        "{out}"
+    );
+    assert!(!out.contains("left out"), "{out}");
+}
