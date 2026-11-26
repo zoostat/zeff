@@ -7976,3 +7976,22 @@ Step 42c4b is split a last time: 42c4b5 (this entry), what could be done when ru
 **Held by.** The packages' tests; each of the thirty applied by hand to its file and tried, the file copied back; the comparison tool on each package's shards together; the job file read back as valid and its commands run here.
 
 **Reason.** The testing handbook, sections 1 (mutation testing) and 2.4; the checklist's step 42c4b.
+
+## 26 November 2026 — release 0.9.0, step 42c4b6: the halves read, and `results` whole
+
+Step 42c4b6 is split in three as it was met: 42c4b6 (this entry), the halves read; 42c4b7, a fault of `compare` found while its wording was being mended; 42c4b8, the kernels' confirming run and the figures.
+
+**The halves ran whole.** Run 45763679959, started at 05:45 UTC on 26 November, ended at 09:15 with its conclusion "success": all fourteen shards finished, the longest in 207 minutes of the 340 (shard 7 of `results`; shard 33 took 206), where each of the seven shards they halve had been cut off. A half of `results`, 40 or 41 mutants, took 41 to 88 minutes over its first pass and left 8 to 15 for the second.
+
+**The kernels' two halves** (shards 2 and 14 of 24, the mutants of the cut-off shard 2 of 12): 84 mutants, 4 survivors, all four on the recorded list as step 42c1 left it (the cap on the steps, a pivot at exactly the tolerance, and two of the simplex's other routes). Nine mutants were left for the second pass where the shard of the run had 26, the tests of step 42c1 having settled the others in the first.
+
+**The twelve halves of `results`: 484 mutants, 21 survivors and timeouts.** With the 26 shards read before them the package is read whole: 2,573 mutants, 158 survivors. Nine of the 21 were not on the list, two of them a second place of a change it held once.
+- None needs a test. Recorded with the keys already there: guards, four (two more ways of emptying the list of a design's sources, which only a self-check reads, and a second place of each of two changes in the self-checks of a fit); identities, three (a whole number set into an Int variable as a Float, three ways); and second fences, two (a Bool as a number inside arithmetic, which the engine refuses before a term can hold one, tried: "`*` needs numbers, but one side is a Bool"; and a fit of another kind than `reg` or `glm` given to `margins`, which the checker refuses first).
+- *The list read the other way.* It held 121 for `results` where the whole package leaves 116 of them: five entries are struck or lowered, each caught now, in the first pass or the second: four recorded as hangs (a change in the coding of a design, two in the numbering of a report's columns, one in the report of tests) and one of two recorded fences in the report of tests.
+- The package against the list: 158 survivors, 116 recorded, and 42 that the tests written since the run began catch, each tried by hand at steps 42c4a to 42c4b2.
+
+**The whole of the run on the release's code, with its halves: 11,975 mutants.** The numeric kernel 2,679, 367 left, all recorded. `regress` 1,382, 142 left, all recorded. `stats` 4,086, 181 left, 175 recorded and 6 that its tests now catch. `glm` 252, 22 left, 14 recorded and 8 that tests now catch. `results` 2,573, 158 left, 116 recorded and 42 that tests now catch. The kernels 1,003: the eleven shards of the run and the two halves leave 179, of which 46 are recorded and 133 are of the two kernels that step 42c1 gave their tests; on this machine the tool leaves 28 of those two files' 376 mutants, all recorded, and the confirming run on GitHub is step 42c4b8.
+
+**Held by.** The comparison tool on the halves alone and with the shards before them, and on the list read the other way; the fate of each struck entry looked up in the reports of both runs.
+
+**Reason.** The testing handbook, sections 1 (mutation testing) and 2.4; the checklist's step 42c4b.
