@@ -672,3 +672,98 @@ fn restrictions_in_every_linear_form_give_the_wald_f_of_their_row() {
         assert_eq!(result.statistic.df[0], 1.0, "{text}");
     }
 }
+
+// ----- `compare` on fits of other data (release 0.9.0, step 42c4b7) -----
+
+/// Two regressions are on the same rows when they are fitted to the same data, and not when
+/// their frames merely have as many rows. Until this step the rows a fit used were told apart
+/// by their places in its frame alone, and each of these four pairs was compared: two halves
+/// of one frame (an F of 928.53, where the same rows give 1,238.34), two outcomes (an F of
+/// −8,985.04), weights against none, and counts against precision weights (an F of
+/// 339,304.58 on 8,997 degrees of freedom). Each is refused in its own words, and what is on
+/// the same rows is compared as before: a frame that only gained a variable, an outcome under
+/// another name, the same weights, absorbed effects.
+#[test]
+fn compare_refuses_fits_of_other_data_in_their_own_words() {
+    const H: &str = "let w = dataset(wages).where(!is_missing(exper) && !is_missing(wage)).head(18000)\nlet early = w.head(9000)\nlet late = w.tail(9000)\nlet small = early.reg(log(wage) ~ educ)\n";
+    let refused = [
+        "small.compare(late.reg(log(wage) ~ educ + exper))",
+        "small.compare(early.reg(wage ~ educ + exper))",
+        "early.reg(log(wage) ~ educ, weights: age).compare(early.reg(log(wage) ~ educ + exper))",
+        "early.reg(log(wage) ~ educ, weights: age).compare(early.reg(log(wage) ~ educ + exper, weights: educ))",
+        "early.reg(log(wage) ~ educ, weights: age, weight_type: frequency).compare(early.reg(log(wage) ~ educ + exper, weights: age, weight_type: analytic))",
+        // One name for the weights, holding other values in the second frame.
+        "early.reg(log(wage) ~ educ, weights: age).compare(early.add(age = 100 - age).reg(log(wage) ~ educ + exper, weights: age))",
+    ];
+    let compared = [
+        "small.compare(early.reg(log(wage) ~ educ + exper))",
+        "small.compare(early.add(twice = exper * 2).reg(log(wage) ~ educ + twice))",
+        "small.compare(early.add(lw = log(wage)).reg(lw ~ educ + exper))",
+        "early.reg(log(wage) ~ educ, weights: age).compare(early.reg(log(wage) ~ educ + exper, weights: age))",
+        "early.reg(log(wage) ~ educ, fe: industry).compare(early.reg(log(wage) ~ educ + exper, fe: industry))",
+    ];
+    let mut all = String::new();
+    for last in refused.iter().chain(&compared) {
+        all.push_str(&format!("> {last}\n{}\n", printed(&format!("{H}{last}\n"))));
+    }
+    assert_eq!(all.matches("error[Z0416]").count(), refused.len(), "{all}");
+    assert_eq!(all.matches("\nF(1, ").count(), compared.len(), "{all}");
+    // The same rows give the same test, whichever frame holds them and whatever the outcome
+    // is called there.
+    assert_eq!(
+        all.matches("F(1, 8,997) = 1238.34   p < 0.001").count(),
+        3,
+        "{all}"
+    );
+    insta::assert_snapshot!("compare_other_data", all);
+}
+
+/// The outcome of a row is the same in two fits by the measure of the outcome itself. Wages in
+/// thousand-millionths of a unit and in units of a thousand million are each one outcome in
+/// two fits, compared with the F of wages as they stand (the F of a regression does not know
+/// the unit); and two different outcomes in million-millionths, every value of which is nearer
+/// nought than any fixed small number, are still two outcomes.
+#[test]
+fn compare_knows_one_outcome_at_any_size() {
+    const H: &str =
+        "let w = dataset(wages).where(!is_missing(exper) && !is_missing(wage)).head(9000)\n";
+    let as_it_stands = printed(&format!(
+        "{H}w.reg(wage ~ educ).compare(w.reg(wage ~ educ + exper))\n"
+    ));
+    assert!(
+        as_it_stands.contains("F(1, 8,997) = 1029.11   p < 0.001"),
+        "{as_it_stands}"
+    );
+    for unit in ["1e9", "1e-12"] {
+        let scaled = printed(&format!(
+            "{H}w.add(y = wage * {unit}).reg(y ~ educ).compare(w.add(y = wage * {unit}).reg(y ~ educ + exper))\n"
+        ));
+        assert!(
+            scaled.contains("F(1, 8,997) = 1029.11   p < 0.001"),
+            "{unit}: {scaled}"
+        );
+    }
+    let two_small = printed(&format!(
+        "{H}w.add(y = wage * 1e-12).reg(y ~ educ).compare(w.add(v = exper * 1e-12).reg(v ~ educ + age))\n"
+    ));
+    assert!(
+        two_small.contains(
+            "error[Z0416]: `compare` needs two regressions of one outcome, but these are of `y` and of `v`"
+        ),
+        "{two_small}"
+    );
+    let two_halves = printed(
+        "let w = dataset(wages).where(!is_missing(exper) && !is_missing(wage)).head(18000)\nw.head(9000).add(y = wage * 1e-12).reg(y ~ educ).compare(w.tail(9000).add(y = wage * 1e-12).reg(y ~ educ + exper))\n",
+    );
+    assert!(
+        two_halves.contains(
+            "these were fitted to other data: `y` is not the same in the two from row 1 of their frames on"
+        ),
+        "{two_halves}"
+    );
+    // An outcome that is nought in every row is one outcome, with nothing to test.
+    let nought = printed(&format!(
+        "{H}w.add(z = 0).reg(z ~ educ).compare(w.add(z = 0).reg(z ~ educ + exper))\n"
+    ));
+    assert!(nought.contains("F(1, 8,997) = NA   p = NA"), "{nought}");
+}

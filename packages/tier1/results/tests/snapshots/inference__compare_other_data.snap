@@ -1,0 +1,125 @@
+---
+source: packages/tier1/results/tests/inference.rs
+expression: all
+---
+> small.compare(late.reg(log(wage) ~ educ + exper))
+--- messages ---
+error[Z0416]: `compare` needs two regressions on the same rows, but these were fitted to other data: `log(wage)` is not the same in the two from row 1 of their frames on
+ --> scripts/main.zeff:5:15
+  |
+5 | small.compare(late.reg(log(wage) ~ educ + exper))
+  |               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ fitted to other data
+  |
+  = help: fit both models on one frame; a frame cut with `head`, `tail`, `where` or `sample` holds other rows, though it may hold as many
+[exit 1]
+
+> small.compare(early.reg(wage ~ educ + exper))
+--- messages ---
+error[Z0416]: `compare` needs two regressions of one outcome, but these are of `log(wage)` and of `wage`
+ --> scripts/main.zeff:5:15
+  |
+5 | small.compare(early.reg(wage ~ educ + exper))
+  |               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ another outcome
+  |
+  = help: a test of nested models asks whether more terms explain the same outcome better; fit both models to one outcome
+[exit 1]
+
+> early.reg(log(wage) ~ educ, weights: age).compare(early.reg(log(wage) ~ educ + exper))
+--- messages ---
+error[Z0416]: `compare` needs two regressions with the same weights, but these are on the same rows with different weights: `age` (sampling) and none
+ --> scripts/main.zeff:5:51
+  |
+5 | early.reg(log(wage) ~ educ, weights: age).compare(early.reg(log(wage) ~ educ + exper))
+  |                                                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ fitted with other weights
+  |
+  = help: give both models the same `weights:` and `weight_type:`, or neither
+[exit 1]
+
+> early.reg(log(wage) ~ educ, weights: age).compare(early.reg(log(wage) ~ educ + exper, weights: educ))
+--- messages ---
+error[Z0416]: `compare` needs two regressions with the same weights, but these are on the same rows with different weights: `age` (sampling) and `educ` (sampling)
+ --> scripts/main.zeff:5:51
+  |
+5 | early.reg(log(wage) ~ educ, weights: age).compare(early.reg(log(wage) ~ educ + exper, weights: educ))
+  |                                                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ fitted with other weights
+  |
+  = help: give both models the same `weights:` and `weight_type:`, or neither
+[exit 1]
+
+> early.reg(log(wage) ~ educ, weights: age, weight_type: frequency).compare(early.reg(log(wage) ~ educ + exper, weights: age, weight_type: analytic))
+--- messages ---
+error[Z0416]: `compare` needs two regressions with the same weights, but these are on the same rows with different weights: `age` (frequency) and `age` (analytic)
+ --> scripts/main.zeff:5:75
+  |
+5 | early.reg(log(wage) ~ educ, weights: age, weight_type: frequency).compare(early.reg(log(wage) ~ educ + exper, weights: age, weight_type: analytic))
+  |                                                                           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ fitted with other weights
+  |
+  = help: give both models the same `weights:` and `weight_type:`, or neither
+[exit 1]
+
+> early.reg(log(wage) ~ educ, weights: age).compare(early.add(age = 100 - age).reg(log(wage) ~ educ + exper, weights: age))
+--- messages ---
+note: `age` replaced the variable of that name (line 5)
+error[Z0416]: `compare` needs two regressions with the same weights, but these are on the same rows with different weights: `age` (sampling) in both, which does not hold the same values in the two
+ --> scripts/main.zeff:5:51
+  |
+5 | early.reg(log(wage) ~ educ, weights: age).compare(early.add(age = 100 - age).reg(log(wage) ~ educ + exper, weights: age))
+  |                                                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ fitted with other weights
+  |
+  = help: give both models the same `weights:` and `weight_type:`, or neither
+[exit 1]
+
+> small.compare(early.reg(log(wage) ~ educ + exper))
+compare · small against log(wage) ~ educ + exper
+
+  model                          N       RSS      R²
+  small                      9,000   1931.75   0.072
+  log(wage) ~ educ + exper   9,000   1698.03   0.184
+
+F(1, 8,997) = 1238.34   p < 0.001
+--- messages ---
+[exit 0]
+
+> small.compare(early.add(twice = exper * 2).reg(log(wage) ~ educ + twice))
+compare · small against log(wage) ~ educ + twice
+
+  model                          N       RSS      R²
+  small                      9,000   1931.75   0.072
+  log(wage) ~ educ + twice   9,000   1698.03   0.184
+
+F(1, 8,997) = 1238.34   p < 0.001
+--- messages ---
+[exit 0]
+
+> small.compare(early.add(lw = log(wage)).reg(lw ~ educ + exper))
+compare · small against lw ~ educ + exper
+
+  model                   N       RSS      R²
+  small               9,000   1931.75   0.072
+  lw ~ educ + exper   9,000   1698.03   0.184
+
+F(1, 8,997) = 1238.34   p < 0.001
+--- messages ---
+[exit 0]
+
+> early.reg(log(wage) ~ educ, weights: age).compare(early.reg(log(wage) ~ educ + exper, weights: age))
+compare · log(wage) ~ educ against log(wage) ~ educ + exper
+
+  model                          N       RSS      R²
+  log(wage) ~ educ           9,000   1908.46   0.076
+  log(wage) ~ educ + exper   9,000   1699.33   0.177
+
+F(1, 8,997) = 1099.29   p < 0.001
+--- messages ---
+[exit 0]
+
+> early.reg(log(wage) ~ educ, fe: industry).compare(early.reg(log(wage) ~ educ + exper, fe: industry))
+compare · log(wage) ~ educ against log(wage) ~ educ + exper
+
+  model                          N       RSS      R²
+  log(wage) ~ educ           9,000   1883.06   0.095
+  log(wage) ~ educ + exper   9,000   1650.12   0.207
+
+F(1, 8,986) = 1268.55   p < 0.001
+--- messages ---
+[exit 0]

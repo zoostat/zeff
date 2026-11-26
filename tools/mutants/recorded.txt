@@ -334,6 +334,7 @@ packages/tier1/results/src/inference.rs	replace && with || in test	1	fence
 packages/tier1/results/src/inference.rs	replace + with - in dual	1	earlier
 packages/tier1/results/src/inference.rs	replace < with <= in level_heading	1	earlier
 packages/tier1/results/src/inference.rs	replace == with != in test	2	fence
+packages/tier1/results/src/inference.rs	replace match guard fit.weights.is_some() with false in weights_said	1	guard
 packages/tier1/results/src/inference.rs	replace match guard matches!(op, Op::Ne | Op::Lt | Op::Le | Op::Gt | Op::Ge | Op::Or) with true in restriction	1	earlier
 packages/tier1/results/src/inference.rs	replace match guard plain(name) with false in test	1	fence
 packages/tier1/results/src/inference.rs	replace match guard plain(name) with true in test	1	fence

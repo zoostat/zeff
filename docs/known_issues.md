@@ -79,6 +79,12 @@ is never listed here as accepted: it is fixed or the function is withdrawn.
   raised inside a built-in written in Zeff may still name an inner function (see the entry of
   0.5.0). None gives a wrong number for a call that makes sense. (Since 0.5.0 and 0.7.0; noted
   at 0.9.0.)
+- **`compare` knows the same rows by the outcome.** Two fits are taken to be on the same rows
+  when they used the same places of frames of one size, hold the same outcome in every one of
+  those rows, and have the same weights. Two frames that agree in the outcome and differ in
+  the values of a regressor are not told apart: a fit keeps no copy of its regressors. A pair
+  fitted to one frame, or to a frame and a copy of it with variables added, is what the rule
+  is for. (Since 0.9.0; before it the rule was weaker still, see "Resolved at 0.9.0".)
 - **`margins` takes a slope through a term that jumps as if it were smooth.** A term that the
   engine cannot differentiate by rule (`floor`, `round`, `min`, `max`, a logarithm to a base) is
   differenced: the term a small step above each row less the term a small step below, over the
@@ -580,6 +586,23 @@ is never listed here as accepted: it is fixed or the function is withdrawn.
 
 ## Resolved at 0.9.0
 
+- **A wrong result, corrected.** From 0.4.0 to 0.8.0, `compare` took two regressions to be on
+  the same rows whenever their frames had as many rows and the same places in them were used,
+  and did not ask whether the two were fitted to the same data. Three kinds of pair were
+  compared where the function promises a refusal (Z0416). Two regressions of different
+  outcomes on one frame: on the first 9,000 complete rows of the shipped wages,
+  `log(wage) ~ educ` against `wage ~ educ + exper` printed F(1, 8,997) = -8985.04, p = 1.000.
+  Two regressions fitted to different frames of one size, such as the two halves of a frame or
+  two samples: an F of 928.53 where the same rows give 1,238.34 (R's `anova` compares such a
+  pair as well). And two regressions on the same rows under different weights, or one weighted
+  and one not: weights read as counts against precision weights printed F = 339,304.58 on 8,997
+  degrees of freedom. An analysis is affected only if it compared such a pair: two models
+  fitted to one frame with the same `weights:`, which is the usual case, were compared rightly
+  and print as before. Corrected at step 42c4b7 of 0.9.0: the outcome of every row used is set
+  against the other fit's, and the weights and their kind, and each case is refused in its own
+  words. `compare` of two `glm` fits, new at this release, had the first two faults before it
+  was released (a chi-squared of 0.00, p = 1.000). Found while the wording of one of its
+  refusals was being mended.
 - **The gaps that the review against R met**, listed at 0.8.0 with a way round each, are closed,
   each as its open decision recommends: the length of each text value, `n_chars` (#165, step
   31a); a row number, `row_number()` (#167, step 31b); a count of missing values across

@@ -8,8 +8,9 @@ Tests the terms the larger of two regressions adds to the smaller, the two fitte
 rows and either one nested in the other: the F test of the extra terms under classical errors,
 and the Wald F of the extra terms under robust or clustered ones, on the larger fit's degrees of
 freedom. The receiver may be the larger or the smaller model. Models on different rows, with
-the same terms, or not nested are refused. Like `anova` on two fits in R and Stata's `test` after
-the larger model.
+the same terms, or not nested are refused; so are two models of different outcomes, two fitted
+to different data that happen to have as many rows, and two under different weights. Like
+`anova` on two fits in R and Stata's `test` after the larger model.
 
 Two `glm` fits are compared by the likelihood-ratio test: twice the gap between their
 log-likelihoods, referred to chi-squared on as many degrees of freedom as terms added. It needs

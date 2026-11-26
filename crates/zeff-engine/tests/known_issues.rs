@@ -22,7 +22,7 @@ fn the_list_the_engine_carries_is_read() {
     let issues = read(SHIPPED).expect("the shipped list reads");
     assert_eq!(issues, shipped());
     let numbers: Vec<u64> = issues.iter().map(|issue| issue.number).collect();
-    assert_eq!(numbers, [1, 2]);
+    assert_eq!(numbers, [1, 2, 3]);
     assert_eq!(issues[0].functions, ["mad", "skewness", "kurtosis"]);
     assert_eq!(
         (issues[0].from.as_str(), issues[0].fixed.as_deref()),
@@ -33,14 +33,24 @@ fn the_list_the_engine_carries_is_read() {
         (issues[1].from.as_str(), issues[1].fixed.as_deref()),
         ("0.3.0", Some("0.7.0"))
     );
-    // This engine is past both: neither affects it.
+    assert_eq!(issues[2].functions, ["compare"]);
+    assert_eq!(
+        (issues[2].from.as_str(), issues[2].fixed.as_deref()),
+        ("0.4.0", Some("0.9.0"))
+    );
+    // This engine is past all three: none affects it. A build before its release carries the
+    // release's corrections and not yet its name (`0.9.0-dev` comes before `0.9.0`), so it is
+    // asked as the release it will be.
+    let release = zeff_engine::VERSION.split('-').next().expect("a version");
     for found in &issues {
-        assert!(
-            !found.affects_version(zeff_engine::VERSION),
-            "{}",
-            found.number
-        );
+        assert!(!found.affects_version(release), "{}", found.number);
     }
+    // The third affected every release from the one `compare` arrived in to the last.
+    for version in ["0.4.0", "0.6.0", "0.8.0"] {
+        assert!(issues[2].affects_version(version), "{version}");
+    }
+    assert!(!issues[2].affects_version("0.3.0"));
+    assert!(issues[2].affects_call("compare", &[]));
 }
 
 #[test]

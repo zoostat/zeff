@@ -3145,10 +3145,17 @@ fn audit_reads_the_recorded_runs_against_the_known_issues() {
     assert_eq!(code(&zeff(&project, &["run"])), 0);
     let o = zeff(&project, &["audit"]);
     assert_eq!(code(&o), 0);
+    // A build made before the release that corrects issue 3 is counted as having it, since
+    // such a build need not carry the correction; the release itself has none.
+    let pin = if VERSION.starts_with("0.9.0-") {
+        "has 1 known wrong result: issue 3 (`compare`), fixed in 0.9.0\n  the pin does not move by itself: `zeff engine use 0.9.0` runs the project on both engines, says what differs, and moves it"
+    } else {
+        "has no known wrong result"
+    };
     assert_eq!(
         out(&o),
         format!(
-            "no recorded run of this project is affected by a known issue\nZeff {VERSION}, which this project pins, has no known wrong result\n1 run read against the 2 issues known to Zeff {VERSION}\n"
+            "no recorded run of this project is affected by a known issue\nZeff {VERSION}, which this project pins, {pin}\n1 run read against the 3 issues known to Zeff {VERSION}\n"
         )
     );
     // A run made long ago on an engine that issue 1 affects, as its record would say.
@@ -3167,7 +3174,7 @@ fn audit_reads_the_recorded_runs_against_the_known_issues() {
         out(&o)
     );
     assert!(
-        out(&o).contains("\n2 runs read against the 2 issues known to Zeff "),
+        out(&o).contains("\n2 runs read against the 3 issues known to Zeff "),
         "{}",
         out(&o)
     );
@@ -3175,7 +3182,7 @@ fn audit_reads_the_recorded_runs_against_the_known_issues() {
     let o = zeff(&project, &["audit", "--format", "json"]);
     assert_eq!(code(&o), 1);
     assert!(
-        out(&o).contains("\"runs\": 2, \"issues\": 2, \"affected\": [{\"issue\": 1, \"fixed\": \"0.7.0\", \"script\": \"scripts/main.zeff\", \"engine\": \"0.6.0\", \"function\": \"mad\""),
+        out(&o).contains("\"runs\": 2, \"issues\": 3, \"affected\": [{\"issue\": 1, \"fixed\": \"0.7.0\", \"script\": \"scripts/main.zeff\", \"engine\": \"0.6.0\", \"function\": \"mad\""),
         "{}",
         out(&o)
     );

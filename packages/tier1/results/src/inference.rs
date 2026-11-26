@@ -400,6 +400,126 @@ fn not_comparable(ctx: &CallContext<'_>, message: String, label: &str, help: &st
     )
 }
 
+/// The weights of a fit as a message names them: `age` (frequency), or none.
+fn weights_said(fit: &Fit) -> String {
+    let name = fit
+        .source
+        .as_ref()
+        .and_then(|source| source.weights.clone());
+    match (name, fit.weight_kind) {
+        (Some(name), Some(kind)) => format!(
+            "`{name}` ({})",
+            match kind {
+                zeff_numeric::order::WeightKind::Frequency => "frequency",
+                zeff_numeric::order::WeightKind::Analytic => "analytic",
+                zeff_numeric::order::WeightKind::Sampling => "sampling",
+            }
+        ),
+        (Some(name), None) => format!("`{name}`"),
+        (None, _) if fit.weights.is_some() => "weights".to_string(),
+        (None, _) => "none".to_string(),
+    }
+}
+
+/// Whether two fits on the same rows were made under the same weights: the same variable, read
+/// as the same kind, with the same value in every row. Two sums of squares, or two
+/// log-likelihoods, under different weights are not of one sample, and their difference tests
+/// nothing. Until release 0.9.0 (step 42c4b7) two regressions were not asked, and one weighted
+/// by counts against one unweighted printed an F on the larger model's degrees of freedom.
+fn same_weights(ctx: &CallContext<'_>, a: &Fit, b: &Fit, noun: &str) -> Result<(), Fail> {
+    let named = |fit: &Fit| {
+        fit.source
+            .as_ref()
+            .and_then(|source| source.weights.clone())
+    };
+    if named(a) == named(b) && a.weight_kind == b.weight_kind && a.weights == b.weights {
+        return Ok(());
+    }
+    let (said_a, said_b) = (weights_said(a), weights_said(b));
+    let found = if said_a == said_b {
+        // One name read one way, over other values: two frames that hold the name differently.
+        format!("{said_a} in both, which does not hold the same values in the two")
+    } else {
+        format!("{said_a} and {said_b}")
+    };
+    Err(not_comparable(
+        ctx,
+        format!(
+            "`compare` needs two {noun} with the same weights, but these are on the same rows with different weights: {found}"
+        ),
+        "fitted with other weights",
+        "give both models the same `weights:` and `weight_type:`, or neither",
+    ))
+}
+
+/// How far apart the outcome of a row may be in two fits and still be the same value, as a
+/// share of the largest outcome of the two: each is rebuilt as a fitted value and a residual,
+/// which gives it back to a few units in the last place of the larger of those two.
+const SAME_OUTCOME: f64 = 1e-9;
+
+/// Whether two fits explain the same outcome on the same data: the outcome of every row used,
+/// rebuilt from each fit as its fitted value and its residual, is the same in both. The rows a
+/// fit used are known by their places in its frame, and two frames may have as many rows:
+/// until release 0.9.0 (step 42c4b7) two fits of different outcomes, or of two halves of one
+/// frame, passed for fits on the same rows, and a pair of regressions of different outcomes
+/// printed a negative F. `noun` is what the message calls the two: regressions, or fits.
+fn same_outcome(ctx: &CallContext<'_>, a: &Fit, b: &Fit, noun: &str) -> Result<(), Fail> {
+    let rebuilt = |fit: &'_ Fit, at: usize| fit.fitted[at] + fit.residuals[at];
+    let rows = a
+        .fitted
+        .len()
+        .min(a.residuals.len())
+        .min(b.fitted.len())
+        .min(b.residuals.len());
+    // The measure is the outcome's own: an outcome in millionths is held to millionths of that,
+    // and a row whose outcome is nought, rebuilt as two numbers that cancel, to the same bound
+    // as its neighbours.
+    let largest = (0..rows)
+        .map(|at| rebuilt(a, at).abs().max(rebuilt(b, at).abs()))
+        .fold(0.0, f64::max);
+    let bound = SAME_OUTCOME * largest;
+    let apart = (0..rows).find(|&at| {
+        let (ya, yb) = (rebuilt(a, at), rebuilt(b, at));
+        // An outcome that cannot be rebuilt as a number is not the same either.
+        !matches!(
+            (ya - yb).abs().partial_cmp(&bound),
+            Some(std::cmp::Ordering::Less | std::cmp::Ordering::Equal)
+        )
+    });
+    let Some(at) = apart else {
+        return Ok(());
+    };
+    let written = |fit: &Fit| {
+        fit.formula
+            .split('~')
+            .next()
+            .unwrap_or_default()
+            .trim()
+            .to_string()
+    };
+    let (ya, yb) = (written(a), written(b));
+    if ya != yb {
+        return Err(not_comparable(
+            ctx,
+            format!(
+                "`compare` needs two {noun} of one outcome, but these are of `{ya}` and of `{yb}`"
+            ),
+            "another outcome",
+            "a test of nested models asks whether more terms explain the same outcome better; fit both models to one outcome",
+        ));
+    }
+    let row = a.rows.get(at).map_or(at, |row| *row) + 1;
+    Err(not_comparable(
+        ctx,
+        format!(
+            "`compare` needs two {noun} on the same rows, but these were fitted to other data: `{ya}` is not the same in the two from row {} of their frames on",
+            count(row as u64)
+        ),
+        "fitted to other data",
+        "fit both models on one frame; a frame cut with `head`, `tail`, `where` or `sample` holds other rows, though it may hold as many",
+    ))
+}
+
 /// The smaller and the larger of two fits by their terms, the first nested in the second;
 /// Z0416 when the terms are the same or neither set holds the other. `noun` is what the message
 /// calls the two: regressions, or fits.
@@ -462,19 +582,28 @@ fn compare_likelihood(ctx: &CallContext<'_>, a: &Rc<Fit>, b: &Rc<Fit>) -> Result
             "the likelihood-ratio test compares two models of one family and link; `fit_measures().aic` compares any two on the same rows",
         ));
     }
-    let weights = |fit: &Fit| fit.source.as_ref().and_then(|s| s.weights.clone());
-    if a.frame_rows != b.frame_rows || a.rows != b.rows || weights(a) != weights(b) {
+    if a.frame_rows != b.frame_rows || a.rows != b.rows {
+        // The counts say it where they differ; where they are equal the rows themselves do.
+        let used = if a.rows.len() == b.rows.len() {
+            format!("other rows, {} each", count(a.rows.len() as u64))
+        } else {
+            format!(
+                "{} and {} rows",
+                count(a.rows.len() as u64),
+                count(b.rows.len() as u64)
+            )
+        };
         return Err(not_comparable(
             ctx,
             format!(
-                "`compare` needs two fits on the same rows with the same weights, but these used {} and {} rows",
-                count(a.rows.len() as u64),
-                count(b.rows.len() as u64)
+                "`compare` needs two fits on the same rows with the same weights, but these used {used}"
             ),
             "fitted on other rows",
             "fit both models on one frame with the same rows; `where(!is_missing(x))` first keeps the rows a variable of one model would drop",
         ));
     }
+    same_weights(ctx, a, b, "fits")?;
+    same_outcome(ctx, a, b, "fits")?;
     for (fit, likelihood) in [(a, la), (b, lb)] {
         let why = if likelihood.pseudo {
             Some("sampling weights, under which the likelihood is a pseudo-likelihood".to_string())
@@ -571,6 +700,8 @@ pub fn compare(ctx: &mut CallContext<'_>, args: Args) -> Result<Value, Fail> {
             "fit both models on one frame with the same rows; `where(!is_missing(x))` first keeps the rows a variable of one model would drop",
         ));
     }
+    same_weights(ctx, &a, &b, "regressions")?;
+    same_outcome(ctx, &a, &b, "regressions")?;
     let (small, big) = nested(ctx, &a, &b, "regressions")?;
     let extra: Vec<usize> = big
         .terms

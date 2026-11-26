@@ -1598,7 +1598,10 @@ fn the_information_a_fit_keeps_and_its_inverse() {
 }
 
 /// Two fits are compared on the same rows with the same weights: each alone is refused, rows
-/// that differ under no weights and weights that differ on the same rows.
+/// that differ under no weights and weights that differ on the same rows. And "the same rows"
+/// is the same data: as many rows of another part of the frame, or another outcome on the
+/// same rows, are refused too (step 42c4b7: until then both were compared, with a statistic of
+/// nought).
 #[test]
 fn compare_refuses_other_rows_and_other_weights_each_alone() {
     const A: &str =
@@ -1614,9 +1617,36 @@ fn compare_refuses_other_rows_and_other_weights_each_alone() {
         "{A}a.compare(w.glm(union ~ educ + exper + female, family: binomial, weights: age, weight_type: frequency))\n"
     ));
     assert!(
-        other_weights.contains("error[Z0416]: `compare` needs two fits on the same rows with the same weights, but these used 18,390 and 18,390 rows"),
+        other_weights.contains("error[Z0416]: `compare` needs two fits with the same weights, but these are on the same rows with different weights: none and `age` (frequency)"),
         "{other_weights}"
     );
+    assert!(
+        other_weights.contains("fitted with other weights"),
+        "{other_weights}"
+    );
+    // As many rows, and not the same ones: the first half of the frame against the second.
+    // And the same rows with another outcome.
+    const HALVES: &str = "let w = dataset(wages).where(!is_missing(exper)).head(18000)\nlet h1 = w.head(9000)\nlet h2 = w.tail(9000)\nlet a = h1.glm(union ~ educ, family: binomial)\n";
+    let other_half = printed(&format!(
+        "{HALVES}a.compare(h2.glm(union ~ educ + exper, family: binomial))\n"
+    ));
+    assert!(
+        other_half.contains("error[Z0416]: `compare` needs two fits on the same rows, but these were fitted to other data: `union` is not the same in the two from row "),
+        "{other_half}"
+    );
+    let other_outcome = printed(&format!(
+        "{HALVES}a.compare(h1.glm(female ~ educ + exper, family: binomial))\n"
+    ));
+    assert!(
+        other_outcome.contains("error[Z0416]: `compare` needs two fits of one outcome, but these are of `union` and of `female`"),
+        "{other_outcome}"
+    );
+    // The same rows of a frame that gained a variable are the same rows.
+    let wider = printed(&format!(
+        "{HALVES}a.compare(h1.add(twice = exper * 2).glm(union ~ educ + twice, family: binomial))\n"
+    ));
+    assert!(wider.contains("chi2(1) = "), "{wider}");
+    assert!(!wider.contains("error["), "{wider}");
     // The same rows and no weights: compared.
     let compared = printed(&format!(
         "{A}a.compare(w.glm(union ~ educ + exper + female, family: binomial))\n"
