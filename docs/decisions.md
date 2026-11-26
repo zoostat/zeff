@@ -8044,3 +8044,17 @@ Step 42c4b6 is split in three as it was met: 42c4b6 (this entry), the halves rea
 **What is not changed.** The handbook (the freeze, #40): its item stands, "from 0.8.0", and is not met at 0.8.0, 0.9.0 or 0.10.0. The plan of 0.11.0 is to take the test up at "Start release 0.11.0", where #230 is among the decisions due; no work of 0.11.0 is begun now.
 
 **Reason.** The owner's decision; the testing handbook, section 2.4, item 4; the form of the entry of 20 November 2026 for 0.8.0.
+
+## 26 November 2026 — release 0.9.0: the publisher's key is built into the launcher
+
+**The owner made the signing key** on 26 November 2026, by the three commands this record gave him ("All three done", his words to the coordinating session, which passed them on at about 19:40 IST). Checked from this session before anything was changed: `~/dev/zeff-signing/` holds `zeff.pub` and `zeff.key`, both written at 19:36 IST; the repository has the secrets `ZEFF_SIGNING_KEY` and `ZEFF_SIGNING_PASSWORD`, set at 14:07 UTC. The private key was not opened, copied or printed, and no session may hold it.
+
+**The choice.** The second line of `zeff.pub` replaces `None` in `trust::PUBLISHERS_KEY`, as step 23 said it would: the key `RWQfZGeZ6uwG2xfResPeJtS7HdS8LLNS9MCn5A6fEPAPhvLS2mv/zo54`, whose id, read from its own bytes, is DB06ECEA9967641F, the id the first line of the owner's file names. A launcher built from these sources now trusts that key and, without a signed key list, no other; a trial of the release workflow still builds a launcher that trusts the key of its own run and says so. The release workflow needed no change: on a tag it signs the list of checksums with the secret, and its installation check, in which the launcher installs the engine from the signed archive on clean machines, is what proves that the secret and the key built in are the two halves of one key. That proof is made at "Release 0.9.0" and not before; until then the pairing rests on both having come from one run of `minisign -G`.
+
+**What changed in the tests.** Two tests had been written for a launcher without a key. The refusal such a launcher gives is still shown, made directly, since this build can no longer produce it. The launcher's own program, given an archive, now reads it: an archive named for another kind of machine and one that is not there are each refused in their own words. New: `the_publishers_key_is_built_in_and_trusts_no_other` holds the key a second time, so that the key a launcher trusts is never changed in one place alone, and shows that an archive in perfect order signed with any other key is refused by it and nothing unpacked.
+
+**For the owner.** The folder `~/dev/zeff-signing` and the password are to be kept somewhere safe and apart: a lost key cannot be replaced without a new launcher, and a copied one signs as the publisher. A key is replaced through the signed key list (Engine and Project Specification, section 2.1).
+
+**Held by.** The launcher's tests; the key's id computed from the key and set against the file's; the full suite.
+
+**Reason.** Engine and Project Specification, section 2.1 ("Trust"); the checklist's step 23 and question 7b.

@@ -35,10 +35,14 @@ pub const KEY_LIST: &str = "keys/list.txt";
 /// Under [`HOST`]: the signed index of engines, with its signature beside it.
 pub const ENGINE_INDEX: &str = "engines/index.toml";
 
-/// The public key official archives are signed with, in minisign's base64 form. None is
-/// written here before the owner has made the key (release 0.9.0, step 23): a launcher
-/// without one can verify nothing and installs nothing.
-pub const PUBLISHERS_KEY: Option<&str> = None;
+/// The public key official archives are signed with, in minisign's base64 form: the owner's,
+/// made on 26 November 2026 (key id DB06ECEA9967641F; release 0.9.0, step 23), the private
+/// half of which is his alone and is held by the release workflow as a secret. Were none
+/// written here, the launcher could verify nothing and would install nothing
+/// ([`Refusal::NoBuiltInKey`]). It is replaced through the signed key list, never by a
+/// change of this line in a launcher already installed.
+pub const PUBLISHERS_KEY: Option<&str> =
+    Some("RWQfZGeZ6uwG2xfResPeJtS7HdS8LLNS9MCn5A6fEPAPhvLS2mv/zo54");
 
 /// A key given when the launcher is compiled (`ZEFF_TRIAL_KEY`), for a trial of the release
 /// workflow, which signs with a key made for the run and thrown away with it. A launcher built

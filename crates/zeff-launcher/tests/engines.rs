@@ -684,16 +684,30 @@ fn the_launcher_answers_engine_commands_itself_and_hands_the_rest_over() {
         )
     );
     std::fs::remove_file(dir.path().join("zeff.toml")).unwrap();
-    // No key is built in: nothing is installed by this binary yet, and it says why.
-    let (code, out, err) = zeff(&[
-        "engine",
-        "install",
-        "--from",
-        "zeff-0.9.2-linux-x86-64.tar.zst",
-    ]);
+    // The publisher's key is built in, so this binary reads an archive it is given, and
+    // refuses what is not for this machine and what is not there, each in its own words.
+    let here = zeff_launcher::archive::Target::host().expect("a machine engines are built for");
+    let elsewhere = [
+        zeff_launcher::archive::Target::LinuxX86_64,
+        zeff_launcher::archive::Target::LinuxArm64,
+    ]
+    .into_iter()
+    .find(|target| *target != here)
+    .unwrap();
+    let other = format!("zeff-0.9.2-{}.tar.zst", elsewhere.name());
+    let (code, out, err) = zeff(&["engine", "install", "--from", &other]);
     assert_eq!((code, out.as_str()), (1, ""));
     assert!(
-        err.starts_with("error[Z0711]: this launcher has no signing key built in"),
+        err.starts_with(&format!(
+            "error[Z0717]: `{other}` holds an engine for another kind of machine"
+        )),
+        "{err}"
+    );
+    let own = format!("zeff-0.9.2-{}{}", here.name(), here.kind().extension());
+    let (code, out, err) = zeff(&["engine", "install", "--from", &own]);
+    assert_eq!((code, out.as_str()), (1, ""));
+    assert!(
+        err.starts_with("error[Z0717]: `") && err.contains("cannot be read: there is no such file"),
         "{err}"
     );
     let (code, _, err) = zeff(&["engine", "list", "--format", "yaml"]);

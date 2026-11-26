@@ -10,8 +10,8 @@ use std::path::{Path, PathBuf};
 use zeff_launcher::archive::{ArchiveName, Contents, Kind, Placed, Target, pack};
 use zeff_launcher::install::{Refused, install_from, said};
 use zeff_launcher::trust::{
-    BUILT_IN_KEY, ENGINE_INDEX, HOST, KEY_LIST, Refusal, Trust, listed_checksum, sha256_hex,
-    sums_of,
+    BUILT_IN_KEY, ENGINE_INDEX, HOST, KEY_LIST, PUBLISHERS_KEY, Refusal, TRIAL_KEY, Trust,
+    listed_checksum, sha256_hex, sums_of,
 };
 use zeff_launcher::{Platform, Store, find_engine, installed};
 
@@ -391,13 +391,13 @@ fn every_refusal_says_why_and_unpacks_nothing() {
         install_from(&home, &path, &trust, host),
     );
 
-    // A launcher with no key built in proves nothing.
-    assert_eq!(BUILT_IN_KEY, None, "no key before the release workflow's");
+    // A launcher with no key built in proves nothing. This one has the publisher's (below);
+    // the refusal is what a launcher built without one would say.
     let (path, _) = fresh("no-key");
-    let no_key = Trust::built_in().expect_err("no key is built in yet");
     out.borrow_mut().push_str(&format!(
         "----- a launcher built without a key\n{}\n",
-        zeff_launcher::install::untrusted(&no_key).render(&zeff_diagnostics::Sources::new())
+        zeff_launcher::install::untrusted(&Refusal::NoBuiltInKey)
+            .render(&zeff_diagnostics::Sources::new())
     ));
 
     // The archive alone, without its checksums; a file that is no archive; another machine's.
@@ -674,6 +674,35 @@ fn every_address_the_launcher_holds_is_under_the_one_host() {
             "the launcher's binary names `{forbidden}`"
         );
     }
+}
+
+/// The publisher's key is built in (the owner's, made on 26 November 2026): the key written
+/// here a second time, so that the key a launcher trusts is never changed in one place alone;
+/// a key the signature format reads; and the key of a launcher that was not built for a trial.
+/// It trusts no other: an archive in perfect order, signed with a key made here, is refused
+/// by it and nothing is unpacked.
+#[test]
+fn the_publishers_key_is_built_in_and_trusts_no_other() {
+    const KEY: &str = "RWQfZGeZ6uwG2xfResPeJtS7HdS8LLNS9MCn5A6fEPAPhvLS2mv/zo54";
+    assert_eq!(PUBLISHERS_KEY, Some(KEY));
+    if TRIAL_KEY.is_none() {
+        assert_eq!(BUILT_IN_KEY, Some(KEY));
+        assert!(Trust::built_in().is_ok(), "the built-in key is read");
+    }
+    let trust = Trust::of_key(KEY).expect("a minisign public key");
+    let dir = tempfile::tempdir().unwrap();
+    let home = dir.path().join("home");
+    let host = Target::LinuxX86_64;
+    let path = release(&dir.path().join("release"), "0.9.1", host, &Signer::new());
+    let refused = install_from(&home, &path, &trust, host).expect_err("signed by another");
+    assert_eq!(
+        refused,
+        Refused::Untrusted(Refusal::UntrustedKey {
+            of: "`SHA256SUMS`".to_string(),
+            by_list: false
+        })
+    );
+    assert!(nothing_installed(&home), "something was unpacked");
 }
 
 /// A code-hosting site and the organisation the repository is under, spelt in pieces so that
