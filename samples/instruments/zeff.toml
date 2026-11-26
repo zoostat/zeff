@@ -1,4 +1,4 @@
 [project]
 name = "instruments"
-zeff = "0.9.0-dev"
+zeff = "0.9.0"
 edition = "preview"

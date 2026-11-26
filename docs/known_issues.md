@@ -109,11 +109,12 @@ is never listed here as accepted: it is fixed or the function is withdrawn.
 - **No reader outside the project has read Zeff's scripts yet.** The testing handbook asks, from
   0.8.0, that short scripts be given to students and referees who have not written Zeff and that
   what they misread be corrected (section 2.4, item 4). The test was not run at 0.8.0, by the
-  owner's decision of 20 November 2026. At this release it is one test for Zeff and Zemp Lite,
-  on the hosted alpha of Zemp Lite with readers the owner chooses (his answer of 21 November
-  2026); its sheet and key are ready, and it had not been reported when this list was written.
-  Until it is run, that a script reads as it computes is the project's own judgement. (Since
-  0.8.0.)
+  owner's decision of 20 November 2026, nor at 0.9.0: on 26 November 2026 he moved it to 0.11.0
+  (open decision #230), where its sheet is brought to that release, with the functions of
+  0.9.0 to 0.11.0, and run with readers he chooses on an alpha of Zemp Lite that carries a
+  newer engine, so that every script's output can be seen. The sheet of ten scripts and its
+  key are ready. Until it is run, that a script reads as it computes is the project's own
+  judgement. (Since 0.8.0; to be run at 0.11.0.)
 
 ## As of 0.8.0
 

@@ -1022,3 +1022,11 @@ The owner ruled that a replication package is optional: the user chooses whether
 ## 26 November 2026 — zeff_open_decisions.md, #229 (the owner's ruling on time)
 
 The owner ruled that the time is recorded at each step of a run ("time should be recorded at each run step"). #229 records it: the run record of 0.11.0 keeps, for every statement, when it began and how long it took, widening #187; the times are never fingerprinted and never compared by `zeff verify`. No normative text changed.
+
+## 26 November 2026 — zeff_open_decisions.md, new entries #226, #227 and #230
+
+Three entries of the close of release 0.9.0, logged together here. #226 (25 November): the separation check of `glm` that ends without an answer on a large design in which every row is met with both outcomes; option A, a mend at 0.10.0, taken as recommended under the owner's standing instruction and his to overturn. #227 (25 November): a slope of `margins` through a term that jumps (`floor`, `round`) at values the data hold; open, recommended A (a warning at 0.10.0). #230 (26 November): the reader test of the testing handbook, section 2.4, item 4, moved by the owner from 0.9.0 to 0.11.0 ("Yes, pass it on", in the coordinating session). The handbook's item is not changed. No normative text changed.
+
+## 26 November 2026 — zeff_risk_register.md, the review at 0.9.0; zeff_open_decisions.md, the status at the close of release 0.9.0
+
+The risk register gains its review at 0.9.0: no rating is changed; the impact of R9 is put to the owner with a recommendation of Medium, and the keeping of the signing key is named as a risk for him to enter or not. The open-decisions register gains its status at the close: what was built as decided, what was taken as recommended and is his to overturn, and what is open with its release. No normative text changed.

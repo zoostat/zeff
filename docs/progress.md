@@ -168,7 +168,11 @@ Step 42c4b8 `[engine]`: the kernels' confirming run, started on the owner's word
 
 **The publisher's key is in the launcher** (26 November): the owner made the signing key and stored it as the repository's two secrets; the public half, id DB06ECEA9967641F, is built in, and a launcher trusts no other. That the secret and the key built in are one pair is proved by the release workflow's installation check at the release.
 
-**Next.** The checklist of 0.9.0 is complete and nothing is owed before the close. The next word is the owner's "Release 0.9.0".
+## 26 November 2026, release 0.9.0 closed
+
+"Release 0.9.0", the owner's word. The pre-release routine item by item is in `docs/decisions.md` under this date: CI green on the four targets, the weekly runs read, the nightly by hand on the last commit that changed code, a trial of the release workflow green on four clean machines, the self-test 629 of 629. The version is 0.9.0 in the workspace, the lock files, the ten sample pins and the citation file; the notes are `docs/releases/0.9.0-notes.md`; the risk register is reviewed and the register of open decisions has its status at the close. The tag `v0.9.0` follows the release commit's green checks, and the release workflow signs the archives with the owner's key and proves them before they are published.
+
+**Next.** "Start release 0.10.0" is the owner's word. At its opening: the decisions due at 0.10.0 (#212, #213, #214, #216, #218, #219, #226, #227); the 61 help pages of `results`, `regress` and `plot`; the question of a shorter routine (R7). The notes of 0.10.0 must say that the reader test was not run (#230, at 0.11.0).
 
 **For the owner, from steps 42c1 and 42c2.** Two entries are in the register for 0.10.0, each with its known issue of 0.9.0: #226, the separation check that gives no answer on a large design in which every row is met with both outcomes (mending taken as recommended, yours to overturn), and #227, a slope of `margins` through `floor` or `round` where the data sit on the jumps (a warning recommended; open). And one small layout: an exact interval at a level the sample cannot reach prints as `(-Inf, Inf)` with no word that the level was out of reach, where R warns; say if a note is wanted.
 

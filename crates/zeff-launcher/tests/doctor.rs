@@ -124,11 +124,16 @@ impl World {
             .filter(|line| line.fix.is_some())
             .count();
         assert_eq!(code, u8::from(problems > 0));
+        // The launcher's own version is hidden on its own line alone: at a release it is also
+        // the version of an engine these stores hold (0.9.0), which is to be read as it is.
         let text = String::from_utf8(out)
             .unwrap()
             .replace(&self.dir.path().display().to_string(), "<tmp>")
             .replace(zeff_launcher::doctor::COMMIT, "<commit>")
-            .replace(zeff_launcher::VERSION, "<launcher>")
+            .replace(
+                &format!("launcher        Zeff {},", zeff_launcher::VERSION),
+                "launcher        Zeff <launcher>,",
+            )
             .replace('\\', "/");
         (code, text)
     }
