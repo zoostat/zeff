@@ -8032,3 +8032,15 @@ Step 42c4b6 is split in three as it was met: 42c4b6 (this entry), the halves rea
 **Held by.** The reports of the 24 shards, fetched and compared with the list both ways; the step of the mended job run here on them, and the step as it was, which fails as it did on GitHub; the job file read back as valid.
 
 **Reason.** The testing handbook, sections 1 (mutation testing, coverage) and 2.4, item 2; the checklist's step 42c4b.
+
+## 26 November 2026: the reader test moves from 0.9.0 to 0.11.0 (release 0.9.0, step 45; the owner's decision)
+
+**Choice (the owner's, in the coordinating session on 26 November 2026, passed on to this session by that session).** He asked "Can we move step 45 to 0.11.0", and, having heard what follows from it, answered "Yes, pass it on". The reader test of the testing handbook (section 2.4, item 4), required from 0.8.0, skipped there by his decision of 20 November and owed at 0.9.0 since, is not run at 0.9.0. It is entered in the register as #230, with 0.11.0 as its release.
+
+**What follows, as he was told it.** (1) The notes of 0.9.0 and of 0.10.0 each say plainly that the reader test was not run, so that nobody takes the item for done. (2) Release 0.9.0 no longer waits for a reader test: with step 42c done, the checklist is complete, and the next word is the owner's "Release 0.9.0". (3) At 0.11.0 the sheet is brought to that release, with the functions of 0.9.0 to 0.11.0, and the test is run on a Zemp Lite alpha that carries a newer engine, so that every script's output can be seen, `glm` and `margins` included (on the alpha of today, whose engine is 0.8.0, the two new scripts of the sheet could only be read).
+
+**What is kept.** The sheet, the key and the scripts made ready at step 45 (24 November), and a report form made on 26 November (`reader_test_report.pdf`, `.md` and `.typ`), stay outside the repository in `~/dev/handbook/zeff-0.9.0-prerelease/reader-test/`, for 0.11.0.
+
+**What is not changed.** The handbook (the freeze, #40): its item stands, "from 0.8.0", and is not met at 0.8.0, 0.9.0 or 0.10.0. The plan of 0.11.0 is to take the test up at "Start release 0.11.0", where #230 is among the decisions due; no work of 0.11.0 is begun now.
+
+**Reason.** The owner's decision; the testing handbook, section 2.4, item 4; the form of the entry of 20 November 2026 for 0.8.0.
