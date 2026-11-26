@@ -766,7 +766,10 @@ jobs:
             echo
           } >> "$GITHUB_STEP_SUMMARY"
           for package in zeff-numeric zeff-kernels zeff-results zeff-regress zeff-stats zeff-glm; do
-            shards=$(ls -d reports/mutation-reports-$package-* 2>/dev/null | wc -l | tr -d ' ')
+            # `|| true`: `ls` fails where a package left no report, and under `pipefail` that
+            # failure would end the step at the first package a run by hand did not ask for,
+            # as it did on 26 November 2026 (45815580124), the job's first run.
+            shards=$( (ls -d reports/mutation-reports-$package-* 2>/dev/null || true) | wc -l | tr -d ' ')
             if [ "$shards" = "0" ]; then
               echo "$package: no shard of this run left a report"
               continue
