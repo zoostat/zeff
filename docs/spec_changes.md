@@ -1096,3 +1096,7 @@ The owner asked for Zeff's counterparts of R's `aggregate`, `merge` and `reshape
 ## 27 November 2026 — zeff_open_decisions.md, #237 (the owner's ruling) and #99
 
 The owner ruled on #237: "Go with A". The entry is marked decided: `on:` with a mapping of key names, `nearest:` and `between:` of `merge`, several stubs and value columns in `to_long` and `to_wide`, `indicator:`, `join: right` and `relation: many_to_many`, all at 0.12.0 beside #233 to #236; the catalogue's rows to be amended at the opening of 0.12.0. #99 gains a dated paragraph, and its row a clause, saying that these five items of its section 3 leave its ruling on question 3, which otherwise stands. No normative text is changed.
+
+## 27 November 2026 — zeff_open_decisions.md, new entry #238
+
+The owner asked for Zeff's counterparts of R's `mapply`, `Recall` and `Vectorize`; each was run on the engine. Shown that `with:` of `map` (#233) takes one further list only, and that a calculation column operations cannot express has no way to run once per row, he said "Yes, record them". #238 is entered, open: `with:` taking a record of lists, and `map` over a column giving a column, recommended at 0.12.0 beside #233. Deadline: the opening of 0.12.0. No normative text is changed.
