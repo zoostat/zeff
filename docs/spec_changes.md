@@ -1160,3 +1160,7 @@ A new entry, decided by the owner ("I choose cobalt."): the accent of the Zeff b
 ## 27 November 2026 — zeff_open_decisions.md, entries 33 and 245
 
 Entry 245 added, decided by the owner ("Yes, record it"): Zemp Lite revamped as drawn in the mockup of 27 November 2026, with the front page "Reproducible empirical research, in your browser.", the projects table, one slim top bar, a side menu of icons named on hover, a toolbar row in Script and Paper, and each place laid out for the most room; it revises #146, #203 and #220 where they differ. Entry 33, point 2 (no icons in 1.0), amended for that side menu alone: its row and a paragraph *Amended*. No normative text is changed now: section 5 of the Zemp Specification is amended at the Zemp Lite release that builds it.
+
+## 28 November 2026 — zemp_specification.md, section 15; zeff_open_decisions.md, entries 243 to 245
+
+Section 15 gains the row of Zemp 0.3.1 on Zeff 0.9.0, placed by the owner ("Now plan this visual changes for release 3.1", then "Yes, all three" to its plan): the revamp of #245, cobalt (#244) and computers only (#243), between 0.3 and 0.4. Entry 243's open part decided, option A (a tablet held sideways a small laptop, tested at 1,024 × 768); entries 244 and 245 placed at 0.3.1, and #245 completed: Plots keeps every layout it has, and the watermark stays behind the front page and the projects screen. Section 5 is amended at that release, as the entries say.
