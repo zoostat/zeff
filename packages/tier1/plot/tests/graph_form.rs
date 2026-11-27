@@ -12,8 +12,8 @@ use serde_json::Value as Read;
 use zeff_core::dag::{Dag, Edge as DagEdge, Link};
 use zeff_core::value::{Aesthetic, Plot};
 use zeff_plot::graph::{
-    Edge, EdgeKind, End, Fault, GRAPH_VERSION, GraphForm, Group, Node, NodeKind, NodeShape, Port,
-    Role, Side,
+    Direction, Edge, EdgeKind, End, Fault, GRAPH_VERSION, GraphForm, Group, Node, NodeKind,
+    NodeShape, Placing, Port, Role, Side,
 };
 use zeff_plot::scene::{start, with_layer};
 
@@ -125,6 +125,27 @@ fn read(json: &Read) -> GraphForm {
                     .collect(),
             })
             .collect(),
+        placing: {
+            let p = &json["placing"];
+            let pair = |v: &Read| (v[0].as_f64().unwrap(), v[1].as_f64().unwrap());
+            Placing {
+                direction: Direction::from_name(p["direction"].as_str().unwrap()).unwrap(),
+                same_rank: p["same_rank"]
+                    .as_array()
+                    .unwrap()
+                    .iter()
+                    .map(|set| {
+                        set.as_array()
+                            .unwrap()
+                            .iter()
+                            .map(|m| m.as_u64().unwrap() as usize)
+                            .collect()
+                    })
+                    .collect(),
+                spacing: (!p["spacing"].is_null()).then(|| pair(&p["spacing"])),
+                at: p["at"].as_array().map(|all| all.iter().map(pair).collect()),
+            }
+        },
     }
 }
 
@@ -311,6 +332,12 @@ fn the_section_reads_back_with_ports_groups_and_labels() {
             label: vec!["Measurement".to_string()],
             members: vec![0, 1],
         }],
+        placing: Placing {
+            direction: Direction::Right,
+            same_rank: vec![vec![0, 2]],
+            spacing: Some((12.0, 4.5)),
+            at: Some(vec![(0.0, 0.0), (1.0, 0.5), (2.0, 0.0)]),
+        },
     };
     assert_eq!(form.check(), Ok(()));
     assert_eq!(form.edge_name(0), "edge:engage->perform");
@@ -367,6 +394,22 @@ fn a_form_that_is_not_what_it_says_is_refused() {
     assert_eq!(groups.check(), Err(Fault::GroupTwice("g".to_string())));
     groups.groups = vec![group(vec![0, 6])];
     assert_eq!(groups.check(), Err(Fault::NoSuchNode(6)));
+    // A placing that does not fit the form.
+    let mut placed = form.clone();
+    placed.placing.same_rank = vec![vec![1, 7]];
+    assert_eq!(placed.check(), Err(Fault::NoSuchNode(7)));
+    placed.placing.same_rank.clear();
+    placed.placing.spacing = Some((10.0, 0.0));
+    assert!(matches!(placed.check(), Err(Fault::BadPlacing(_))));
+    placed.placing.spacing = Some((10.0, 4.0));
+    placed.placing.at = Some(vec![(0.0, 0.0); 5]);
+    assert!(matches!(placed.check(), Err(Fault::BadPlacing(_))));
+    placed.placing.at = Some(vec![(0.0, f64::NAN); 6]);
+    assert!(matches!(placed.check(), Err(Fault::BadPlacing(_))));
+    placed.placing.at = Some((0..6).map(|i| (f64::from(i), 0.5)).collect());
+    assert_eq!(placed.check(), Ok(()));
+    // How a graph is placed is no part of the graph.
+    assert_eq!(placed.to_dag().unwrap(), training());
 }
 
 #[test]

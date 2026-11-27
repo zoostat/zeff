@@ -228,13 +228,13 @@ pub enum LayoutError {
 
 /// Measures text and remembers the characters neither its face nor the face behind it has.
 #[derive(Default)]
-struct Setter {
-    lacking: Vec<char>,
+pub(crate) struct Setter {
+    pub(crate) lacking: Vec<char>,
 }
 
 impl Setter {
     /// The width of `text` in `name` at `size` points.
-    fn width(&mut self, text: &str, name: FaceName, size: f64) -> f64 {
+    pub(crate) fn width(&mut self, text: &str, name: FaceName, size: f64) -> f64 {
         // As the writers draw it: in `name`, and in the face behind it where `name` lacks a
         // character.
         let line = crate::font::set(name, text);
@@ -248,7 +248,13 @@ impl Setter {
 
     /// `text` broken between words into lines no wider than `limit`; a word wider than the
     /// limit stands alone on its line.
-    fn wrap(&mut self, text: &str, name: FaceName, size: f64, limit: f64) -> Vec<String> {
+    pub(crate) fn wrap(
+        &mut self,
+        text: &str,
+        name: FaceName,
+        size: f64,
+        limit: f64,
+    ) -> Vec<String> {
         let mut lines: Vec<String> = Vec::new();
         let mut line = String::new();
         for word in text.split(' ').filter(|word| !word.is_empty()) {
@@ -272,7 +278,7 @@ impl Setter {
 }
 
 /// The height of a capital letter of the labels' face at `size` points.
-fn capital(size: f64) -> f64 {
+pub(crate) fn capital(size: f64) -> f64 {
     let sans = face(FaceName::Sans);
     f64::from(sans.cap_height()) * size / f64::from(sans.units_per_em())
 }
@@ -299,7 +305,7 @@ fn text(
     }
 }
 
-fn named(name: &str, primitive: Primitive) -> Item {
+pub(crate) fn named(name: &str, primitive: Primitive) -> Item {
     Item {
         name: Some(name.to_string()),
         primitive,
@@ -1532,6 +1538,10 @@ pub fn layout_with_notes(scene: &Scene, size: Size, theme: &Theme) -> Result<Dra
 fn lay(scene: &Scene, size: Size, theme: &Theme, noted: bool) -> Result<Drawing, LayoutError> {
     if let Some(why) = scene.undrawn() {
         return Err(LayoutError::Undrawn(why));
+    }
+    // A scene that holds a diagram is drawn as one: it has no panel, no scale and no axis.
+    if scene.graph.is_some() {
+        return crate::diagram::draw(scene, size, theme, noted);
     }
     let (wide, high) = size.millimetres();
     if !(wide.is_finite() && high.is_finite() && wide > 0.0 && high > 0.0) {

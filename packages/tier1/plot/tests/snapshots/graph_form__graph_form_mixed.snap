@@ -134,5 +134,11 @@ expression: "GraphForm::of_dag(&mixed()).json().write()"
       "label": []
     }
   ],
-  "groups": []
+  "groups": [],
+  "placing": {
+    "direction": "down",
+    "same_rank": [],
+    "spacing": null,
+    "at": null
+  }
 }

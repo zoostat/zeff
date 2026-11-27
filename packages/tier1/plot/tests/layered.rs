@@ -43,6 +43,7 @@ fn form(names: &[&str], arrows: &[(usize, usize)], ties: &[(usize, usize, EdgeKi
             }))
             .collect(),
         groups: Vec::new(),
+        placing: Default::default(),
     }
 }
 

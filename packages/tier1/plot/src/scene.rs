@@ -5253,6 +5253,35 @@ impl Scene {
         )
     }
 
+    /// A scene that draws a diagram and nothing else: no panel, no scale, no axis and no
+    /// legend, the form with its titles under a theme.
+    pub fn of_diagram(
+        form: crate::graph::GraphForm,
+        theme: PlotTheme,
+        title: Option<String>,
+        subtitle: Option<String>,
+        caption: Option<String>,
+    ) -> Scene {
+        Scene {
+            rows: 1,
+            columns: 1,
+            wrapped: false,
+            scales: Vec::new(),
+            axes: Vec::new(),
+            legends: Vec::new(),
+            legend: LegendPlace::Right,
+            coord: Coord::Cartesian,
+            theme,
+            title,
+            subtitle,
+            caption,
+            panels: Vec::new(),
+            notes: Vec::new(),
+            frame: None,
+            graph: Some(form),
+        }
+    }
+
     /// The version this scene is written as: 2 when it holds a diagram, 1 otherwise.
     pub fn version(&self) -> u32 {
         if self.graph.is_some() {

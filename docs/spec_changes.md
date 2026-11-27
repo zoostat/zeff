@@ -1196,3 +1196,7 @@ At step 18 of release 0.10.0. Row 431 of the catalogue left the adjustment of th
 ## 28 November 2026 — zeff_language_reference.md, section 7.6 (a new paragraph, "Diagrams")
 
 At step 19 of release 0.10.0, applying the owner's decision on open decision #191 (27 November 2026, option A: every diagram lowered to one graph form, a versioned section of the scene format, fixed at this step). Section 7.6 now says what the graph form holds, that the layout reads it alone, how its elements are named, that the scene keeps it as its section `graph`, and that a scene with the section is version 2 while a plot of data stays version 1.
+
+## 28 November 2026 — zeff_language_reference.md, section 7.6 ("Diagrams", three sentences more)
+
+At step 22a of release 0.10.0, still applying the owner's decision on #191. The paragraph now says that the graph form holds the placement the script asks for, and how a diagram is drawn: the marks for a latent variable, a selected one, the exposure and the outcome, the three kinds of edge, the line at the foot, and that a diagram is drawn smaller to fit a page and never enlarged.

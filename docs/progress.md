@@ -112,7 +112,11 @@ Step 20 `[engine]` (28 November 2026): the layered layout, layers and order (`pl
 
 Step 21 `[engine]` (28 November 2026): the layered layout, coordinates, edges and labels (`plot::placed`). Outlines sized from the measured label; places along the layers by Brandes and Köpf's four alignments; `direction:` and `spacing:`; edges from border to border, straight or as a spline through their bends, a common cause as an arc. No two outlines touch and every edge ends on its borders, on the examples and on 240 generated graphs of up to thirty nodes; thirty nodes take about 1 ms. Nothing is drawn yet: `g.plot()` is step 22.
 
-**Next.** Step 22 `[engine]`: `g.plot()`.
+Step 22a `[engine]` (28 November 2026): a diagram drawn. Step 22 was split: 22a draws a diagram inside the plot package, 22b is the function `g.plot()`. The graph form now holds the placement a script asks for; nodes can be placed on a grid; an arrow meets the side of a box that faces the other layer; and a scene that holds a diagram is drawn with the primitives of every figure and written as SVG, PDF and PNG: latent variables dashed, the exposure and the outcome filled, a selected variable with a double outline, a line at the foot naming the marks. Six figures were read by eye.
+
+**Next.** Step 22b `[engine]`: `g.plot()`.
+
+**For the owner, from step 22a.** The look of a causal graph follows the mock-up you saw on 18 November: the exposure filled blue, the outcome filled dark, a latent variable a dashed ellipse. A diagram that fits the page is not enlarged to fill it. Both are yours to change.
 
 **For the owner, from step 20.** Ties in the layout are broken by the names of the nodes, not by the order of the lines in the script (the words of #121, D4), so that one graph written two ways is drawn one way.
 

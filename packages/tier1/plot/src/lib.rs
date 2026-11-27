@@ -17,6 +17,7 @@
 pub mod bins;
 pub mod colour;
 pub mod dates;
+pub mod diagram;
 pub mod drawing;
 pub mod figure;
 pub mod fits;

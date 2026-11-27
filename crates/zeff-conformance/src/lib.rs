@@ -2054,6 +2054,9 @@ fn panel_cases() -> Vec<Line> {
         text("plot/graph_form", &graph_forms()),
         text("plot/layers", &graph_layers()),
         text("plot/placed", &graph_placed()),
+        bytes("plot/diagram/svg", &diagram_figures()[0]),
+        bytes("plot/diagram/pdf", &diagram_figures()[1]),
+        bytes("plot/diagram/png", &diagram_figures()[2]),
         text("identify/kernel", &graph_kernel()),
         text(
             "identify/independencies/stdout",
@@ -3931,6 +3934,114 @@ fn graph_placed() -> String {
                     .collect();
                 out.push_str(&format!("  {} {}\n", form.edge_name(e), line.join(" ")));
             }
+        }
+    }
+    out
+}
+
+/// Diagrams drawn (release 0.10.0, step 22a): four diagrams, each as the bytes of its SVG,
+/// its PDF and its PNG, one after another by format. The graph of section 7.3 with its
+/// exposure and its outcome; the same to the right on a wider page; a graph with a common
+/// cause over a layer and between layers, a link, a selected node, latent ones, a label of
+/// two lines and letters with marks; and a graph whose nodes the script places on a grid.
+fn diagram_figures() -> [Vec<u8>; 3] {
+    use zeff_core::dag::{Dag, Edge, Link};
+    use zeff_core::value::PlotTheme;
+    use zeff_plot::graph::{Direction, GraphForm, Role};
+    use zeff_plot::layout::{Size, Theme, layout};
+    use zeff_plot::scene::Scene;
+    const D: Link = Link::Directed;
+    let dag =
+        |names: &[&str], edges: &[(usize, usize, Link)], latent: &[usize], selected: &[usize]| {
+            GraphForm::of_dag(&Dag::new(
+                names.iter().map(|n| (*n).to_string()).collect(),
+                edges
+                    .iter()
+                    .map(|&(from, to, link)| Edge { from, to, link })
+                    .collect(),
+                latent.to_vec(),
+                selected.to_vec(),
+            ))
+        };
+    let mut training = dag(
+        &[
+            "ability",
+            "training",
+            "productivity",
+            "tenure",
+            "age",
+            "region",
+        ],
+        &[
+            (0, 1, D),
+            (1, 2, D),
+            (0, 2, D),
+            (1, 3, D),
+            (3, 2, D),
+            (4, 1, D),
+            (5, 1, D),
+        ],
+        &[0],
+        &[],
+    );
+    training.nodes[1].role = Some(Role::Exposure);
+    training.nodes[2].role = Some(Role::Outcome);
+    let mut right = training.clone();
+    right.placing.direction = Direction::Right;
+    let mut mixed = dag(
+        &["price", "demand", "season", "taste", "listed", "x̄ and β̂"],
+        &[
+            (2, 1, D),
+            (3, 1, D),
+            (1, 4, D),
+            (5, 0, D),
+            (0, 1, Link::Bidirected),
+            (0, 2, Link::Bidirected),
+            (2, 4, Link::Undirected),
+        ],
+        &[3, 5],
+        &[4],
+    );
+    mixed.nodes[1].label = vec!["demand".to_string(), "per week".to_string()];
+    let mut placed = dag(
+        &["z", "x", "m", "y"],
+        &[(0, 1, D), (1, 2, D), (2, 3, D), (0, 3, D)],
+        &[0],
+        &[],
+    );
+    placed.placing.at = Some(vec![(0.0, 0.0), (0.0, 1.0), (1.0, 1.0), (2.0, 1.0)]);
+    let figures = [
+        (
+            training,
+            Size::OneColumn,
+            Some("What is assumed of training"),
+        ),
+        (right, Size::TwoColumn, None),
+        (mixed, Size::OneColumn, None),
+        (placed, Size::Millimetres(60.0, 40.0), None),
+    ];
+    let theme = Theme::of(&PlotTheme::default());
+    let mut out: [Vec<u8>; 3] = [Vec::new(), Vec::new(), Vec::new()];
+    for (form, size, title) in figures {
+        let scene = Scene::of_diagram(
+            form,
+            PlotTheme::default(),
+            title.map(String::from),
+            None,
+            None,
+        );
+        let Ok(drawing) = layout(&scene, size, &theme) else {
+            for format in &mut out {
+                format.extend_from_slice(b"not drawn\n");
+            }
+            continue;
+        };
+        out[0].extend_from_slice(zeff_plot::svg::write(&drawing).as_bytes());
+        out[1].extend_from_slice(&zeff_plot::pdf::write(&drawing));
+        if let Ok(picture) = zeff_plot::raster::render(&drawing, zeff_plot::raster::DOTS)
+            && let Some(png) = zeff_plot::png::write(&picture, zeff_plot::raster::DOTS)
+        {
+            out[2].extend_from_slice(&png);
         }
     }
     out

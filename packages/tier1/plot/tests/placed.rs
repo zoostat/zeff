@@ -62,6 +62,7 @@ fn form(
             }))
             .collect(),
         groups: Vec::new(),
+        placing: Default::default(),
     }
 }
 

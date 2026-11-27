@@ -14,7 +14,9 @@
 //! edge is a common cause, not an arc. The kinds of this release are those a causal graph
 //! needs; a later kind of diagram adds kinds and changes nothing here. The form is a section
 //! of the scene's JSON with a version of its own ([`GRAPH_VERSION`]), which rises when a
-//! reader of the earlier version would misread the new one.
+//! reader of the earlier version would misread the new one. Beside what the diagram is, the
+//! form holds how the script asks for it to be placed ([`Placing`]): the way the layers
+//! follow, the nodes to keep on one layer, the gaps, or a place for every node.
 
 use zeff_core::dag::{Dag, Edge as DagEdge, Link};
 
@@ -229,12 +231,56 @@ impl Group {
     }
 }
 
+/// Which way the layers of a diagram follow one another.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
+pub enum Direction {
+    /// The first layer at the top.
+    #[default]
+    Down,
+    /// The first layer at the left.
+    Right,
+}
+
+impl Direction {
+    pub const ALL: [Direction; 2] = [Direction::Down, Direction::Right];
+
+    pub fn name(self) -> &'static str {
+        match self {
+            Direction::Down => "down",
+            Direction::Right => "right",
+        }
+    }
+
+    pub fn from_name(name: &str) -> Option<Direction> {
+        Direction::ALL
+            .into_iter()
+            .find(|direction| direction.name() == name)
+    }
+}
+
+/// How the script asks for the diagram to be placed. Where it asks for nothing, the layout
+/// places it: in layers, down the page.
+#[derive(Debug, Clone, PartialEq, Default)]
+pub struct Placing {
+    pub direction: Direction,
+    /// Sets of nodes, by their places, that are to stand on one layer.
+    pub same_rank: Vec<Vec<usize>>,
+    /// The room between two layers and between two neighbours on a layer, in millimetres,
+    /// where the script gives them; otherwise they follow from the size of the type.
+    pub spacing: Option<(f64, f64)>,
+    /// The place of each node on a grid, as its column and its row counted from 0, a part
+    /// of a step allowed, where the script places the nodes itself; the layout then places
+    /// none and `direction` and `same_rank` are not used.
+    pub at: Option<Vec<(f64, f64)>>,
+}
+
 /// A diagram as the layout reads it.
-#[derive(Debug, Clone, PartialEq, Eq, Default)]
+#[derive(Debug, Clone, PartialEq, Default)]
 pub struct GraphForm {
     pub nodes: Vec<Node>,
     pub edges: Vec<Edge>,
     pub groups: Vec<Group>,
+    pub placing: Placing,
 }
 
 /// What is wrong with a graph form that cannot be what it says.
@@ -250,6 +296,9 @@ pub enum Fault {
     GroupTwice(String),
     /// A form that is no causal graph: it has a port, a group or an edge with a label.
     NotACausalGraph(&'static str),
+    /// A placing that does not fit the form: places for another number of nodes than it has,
+    /// a place or a gap that is no number, or a gap that is not above zero.
+    BadPlacing(&'static str),
 }
 
 impl GraphForm {
@@ -306,6 +355,7 @@ impl GraphForm {
             nodes,
             edges,
             groups: Vec::new(),
+            placing: Placing::default(),
         }
     }
 
@@ -404,6 +454,24 @@ impl GraphForm {
                 }
             }
         }
+        for set in &self.placing.same_rank {
+            if let Some(&member) = set.iter().find(|&&m| m >= self.nodes.len()) {
+                return Err(Fault::NoSuchNode(member));
+            }
+        }
+        if let Some((layers, nodes)) = self.placing.spacing
+            && !(layers.is_finite() && nodes.is_finite() && layers > 0.0 && nodes > 0.0)
+        {
+            return Err(Fault::BadPlacing("a gap that is not a length above zero"));
+        }
+        if let Some(at) = &self.placing.at {
+            if at.len() != self.nodes.len() {
+                return Err(Fault::BadPlacing("places for another number of nodes"));
+            }
+            if at.iter().any(|(x, y)| !(x.is_finite() && y.is_finite())) {
+                return Err(Fault::BadPlacing("a place that is no number"));
+            }
+        }
         Ok(())
     }
 
@@ -498,6 +566,36 @@ impl GraphForm {
                         })
                         .collect(),
                 ),
+            ),
+            (
+                "placing",
+                Json::Object(vec![
+                    ("direction", Json::text(self.placing.direction.name())),
+                    (
+                        "same_rank",
+                        Json::List(
+                            self.placing
+                                .same_rank
+                                .iter()
+                                .map(|set| {
+                                    Json::List(set.iter().map(|&m| Json::whole(m)).collect())
+                                })
+                                .collect(),
+                        ),
+                    ),
+                    (
+                        "spacing",
+                        self.placing.spacing.map_or(Json::Null, |(layers, nodes)| {
+                            Json::numbers(&[layers, nodes])
+                        }),
+                    ),
+                    (
+                        "at",
+                        self.placing.at.as_ref().map_or(Json::Null, |at| {
+                            Json::List(at.iter().map(|&(x, y)| Json::numbers(&[x, y])).collect())
+                        }),
+                    ),
+                ]),
             ),
         ])
     }

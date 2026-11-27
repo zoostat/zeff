@@ -18,9 +18,9 @@
 //! another with a gap between. `direction:` says which way the layers follow: down the page,
 //! or to the right, where the two axes change places.
 //!
-//! **Edges.** An edge runs from the border of one node to the border of the other: straight
-//! where it joins neighbouring layers, and through its bends as a smooth curve where it
-//! crosses several. A common cause is an arc: over the layer where its two nodes share one,
+//! **Edges.** An edge runs from the border of one node to the border of the other, leaving
+//! a box by the side that faces the other's layer: straight where it joins neighbouring
+//! layers, and through its bends as a smooth curve where it crosses several. A common cause is an arc: over the layer where its two nodes share one,
 //! and bowed a little where they do not.
 //!
 //! Every length is in points and follows from the size of the type; `spacing:` multiplies
@@ -32,15 +32,7 @@ use crate::font::{FaceName, face, set};
 use crate::graph::{EdgeKind, GraphForm, NodeShape};
 use crate::layered::{Layers, Slot};
 
-/// Which way the layers follow one another.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
-pub enum Direction {
-    /// The first layer at the top.
-    #[default]
-    Down,
-    /// The first layer at the left.
-    Right,
-}
+pub use crate::graph::Direction;
 
 /// The lengths of a diagram, in points.
 #[derive(Debug, Clone, Copy, PartialEq)]
@@ -126,6 +118,38 @@ impl PlacedNode {
             NodeShape::Ellipse => 1.0 / ((dx / a) * (dx / a) + (dy / b) * (dy / b)).sqrt(),
         };
         (self.centre.0 + t * dx, self.centre.1 + t * dy)
+    }
+
+    /// Where a line from the centre towards `towards` leaves the outline, kept on the side
+    /// that faces a neighbouring layer: `down` says whether the layers follow down the page,
+    /// `later` whether the line goes to a later layer. A box is left through that side even
+    /// where the line is so slanting that it would leave through another, at the end of the
+    /// side nearest the line: an arrow to a far node of the next layer then passes over its
+    /// neighbours and not through them. An ellipse is left where the line leaves it.
+    pub fn border_facing(&self, towards: Place, down: bool, later: bool) -> Place {
+        if self.shape != NodeShape::Box {
+            return self.border(towards);
+        }
+        let (dx, dy) = (towards.0 - self.centre.0, towards.1 - self.centre.1);
+        // Along the side and across to it, whichever way the layers go.
+        let (along, across, half_along, half_across) = if down {
+            (dx, dy, self.width / 2.0, self.height / 2.0)
+        } else {
+            (dy, dx, self.height / 2.0, self.width / 2.0)
+        };
+        let out = if later { across } else { -across };
+        if out <= 0.0 {
+            return self.border(towards);
+        }
+        // Not nearer the corner than a fifth of the shorter side.
+        let limit = (half_along - 0.4 * half_along.min(half_across)).max(0.0);
+        let at = (along * half_across / out).clamp(-limit, limit);
+        let side = if later { half_across } else { -half_across };
+        if down {
+            (self.centre.0 + at, self.centre.1 + side)
+        } else {
+            (self.centre.0 + side, self.centre.1 + at)
+        }
     }
 
     /// How far outside the outline a place is, as a share of the outline: 0 on the border,
@@ -559,7 +583,7 @@ pub fn place(form: &GraphForm, laid: &Layers, options: &Options) -> Placed {
         let (a, c) = (places[number], middle_of_layer[members.layer[number]]);
         if down { (a, c) } else { (c, a) }
     };
-    let mut nodes: Vec<PlacedNode> = form
+    let nodes: Vec<PlacedNode> = form
         .nodes
         .iter()
         .enumerate()
@@ -584,61 +608,45 @@ pub fn place(form: &GraphForm, laid: &Layers, options: &Options) -> Placed {
             vec![Step::Move(from.centre)]
         } else if middle.is_empty() && edge.kind == EdgeKind::CommonCause {
             // An arc: over the layer where the two share one, bowed a little where not.
-            let (d0, d1) = (to.centre.0 - from.centre.0, to.centre.1 - from.centre.1);
-            let length = (d0 * d0 + d1 * d1).sqrt();
             let same_layer = laid.rank[a] == laid.rank[b];
-            // The way the arc bows: towards the layer before for two nodes of one layer,
-            // to the left of the line otherwise.
-            let bow: Place = if same_layer {
-                let thick = thickness_of_layer[laid.rank[a]];
-                let by = thick / 2.0 + 0.35 * layer_gap + 0.08 * length;
+            let over = same_layer.then(|| {
+                let by = thickness_of_layer[laid.rank[a]] / 2.0 + 0.35 * layer_gap;
                 if down { (0.0, -by) } else { (-by, 0.0) }
-            } else {
-                let by = 0.14 * length;
-                (d1 / length * by, -d0 / length * by)
-            };
-            let c1 = (
-                from.centre.0 + d0 / 4.0 + bow.0,
-                from.centre.1 + d1 / 4.0 + bow.1,
-            );
-            let c2 = (
-                to.centre.0 - d0 / 4.0 + bow.0,
-                to.centre.1 - d1 / 4.0 + bow.1,
-            );
-            vec![
-                Step::Move(from.border(c1)),
-                Step::Curve(c1, c2, to.border(c2)),
-            ]
+            });
+            arc(from, to, over)
         } else {
             let after = middle.first().copied().unwrap_or(to.centre);
             let before = middle.last().copied().unwrap_or(from.centre);
-            let mut points = vec![from.border(after)];
+            // Each end on the side of its node that faces the other's layer; two nodes of
+            // one layer, which a link may join, by the straight line between them.
+            let (start, end) = match laid.rank[a].cmp(&laid.rank[b]) {
+                std::cmp::Ordering::Equal => (from.border(after), to.border(before)),
+                order => {
+                    let later = order == std::cmp::Ordering::Less;
+                    (
+                        from.border_facing(after, down, later),
+                        to.border_facing(before, down, !later),
+                    )
+                }
+            };
+            let mut points = vec![start];
             points.extend(middle.iter().copied());
-            points.push(to.border(before));
+            points.push(end);
             through(&points)
         };
-        let label = (!edge.label.is_empty()).then(|| {
-            let (w, h) = text_size(&edge.label, measure);
-            let placed = PlacedEdge {
-                steps: steps.clone(),
-                heads: (false, false),
-                label: None,
-            };
-            let (first, last) = placed.ends();
-            PlacedLabel {
-                centre: ((first.0 + last.0) / 2.0, (first.1 + last.1) / 2.0),
-                width: w + measure.size,
-                height: h + 0.5 * measure.size,
-            }
-        });
+        let label = label_of(&edge.label, &steps, measure);
         edges.push(PlacedEdge {
             steps,
             heads: edge.kind.heads(),
             label,
         });
     }
-    // The whole brought to the page: a margin round everything drawn, the curves by their
-    // controls, which hold them.
+    onto_page(nodes, edges, measure)
+}
+
+/// The nodes and the edges brought to the page: a margin round everything drawn, the curves
+/// by their controls, which hold them.
+fn onto_page(mut nodes: Vec<PlacedNode>, mut edges: Vec<PlacedEdge>, measure: &Measure) -> Placed {
     let mut low = (f64::INFINITY, f64::INFINITY);
     let mut high = (f64::NEG_INFINITY, f64::NEG_INFINITY);
     let mut seen = |p: Place| {
@@ -723,5 +731,148 @@ pub fn place(form: &GraphForm, laid: &Layers, options: &Options) -> Placed {
         height: high.1 - low.1 + 2.0 * measure.margin,
         nodes,
         edges,
+    }
+}
+
+/// The arc of a common cause from the border of `from` to the border of `to`: bowed by
+/// `over` and a twelfth of its length where the two share a layer, `over` being the way and
+/// the distance that clears the layer; bowed to the left of the straight line by a seventh
+/// of its length where they do not.
+fn arc(from: &PlacedNode, to: &PlacedNode, over: Option<Place>) -> Vec<Step> {
+    let (d0, d1) = (to.centre.0 - from.centre.0, to.centre.1 - from.centre.1);
+    let length = (d0 * d0 + d1 * d1).sqrt();
+    if length == 0.0 {
+        return vec![Step::Move(from.centre), Step::Line(to.centre)];
+    }
+    let bow: Place = match over {
+        Some((x, y)) => {
+            let more = 0.08 * length;
+            let size = (x * x + y * y).sqrt();
+            if size == 0.0 {
+                (0.0, -more)
+            } else {
+                (x + x / size * more, y + y / size * more)
+            }
+        }
+        None => {
+            let by = 0.14 * length;
+            (d1 / length * by, -d0 / length * by)
+        }
+    };
+    let c1 = (
+        from.centre.0 + d0 / 4.0 + bow.0,
+        from.centre.1 + d1 / 4.0 + bow.1,
+    );
+    let c2 = (
+        to.centre.0 - d0 / 4.0 + bow.0,
+        to.centre.1 - d1 / 4.0 + bow.1,
+    );
+    vec![
+        Step::Move(from.border(c1)),
+        Step::Curve(c1, c2, to.border(c2)),
+    ]
+}
+
+/// The label of an edge at the middle of its line, for an edge that has one.
+fn label_of(lines: &[String], steps: &[Step], measure: &Measure) -> Option<PlacedLabel> {
+    if lines.is_empty() {
+        return None;
+    }
+    let (w, h) = text_size(lines, measure);
+    let (first, last) = PlacedEdge {
+        steps: steps.to_vec(),
+        heads: (false, false),
+        label: None,
+    }
+    .ends();
+    Some(PlacedLabel {
+        centre: ((first.0 + last.0) / 2.0, (first.1 + last.1) / 2.0),
+        width: w + measure.size,
+        height: h + 0.5 * measure.size,
+    })
+}
+
+/// The diagram on the page with every node where the script puts it: `at` gives each node
+/// its column and its row on a grid, counted from 0, a part of a step allowed. A step of the
+/// grid is the widest node and the gap between neighbours one way, the tallest node and the
+/// gap between layers the other. Every edge runs straight from border to border, a common
+/// cause as an arc: over its row where the two nodes share one, bowed where they do not.
+pub fn place_at(form: &GraphForm, at: &[(f64, f64)], options: &Options) -> Placed {
+    let measure = &options.measure;
+    let sizes: Vec<(f64, f64)> = form
+        .nodes
+        .iter()
+        .map(|node| outline_size(node.shape, &node.label, measure))
+        .collect();
+    let widest = sizes.iter().map(|s| s.0).fold(0.0, f64::max);
+    let tallest = sizes.iter().map(|s| s.1).fold(0.0, f64::max);
+    let step = (
+        widest + measure.node_gap * options.spacing,
+        tallest + measure.layer_gap * options.spacing,
+    );
+    let nodes: Vec<PlacedNode> = form
+        .nodes
+        .iter()
+        .enumerate()
+        .map(|(v, node)| PlacedNode {
+            centre: (at[v].0 * step.0, at[v].1 * step.1),
+            width: sizes[v].0,
+            height: sizes[v].1,
+            shape: node.shape,
+        })
+        .collect();
+    let edges: Vec<PlacedEdge> = form
+        .edges
+        .iter()
+        .map(|edge| {
+            let (from, to) = (&nodes[edge.from.node], &nodes[edge.to.node]);
+            let steps = if edge.from.node == edge.to.node {
+                vec![Step::Move(from.centre)]
+            } else if edge.kind == EdgeKind::CommonCause {
+                let same_row = from.centre.1 == to.centre.1;
+                let over = same_row.then(|| {
+                    (
+                        0.0,
+                        -(tallest / 2.0 + 0.35 * measure.layer_gap * options.spacing),
+                    )
+                });
+                arc(from, to, over)
+            } else {
+                vec![
+                    Step::Move(from.border(to.centre)),
+                    Step::Line(to.border(from.centre)),
+                ]
+            };
+            PlacedEdge {
+                label: label_of(&edge.label, &steps, measure),
+                steps,
+                heads: edge.kind.heads(),
+            }
+        })
+        .collect();
+    onto_page(nodes, edges, measure)
+}
+
+/// The diagram on the page as its form asks to be placed, in type of `size` points: by the
+/// layers, or where the form gives every node its place. The gaps are those the form gives
+/// in millimetres, or those that follow from the size of the type.
+pub fn place_form(form: &GraphForm, size: f64) -> Result<Placed, crate::layered::Unlayered> {
+    let mut measure = Measure::at(size);
+    if let Some((layers, nodes)) = form.placing.spacing {
+        const POINTS_TO_A_MILLIMETRE: f64 = 72.0 / 25.4;
+        measure.layer_gap = layers * POINTS_TO_A_MILLIMETRE;
+        measure.node_gap = nodes * POINTS_TO_A_MILLIMETRE;
+    }
+    let options = Options {
+        direction: form.placing.direction,
+        spacing: 1.0,
+        measure,
+    };
+    match &form.placing.at {
+        Some(at) => Ok(place_at(form, at, &options)),
+        None => {
+            let laid = crate::layered::layers(form, &form.placing.same_rank)?;
+            Ok(place(form, &laid, &options))
+        }
     }
 }

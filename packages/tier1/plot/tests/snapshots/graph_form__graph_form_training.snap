@@ -166,5 +166,11 @@ expression: form.json().write()
       "label": []
     }
   ],
-  "groups": []
+  "groups": [],
+  "placing": {
+    "direction": "down",
+    "same_rank": [],
+    "spacing": null,
+    "at": null
+  }
 }
