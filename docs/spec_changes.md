@@ -1152,3 +1152,7 @@ Entry 241 decided by the owner ("Go with A, pass it on"): the status of its row 
 ## 27 November 2026 — zeff_functions.csv, row 508 (`mcnemar_test`), a correction
 
 The note of row 508, written at step 9 of release 0.10.0, said that the continuity correction "is never larger than the difference of the two counts, so that equal counts give 0 where R gives 1/(b + c)". R gives 0 there too: `mcnemar.test` corrects only a table whose two counts differ. The note now reads "two equal counts are not corrected and give 0, as in R". The entry of this file for row 508 above repeats the wrong statement and is corrected by this one. No rule and no result is changed.
+
+## 27 November 2026 — zeff_open_decisions.md, entry 244
+
+A new entry, decided by the owner ("I choose cobalt."): the accent of the Zeff brand is cobalt, `#2448A8` in light and `#9db2ff` in dark, in place of the logo's violet of #146; function names in code turn teal and operators slate grey. No normative text is changed now: section 5 of the Zemp Specification and the editors' colour files are amended at the Zemp Lite release that next changes its layout.
