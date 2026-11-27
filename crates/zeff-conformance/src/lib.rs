@@ -1864,6 +1864,28 @@ fn panel_cases() -> Vec<Line> {
         );
         checked_refused.push('\n');
     }
+    // An instrument held against a graph (release 0.10.0, step 16): a valid instrument; a
+    // common cause with the outcome, left open and closed by a regressor; an effect through
+    // another variable; a path a regressor opens; a descendant of the exposure; an
+    // instrument the graph relates to nothing; two instrumented regressors; fixed effects;
+    // a regressor that the exposure brings about, here and in `check`; the count of warnings
+    // as a value.
+    let instrument = "let staff = dataset(staff)\nlet g = dag {\n    offer -> training -> productivity\n    distance -> training\n    region -> [offer, productivity]\n    ability -> [training, productivity]\n    training -> tenure -> productivity\n    latent ability\n}\nlet m = staff.ivreg(productivity ~ training + region, instruments: training ~ offer + distance)\nm.exclusion_check(g, instrument: offer)\nm.exclusion_check(g, instrument: distance)\nlet bare = staff.ivreg(productivity ~ training, instruments: training ~ offer)\nbare.exclusion_check(g, instrument: offer)\nbare.exclusion_check(dag {\n    offer -> training -> productivity\n    offer -> tenure -> productivity\n}, instrument: offer)\nstaff.ivreg(productivity ~ training + tenure, instruments: training ~ offer).exclusion_check(dag {\n    offer -> training -> productivity\n    [offer, age] -> tenure\n    age -> productivity\n}, instrument: offer)\nstaff.ivreg(productivity ~ training, instruments: training ~ tenure).exclusion_check(g, instrument: tenure)\nstaff.ivreg(productivity ~ training, instruments: training ~ offer + distance).exclusion_check(dag {\n    offer -> training -> productivity\n    distance\n}, instrument: distance)\nbare.exclusion_check(dag {\n    offer -> training -> productivity\n    offer <-> productivity\n}, instrument: offer)\nstaff.ivreg(productivity ~ training + age, fe: region, instruments: training ~ offer).exclusion_check(g, instrument: offer)\nstaff.ivreg(productivity ~ training + tenure, instruments: training ~ offer).exclusion_check(g, instrument: offer)\nstaff.ivreg(productivity ~ training + site, instruments: training ~ offer).check(dag {\n    ability -> [training, productivity]\n    offer -> training -> productivity\n    training -> site\n    latent ability\n}, exposure: training)\nlet c = bare.exclusion_check(g, instrument: offer)\nprint(c.statistic(), type_of(c))\n";
+    let instrument_outcome = run_script(&fs, &project, "scripts/main.zeff", instrument);
+    let mut instrument_refused = String::new();
+    for script in [
+        "let m = dataset(staff).ivreg(productivity ~ training, instruments: training ~ offer)\nm.exclusion_check(dag { offer -> training -> productivity }, instrument: distance)\n",
+        "let m = dataset(staff).ivreg(productivity ~ training, instruments: training ~ offer)\nm.exclusion_check(dag { training -> productivity }, instrument: offer)\n",
+        "let m = dataset(staff).ivreg(productivity ~ training, instruments: training ~ offer)\nm.exclusion_check(dag { offer -> course -> productivity }, instrument: offer)\n",
+        "dataset(staff).reg(productivity ~ training).exclusion_check(dag { offer -> training -> productivity }, instrument: offer)\n",
+    ] {
+        instrument_refused.push_str(
+            &run_script(&fs, &project, "scripts/main.zeff", script)
+                .output
+                .stderr,
+        );
+        instrument_refused.push('\n');
+    }
     let mut graph_refused = String::new();
     for script in [
         "let g = dag {\n    price -> demand\n    demand -> price\n}\n",
@@ -2013,6 +2035,15 @@ fn panel_cases() -> Vec<Line> {
         text("identify/check/stdout", &checked_outcome.output.stdout),
         text("identify/check/stderr", &checked_outcome.output.stderr),
         text("identify/check_refused/stderr", &checked_refused),
+        text(
+            "identify/exclusion/stdout",
+            &instrument_outcome.output.stdout,
+        ),
+        text(
+            "identify/exclusion/stderr",
+            &instrument_outcome.output.stderr,
+        ),
+        text("identify/exclusion_refused/stderr", &instrument_refused),
         text("tests/fields/stdout", &fields_outcome.output.stdout),
         text("tests/fields/stderr", &fields_outcome.output.stderr),
         text("tests/shapiro/stdout", &normality_outcome.output.stdout),

@@ -5,11 +5,13 @@
 //! graph kernel ([`graph`], step 12) answers what the functions of a graph ask of it: its
 //! ancestors and descendants, its proper causal paths and its separations. The functions
 //! themselves join it step by step: the implied independencies ([`independencies`], step 13)
-//! and the adjustment sets ([`adjustment`], step 14) are here; the check of a fitted model and
-//! the instruments follow.
+//! and the adjustment sets ([`adjustment`], step 14) are here; the check of a fitted model
+//! ([`check`], step 15) and of an instrument ([`exclusion`], step 16) are here; the list of
+//! instruments follows.
 
 pub mod adjustment;
 pub mod check;
+pub mod exclusion;
 pub mod graph;
 pub mod independencies;
 
@@ -119,6 +121,39 @@ pub fn functions() -> Vec<Function> {
                 accuracy: None,
             },
             body: check::check,
+        },
+        Function {
+            spec: FunctionSpec {
+                name: "exclusion_check",
+                package: "identify",
+                method: true,
+                params: vec![
+                    ParamSpec::required("iv", "IvFit"),
+                    ParamSpec::required("g", "Dag"),
+                    ParamSpec::option("instrument", "Var"),
+                ],
+                rest: None,
+                returns: "TestResult",
+                diagnostics: vec![
+                    DiagnosticDecl::new(
+                        "W0512",
+                        "an instrument that is a descendant of the exposure, or that a path joins to the outcome without passing through the exposure, the path named; a regressor of the fit that is a descendant of the exposure",
+                    ),
+                    DiagnosticDecl::note("an instrument the graph does not relate to the exposure"),
+                    DiagnosticDecl::new(
+                        "Z0101",
+                        "`instrument:`, the outcome or an instrumented regressor of the fit is no node of the graph",
+                    ),
+                    DiagnosticDecl::new(
+                        "Z0401",
+                        "a graph with an undirected edge; `instrument:` that is no instrument of the fit; an instrument or an outcome the data are selected on",
+                    ),
+                    DiagnosticDecl::new("Z0406", "`instrument:` not given"),
+                ],
+                help: include_str!("../help/exclusion_check.md"),
+                accuracy: None,
+            },
+            body: exclusion::exclusion_check,
         },
         Function {
             spec: FunctionSpec {

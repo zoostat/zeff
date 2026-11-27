@@ -383,7 +383,7 @@ pub fn test_result_after(result: &TestResult) -> Vec<String> {
     if result.terms.is_empty()
         && !matches!(
             result.method.as_str(),
-            "curve" | "implied_independencies" | "check"
+            "curve" | "implied_independencies" | "check" | "exclusion_check"
         )
     {
         lines.push(statistic_line_to(

@@ -271,6 +271,9 @@ identify/adjustment_refused/stderr 6596a1033313bd4f
 identify/check/stdout a0ae7db9a8338e72
 identify/check/stderr c2baf7e97773fcdb
 identify/check_refused/stderr 638b1cefcdc786bd
+identify/exclusion/stdout 9922b6c08e35981e
+identify/exclusion/stderr 20ac403406b3154f
+identify/exclusion_refused/stderr 8abbc59dc10973b4
 tests/fields/stdout cbf29ce484222325
 tests/fields/stderr 066add1139daf971
 tests/shapiro/stdout bb094c197a0d6c4d

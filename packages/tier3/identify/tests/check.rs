@@ -375,6 +375,20 @@ fn every_kind_of_fit_and_what_a_fit_brings() {
         stderr,
         "warning[W0510]: tenure lies on the path training → tenure → productivity (line 8)\n  = help: adjusting for a mediator removes part of the effect of training; drop tenure to estimate the total effect\n"
     );
+    // Beside an instrument, a regressor that the exposure brings about is said to be one,
+    // though for adjustment alone it would be harmless.
+    let (stdout, stderr) = checked(
+        "dag {\n    ability -> [training, productivity]\n    offer -> training -> productivity\n    training -> site\n    latent ability\n}",
+        "ivreg(productivity ~ training + site, instruments: training ~ offer)",
+        "training",
+    );
+    assert_eq!(stderr, "");
+    assert!(
+        stdout.contains(
+            "site        an effect of the exposure: not to be held fixed beside an instrument"
+        ),
+        "{stdout}"
+    );
     // The same model by least squares is warned of the common cause.
     let (_, stderr) = checked(iv, "reg(productivity ~ training)", "training");
     assert!(

@@ -1,0 +1,115 @@
+---
+source: packages/tier3/identify/tests/exclusion.rs
+expression: all
+---
+error[Z0401]: the graph has an undirected edge, `--`, so `exclusion_check` cannot say what the instrument is related to
+ --> scripts/main.zeff:2:19
+  |
+2 | m.exclusion_check(dag {
+  |                   ^^^^^ a graph with an undirected edge
+  |
+  = help: an undirected edge is for drawing and says nothing of cause: write `a -> b` for a cause, or `a <-> b` for a common cause that is not observed
+
+error[Z0101]: the outcome of the fit, `productivity`, is no node of the graph
+ --> scripts/main.zeff:2:19
+  |
+2 | m.exclusion_check(dag { offer -> training -> output }, instrument: offer)
+  |                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ the graph has no such node
+  |
+  = help: the nodes of the graph are: offer, training, output; write the outcome into the graph with its arrows
+
+error[Z0101]: the instrumented regressor of the fit, `training`, is no node of the graph
+ --> scripts/main.zeff:2:19
+  |
+2 | m.exclusion_check(dag { offer -> course -> productivity }, instrument: offer)
+  |                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ the graph has no such node
+  |
+  = help: the nodes of the graph are: offer, course, productivity; write `training` into the graph with its arrows
+
+error[Z0101]: no node `offer` in the graph
+ --> scripts/main.zeff:2:65
+  |
+2 | m.exclusion_check(dag { training -> productivity }, instrument: offer)
+  |                                                                 ^^^^^ not a node of the graph
+  |
+  = help: the nodes of the graph are: training, productivity; write the instrument into the graph with its arrows
+
+error[Z0101]: no node `offer` in the graph
+ --> scripts/main.zeff:2:73
+  |
+2 | m.exclusion_check(dag { ofer -> training -> productivity }, instrument: offer)
+  |                                                                         ^^^^^ not a node of the graph
+  |
+  = help: did you mean `ofer`?
+
+error[Z0401]: `distance` is not an instrument of the fit
+ --> scripts/main.zeff:2:74
+  |
+2 | m.exclusion_check(dag { offer -> training -> productivity }, instrument: distance)
+  |                                                                          ^^^^^^^^ not among the instruments
+  |
+  = help: the instrument of the fit is: offer
+
+error[Z0401]: `training` is not an instrument of the fit
+ --> scripts/main.zeff:2:74
+  |
+2 | m.exclusion_check(dag { offer -> training -> productivity }, instrument: training)
+  |                                                                          ^^^^^^^^ not among the instruments
+  |
+  = help: the instrument of the fit is: offer
+
+error[Z0401]: `instrument:` of `exclusion_check` is `offer`, which is one the data are selected on
+ --> scripts/main.zeff:5:16
+  |
+5 | }, instrument: offer)
+  |                ^^^^^ declared `selected` in the graph
+  |
+  = help: the data hold `offer` fixed, so they show no relation of it to anything; if `offer` varies in the data, take it out of the `selected` line
+
+error[Z0406]: `exclusion_check` needs `instrument:`
+ --> scripts/main.zeff:2:3
+  |
+2 | m.exclusion_check(dag { offer -> training -> productivity })
+  |   ^^^^^^^^^^^^^^^ `instrument:` is missing
+  |
+  = help: usage: `iv.exclusion_check(g, instrument: Var)`
+
+error[Z0406]: `exclusion_check` needs `g`
+ --> scripts/main.zeff:2:3
+  |
+2 | m.exclusion_check(instrument: offer)
+  |   ^^^^^^^^^^^^^^^ `g` is missing
+  |
+  = help: usage: `iv.exclusion_check(g, instrument: Var)`
+
+error[Z0401]: `instrument` of `exclusion_check` must be a Var, but this is a Str
+ --> scripts/main.zeff:2:74
+  |
+2 | m.exclusion_check(dag { offer -> training -> productivity }, instrument: "offer")
+  |                                                                          ^^^^^^^ a Str
+  |
+  = help: name one node of the graph, without quotes
+
+error[Z0404]: `exclusion_check` has no argument called `exposure`
+ --> scripts/main.zeff:2:81
+  |
+2 | m.exclusion_check(dag { offer -> training -> productivity }, instrument: offer, exposure: training)
+  |                                                                                 ^^^^^^^^ unknown argument
+  |
+  = help: usage: `iv.exclusion_check(g, instrument: Var)`
+
+error[Z0401]: `exclusion_check` cannot be called on a RegFit
+ --> scripts/main.zeff:1:1
+  |
+1 | dataset(staff).reg(productivity ~ training).exclusion_check(dag { offer -> training -> productivity }, instrument: offer)
+  | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ this is a RegFit
+  |
+  = help: `exclusion_check` takes an IvFit first; `x.exclusion_check(...)` is `exclusion_check(x, ...)`
+
+error[Z0401]: `exclusion_check` cannot be called on a Frame
+ --> scripts/main.zeff:1:1
+  |
+1 | dataset(staff).exclusion_check(dag { offer -> training -> productivity }, instrument: offer)
+  | ^^^^^^^^^^^^^^ this is a Frame
+  |
+  = help: `exclusion_check` takes an IvFit first; `x.exclusion_check(...)` is `exclusion_check(x, ...)`

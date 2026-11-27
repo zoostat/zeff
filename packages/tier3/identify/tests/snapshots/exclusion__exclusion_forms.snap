@@ -1,0 +1,90 @@
+---
+source: packages/tier3/identify/tests/exclusion.rs
+expression: "format!(\"{stdout}---\\n{stderr}\")"
+---
+exclusion_check · m · offer as an instrument for training
+offer satisfies the exclusion restriction in the graph
+
+  the instrument                                in the graph
+  no descendant of training                     yes
+  reaches productivity through training alone   yes
+  no regressor below training                   yes
+  related to training                           yes
+
+held fixed, as the fit holds them: region
+exclusion_check · m · distance as an instrument for training
+distance satisfies the exclusion restriction in the graph
+
+  the instrument                                in the graph
+  no descendant of training                     yes
+  reaches productivity through training alone   yes
+  no regressor below training                   yes
+  related to training                           yes
+
+held fixed, as the fit holds them: region
+exclusion_check · bare · offer as an instrument for training
+offer does not satisfy the exclusion restriction in the graph
+
+  the instrument                                in the graph
+  no descendant of training                     yes
+  reaches productivity through training alone   no: offer ← region → productivity
+  no regressor below training                   yes
+  related to training                           yes
+
+no regressor is held fixed: the fit has none but the instrumented
+exclusion_check · offer as an instrument for training
+offer satisfies the exclusion restriction in the graph
+
+  the instrument                                in the graph
+  no descendant of training                     yes
+  reaches productivity through training alone   yes
+  no regressor below training                   yes
+  related to training                           yes
+
+held fixed, as the fit holds them: region
+not in the graph, so the check says nothing of it: age
+exclusion_check · offer as an instrument for training and tenure
+offer does not satisfy the exclusion restriction in the graph
+
+  the instrument                                           in the graph
+  no descendant of training and tenure                     yes
+  reaches productivity through training and tenure alone   no: offer ← region → productivity
+  no regressor below training and tenure                   yes
+  related to training and tenure                           yes
+
+no regressor is held fixed: the fit has none but the instrumented
+exclusion_check · tenure as an instrument for training
+tenure does not satisfy the exclusion restriction in the graph
+
+  the instrument                                in the graph
+  no descendant of training                     no: below training
+  reaches productivity through training alone   no: tenure → productivity
+  no regressor below training                   yes
+  related to training                           yes
+
+no regressor is held fixed: the fit has none but the instrumented
+exclusion_check · site as an instrument for training
+site does not satisfy the exclusion restriction in the graph
+
+  the instrument                                in the graph
+  no descendant of training                     no: below training
+  reaches productivity through training alone   no: site → productivity
+  no regressor below training                   yes
+  related to training                           yes
+
+no regressor is held fixed: the fit has none but the instrumented
+---
+warning[W0512]: offer does not satisfy the exclusion restriction: the path offer ← region → productivity joins it to productivity without passing through training (line 14)
+  = help: an instrument may be related to the outcome through the exposure alone: add a regressor that closes the path, or choose another instrument
+warning[W1007]: weak instruments: the Cragg–Donald F is 0.44, under 10 (line 16)
+  = help: with weak instruments the estimate leans towards the least-squares one and its confidence interval is too narrow; `ar_test()` gives a test and a confidence set that hold however weak the instruments are
+warning[W0512]: offer does not satisfy the exclusion restriction: the path offer ← region → productivity joins it to productivity without passing through training and tenure (line 16)
+  = help: an instrument may be related to the outcome through the exposure alone: add a regressor that closes the path, or choose another instrument
+warning[W0512]: tenure is a descendant of training, so it is no instrument for it (line 17)
+  = help: an instrument acts on the exposure and is not acted on by it: what training brings about carries whatever confounds training with productivity
+warning[W0512]: tenure does not satisfy the exclusion restriction: the path tenure → productivity joins it to productivity without passing through training (line 17)
+  = help: an instrument may be related to the outcome through the exposure alone: add a regressor that closes the path, or choose another instrument
+warning[W0512]: site is a descendant of training, so it is no instrument for it (line 18)
+  = help: an instrument acts on the exposure and is not acted on by it: what training brings about carries whatever confounds training with productivity
+warning[W0512]: site does not satisfy the exclusion restriction: the path site → productivity joins it to productivity without passing through training (line 18)
+  = help: an instrument may be related to the outcome through the exposure alone: add a regressor that closes the path, or choose another instrument

@@ -2,7 +2,7 @@
 source: crates/zeff-cli/tests/cli.rs
 expression: list
 ---
-152 codes are explained; `zeff explain <code>` prints a code's page.
+153 codes are explained; `zeff explain <code>` prints a code's page.
 
 Z00xx  Errors a script raises itself
     Z0001  the script stopped itself with error()
@@ -163,6 +163,7 @@ W0xxx  Warnings, numbered by the same areas
     W0503  a bracketed sum in a formula
     W0510  a regressor takes away part of the effect
     W0511  a path that is no effect is open
+    W0512  an instrument fails the exclusion restriction in the graph
     W0601  text values differ only in their Unicode normalisation form
     W0602  a category with more than 10,000 levels
     W0701  a data root's file has changed since the last run

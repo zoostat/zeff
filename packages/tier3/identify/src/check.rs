@@ -216,26 +216,22 @@ fn internal(ctx: &CallContext<'_>, what: &str) -> Fail {
     )
 }
 
-/// `fit.check(g, exposure:)`.
-pub fn check(ctx: &mut CallContext<'_>, args: Args) -> Result<Value, Fail> {
-    let Some(Value::Fit(fit)) = args.get(0) else {
-        return Err(internal(ctx, "a fit"));
-    };
-    let Some(Value::Dag(dag)) = args.get(G) else {
-        return Err(internal(ctx, "a graph"));
-    };
-    let graph = Graph::of(dag);
-    if graph.has_undirected() {
-        return Err(fail(
-            Diagnostic::error(
-                "Z0401",
-                "the graph has an undirected edge, `--`, so `check` cannot say what the regressors do",
-            )
-            .in_file(ctx.script)
-            .primary(ctx.span_of(G), "a graph with an undirected edge")
-            .help("an undirected edge is for drawing and says nothing of cause: write `a -> b` for a cause, or `a <-> b` for a common cause that is not observed"),
-        ));
-    }
+/// What a fit names, read against a graph: its outcome as a node, its regressors by name in
+/// the order of the model (every variable a term names, then the variables of the fixed
+/// effects), and the columns of the frame it was fitted on.
+pub(crate) struct Named {
+    pub outcome: usize,
+    pub regressors: Vec<String>,
+    pub columns: Vec<String>,
+}
+
+/// The outcome and the regressors of `fit`, or the refusal: an outcome that is no node of
+/// the graph (Z0101) or that is made of several (Z0401).
+pub(crate) fn named(
+    ctx: &CallContext<'_>,
+    fit: &zeff_core::value::Fit,
+    graph: &Graph,
+) -> Result<Named, Fail> {
     let nodes: Vec<&str> = (0..graph.written()).map(|v| graph.name(v)).collect();
     let the_nodes = format!("the nodes of the graph are: {}", nodes.join(", "));
     let columns: Vec<String> = fit
@@ -261,7 +257,7 @@ pub fn check(ctx: &mut CallContext<'_>, args: Args) -> Result<Value, Fail> {
         .iter()
         .filter_map(|name| graph.node(name))
         .collect();
-    let y = match outcome_nodes.as_slice() {
+    let outcome = match outcome_nodes.as_slice() {
         [one] => *one,
         [] => {
             return Err(fail(
@@ -311,6 +307,40 @@ pub fn check(ctx: &mut CallContext<'_>, args: Args) -> Result<Value, Fail> {
         }
     }
 
+    Ok(Named {
+        outcome,
+        regressors,
+        columns,
+    })
+}
+
+/// `fit.check(g, exposure:)`.
+pub fn check(ctx: &mut CallContext<'_>, args: Args) -> Result<Value, Fail> {
+    let Some(Value::Fit(fit)) = args.get(0) else {
+        return Err(internal(ctx, "a fit"));
+    };
+    let Some(Value::Dag(dag)) = args.get(G) else {
+        return Err(internal(ctx, "a graph"));
+    };
+    let graph = Graph::of(dag);
+    if graph.has_undirected() {
+        return Err(fail(
+            Diagnostic::error(
+                "Z0401",
+                "the graph has an undirected edge, `--`, so `check` cannot say what the regressors do",
+            )
+            .in_file(ctx.script)
+            .primary(ctx.span_of(G), "a graph with an undirected edge")
+            .help("an undirected edge is for drawing and says nothing of cause: write `a -> b` for a cause, or `a <-> b` for a common cause that is not observed"),
+        ));
+    }
+    let Named {
+        outcome: y,
+        regressors,
+        columns,
+    } = named(ctx, fit, &graph)?;
+    let nodes: Vec<&str> = (0..graph.written()).map(|v| graph.name(v)).collect();
+    let the_nodes = format!("the nodes of the graph are: {}", nodes.join(", "));
     // The exposure: a node of the graph and a regressor of the fit.
     let Some(Value::Var(exposure)) = args.get(EXPOSURE) else {
         return Err(fail(
@@ -612,7 +642,18 @@ pub fn check(ctx: &mut CallContext<'_>, args: Args) -> Result<Value, Fail> {
                 .unwrap_or(Part::Harmless),
         };
         let selected = graph.node(regressor).is_some_and(|v| graph.is_selected(v));
+        // Beside an instrument, what the exposure brings about is not to be held fixed,
+        // whatever it does to the paths: `exclusion_check` warns of it.
+        let effect_of_exposure = instrumented
+            && graph
+                .node(regressor)
+                .is_some_and(|v| v != x && graph.descendants(&[x])[v]);
         let text = match part {
+            Part::Closes | Part::Opens(_) | Part::Both(_) | Part::Harmless
+                if effect_of_exposure =>
+            {
+                "an effect of the exposure: not to be held fixed beside an instrument".to_string()
+            }
             Part::Exposure => "the exposure".to_string(),
             Part::Unknown => "not in the graph".to_string(),
             Part::Mediator => "a mediator: removes part of the effect".to_string(),

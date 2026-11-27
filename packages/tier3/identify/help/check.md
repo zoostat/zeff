@@ -55,7 +55,8 @@ of those the first by the names along them.
 
 For a fit of `ivreg` whose exposure is instrumented, the paths into the exposure are for its
 instruments to answer and are not held against the regressors; a regressor that takes away
-part of the effect is warned of all the same.
+part of the effect is warned of all the same, and one that the exposure brings about is
+marked in the table, since no instrument is valid beside it (`exclusion_check` warns of it).
 
 A graph with an undirected edge, `a -- b`, is refused: such an edge is for drawing and says
 nothing of cause.

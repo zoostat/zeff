@@ -245,6 +245,16 @@ impl Graph {
         graph
     }
 
+    /// The same graph without any arrow that leaves one of `nodes`: what joins another node
+    /// to an outcome in it does not pass through them as causes.
+    pub fn without_outgoing(&self, nodes: &[usize]) -> Graph {
+        let removed: Vec<(usize, usize)> = nodes
+            .iter()
+            .flat_map(|&from| self.children[from].iter().map(move |&to| (from, to)))
+            .collect();
+        self.without_arrows(&removed)
+    }
+
     /// The proper back-door graph of an exposure and an outcome (van der Zander, Liśkiewicz and
     /// Textor 2014): the graph without the first arrow of every proper causal path from the
     /// exposure to the outcome. What still joins the two in it is no part of the effect.
