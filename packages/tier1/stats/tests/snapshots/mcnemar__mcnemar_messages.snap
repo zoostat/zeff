@@ -1,0 +1,123 @@
+---
+source: packages/tier1/stats/tests/mcnemar.rs
+expression: all
+---
+error[Z0401]: `a` and `b` agree on every pair, so `mcnemar_test` has no pairs that differ to form its statistic from
+ --> scripts/main.zeff:1:49
+  |
+1 | frame(a = [1, 1, 0, 0, 1], b = [1, 1, 0, 0, 1]).mcnemar_test(a, b)
+  |                                                 ^^^^^^^^^^^^ no pairs that differ
+  |
+  = help: the two proportions are equal in these rows; `method: exact` gives the p-value of that, 1
+
+note: 61 rows with NA in eng1 or recommend_after dropped (line 1)
+error[Z0401]: `mcnemar_test` compares two variables of the same two values, but `eng1` has 5: 1, 2, 3, 4 and 5
+ --> scripts/main.zeff:1:34
+  |
+1 | dataset(engagement).mcnemar_test(eng1, recommend_after)
+  |                                  ^^^^ more than two values
+  |
+  = help: keep two values with `where`, or make one variable of two values from this one with `case`
+
+error[Z0401]: `mcnemar_test` compares two variables of the same two values, but `b` has 3: x, y and z
+ --> scripts/main.zeff:1:67
+  |
+1 | frame(a = [1, 0, 1, 0], b = ["x", "y", "z", "x"]).mcnemar_test(a, b)
+  |                                                                   ^ more than two values
+  |
+  = help: keep two values with `where`, or make one variable of two values from this one with `case`
+
+error[Z0401]: `mcnemar_test` compares two variables of the same two values, but `a` has neg and pos and `b` has 0 and 1
+ --> scripts/main.zeff:1:75
+  |
+1 | frame(a = ["pos", "pos", "neg", "neg"], b = [1, 0, 1, 0]).mcnemar_test(a, b)
+  |                                                                           ^ other values than the first variable's
+  |
+  = help: give both variables the same two values, of the same type and with the same labels
+
+error[Z0401]: `mcnemar_test` compares two variables of the same two values, but `a` has false and true and `b` has 0 and 1
+ --> scripts/main.zeff:1:73
+  |
+1 | frame(a = [true, false, true, false], b = [1, 0, 1, 0]).mcnemar_test(a, b)
+  |                                                                         ^ other values than the first variable's
+  |
+  = help: give both variables the same two values, of the same type and with the same labels
+
+error[Z0401]: `mcnemar_test` needs at least two values of `a`, but there is one
+ --> scripts/main.zeff:1:50
+  |
+1 | frame(a = [1, 1, 1], b = [1, 0, 1]).mcnemar_test(a, b)
+  |                                                  ^ too few values
+  |
+  = help: a cross-table needs at least two rows and two columns; check the rows kept and the `NA`s dropped
+
+note: 4 rows with NA in a or b dropped (line 1)
+error[Z0401]: `mcnemar_test` needs at least two values of `a`, but there is none
+ --> scripts/main.zeff:1:60
+  |
+1 | frame(a = [1, 0, NA, NA], b = [NA, NA, 1, 0]).mcnemar_test(a, b)
+  |                                                            ^ too few values
+  |
+  = help: a cross-table needs at least two rows and two columns; check the rows kept and the `NA`s dropped
+
+error[Z0401]: frequency weights are whole numbers, but `w` has 1 fraction in row 1
+ --> scripts/main.zeff:1:91
+  |
+1 | frame(a = [1, 0, 1, 0], b = [1, 0, 0, 1], w = [1.5, 1, 1, 1]).mcnemar_test(a, b, weights: w, weight_type: frequency)
+  |                                                                                           ^ a frequency weight counts rows
+  |
+  = help: a weight with fractions is an analytic or a sampling weight: `weight_type: analytic`
+
+error[Z0411]: `weights:` of `mcnemar_test` are sampling weights, which a test cannot use
+ --> scripts/main.zeff:1:89
+  |
+1 | frame(a = [1, 0, 1, 0], b = [1, 0, 0, 1], w = [1, 1, 1, 1]).mcnemar_test(a, b, weights: w)
+  |                                                                                         ^ sampling weights
+  |
+  = help: a regression with robust standard errors gives design-based inference, `reg(y ~ 1, weights: w, se: robust)`; frequency or analytic weights are taken with `weight_type: frequency` or `weight_type: analytic`
+
+error[Z0401]: `mcnemar_test` counts pairs, so its weights are frequency weights, not analytic
+ --> scripts/main.zeff:1:105
+  |
+1 | frame(a = [1, 0, 1, 0], b = [1, 0, 0, 1], w = [1, 1, 1, 1]).mcnemar_test(a, b, weights: w, weight_type: analytic)
+  |                                                                                                         ^^^^^^^^ analytic weights on counts
+  |
+  = help: write `weight_type: frequency` for weights that say how many pairs each row stands for
+
+error[Z0406]: `mcnemar_test` needs `b`
+ --> scripts/main.zeff:1:43
+  |
+1 | frame(a = [1, 0, 1, 0], b = [1, 0, 0, 1]).mcnemar_test(a)
+  |                                           ^^^^^^^^^^^^ `b` is missing
+  |
+  = help: usage: `data.mcnemar_test(a, b, correct: Bool = true, method: chi2 | exact = chi2, weights: Var, weight_type: frequency | analytic | sampling = sampling)`
+
+error[Z0101]: no variable `c` in `the frame`
+ --> scripts/main.zeff:1:59
+  |
+1 | frame(a = [1, 0, 1, 0], b = [1, 0, 0, 1]).mcnemar_test(a, c)
+  |                                                           ^ not a variable of the frame
+  |
+  = help: the variables of `the frame` are: a, b
+
+error[Z0402]: `fisher` is not one of the allowed words
+ --> scripts/main.zeff:1:70
+  |
+1 | frame(a = [1, 0, 1, 0], b = [1, 0, 0, 1]).mcnemar_test(a, b, method: fisher)
+  |                                                                      ^^^^^^ expected one of chi2, exact
+
+error[Z0401]: `correct` of `mcnemar_test` must be a Bool, but this is an Int
+ --> scripts/main.zeff:1:71
+  |
+1 | frame(a = [1, 0, 1, 0], b = [1, 0, 0, 1]).mcnemar_test(a, b, correct: 1)
+  |                                                                       ^ an Int
+  |
+  = help: usage: `data.mcnemar_test(a, b, correct: Bool = true, method: chi2 | exact = chi2, weights: Var, weight_type: frequency | analytic | sampling = sampling)`
+
+error[Z0404]: `mcnemar_test` has no argument called `alternative`
+ --> scripts/main.zeff:1:62
+  |
+1 | frame(a = [1, 0, 1, 0], b = [1, 0, 0, 1]).mcnemar_test(a, b, alternative: less)
+  |                                                              ^^^^^^^^^^^ unknown argument
+  |
+  = help: usage: `data.mcnemar_test(a, b, correct: Bool = true, method: chi2 | exact = chi2, weights: Var, weight_type: frequency | analytic | sampling = sampling)`

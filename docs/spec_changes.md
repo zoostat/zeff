@@ -1132,3 +1132,7 @@ The owner asked for a plan for rating scales (Likert with reversed items, semant
 ## 27 November 2026 — zeff_language_reference.md, section 7.6 (the fonts of a figure)
 
 Applies open decisions #222 (the owner, 24 November 2026: "Yes, switch them") and #234 (the owner, 27 November 2026: "A, from JetBrains Mono") at step 4b of release 0.10.0, the step that changed the fonts, as the entry of 24 November said it would be. "Rendering and export": the fonts embedded are named as Atkinson Hyperlegible Next for labels and titles and JetBrains Mono for code and aligned digits, in place of IBM Plex Sans and Mono, both under the Open Font License, and a clause says that a character the first lacks is taken from the second, letter by letter. Nothing else of the paragraph is changed: the fonts are the engine's own and never the system's, and a figure's bytes are the same on every machine.
+
+## 27 November 2026 — zeff_functions.csv, row 508 (`mcnemar_test`)
+
+Applies question 6 of release 0.10.0, taken as recommended on 27 November 2026 under the owner's rule of decisions 98 and 99, at step 9. Row 508: the usage reads `data.mcnemar_test(a, b, correct: Bool = true, method: chi2 | exact = chi2)`, the description says what the two methods are and what is printed, the note records that `method: exact` is Stata's exact probability and that the correction is never larger than the difference of the two counts (equal counts give 0 where R gives 1 / (b + c)), and the status is implemented. No other normative text is changed.

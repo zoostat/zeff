@@ -1,0 +1,355 @@
+{
+ "reference": {
+  "software": "R version 4.6.0 (2026-04-24)",
+  "note": "base R; numbers written with 15 significant digits"
+ },
+ "cases": [
+  {
+   "name": "engagement",
+   "table": [
+    465,
+    183,
+    114,
+    415
+   ],
+   "uncorrected": {
+    "statistic": "16.030303030303",
+    "df": 1,
+    "p_value": "6.2336735251607e-05"
+   },
+   "corrected": {
+    "statistic": "15.5690235690236",
+    "p_value": "7.95471944625363e-05"
+   },
+   "exact_p_value": "7.42613311584594e-05",
+   "difference": {
+    "estimate": "-0.0586236193712829",
+    "std_error": "0.0145419943801461",
+    "ci": [
+     "-0.0871254046197532",
+     "-0.0301218341228126"
+    ]
+   }
+  },
+  {
+   "name": "small",
+   "table": [
+    12,
+    9,
+    1,
+    8
+   ],
+   "uncorrected": {
+    "statistic": "6.4",
+    "df": 1,
+    "p_value": "0.0114120363860017"
+   },
+   "corrected": {
+    "statistic": "4.9",
+    "p_value": "0.0268566955075244"
+   },
+   "exact_p_value": "0.021484375",
+   "difference": {
+    "estimate": "-0.266666666666667",
+    "std_error": "0.0934919287465006",
+    "ci": [
+     "-0.449907479854993",
+     "-0.0834258534783406"
+    ]
+   }
+  },
+  {
+   "name": "textbook",
+   "table": [
+    794,
+    86,
+    150,
+    570
+   ],
+   "uncorrected": {
+    "statistic": "17.3559322033898",
+    "df": 1,
+    "p_value": "3.09929344104522e-05"
+   },
+   "corrected": {
+    "statistic": "16.8177966101695",
+    "p_value": "4.11456228134594e-05"
+   },
+   "exact_p_value": "3.71593613957144e-05",
+   "difference": {
+    "estimate": "0.04",
+    "std_error": "0.00954921462739214",
+    "ci": [
+     "0.0212838832496683",
+     "0.0587161167503317"
+    ]
+   }
+  },
+  {
+   "name": "balanced",
+   "table": [
+    20,
+    7,
+    7,
+    20
+   ],
+   "uncorrected": {
+    "statistic": "0",
+    "df": 1,
+    "p_value": "1"
+   },
+   "exact_p_value": "1",
+   "difference": {
+    "estimate": "0",
+    "std_error": "0.0692899516069248",
+    "ci": [
+     "-0.135805809640096",
+     "0.135805809640096"
+    ]
+   }
+  },
+  {
+   "name": "one_way",
+   "table": [
+    5,
+    6,
+    0,
+    9
+   ],
+   "uncorrected": {
+    "statistic": "6",
+    "df": 1,
+    "p_value": "0.0143058784354296"
+   },
+   "corrected": {
+    "statistic": "4.16666666666667",
+    "p_value": "0.0412268333371637"
+   },
+   "exact_p_value": "0.03125",
+   "difference": {
+    "estimate": "-0.3",
+    "std_error": "0.102469507659596",
+    "ci": [
+     "-0.500836544526359",
+     "-0.0991634554736407"
+    ]
+   }
+  },
+  {
+   "name": "other_way",
+   "table": [
+    5,
+    0,
+    6,
+    9
+   ],
+   "uncorrected": {
+    "statistic": "6",
+    "df": 1,
+    "p_value": "0.0143058784354296"
+   },
+   "corrected": {
+    "statistic": "4.16666666666667",
+    "p_value": "0.0412268333371637"
+   },
+   "exact_p_value": "0.03125",
+   "difference": {
+    "estimate": "0.3",
+    "std_error": "0.102469507659596",
+    "ci": [
+     "0.0991634554736407",
+     "0.500836544526359"
+    ]
+   }
+  },
+  {
+   "name": "one_pair",
+   "table": [
+    10,
+    1,
+    0,
+    10
+   ],
+   "uncorrected": {
+    "statistic": "1",
+    "df": 1,
+    "p_value": "0.317310507862914"
+   },
+   "corrected": {
+    "statistic": "0",
+    "p_value": "1"
+   },
+   "exact_p_value": "1",
+   "difference": {
+    "estimate": "-0.0476190476190476",
+    "std_error": "0.0464714320451683",
+    "ci": [
+     "-0.138701380737578",
+     "0.0434632854994827"
+    ]
+   }
+  },
+  {
+   "name": "two_pairs_apart",
+   "table": [
+    3,
+    2,
+    0,
+    3
+   ],
+   "uncorrected": {
+    "statistic": "2",
+    "df": 1,
+    "p_value": "0.157299207050284"
+   },
+   "corrected": {
+    "statistic": "0.5",
+    "p_value": "0.479500122186953"
+   },
+   "exact_p_value": "0.5",
+   "difference": {
+    "estimate": "-0.25",
+    "std_error": "0.153093108923949",
+    "ci": [
+     "-0.550056979772207",
+     "0.0500569797722067"
+    ]
+   }
+  },
+  {
+   "name": "near",
+   "table": [
+    40,
+    11,
+    10,
+    39
+   ],
+   "uncorrected": {
+    "statistic": "0.0476190476190476",
+    "df": 1,
+    "p_value": "0.827259346562711"
+   },
+   "corrected": {
+    "statistic": "0",
+    "p_value": "1"
+   },
+   "exact_p_value": "1",
+   "difference": {
+    "estimate": "-0.01",
+    "std_error": "0.0458148447558212",
+    "ci": [
+     "-0.0997954456787033",
+     "0.0797954456787034"
+    ]
+   }
+  },
+  {
+   "name": "lopsided",
+   "table": [
+    2,
+    40,
+    3,
+    1
+   ],
+   "uncorrected": {
+    "statistic": "31.8372093023256",
+    "df": 1,
+    "p_value": "1.67650053265594e-08"
+   },
+   "corrected": {
+    "statistic": "30.1395348837209",
+    "p_value": "4.02050880987453e-08"
+   },
+   "exact_p_value": "3.02134139928968e-09",
+   "difference": {
+    "estimate": "-0.804347826086957",
+    "std_error": "0.0790991649717975",
+    "ci": [
+     "-0.959379340638872",
+     "-0.649316311535041"
+    ]
+   }
+  },
+  {
+   "name": "no_agreement",
+   "table": [
+    0,
+    13,
+    4,
+    0
+   ],
+   "uncorrected": {
+    "statistic": "4.76470588235294",
+    "df": 1,
+    "p_value": "0.0290490221619406"
+   },
+   "corrected": {
+    "statistic": "3.76470588235294",
+    "p_value": "0.0523450632731633"
+   },
+   "exact_p_value": "0.049041748046875",
+   "difference": {
+    "estimate": "-0.529411764705882",
+    "std_error": "0.205758736987107",
+    "ci": [
+     "-0.932691478705062",
+     "-0.126132050706703"
+    ]
+   }
+  },
+  {
+   "name": "large",
+   "table": [
+    41000,
+    2250,
+    1980,
+    39500
+   ],
+   "uncorrected": {
+    "statistic": "17.2340425531915",
+    "df": 1,
+    "p_value": "3.30461456658126e-05"
+   },
+   "corrected": {
+    "statistic": "17.1066193853428",
+    "p_value": "3.53389230406304e-05"
+   },
+   "exact_p_value": "3.51371772537727e-05",
+   "difference": {
+    "estimate": "-0.00318659270624336",
+    "std_error": "0.000767518416551619",
+    "ci": [
+     "-0.00469090116015575",
+     "-0.00168228425233098"
+    ]
+   }
+  },
+  {
+   "name": "far",
+   "table": [
+    100,
+    400,
+    20,
+    100
+   ],
+   "uncorrected": {
+    "statistic": "343.809523809524",
+    "df": 1,
+    "p_value": "9.44577235126221e-77"
+   },
+   "corrected": {
+    "statistic": "342.002380952381",
+    "p_value": "2.33771394387701e-76"
+   },
+   "exact_p_value": "5.88668030041647e-93",
+   "difference": {
+    "estimate": "-0.612903225806452",
+    "std_error": "0.0220618262717109",
+    "ci": [
+     "-0.656143610732185",
+     "-0.569662840880719"
+    ]
+   }
+  }
+ ]
+}

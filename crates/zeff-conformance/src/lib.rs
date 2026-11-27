@@ -1785,6 +1785,11 @@ fn panel_cases() -> Vec<Line> {
     let lined_outcome = run_script(&fs, &project, "scripts/main.zeff", lined);
     let exact = "let wages = dataset(wages)\nwages.fisher_test(union, female)\nwages.fisher_test(union, female, alternative: greater)\nlet t = frame(a = [\"x\", \"x\", \"x\", \"x\", \"y\", \"y\", \"y\", \"y\"], b = [1, 1, 1, 2, 1, 2, 2, 2])\nt.fisher_test(a, b)\nt.fisher_test(a, b, alternative: less)\nlet z = frame(a = [\"x\", \"x\", \"x\", \"x\", \"x\", \"y\", \"y\", \"y\", \"y\", \"y\", \"y\", \"y\"], b = [1, 1, 1, 1, 1, 1, 1, 1, 2, 2, 2, 2])\nz.fisher_test(a, b)\nlet m = frame(r = [\"a\", \"a\", \"a\", \"a\", \"a\", \"a\", \"b\", \"b\", \"b\", \"b\", \"c\", \"c\", \"c\", \"c\", \"c\", \"c\"], c = [1, 1, 2, 2, 2, 2, 1, 1, 1, 2, 1, 2, 2, 2, 2, 2])\nm.fisher_test(r, c)\nlet w = frame(r = [\"a\", \"a\", \"b\", \"b\", \"c\", \"c\"], c = [1, 2, 1, 2, 1, 2], w = [3, 1, 1, 3, 0, 0])\nw.fisher_test(r, c, weights: w, weight_type: frequency)\nlet d = frame(a = [\"x\", \"x\", NA, \"y\", \"y\", \"x\"], b = [1, 2, 1, 1, 2, 1])\nd.fisher_test(a, b)\n";
     let exact_outcome = run_script(&fs, &project, "scripts/main.zeff", exact);
+    // McNemar's test of paired proportions (release 0.10.0, step 9): the three forms on the
+    // shipped survey, a table of counts by both methods, equal counts, no pair that differs
+    // under the exact test, rows with `NA`, and the figures read as values.
+    let paired = "let survey = dataset(engagement)\nsurvey.mcnemar_test(recommend_before, recommend_after)\nsurvey.mcnemar_test(recommend_before, recommend_after, correct: false)\nlet e = survey.mcnemar_test(recommend_before, recommend_after, method: exact)\ne\nprint(format(e.p_values(), digits: 17))\nlet t = frame(first = [\"pos\", \"pos\", \"neg\", \"neg\"], second = [\"pos\", \"neg\", \"pos\", \"neg\"], pairs = [8, 1, 9, 12])\nlet r = t.mcnemar_test(first, second, weights: pairs, weight_type: frequency)\nr\nprint(format(r.statistic(), digits: 17), r.df(), format(r.p_values(), digits: 17), r.n_obs())\nr.estimates()\nr.ci()\nt.mcnemar_test(first, second, method: exact, weights: pairs, weight_type: frequency)\nlet same = frame(a = [true, true, false, false, true, false], b = [true, false, false, true, true, false])\nsame.mcnemar_test(a, b)\nlet agreed = frame(a = [1, 1, 0, 0, 1], b = [1, 1, 0, 0, 1])\nagreed.mcnemar_test(a, b, method: exact)\nlet big = frame(a = [0, 0, 1, 1], b = [0, 1, 0, 1], k = [41000, 2250, 1980, 39500])\nprint(format(big.mcnemar_test(a, b, method: exact, weights: k, weight_type: frequency).p_values(), digits: 17))\nlet gaps = frame(a = [1, 0, NA, 1, 0, 1, 0, 0], b = [0, 0, 1, NA, 1, 1, 1, 1])\ngaps.mcnemar_test(a, b, correct: false)\n";
+    let paired_outcome = run_script(&fs, &project, "scripts/main.zeff", paired);
     // A `TestResult` read as values (release 0.7.0, step 12b; open decision #94): the six
     // methods on a t test, a chi-squared test, a Wald test and an exact test, the widened
     // `estimates` of a test and of a fit, the sentence built with `format` and `join`, and the
@@ -1885,6 +1890,8 @@ fn panel_cases() -> Vec<Line> {
         text("core/print/stderr", &lined_outcome.output.stderr),
         text("tests/fisher/stdout", &exact_outcome.output.stdout),
         text("tests/fisher/stderr", &exact_outcome.output.stderr),
+        text("tests/mcnemar/stdout", &paired_outcome.output.stdout),
+        text("tests/mcnemar/stderr", &paired_outcome.output.stderr),
         text("tests/fields/stdout", &fields_outcome.output.stdout),
         text("tests/fields/stderr", &fields_outcome.output.stderr),
         text("tests/shapiro/stdout", &normality_outcome.output.stdout),

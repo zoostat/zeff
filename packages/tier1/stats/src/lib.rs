@@ -12,6 +12,7 @@ pub mod kruskal_test;
 pub mod ks_test;
 pub mod line;
 pub mod marginal;
+pub mod mcnemar_test;
 pub mod p_adjust;
 pub mod posthoc;
 pub mod proportion_test;
@@ -761,6 +762,46 @@ pub fn functions() -> Vec<Function> {
                 }),
             },
             body: fisher_test::fisher_test,
+        },
+        Function {
+            spec: FunctionSpec {
+                name: "mcnemar_test",
+                package: "stats",
+                method: true,
+                params: vec![
+                    ParamSpec::required("data", "Frame"),
+                    ParamSpec::required("a", "Var"),
+                    ParamSpec::required("b", "Var"),
+                    ParamSpec::option_with_default("correct", "Bool", "true"),
+                    ParamSpec::option_with_default("method", "chi2 | exact", "chi2"),
+                    ParamSpec::option("weights", "Var"),
+                    ParamSpec::option_with_default(
+                        "weight_type",
+                        "frequency | analytic | sampling",
+                        "sampling",
+                    ),
+                ],
+                rest: None,
+                returns: "TestResult",
+                diagnostics: vec![
+                    DiagnosticDecl::note(
+                        "rows with NA in a tested variable dropped, with the count; under `weights:`, rows with NA in the weight counted with them and rows with zero weight left out, with the count",
+                    ),
+                    DiagnosticDecl::new("Z0101", "a variable the frame does not have"),
+                    DiagnosticDecl::new(
+                        "Z0401",
+                        "a variable of more than two values, or of fewer than two; two variables of different values; no pair that differs under method: chi2; an opaque variable; analytic weights, or frequency weights giving a fractional count",
+                    ),
+                    DiagnosticDecl::new("Z0411", "weights: with weight_type: sampling"),
+                ],
+                help: include_str!("../help/mcnemar_test.md"),
+                accuracy: Some(AccuracyRecord {
+                    reference: "R 4.6.0 mcnemar.test() and binom.test() (tests/reference/r/mcnemar.R)"
+                        .to_string(),
+                    last_run: None,
+                }),
+            },
+            body: mcnemar_test::mcnemar_test,
         },
         Function {
             spec: FunctionSpec {
