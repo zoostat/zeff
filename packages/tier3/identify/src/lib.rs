@@ -6,14 +6,15 @@
 //! ancestors and descendants, its proper causal paths and its separations. The functions
 //! themselves join it step by step: the implied independencies ([`independencies`], step 13)
 //! and the adjustment sets ([`adjustment`], step 14) are here; the check of a fitted model
-//! ([`check`], step 15) and of an instrument ([`exclusion`], step 16) are here; the list of
-//! instruments follows.
+//! ([`check`], step 15) and of an instrument ([`exclusion`], step 16), and the list of the
+//! instruments a graph allows ([`instruments`], step 17).
 
 pub mod adjustment;
 pub mod check;
 pub mod exclusion;
 pub mod graph;
 pub mod independencies;
+pub mod instruments;
 
 use zeff_core::runtime::{Args, CallContext, Fail, Function, fail};
 use zeff_core::value::Value;
@@ -154,6 +155,34 @@ pub fn functions() -> Vec<Function> {
                 accuracy: None,
             },
             body: exclusion::exclusion_check,
+        },
+        Function {
+            spec: FunctionSpec {
+                name: "instruments",
+                package: "identify",
+                method: true,
+                params: vec![
+                    ParamSpec::required("g", "Dag"),
+                    ParamSpec::option("exposure", "Var"),
+                    ParamSpec::option("outcome", "Var"),
+                ],
+                rest: None,
+                returns: "TestResult",
+                diagnostics: vec![
+                    DiagnosticDecl::new(
+                        "Z0101",
+                        "`exposure:` or `outcome:` names no node of the graph",
+                    ),
+                    DiagnosticDecl::new(
+                        "Z0401",
+                        "a graph with an undirected edge; the exposure and the outcome the same node; an exposure or an outcome that is latent or selected on",
+                    ),
+                    DiagnosticDecl::new("Z0406", "`exposure:` or `outcome:` not given"),
+                ],
+                help: include_str!("../help/instruments.md"),
+                accuracy: None,
+            },
+            body: instruments::instruments_of,
         },
         Function {
             spec: FunctionSpec {

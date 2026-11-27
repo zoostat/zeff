@@ -1,0 +1,39 @@
+---
+source: packages/tier3/identify/tests/instruments.rs
+expression: "format!(\"{stdout}---\\n{stderr}\")"
+---
+instruments · 2 for the effect of training on productivity
+
+  instrument   given
+  distance
+  offer        region
+
+an instrument with variables under `given` is valid only with those held fixed in the model
+latent, so no instrument and in no set: ability
+instruments · 0 for the effect of tenure on productivity
+the graph allows no instrument among its observed variables for the effect of tenure on productivity
+latent, so no instrument and in no set: ability
+instruments · 1 for the effect of offer on training
+
+  instrument   given
+  region
+
+latent, so no instrument and in no set: ability
+instruments · 0 for the effect of x on y
+the graph allows no instrument among its observed variables for the effect of x on y
+instruments · 1 for the effect of x on y
+
+  instrument   given
+  z            w
+
+an instrument with variables under `given` is valid only with those held fixed in the model
+instruments · 1 for the effect of x on y
+
+  instrument   given
+  z            u
+
+an instrument with variables under `given` is valid only with those held fixed in the model
+the data are selected on s: every instrument is one in data so selected
+instruments · 0 for the effect of x on y
+the graph allows no instrument for the effect of x on y: the data are selected on s, which x or y brings about
+---

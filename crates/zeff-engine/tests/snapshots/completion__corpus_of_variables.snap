@@ -5,7 +5,7 @@ expression: all
 > let d = import("data/small.csv")
 > d.mean(|
 variables: a Int, b Float, c Str
-then: 0 words, 4 argument names, 1 names in reach, 267 functions
+then: 0 words, 4 argument names, 1 names in reach, 268 functions
 ----
 > let d = import("data/small.csv")
 > d.mean(b|)
@@ -15,98 +15,98 @@ then: 0 words, 1 argument names, 0 names in reach, 7 functions
 > let d = import("data/small.csv")
 > d.summary([a, |
 variables: a Int, b Float, c Str
-then: 0 words, 0 argument names, 1 names in reach, 267 functions
+then: 0 words, 0 argument names, 1 names in reach, 268 functions
 ----
 > let d = import("data/small.csv")
 > d.reg(|
 variables: a Int, b Float, c Str
-then: 0 words, 7 argument names, 1 names in reach, 267 functions
+then: 0 words, 7 argument names, 1 names in reach, 268 functions
 ----
 > let d = import("data/small.csv")
 > d.reg(b ~ |
 variables: a Int, b Float, c Str
-then: 0 words, 0 argument names, 1 names in reach, 267 functions
+then: 0 words, 0 argument names, 1 names in reach, 268 functions
 ----
 > let d = import("data/small.csv")
 > d.reg(b ~ a + |, se: robust)
 variables: a Int, b Float, c Str
-then: 0 words, 0 argument names, 1 names in reach, 267 functions
+then: 0 words, 0 argument names, 1 names in reach, 268 functions
 ----
 > let d = import("data/small.csv")
 > d.reg(b ~ a, fe: |
 variables: a Int, b Float, c Str
-then: 0 words, 0 argument names, 1 names in reach, 267 functions
+then: 0 words, 0 argument names, 1 names in reach, 268 functions
 ----
 > let d = import("data/small.csv")
 > d.reg(b ~ a, cluster: |
 variables: a Int, b Float, c Str
-then: 0 words, 0 argument names, 1 names in reach, 267 functions
+then: 0 words, 0 argument names, 1 names in reach, 268 functions
 ----
 > let d = import("data/small.csv")
 > d.plot(x: a, y: |
 variables: a Int, b Float, c Str
-then: 0 words, 0 argument names, 1 names in reach, 267 functions
+then: 0 words, 0 argument names, 1 names in reach, 268 functions
 ----
 > let d = import("data/small.csv")
 > let other = d
 > d.merge(other, on: |
 variables: a Int, b Float, c Str
-then: 0 words, 0 argument names, 2 names in reach, 267 functions
+then: 0 words, 0 argument names, 2 names in reach, 268 functions
 ----
 > let d = import("data/small.csv")
 > d.where(|
 variables: a Int, b Float, c Str
-then: 0 words, 1 argument names, 1 names in reach, 267 functions
+then: 0 words, 1 argument names, 1 names in reach, 268 functions
 ----
 > let d = import("data/small.csv")
 > d.where(a > 1 & (b < 3 & |
 variables: a Int, b Float, c Str
-then: 0 words, 0 argument names, 1 names in reach, 267 functions
+then: 0 words, 0 argument names, 1 names in reach, 268 functions
 ----
 > let d = import("data/small.csv")
 > d.add(k = |
 variables: a Int, b Float, c Str
-then: 0 words, 0 argument names, 1 names in reach, 267 functions
+then: 0 words, 0 argument names, 1 names in reach, 268 functions
 ----
 > let d = import("data/small.csv")
 > d.add(k = log(|
 variables: a Int, b Float, c Str
-then: 0 words, 2 argument names, 1 names in reach, 267 functions
+then: 0 words, 2 argument names, 1 names in reach, 268 functions
 ----
 > let d = import("data/small.csv")
 > d.aggregate(m = mean(|), by: c)
 variables: a Int, b Float, c Str
-then: 0 words, 5 argument names, 1 names in reach, 267 functions
+then: 0 words, 5 argument names, 1 names in reach, 268 functions
 ----
 > let d = import("data/small.csv")
 > d.where(a > 1).mean(|
 variables: a Int, b Float, c Str
-then: 0 words, 4 argument names, 1 names in reach, 267 functions
+then: 0 words, 4 argument names, 1 names in reach, 268 functions
 ----
 > let d = import("data/small.csv")
 > d.add(k = a * 2, when = date("2024-03-01")).mean(|
 variables: a Int, b Float, c Str, k, when Date
-then: 0 words, 4 argument names, 1 names in reach, 267 functions
+then: 0 words, 4 argument names, 1 names in reach, 268 functions
 ----
 > let d = import("data/small.csv")
 > d.rename(z = a).mean(|
 variables: z Int, b Float, c Str
-then: 0 words, 4 argument names, 1 names in reach, 267 functions
+then: 0 words, 4 argument names, 1 names in reach, 268 functions
 ----
 > let d = import("data/small.csv")
 > d.select([c, a]).mean(|
 variables: c Str, a Int
-then: 0 words, 4 argument names, 1 names in reach, 267 functions
+then: 0 words, 4 argument names, 1 names in reach, 268 functions
 ----
 > let d = import("data/small.csv")
 > d.drop([a]).mean(|
 variables: b Float, c Str
-then: 0 words, 4 argument names, 1 names in reach, 267 functions
+then: 0 words, 4 argument names, 1 names in reach, 268 functions
 ----
 > let d = import("data/small.csv")
 > d.aggregate(m = mean(b), n = n(), by: c).mean(|
 variables: c Str, m Float, n Int
-then: 0 words, 4 argument names, 1 names in reach, 267 functions
+then: 0 words, 4 argument names, 1 names in reach, 268 functions
 ----
 > let d = import("data/small.csv")
 > d
@@ -114,81 +114,81 @@ then: 0 words, 4 argument names, 1 names in reach, 267 functions
 >     .add(k = a * 2)
 >     .reg(k ~ |
 variables: a Int, b Float, c Str, k
-then: 0 words, 0 argument names, 1 names in reach, 267 functions
+then: 0 words, 0 argument names, 1 names in reach, 268 functions
 ----
 > let d = import("data/small.csv")
 > let kept = d.where(a > 1).add(k = a * 2)
 > kept.mean(|
 variables: a Int, b Float, c Str, k
-then: 0 words, 4 argument names, 2 names in reach, 267 functions
+then: 0 words, 4 argument names, 2 names in reach, 268 functions
 ----
 > frame(x = [1.0, 2], who = ["a", "b"], ok = [true, false]).mean(|
 variables: x Float, who Str, ok Bool
-then: 0 words, 4 argument names, 0 names in reach, 267 functions
+then: 0 words, 4 argument names, 0 names in reach, 268 functions
 ----
 > let w = dataset(wages)
 > w.reg(log(wage) ~ |
 variables: worker Int (Worker identifier, 0 missing), year Int (Calendar year, 0 missing), wage Float (Hourly wage, 211 missing), educ Int (Years of schooling, 0 missing), exper Int (Potential labour-market experience: age less schooling less six, 22 missing), age Int (Age, 0 missing), hours Float (Hours worked, 35 missing), union Int (Union member, 0 missing), female Int (Sex, 0 missing), industry Category (Industry, 0 missing), firm Int (Firm identifier, 0 missing)
-then: 0 words, 0 argument names, 1 names in reach, 267 functions
+then: 0 words, 0 argument names, 1 names in reach, 268 functions
 ----
 > dataset(wages).select([wage, hours, industry]).sort(wage).mean(|
 variables: wage Float (Hourly wage, 211 missing), hours Float (Hours worked, 35 missing), industry Category (Industry, 0 missing)
-then: 0 words, 4 argument names, 0 names in reach, 267 functions
+then: 0 words, 4 argument names, 0 names in reach, 268 functions
 ----
 > dataset(wages).where(year == 2015).select([wage, hours, industry]).mean(|
 variables: wage Float (Hourly wage), hours Float (Hours worked), industry Category (Industry)
-then: 0 words, 4 argument names, 0 names in reach, 267 functions
+then: 0 words, 4 argument names, 0 names in reach, 268 functions
 ----
 > dataset(wages).select([wage, hours]).head(100).mean(|
 variables: wage Float (Hourly wage), hours Float (Hours worked)
-then: 0 words, 4 argument names, 0 names in reach, 267 functions
+then: 0 words, 4 argument names, 0 names in reach, 268 functions
 ----
 > dataset(wages).select([wage, hours]).rename(pay = wage).mean(|
 variables: pay Float (Hourly wage, 211 missing), hours Float (Hours worked, 35 missing)
-then: 0 words, 4 argument names, 0 names in reach, 267 functions
+then: 0 words, 4 argument names, 0 names in reach, 268 functions
 ----
 > dataset(wages).select([wage, hours]).add(lwage = log(wage), hours = hours / 40).mean(|
 variables: wage Float (Hourly wage, 211 missing), hours, lwage Float
-then: 0 words, 4 argument names, 0 names in reach, 267 functions
+then: 0 words, 4 argument names, 0 names in reach, 268 functions
 ----
 > dataset(wages).select([wage, hours]).label(wage, "Pay by the hour").label(hours, "").mean(|
 variables: wage Float (Pay by the hour, 211 missing), hours Float (35 missing)
-then: 0 words, 4 argument names, 0 names in reach, 267 functions
+then: 0 words, 4 argument names, 0 names in reach, 268 functions
 ----
 > let d = import("data/small.csv")
 > d.label(b, "Score at entry").mean(|
 variables: a Int, b Float (Score at entry), c Str
-then: 0 words, 4 argument names, 1 names in reach, 267 functions
+then: 0 words, 4 argument names, 1 names in reach, 268 functions
 ----
 > dataset(wages).aggregate(pay = mean(wage), by: [industry, year]).mean(|
 variables: industry Category (Industry), year Int (Calendar year), pay Float
-then: 0 words, 4 argument names, 0 names in reach, 267 functions
+then: 0 words, 4 argument names, 0 names in reach, 268 functions
 ----
 > let d = import("data/small.csv")
 > mean(d, |
 variables: a Int, b Float, c Str
-then: 0 words, 4 argument names, 1 names in reach, 267 functions
+then: 0 words, 4 argument names, 1 names in reach, 268 functions
 ----
 > let d = import("data/small.csv")
 > reg(d, b ~ a, cluster: |
 variables: a Int, b Float, c Str
-then: 0 words, 0 argument names, 1 names in reach, 267 functions
+then: 0 words, 0 argument names, 1 names in reach, 268 functions
 ----
 > use functions::clean
 > let d = import("data/small.csv")
 > d.share_gone(|
 variables: a Int, b Float, c Str
-then: 0 words, 1 argument names, 1 names in reach, 269 functions
+then: 0 words, 1 argument names, 1 names in reach, 270 functions
 ----
 > let d = import("data/small.csv")
 > d.head(|
 variables: none
-then: 0 words, 1 argument names, 1 names in reach, 267 functions
+then: 0 words, 1 argument names, 1 names in reach, 268 functions
 ----
 > let d = import("data/small.csv")
 > d.reg(b ~ a, level: |
 variables: none
-then: 0 words, 0 argument names, 1 names in reach, 267 functions
+then: 0 words, 0 argument names, 1 names in reach, 268 functions
 ----
 > let d = import("data/small.csv")
 > d.reg(b ~ a, se: |
@@ -198,7 +198,7 @@ then: 4 words, 0 argument names, 0 names in reach, 0 functions
 > let d = import("data/small.csv")
 > print(d.mean(a), |
 variables: none
-then: 0 words, 1 argument names, 1 names in reach, 267 functions
+then: 0 words, 1 argument names, 1 names in reach, 268 functions
 ----
 > let d = import("data/small.csv")
 > let m = 3
@@ -208,13 +208,13 @@ then: 0 words, 1 argument names, 1 names in reach, 12 functions
 ----
 > import("data/none.csv").mean(|
 variables: none
-then: 0 words, 4 argument names, 0 names in reach, 267 functions
+then: 0 words, 4 argument names, 0 names in reach, 268 functions
 ----
 > let d = import("data/small.csv")
 > let wide = d.to_wide(id: a, names_from: c, values_from: b)
 > wide.mean(|
 variables: none
-then: 0 words, 4 argument names, 2 names in reach, 267 functions
+then: 0 words, 4 argument names, 2 names in reach, 268 functions
 ----
 in /work/demo/functions/clean.zeff
 > /// T.
@@ -222,11 +222,11 @@ in /work/demo/functions/clean.zeff
 >     data.mean(|
 > }
 variables: none
-then: 0 words, 4 argument names, 2 names in reach, 268 functions
+then: 0 words, 4 argument names, 2 names in reach, 269 functions
 ----
 in /elsewhere/try.zeff
 > let d = frame(x = [1.0, 2], y = [3, 4])
 > d.reg(y ~ |
 variables: x Float, y Int
-then: 0 words, 0 argument names, 1 names in reach, 267 functions
+then: 0 words, 0 argument names, 1 names in reach, 268 functions
 ----

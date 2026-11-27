@@ -1886,6 +1886,26 @@ fn panel_cases() -> Vec<Line> {
         );
         instrument_refused.push('\n');
     }
+    // The instruments a graph allows (release 0.10.0, step 17; open decision #250): two as
+    // they stand beside a conditional one; none where controls do; a cause of an instrument;
+    // a set of one variable; data selected, and selected on what the exposure brings about;
+    // the count as a value; the graph with its lines in another order.
+    let allowed = "let g = dag {\n    [offer, distance] -> training -> productivity\n    region -> [offer, productivity]\n    ability -> [training, productivity]\n    training -> tenure -> productivity\n    latent ability\n}\ng.instruments(exposure: training, outcome: productivity)\ng.instruments(exposure: tenure, outcome: productivity)\ng.instruments(exposure: offer, outcome: training)\ndag { x -> y }.instruments(exposure: x, outcome: y)\ndag {\n    policy -> offer -> training -> productivity\n    age -> [training, productivity]\n    training -> tenure\n    training <-> productivity\n}.instruments(exposure: training, outcome: productivity)\ndag {\n    z -> x -> y\n    w -> [z, y]\n    v -> [w, y]\n    x <-> y\n}.instruments(exposure: x, outcome: y)\ndag {\n    z -> x -> y\n    [z, u] -> s\n    u -> y\n    selected s\n}.instruments(exposure: x, outcome: y)\ndag {\n    z -> x -> y\n    x -> s\n    selected s\n}.instruments(exposure: x, outcome: y)\nlet r = g.instruments(exposure: training, outcome: productivity)\nprint(r.statistic(), r.n_obs(), type_of(r))\ndag {\n    latent ability\n    tenure -> productivity\n    training -> [tenure, productivity]\n    ability -> [productivity, training]\n    region -> [productivity, offer]\n    [distance, offer] -> training\n}.instruments(outcome: productivity, exposure: training)\n";
+    let allowed_outcome = run_script(&fs, &project, "scripts/main.zeff", allowed);
+    let mut allowed_refused = String::new();
+    for script in [
+        "dag {\n    z -- x\n    x -> y\n}.instruments(exposure: x, outcome: y)\n",
+        "let g = dag { z -> x -> y }\ng.instruments(exposure: x, outcome: yy)\n",
+        "let g = dag { z -> x -> y }\ng.instruments(exposure: x)\n",
+        "let g = dag {\n    z -> x -> y\n    latent x\n}\ng.instruments(exposure: x, outcome: y)\n",
+    ] {
+        allowed_refused.push_str(
+            &run_script(&fs, &project, "scripts/main.zeff", script)
+                .output
+                .stderr,
+        );
+        allowed_refused.push('\n');
+    }
     let mut graph_refused = String::new();
     for script in [
         "let g = dag {\n    price -> demand\n    demand -> price\n}\n",
@@ -2044,6 +2064,15 @@ fn panel_cases() -> Vec<Line> {
             &instrument_outcome.output.stderr,
         ),
         text("identify/exclusion_refused/stderr", &instrument_refused),
+        text(
+            "identify/instruments/stdout",
+            &allowed_outcome.output.stdout,
+        ),
+        text(
+            "identify/instruments/stderr",
+            &allowed_outcome.output.stderr,
+        ),
+        text("identify/instruments_refused/stderr", &allowed_refused),
         text("tests/fields/stdout", &fields_outcome.output.stdout),
         text("tests/fields/stderr", &fields_outcome.output.stderr),
         text("tests/shapiro/stdout", &normality_outcome.output.stdout),

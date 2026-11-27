@@ -102,7 +102,11 @@ Step 15 `[engine]` (28 November 2026): `fit.check(g, exposure:)` on a fit of `re
 
 Step 16 `[function]` (28 November 2026): `iv.exclusion_check(g, instrument:)` on a fit of `ivreg`. The instrument must be a descendant of no instrumented regressor and separated from the outcome, the other regressors given, in the graph without the arrows out of the exposure; a failure is W0512 with the path named, and the help names a regressor that opens it. A regressor that the exposure itself brings about fails the check too, a condition the rule as worded missed and section 7.3 now has. The table also says whether the graph relates the instrument to the exposure. Held to the second way on 2,000 generated graphs (15,504 questions) and to hand-worked cases word for word. Decisions: docs/decisions.md.
 
-**Next.** Step 17 `[function]`: `g.instruments(exposure:, outcome:)`.
+Step 17 `[function]` (28 November 2026): `g.instruments(exposure:, outcome:)`. The observed variables the graph allows as instruments, each once with the smallest set it needs held fixed: what `exclusion_check` would pass, and related to the exposure. Held to a second search by the definition on every graph of up to four nodes and 2,000 generated graphs (59,968 questions), and each instrument to the rule of `exclusion_check`. dagitty is not installed and no agreement with it is claimed. Decisions: docs/decisions.md.
+
+**Next.** Step 18 `[engine]`: `g.implied_independencies(data:)`.
+
+**For the owner, from step 17.** #250 is yours to overturn: an instrument is defined as `exclusion_check` defines it (every arrow out of the exposure removed), not as the literature behind dagitty does (one arrow removed), so the list can differ from dagitty's where the exposure acts through a mediator; and each instrument is listed once, with its smallest set.
 
 **For the owner, from step 16.** #249 is yours to overturn, two parts, each taken as recommended: an instrument that fails is warned of under a new code, W0512; the check also says, as a line and a note, when the graph does not relate the instrument to the exposure; and, the part that is a statistical definition, a control that is an effect of the exposure fails the check, because holding it fixed makes any instrument invalid though the rule as the specification worded it would pass it.
 

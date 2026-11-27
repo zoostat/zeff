@@ -274,6 +274,9 @@ identify/check_refused/stderr 638b1cefcdc786bd
 identify/exclusion/stdout 9922b6c08e35981e
 identify/exclusion/stderr 20ac403406b3154f
 identify/exclusion_refused/stderr 8abbc59dc10973b4
+identify/instruments/stdout ea5382b5eca10512
+identify/instruments/stderr cbf29ce484222325
+identify/instruments_refused/stderr e7ab217b05985ab8
 tests/fields/stdout cbf29ce484222325
 tests/fields/stderr 066add1139daf971
 tests/shapiro/stdout bb094c197a0d6c4d

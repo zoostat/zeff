@@ -1,0 +1,99 @@
+---
+source: packages/tier3/identify/tests/instruments.rs
+expression: all
+---
+error[Z0401]: the graph has an undirected edge, `--`, so `instruments` cannot say what an instrument is related to
+ --> scripts/main.zeff:1:1
+  |
+1 | dag {
+  | ^^^^^ a graph with an undirected edge
+  |
+  = help: an undirected edge is for drawing and says nothing of cause: write `a -> b` for a cause, or `a <-> b` for a common cause that is not observed
+
+error[Z0101]: no node `yy` in the graph
+ --> scripts/main.zeff:2:37
+  |
+2 | g.instruments(exposure: x, outcome: yy)
+  |                                     ^^ not a node of the graph
+  |
+  = help: did you mean `y`?
+
+error[Z0101]: no node `wage` in the graph
+ --> scripts/main.zeff:2:25
+  |
+2 | g.instruments(exposure: wage, outcome: y)
+  |                         ^^^^ not a node of the graph
+  |
+  = help: the nodes of the graph are: z, x, y
+
+error[Z0401]: `exposure:` and `outcome:` of `instruments` are both `x`
+ --> scripts/main.zeff:2:37
+  |
+2 | g.instruments(exposure: x, outcome: x)
+  |                                     ^ the exposure again
+  |
+  = help: an effect is of one variable on another: name two nodes of the graph
+
+error[Z0406]: `instruments` needs `outcome:`
+ --> scripts/main.zeff:2:3
+  |
+2 | g.instruments(exposure: x)
+  |   ^^^^^^^^^^^ `outcome:` is missing
+  |
+  = help: usage: `g.instruments(exposure: Var, outcome: Var)`
+
+error[Z0406]: `instruments` needs `exposure:`
+ --> scripts/main.zeff:2:3
+  |
+2 | g.instruments()
+  |   ^^^^^^^^^^^ `exposure:` is missing
+  |
+  = help: usage: `g.instruments(exposure: Var, outcome: Var)`
+
+error[Z0401]: `exposure:` of `instruments` is `x`, which is latent
+ --> scripts/main.zeff:5:25
+  |
+5 | g.instruments(exposure: x, outcome: y)
+  |                         ^ declared `latent` in the graph
+  |
+  = help: a model by instrumental variables needs the exposure and the outcome in the data; if `x` is measured after all, take it out of the `latent` line
+
+error[Z0401]: `outcome:` of `instruments` is `y`, which is one the data are selected on
+ --> scripts/main.zeff:5:37
+  |
+5 | g.instruments(exposure: x, outcome: y)
+  |                                     ^ declared `selected` in the graph
+  |
+  = help: the data hold `y` fixed, so they show no relation of it to anything; if `y` varies in the data, take it out of the `selected` line
+
+error[Z0401]: `exposure` of `instruments` must be a Var, but this is a Str
+ --> scripts/main.zeff:2:25
+  |
+2 | g.instruments(exposure: "x", outcome: y)
+  |                         ^^^ a Str
+  |
+  = help: name one node of the graph, without quotes
+
+error[Z0404]: `instruments` has no argument called `type`
+ --> scripts/main.zeff:2:40
+  |
+2 | g.instruments(exposure: x, outcome: y, type: all)
+  |                                        ^^^^ unknown argument
+  |
+  = help: usage: `g.instruments(exposure: Var, outcome: Var)`
+
+error[Z0401]: `instruments` cannot be called on a Frame
+ --> scripts/main.zeff:1:1
+  |
+1 | dataset(wages).instruments(exposure: educ, outcome: wage)
+  | ^^^^^^^^^^^^^^ this is a Frame
+  |
+  = help: `instruments` takes a Dag first; `x.instruments(...)` is `instruments(x, ...)`
+
+error[Z0406]: `instruments` needs `g`
+ --> scripts/main.zeff:1:1
+  |
+1 | instruments(exposure: a, outcome: b)
+  | ^^^^^^^^^^^ `g` is missing
+  |
+  = help: usage: `g.instruments(exposure: Var, outcome: Var)`
