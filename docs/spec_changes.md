@@ -1076,3 +1076,7 @@ Raised at step 4 of release 0.10.0: Atkinson Hyperlegible Next, the face #222 gi
 ## 27 November 2026 — zeff_open_decisions.md, new entry #235
 
 The owner asked for Zeff's counterparts of R's `Reduce`, `Filter` and `Position`; each was run on the engine. Shown that the positions of matching items and the steps of a fold have only workarounds, he said "Yes, record them". #235 is entered, open: an option `give: positions` of `filter`, and options `steps:` and `direction:` of `reduce`, recommended at 0.12.0 beside #233. Deadline: the opening of 0.12.0. No normative text is changed.
+
+## 27 November 2026 — zeff_open_decisions.md, #235 (the owner's ruling)
+
+The owner ruled on #235: "Go with A". The entry is marked decided: `give: positions` of `filter`, and `steps:` and `direction:` of `reduce`, at 0.12.0 beside #233; the catalogue's rows to be amended at the opening of 0.12.0. No normative text is changed.
