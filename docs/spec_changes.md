@@ -1104,3 +1104,7 @@ The owner asked for Zeff's counterparts of R's `mapply`, `Recall` and `Vectorize
 ## 27 November 2026 — zeff_open_decisions.md, #238 (the owner's ruling)
 
 The owner ruled on #238: "Go with A". The entry is marked decided: `with:` of `map` taking a record of lists, and `map` over a column giving a column, at 0.12.0 beside #233; the catalogue's row to be amended at the opening of 0.12.0. No normative text is changed.
+
+## 27 November 2026 — zeff_open_decisions.md, new entry #239
+
+The owner asked for Zeff's counterparts of R's `switch`, `ifelse` and `cut`; each was run on the engine. It was found that a row whose `case` condition is `NA` goes to the catch-all `_` with no message: 211 workers of `wages` with no wage were classed "low". Shown this, he said "Yes, record it". #239 is entered, open: a warning counting such rows (recommended), or R's rule that they stay `NA`; at 0.11.0. Deadline: the opening of 0.11.0. No normative text is changed.
