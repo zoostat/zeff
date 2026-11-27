@@ -1136,3 +1136,7 @@ Applies open decisions #222 (the owner, 24 November 2026: "Yes, switch them") an
 ## 27 November 2026 — zeff_functions.csv, row 508 (`mcnemar_test`)
 
 Applies question 6 of release 0.10.0, taken as recommended on 27 November 2026 under the owner's rule of decisions 98 and 99, at step 9. Row 508: the usage reads `data.mcnemar_test(a, b, correct: Bool = true, method: chi2 | exact = chi2)`, the description says what the two methods are and what is printed, the note records that `method: exact` is Stata's exact probability and that the correction is never larger than the difference of the two counts (equal counts give 0 where R gives 1 / (b + c)), and the status is implemented. No other normative text is changed.
+
+## 27 November 2026 — zeff_open_decisions.md, entry 242
+
+A new entry, open: the size of release 0.12.0, which the rulings of 27 November 2026 on #233, #235 to #238, #240 and #241 have given four new names and some thirty-six options beside the bridges of #152, #161 and #162. It records that the row of 0.12.0 in section 14 of the Engine and Project Specification ("None" under Functions) and the count of 284 functions of 1.0 no longer hold, to be corrected at the opening of the release that carries the new names. No normative text is changed.
