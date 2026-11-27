@@ -787,7 +787,7 @@ let ind_year = import("data/sales_wide.csv")
 | Look | `describe`, `head`, `tail`, `n_rows`, `n_cols`, `variables`, `summary`, `tabulate` |
 | Rows | `where`, `sort`, `distinct`, `duplicates`, `sample`, `drop_missing` |
 | Variables | `select`, `drop`, `rename`, `add`, `update`, `label`, `recode`; `add` may replace an existing column, with a note naming it, while `update` changes values only where a condition holds |
-| Combine | `merge`, `append`; columns other than the keys that both frames share are an error (Z0604) listing them, unless `suffixes: ["_l", "_r"]` is given |
+| Combine | `merge`, `append`; columns other than the keys that both frames share are an error (Z0604) listing them, unless `suffixes: ["_l", "_r"]` is given. `merge` with `join: semi` or `join: anti` keeps the left frame's rows that have, or lack, a match in the right frame, each once, and adds no column, so that nothing can clash and `suffixes:` is refused (Z0410) |
 | Reshape and summarise | `to_long` (with `names_type: Str \| Int \| Date = Str` for the column built from the old names), `to_wide`, `aggregate` |
 | Panels | `panel`, then `lag`, `lead`, `diff` and `fill_missing(x, method: forward \| backward)` inside `add`; the declaration survives a verb that keeps the unit and time columns unchanged (`where`, `add`, `merge` on other keys) and is dropped with a note by one that does not (`aggregate`, `to_wide`) |
 | Read and write | `import`, `save`; `stream` from 1.8 |

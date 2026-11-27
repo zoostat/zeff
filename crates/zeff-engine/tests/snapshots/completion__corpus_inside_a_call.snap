@@ -61,11 +61,13 @@ replace 1:17-1:18, 2 offered
 ----
 > let d = import("data/small.csv")
 > d.merge(d, on: a, join: |
-replace 1:24-1:24, 3 offered
-  Word (3): left inner full
-    left | join: left | inner | full = left | Which rows to keep: `left` (all left rows), `inner` (matched rows only) or `full` (all rows of both frames); `left` unless given.
-    inner | join: left | inner | full = left | Which rows to keep: `left` (all left rows), `inner` (matched rows only) or `full` (all rows of both frames); `left` unless given.
-    full | join: left | inner | full = left | Which rows to keep: `left` (all left rows), `inner` (matched rows only) or `full` (all rows of both frames); `left` unless given.
+replace 1:24-1:24, 5 offered
+  Word (5): left inner full semi anti
+    left | join: left | inner | full | semi | anti = left | Which rows to keep: `left` (all left rows), `inner` (matched rows only), `full` (all rows of both frames), `semi` (the left rows with a match, and no column of the right frame) or `anti` (the left rows without a match, likewise); `left` unless given.
+    inner | join: left | inner | full | semi | anti = left | Which rows to keep: `left` (all left rows), `inner` (matched rows only), `full` (all rows of both frames), `semi` (the left rows with a match, and no column of the right frame) or `anti` (the left rows without a match, likewise); `left` unless given.
+    full | join: left | inner | full | semi | anti = left | Which rows to keep: `left` (all left rows), `inner` (matched rows only), `full` (all rows of both frames), `semi` (the left rows with a match, and no column of the right frame) or `anti` (the left rows without a match, likewise); `left` unless given.
+    semi | join: left | inner | full | semi | anti = left | Which rows to keep: `left` (all left rows), `inner` (matched rows only), `full` (all rows of both frames), `semi` (the left rows with a match, and no column of the right frame) or `anti` (the left rows without a match, likewise); `left` unless given.
+    anti | join: left | inner | full | semi | anti = left | Which rows to keep: `left` (all left rows), `inner` (matched rows only), `full` (all rows of both frames), `semi` (the left rows with a match, and no column of the right frame) or `anti` (the left rows without a match, likewise); `left` unless given.
 ----
 > let d = import("data/small.csv")
 > d.mean(a, weight_type: |)

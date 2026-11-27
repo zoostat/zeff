@@ -1,0 +1,206 @@
+---
+source: packages/tier1/data/tests/merge.rs
+expression: out
+---
+frame · 3 rows × 3 variables
+
+      firm   year   revenue
+  1      2   2021      12.5
+  2      1   2020         8
+  3      1   2021         9
+frame · 2 rows × 3 variables
+
+      firm   year   revenue
+  1      3   2021         7
+  2     NA   2020         1
+frame · 2 rows × 3 variables
+
+      firm   name   revenue
+  1      1   Acme         0
+  2      2   Bolt         0
+frame · 2 rows × 3 variables
+
+      firm   name   revenue
+  1      4   Dyne         0
+  2     NA   None         0
+frame · 3 rows × 3 variables
+
+      firm   year   revenue
+  1      2   2021      12.5
+  2      1   2020         8
+  3      1   2021         9
+frame · 2 rows × 3 variables
+
+      firm   year   revenue
+  1      3   2021         7
+  2     NA   2020         1
+frame · 0 rows × 2 variables
+
+     k   v
+frame · 2 rows × 2 variables
+
+      k   v
+  1   1   1
+  2   2   2
+frame · 0 rows × 2 variables
+
+     k   v
+frame · 0 rows × 2 variables
+
+     k   v
+frame · 1 row × 2 variables
+
+      k   v
+  1   0   2
+frame · 3 rows × 2 variables
+
+      k   v
+  1   2   3
+  2   2   4
+  3   3   5
+frame · 2 rows × 2 variables
+
+      k   v
+  1   1   1
+  2   1   2
+frame · 2 rows × 3 variables · panel firm × year
+
+      firm   year   v
+  1      1   2020   1
+  2      3   2020   3
+frame · 1 row × 3 variables · panel firm × year
+
+      firm   year   v
+  1      2   2020   2
+frame · 2 rows × 2 variables
+
+      ind   v
+  1   b     2
+  2   c     3
+frame · 1 row × 2 variables
+
+  variable   type       non-missing   missing   example
+  ind        Category             1         0   a (3 levels)
+  v          Int                  1         0   1
+frame · 1 row × 2 variables
+
+  variable   type   non-missing   missing   example
+  firm       Int              1         0   2
+  v          Int              1         0   2
+frame · 3 rows × 4 variables
+
+      firm   industry        size   founded
+  1    398   Construction       0   1965-11-27
+  2    399   Manufacturing      0   1952-08-10
+  3    400   Education          0   1979-12-12
+frame · 4 rows × 4 variables · panel worker × year
+
+      worker   year   firm   industry
+  1        2   2014     57   Manufacturing
+  2        2   2015     57   Manufacturing
+  3        2   2016     57   Manufacturing
+  4        2   2017     57   Manufacturing
+---
+note: merge: 3 left rows matched and kept; 2 left rows unmatched and dropped; 2 right rows unmatched (line 3)
+note: merge: 2 left rows unmatched and kept; 3 left rows matched and dropped; 2 right rows unmatched (line 4)
+note: merge: 2 left rows matched and kept; 2 left rows unmatched and dropped; 2 right rows unmatched (line 5)
+note: merge: 2 left rows unmatched and kept; 2 left rows matched and dropped; 2 right rows unmatched (line 6)
+note: merge: 3 left rows matched and kept; 2 left rows unmatched and dropped; 0 right rows unmatched (line 8)
+note: merge: 2 left rows unmatched and kept; 3 left rows matched and dropped; 0 right rows unmatched (line 9)
+note: merge: 0 left rows matched and kept; 2 left rows unmatched and dropped; 2 right rows unmatched (line 10)
+note: merge: 2 left rows unmatched and kept; 0 left rows matched and dropped; 2 right rows unmatched (line 11)
+note: merge: 0 left rows matched and kept; 2 left rows unmatched and dropped; 0 right rows unmatched (line 12)
+note: merge: 0 left rows unmatched and kept; 0 left rows matched and dropped; 2 right rows unmatched (line 13)
+note: merge: 1 left row matched and kept; 2 left rows unmatched and dropped; 2 right rows unmatched (line 14)
+note: merge: 3 left rows matched and kept; 2 left rows unmatched and dropped; 0 right rows unmatched (line 15)
+note: merge: 2 left rows unmatched and kept; 3 left rows matched and dropped; 0 right rows unmatched (line 16)
+note: merge: 2 left rows matched and kept; 1 left row unmatched and dropped; 0 right rows unmatched (line 18)
+note: merge: 1 left row unmatched and kept; 2 left rows matched and dropped; 0 right rows unmatched (line 19)
+note: `ind` replaced the variable of that name (line 20)
+note: `ind` replaced the variable of that name (line 21)
+note: merge: 2 left rows matched and kept; 1 left row unmatched and dropped; 1 right row unmatched (line 22)
+note: merge: 1 left row unmatched and kept; 2 left rows matched and dropped; 1 right row unmatched (line 23)
+note: merge: 1 left row matched and kept; 1 left row unmatched and dropped; 1 right row unmatched (line 25)
+note: merge: 3 left rows unmatched and kept; 397 left rows matched and dropped; 0 right rows unmatched (line 26)
+note: merge: 4 left rows matched and kept; 7 left rows unmatched and dropped; 60 right rows unmatched (line 27)
+
+frame(k = [1, 2], v = [1, 2]).merge(frame(k = [1, 2], v = [3, 4]), on: k, join: semi, suffixes: ["_a", "_b"])
+---
+error[Z0410]: `suffixes:` cannot go with `join: semi`
+ --> scripts/main.zeff:1:97
+  |
+1 | frame(k = [1, 2], v = [1, 2]).merge(frame(k = [1, 2], v = [3, 4]), on: k, join: semi, suffixes: ["_a", "_b"])
+  |                                                                                                 ^^^^^^^^^^^^ no column of the right frame is added
+  |
+  = help: `join: semi` keeps rows of the left frame and adds no column, so two columns of one name never meet: leave `suffixes:` out
+
+frame(k = [1, 2], v = [1, 2]).merge(frame(k = [1, 2], w = [3, 4]), on: k, join: anti, suffixes: ["_a", "_b"])
+---
+error[Z0410]: `suffixes:` cannot go with `join: anti`
+ --> scripts/main.zeff:1:97
+  |
+1 | frame(k = [1, 2], v = [1, 2]).merge(frame(k = [1, 2], w = [3, 4]), on: k, join: anti, suffixes: ["_a", "_b"])
+  |                                                                                                 ^^^^^^^^^^^^ no column of the right frame is added
+  |
+  = help: `join: anti` keeps rows of the left frame and adds no column, so two columns of one name never meet: leave `suffixes:` out
+
+frame(k = [1, 1], v = [1, 2]).merge(frame(k = [1, 2], w = [3, 4]), on: k, join: semi, relation: one_to_one)
+---
+error[Z0603]: `relation: one_to_one` does not hold: 1 key of `k` repeats on the left
+ --> scripts/main.zeff:1:97
+  |
+1 | frame(k = [1, 1], v = [1, 2]).merge(frame(k = [1, 2], w = [3, 4]), on: k, join: semi, relation: one_to_one)
+  |                                                                                                 ^^^^^^^^^^ a relation the data do not have
+  |
+  = help: find the repeated keys with `duplicates(k)` on the left frame and remove them
+
+let b = frame(k = [1, 1], w = [3, 4])
+frame(k = [1, 2], v = [1, 2]).merge(b, on: k, join: anti, relation: many_to_one)
+---
+error[Z0603]: `relation: many_to_one` does not hold: 1 key of `k` repeats on the right
+ --> scripts/main.zeff:2:69
+  |
+2 | frame(k = [1, 2], v = [1, 2]).merge(b, on: k, join: anti, relation: many_to_one)
+  |                                                                     ^^^^^^^^^^^ a relation the data do not have
+  |
+  = help: find the repeated keys with `b.duplicates(k)` on the right frame and remove them
+
+frame(k = [1, 2], v = [1, 2]).merge(frame(j = [1, 2], w = [3, 4]), on: k, join: semi)
+---
+error[Z0101]: no variable `k` in `the frame`
+ --> scripts/main.zeff:1:72
+  |
+1 | frame(k = [1, 2], v = [1, 2]).merge(frame(j = [1, 2], w = [3, 4]), on: k, join: semi)
+  |                                                                        ^ not a variable of the frame
+  |
+  = help: the variables of `the frame` are: j, w
+
+frame(k = [1, 2], v = [1, 2]).merge(frame(k = ["1", "2"], w = [3, 4]), on: k, join: anti)
+---
+error[Z0401]: `k` is a column of Int in the frame and of Str in the frame
+ --> scripts/main.zeff:1:76
+  |
+1 | frame(k = [1, 2], v = [1, 2]).merge(frame(k = ["1", "2"], w = [3, 4]), on: k, join: anti)
+  |                                                                            ^ keys of different types
+  |
+  = help: the key variables have one type in both frames: convert one side first, `to(x, Str)` for text or `category(x)` for a category
+
+frame(k = [1, 2], v = [1, 2]).merge(frame(k = [1, 2], w = [3, 4]), join: semi)
+---
+error[Z0406]: `merge` needs `on:`
+ --> scripts/main.zeff:1:31
+  |
+1 | frame(k = [1, 2], v = [1, 2]).merge(frame(k = [1, 2], w = [3, 4]), join: semi)
+  |                               ^^^^^ `on:` is missing
+  |
+  = help: usage: `data.merge(frame, on: firm)`; the key variables exist in both frames
+
+frame(k = [1, 2], v = [1, 2]).merge(frame(k = [1, 2], w = [3, 4]), on: k, join: semi).mean(w)
+---
+error[Z0101]: no variable `w` in `the frame`
+ --> scripts/main.zeff:1:92
+  |
+1 | frame(k = [1, 2], v = [1, 2]).merge(frame(k = [1, 2], w = [3, 4]), on: k, join: semi).mean(w)
+  |                                                                                            ^ not a variable of the frame
+  |
+  = help: the variables of `the frame` are: k, v

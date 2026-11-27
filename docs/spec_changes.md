@@ -1064,3 +1064,7 @@ The owner asked for Zeff's counterparts of R's `do.call`, `map`, `apply`, `sweep
 ## 27 November 2026 — zeff_open_decisions.md, #233 (the owner's ruling)
 
 The owner ruled on #233: "Go with A, names as recommended". The entry is marked decided: F1 to F6 at 0.12.0, F7 at 1.15, under the names `cross`, `data.cross`, `data.subsets`, `with:` of `map`, `outer` and `m.apply`; the catalogue's rows to be entered at the opening of 0.12.0. No normative text is changed.
+
+## 27 November 2026 — `merge(join: semi | anti)` in the catalogue, the Language Reference and the help examples (release 0.10.0, step 7)
+
+Applies open decision #88 (decided 7 November 2026), which placed the two words at 0.10.0. zeff_functions.csv, row 115: the usage reads `join: left | inner | full | semi | anti = left`, the description says what the two keep, and the note that they were to come is replaced by the note that they came. zeff_language_reference.md, section 6, the row "Combine": a sentence that the two joins keep the left frame's rows that have, or lack, a match, each once, add no column, and refuse `suffixes:` (Z0410, a code of section 11 used as it stands). zeff_help_examples.md, the example page of `merge`: the usage, the argument `join:` and one example. No rule that stood is changed.

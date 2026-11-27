@@ -1209,7 +1209,11 @@ pub fn functions() -> Vec<Function> {
                     ParamSpec::required("data", "Frame"),
                     ParamSpec::required("frame", "Frame"),
                     ParamSpec::option("on", "Vars"),
-                    ParamSpec::option_with_default("join", "left | inner | full", "left"),
+                    ParamSpec::option_with_default(
+                        "join",
+                        "left | inner | full | semi | anti",
+                        "left",
+                    ),
                     ParamSpec::option("relation", "one_to_one | many_to_one | one_to_many"),
                     ParamSpec::option("suffixes", "List<Str>"),
                 ],
@@ -1230,6 +1234,10 @@ pub fn functions() -> Vec<Function> {
                         "keys of different types, or suffixes: not two texts",
                     ),
                     DiagnosticDecl::new("Z0406", "on: missing"),
+                    DiagnosticDecl::new(
+                        "Z0410",
+                        "suffixes: given with join: semi or anti, which add no column",
+                    ),
                 ],
                 help: include_str!("../help/merge.md"),
                 accuracy: None,

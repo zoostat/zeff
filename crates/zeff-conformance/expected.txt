@@ -234,6 +234,8 @@ verbs/aggregate/stdout 0c0a134e2ac4fc67
 verbs/aggregate/stderr a093e2636269969f
 verbs/merge/stdout 4caf29fe3a083173
 verbs/merge/stderr cb9189a2747b2f9d
+verbs/merge_filter/stdout a7837a3c72aeb653
+verbs/merge_filter/stderr eba3dbb9213b6f38
 verbs/reshape/stdout fc8a0a1e28809d4f
 verbs/reshape/stderr 59442dd2f5d6ff84
 verbs/tabulate/stdout 75cb0a6d88c8c64c

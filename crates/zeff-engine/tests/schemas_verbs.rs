@@ -136,6 +136,11 @@ fn the_schema_after_every_verb() {
         "w.merge(f, on: [firm, industry])",
         "w.merge(f, on: firm, suffixes: [\"_w\", \"_f\"])",
         "w.merge(f, on: firm, join: inner, suffixes: [\"\", \"_f\"])",
+        // A semi or an anti join keeps the left frame's columns and adds none, a column the
+        // two frames share among them (release 0.10.0, step 7).
+        "w.merge(f, on: firm, join: semi)",
+        "f.merge(w, on: firm, join: anti)",
+        "w.merge(f, on: [firm, industry], join: semi).select([worker, industry])",
         "w.select([worker, year, wage]).append(w.select([worker, year, wage]))",
         "w.select([worker, year, wage]).append(f.select([firm, size]))",
         "w.head(4).to_long(\"wage\", id: worker, names_to: \"what\", values_to: \"value\")",

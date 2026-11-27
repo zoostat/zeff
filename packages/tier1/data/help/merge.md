@@ -8,6 +8,7 @@ Join two frames on key variables
 - `a.merge(b, on: [firm, year], join: inner)`: the matched rows alone; `join: full` keeps every row of both.
 - `a.merge(b, on: firm, relation: many_to_one)`: the key structure stated, and checked before joining.
 - `a.merge(b, on: id, suffixes: ["_a", "_b"])`: for columns the two frames share beside the key.
+- `a.merge(b, on: id, join: semi)`: the rows of `a` that have a match in `b`, with no column of `b`; `join: anti` keeps the rows that have none.
 
 ## Description
 Joins `data` (the left frame) with `frame` (the right) on the key variables in `on:`, which must
@@ -23,28 +24,36 @@ always refused (Z0603), since it is nearly always a mistake. A non-key column pr
 frames is an error (Z0604) that lists the columns, unless `suffixes:` gives the two suffixes
 that tell them apart.
 
+`join: semi` and `join: anti` filter the left frame by the keys of the right one and take
+nothing from it: `semi` keeps the left rows that have a match, `anti` those that have none, each
+row once however many right rows it meets. Since no row is repeated and no column is added, keys
+may repeat in both frames and a shared column needs no suffix.
+
 ## Arguments
 - data: The left frame.
 - frame: The right frame.
 - on: The key variables, present in both frames with the same type; when the names differ, `rename` one frame first.
-- join: Which rows to keep: `left` (all left rows), `inner` (matched rows only) or `full` (all rows of both frames); `left` unless given.
+- join: Which rows to keep: `left` (all left rows), `inner` (matched rows only), `full` (all rows of both frames), `semi` (the left rows with a match, and no column of the right frame) or `anti` (the left rows without a match, likewise); `left` unless given.
 - relation: The expected key structure, `one_to_one`, `many_to_one` or `one_to_many`, checked before joining.
-- suffixes: A list of two texts, such as `["_l", "_r"]`, added to the non-key columns that both frames share.
+- suffixes: A list of two texts, such as `["_l", "_r"]`, added to the non-key columns that both frames share. Refused with `join: semi` or `anti`, which add no column (Z0410).
 
 ## Value
 A frame with the left frame's columns, then the right frame's non-key columns; labels, value
 labels and categories are kept on both sides, and a panel declaration on other keys is kept
-unless the merge repeated or added rows, or gave one of its two variables a suffix.
+unless the merge repeated or added rows, or gave one of its two variables a suffix. Under
+`join: semi` or `anti` the result has the left frame's columns alone, with its labels and its
+panel declaration as they were.
 
 ## Missing values
-A key that is `NA` matches nothing, on either side: its row is counted as unmatched, and kept or not as `join:` says. A left row with no match has `NA` in every column that comes from the right frame.
+A key that is `NA` matches nothing, on either side: its row is counted as unmatched, and kept or not as `join:` says. A left row with no match has `NA` in every column that comes from the right frame. Under `join: semi` a row whose key is `NA` is dropped and under `join: anti` it is kept, since it has no match.
 
 ## Details
 Exact: the right rows are indexed by their key values, compared by value (a category by its
 label) with `NA` matching nothing, and the pairs are listed in the order stated above; nothing is
 computed. `relation:` is checked on the whole of each frame before joining: `many_to_one` needs
 distinct keys on the right, `one_to_many` on the left, `one_to_one` on both. Without `relation:`
-the merge is refused only when a key repeats on both sides.
+the merge is refused only when a key repeats on both sides, and not at all under `join: semi`
+or `anti`, which repeat no row; a `relation:` stated with them is still checked.
 
 ## A common mistake
 Joining on one variable when the frames share another. A column that both have and that is not a key cannot be one column of the result:
@@ -60,6 +69,8 @@ Make it a key when it means the same in both, `on: [firm, industry]`, or keep bo
 | a.merge(b, on: id, join: inner) | merge(a, b, by = "id"), or dplyr::inner_join(a, b, by = "id") | merge 1:1 id using b, keep(match) |
 | a.merge(b, on: id, join: full) | merge(a, b, by = "id", all = TRUE), or dplyr::full_join(a, b, by = "id") | merge 1:1 id using b |
 | a.merge(b, on: firm, relation: many_to_one) | dplyr::left_join(a, b, by = "firm", relationship = "many-to-one") | merge m:1 firm using b, keep(master match) |
+| a.merge(b, on: id, join: semi) | a[a$id %in% b$id, ], or dplyr::semi_join(a, b, by = "id", na_matches = "never") | merge m:1 id using b, keep(match) keepusing(id) nogenerate |
+| a.merge(b, on: id, join: anti) | a[!(a$id %in% b$id), ], or dplyr::anti_join(a, b, by = "id", na_matches = "never") | merge m:1 id using b, keep(master) keepusing(id) nogenerate |
 
 R's `merge` keeps the matched rows alone unless `all.x` or `all` is given, and sorts the result
 by the key; here, as in `left_join`, every left row is kept in its order unless `join:` says
@@ -67,16 +78,18 @@ otherwise. dplyr matches a key that is `NA` with another that is `NA`; here `NA`
 Stata's `merge` asks for the relation (`1:1`, `m:1`, `1:m`) and adds the variable `_merge`;
 here the relation is checked when given, and the note counts the matched and unmatched rows.
 Stata's `merge m:m` pairs rows by their position within a key; here a many-to-many merge is
-refused.
+refused. Stata has no join that only filters: `keep()` chooses the rows and `keepusing()` holds
+back the other file's variables, and the using file's keys must then be distinct.
 
 ## Related tasks
 - To put the rows of one frame under those of another, use `append`.
 - To see which key values repeat before joining, use `duplicates`.
 - To make the key's name the same in both frames, use `rename`.
 - To bring a summary of groups back to the rows, make it with `aggregate`.
+- To keep the rows whose value is in a list written in the script, use `where` with `is_in`.
 
 ## See also
-append, to_long, to_wide, aggregate, rename, duplicates
+append, to_long, to_wide, aggregate, rename, duplicates, where, is_in
 
 ## Examples
 // Each row of the shipped wages with the size and the founding date of its firm: many rows of wages to one firm.
@@ -128,3 +141,19 @@ frame · 3 rows × 5 variables
   2       15       20.14         40.3       26.73         46.2
   3       17       49.23         43.7       20.96         33.4
 note: merge: 973 rows matched; 545 left rows unmatched; 129 right rows unmatched (line 10)
+
+// `join: anti` keeps the left rows without a match and adds no column: the shipped firms that have no worker in the wages.
+> firms.merge(dataset(wages), on: firm, join: anti)
+frame · 3 rows × 4 variables
+
+      firm   industry        size   founded
+  1    398   Construction       0   1965-11-27
+  2    399   Manufacturing      0   1952-08-10
+  3    400   Education          0   1979-12-12
+note: merge: 3 left rows unmatched and kept; 397 left rows matched and dropped; 0 right rows unmatched (line 11)
+
+// `join: semi` keeps the left rows with a match: the wages paid by the firms of thirty workers or more, whatever else the two frames share.
+> let large = firms.where(size >= 30)
+> dataset(wages).merge(large, on: firm, join: semi).n_rows()
+4460
+note: merge: 4,460 left rows matched and kept; 13,952 left rows unmatched and dropped; 0 right rows unmatched (line 13)

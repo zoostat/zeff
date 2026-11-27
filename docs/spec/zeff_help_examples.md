@@ -250,7 +250,7 @@ IN BRIEF
     - `a.merge(b, on: firm, relation: many_to_one)`: the key structure stated, and checked before joining.
 
 USAGE
-    data.merge(frame, on: Vars, join: left | inner | full = left,
+    data.merge(frame, on: Vars, join: left | inner | full | semi | anti = left,
                relation: one_to_one | many_to_one | one_to_many, suffixes: List)
 
 DESCRIPTION
@@ -269,8 +269,9 @@ ARGUMENTS
     frame       Frame. The right frame.
     on:         Vars. The key variables, present in both frames with the same type; when the names differ,
                 `rename` one frame first.
-    join:       left | inner | full = left. Which rows to keep: all left rows, matched rows only, or all rows
-                of both frames.
+    join:       left | inner | full | semi | anti = left. Which rows to keep: all left rows, matched rows
+                only, or all rows of both frames; `semi` and `anti` keep the left rows that have, or lack,
+                a match, and add no column of the right frame.
     relation:   one_to_one | many_to_one | one_to_many. The expected key structure, checked before joining.
     suffixes:   List of two Str, such as `["_l", "_r"]`. Added to non-key columns that both frames share.
 
@@ -321,6 +322,11 @@ EXAMPLES
     // The matched rows alone, with a column that both frames have told apart by its suffixes.
     > wages.merge(firms, on: firm, join: inner, suffixes: ["_w", "_f"]).n_rows()
     18201
+
+    // The firms that have no worker in the wages: the left rows without a match, and no column added.
+    > firms.merge(wages, on: firm, join: anti).n_rows()
+    merge: 3 left rows unmatched and kept; 397 left rows matched and dropped; 0 right rows unmatched
+    3
 ```
 
 ## `zeff help dist.normal`

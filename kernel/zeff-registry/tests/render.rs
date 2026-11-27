@@ -150,7 +150,7 @@ fn merge_spec() -> FunctionSpec {
             ParamSpec::required("data", "Frame"),
             ParamSpec::required("frame", "Frame"),
             ParamSpec::option("on", "Vars"),
-            ParamSpec::option_with_default("join", "left | inner | full", "left"),
+            ParamSpec::option_with_default("join", "left | inner | full | semi | anti", "left"),
             ParamSpec::option("relation", "one_to_one | many_to_one | one_to_many"),
             ParamSpec::option("suffixes", "List"),
         ],
@@ -186,7 +186,7 @@ lists the columns, unless `suffixes:` gives the two suffixes that tell them apar
 - data: The left frame.
 - frame: The right frame.
 - on: The key variables, present in both frames with the same type; when the names differ, `rename` one frame first.
-- join: Which rows to keep: all left rows, matched rows only, or all rows of both frames.
+- join: Which rows to keep: all left rows, matched rows only, or all rows of both frames; `semi` and `anti` keep the left rows that have, or lack, a match, and add no column of the right frame.
 - relation: The expected key structure, checked before joining.
 - suffixes: Added to non-key columns that both frames share.
 
@@ -224,6 +224,11 @@ merge: 18,201 rows matched; 0 left rows unmatched; 3 right rows unmatched (firms
 // The matched rows alone, with a column that both frames have told apart by its suffixes.
 > wages.merge(firms, on: firm, join: inner, suffixes: [\"_w\", \"_f\"]).n_rows()
 18201
+
+// The firms that have no worker in the wages: the left rows without a match, and no column added.
+> firms.merge(wages, on: firm, join: anti).n_rows()
+merge: 3 left rows unmatched and kept; 397 left rows matched and dropped; 0 right rows unmatched
+3
 ",
         accuracy: Some(AccuracyRecord {
             reference: "the same rows and values as dplyr 1.1 joins with NA keys excluded, in the order stated above".into(),

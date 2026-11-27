@@ -20,7 +20,7 @@ replace 1:2-1:4, 3 offered
   Method (3): mean median merge
     mean | data.mean(var, by: Vars, weights: Var, weight_type: frequency | analytic | sampling = sampling) | Mean of a variable
     median | data.median(var, by: Vars, weights: Var, weight_type: frequency | analytic | sampling = sampling) | Median
-    merge | data.merge(frame, on: Vars, join: left | inner | full = left, relation: one_to_one | many_to_one | one_to_many, suffixes: List<Str>) | Join two frames on key variables
+    merge | data.merge(frame, on: Vars, join: left | inner | full | semi | anti = left, relation: one_to_one | many_to_one | one_to_many, suffixes: List<Str>) | Join two frames on key variables
 ----
 > let d = import("data/small.csv")
 > let m = d.mean(a)
@@ -138,7 +138,7 @@ replace 1:2-1:6, 3 offered
   Method (3): mean median merge
     mean | data.mean(var, by: Vars, weights: Var, weight_type: frequency | analytic | sampling = sampling) | Mean of a variable
     median | data.median(var, by: Vars, weights: Var, weight_type: frequency | analytic | sampling = sampling) | Median
-    merge | data.merge(frame, on: Vars, join: left | inner | full = left, relation: one_to_one | many_to_one | one_to_many, suffixes: List<Str>) | Join two frames on key variables
+    merge | data.merge(frame, on: Vars, join: left | inner | full | semi | anti = left, relation: one_to_one | many_to_one | one_to_many, suffixes: List<Str>) | Join two frames on key variables
 ----
 > let d = import("data/small.csv")
 > let k = d.n_|

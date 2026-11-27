@@ -8016,6 +8016,14 @@ impl Checker<'_> {
             }
             "merge" => {
                 let other = self.schema_eval(arg(1)?, env)?;
+                // A semi or an anti join keeps rows of the left frame and adds no column.
+                if matches!(
+                    arg(3).map(|e| &e.kind),
+                    Some(ExprKind::Word(w)) if w == "semi" || w == "anti"
+                ) {
+                    out.from_last_run |= other.from_last_run;
+                    return Some(out);
+                }
                 let on = expand(&names_of(arg(2)?)?);
                 let suffixes = match arg(5).map(|e| &e.kind) {
                     Some(ExprKind::List(items)) if items.len() == 2 => {

@@ -93,7 +93,7 @@ error[Z0401]: `suffixes` of `merge` must be a List<Str>, but this is a Str
 1 | frame(k = [1, 2], v = [1, 2]).merge(frame(k = [1, 2], v = [3, 4]), on: k, suffixes: "_a")
   |                                                                                     ^^^^ a Str
   |
-  = help: usage: `data.merge(frame, on: Vars, join: left | inner | full = left, relation: one_to_one | many_to_one | one_to_many, suffixes: List<Str>)`
+  = help: usage: `data.merge(frame, on: Vars, join: left | inner | full | semi | anti = left, relation: one_to_one | many_to_one | one_to_many, suffixes: List<Str>)`
 
 frame(k = [1, 2], v = [1, 2]).merge(frame(j = [1, 2], w = [3, 4]), on: k)
 ---
@@ -153,7 +153,7 @@ error[Z0402]: `outer` is not one of the allowed words
  --> scripts/main.zeff:1:81
   |
 1 | frame(k = [1, 2], v = [1, 2]).merge(frame(k = [1, 2], w = [3, 4]), on: k, join: outer)
-  |                                                                                 ^^^^^ expected one of left, inner, full
+  |                                                                                 ^^^^^ expected one of left, inner, full, semi, anti
 
 dataset(wages).merge(dataset(firms), on: firm)
 ---

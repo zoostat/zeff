@@ -4,6 +4,11 @@
 //! `wages` with `firms` and on generated pairs with every relation; the edge cases; every
 //! message; and the properties that an inner join's rows are a subset of the left join's, that
 //! `one_to_one` holds iff both directions are `many_to_one`, and that the left order is kept.
+//!
+//! `join: semi` and `join: anti` (release 0.10.0, step 7): the left rows kept, against R's on
+//! the shipped frames in both directions and on the generated pairs, keys that repeat in both
+//! frames among them; their edge cases and messages; and the property that the two joins split
+//! the left frame between them, in its order, the semi join keeping the left rows of the inner.
 
 use proptest::prelude::*;
 use serde_json::Value as Json;
@@ -198,6 +203,178 @@ fn every_message() {
         out.push_str(&format!("{script}---\n{stdout}{stderr}\n"));
     }
     insta::assert_snapshot!("every_message", out);
+}
+
+/// The left rows a semi or an anti join keeps, checked against R's: a column `li` of row
+/// positions added to the left frame before the merge, and compared with R's list; the result
+/// has the left frame's columns and no other; the note counts what R counts.
+fn check_kept(left: &str, right: &str, keys: &str, case: &Json) {
+    let join = case["join"].as_str().unwrap();
+    let kept = texts(&case["li"]);
+    let compared = if kept.is_empty() {
+        String::new()
+    } else {
+        format!(
+            "frame(a = m[\"li\"], e = [{}]).where(a != e).n_rows()\n",
+            kept.join(", ")
+        )
+    };
+    let script = format!(
+        "let l = {left}.add(one = 1).add(li = running(one, stat: sum)).drop(one)\nlet m = l.merge({right}, on: {keys}, join: {join})\nm.n_rows()\nequal(m.variables(), l.variables())\n{compared}"
+    );
+    let (code, stdout, stderr) = go(&script);
+    assert_eq!(code, 0, "{join} on {keys}: {stderr}");
+    let expected = format!(
+        "{}\ntrue\n{}",
+        kept.len(),
+        if kept.is_empty() { "" } else { "0\n" }
+    );
+    assert_eq!(
+        stdout, expected,
+        "{join} on {keys}: the rows kept differ from R\n{stderr}"
+    );
+    let (with, without) = (
+        left_rows(case["with_match"].as_u64().unwrap()),
+        left_rows(case["without_match"].as_u64().unwrap()),
+    );
+    let right_unmatched = right_rows(case["right_unmatched"].as_u64().unwrap());
+    let note = if join == "semi" {
+        format!(
+            "merge: {with} matched and kept; {without} unmatched and dropped; {right_unmatched} unmatched"
+        )
+    } else {
+        format!(
+            "merge: {without} unmatched and kept; {with} matched and dropped; {right_unmatched} unmatched"
+        )
+    };
+    assert!(
+        stderr.contains(&note),
+        "{join} on {keys}: expected `{note}`\n{stderr}"
+    );
+}
+
+#[test]
+fn the_semi_and_anti_joins_agree_with_r() {
+    let json = reference();
+    // The wages filtered by the firms, where every wage has its firm, and the firms by the
+    // wages, where three firms have no worker. `industry` is in both frames and is no key: a
+    // join that adds no column has nothing to tell apart.
+    for case in json["filtering_shipped"].as_array().unwrap() {
+        check_kept("dataset(wages)", "dataset(firms)", "firm", case);
+    }
+    for case in json["filtering_reversed"].as_array().unwrap() {
+        check_kept("dataset(firms)", "dataset(wages)", "firm", case);
+    }
+    let cases = json["filtering"].as_array().unwrap();
+    assert_eq!(cases.len(), 14, "seven pairs under the two joins");
+    assert!(
+        cases.iter().any(|c| c["name"] == "many_to_many"),
+        "keys that repeat in both frames are among the cases"
+    );
+    for case in cases {
+        let keys = texts(&case["keys"]);
+        let on = if keys.len() == 1 {
+            keys[0].clone()
+        } else {
+            format!("[{}]", keys.join(", "))
+        };
+        let frame_of = |side: &Json| {
+            let k = texts(&side["k"]).join(", ");
+            let g: Vec<String> = texts(&side["g"]).iter().map(|s| format!("{s:?}")).collect();
+            format!("frame(k = [{k}], g = [{}])", g.join(", "))
+        };
+        check_kept(&frame_of(&case["x"]), &frame_of(&case["y"]), &on, case);
+    }
+}
+
+#[test]
+fn semi_and_anti_edge_cases_and_messages() {
+    let script = r#"let sales = frame(firm = [2, 1, 3, 1, NA], year = [2021, 2020, 2021, 2021, 2020], revenue = [12.5, 8, 7, 9, 1])
+let names = frame(firm = [1, 2, 4, NA], name = ["Acme", "Bolt", "Dyne", "None"], revenue = [0, 0, 0, 0])
+sales.merge(names, on: firm, join: semi)
+sales.merge(names, on: firm, join: anti)
+names.merge(sales, on: firm, join: semi)
+names.merge(sales, on: firm, join: anti)
+let by_year = frame(firm = [1, 1, 2], year = [2020, 2021, 2021], target = [10, 11, 12])
+sales.merge(by_year, on: [firm, year], join: semi)
+sales.merge(by_year, on: [firm, year], join: anti, relation: many_to_one)
+frame(k = [1, 2], v = [1, 2]).merge(frame(k = [3, 4], w = [5, 6]), on: k, join: semi)
+frame(k = [1, 2], v = [1, 2]).merge(frame(k = [3, 4], w = [5, 6]), on: k, join: anti)
+frame(k = [1, 2], v = [1, 2]).merge(frame(k = [1, 2], w = [5, 6]).head(0), on: k, join: semi)
+frame(k = [1, 2], v = [1, 2]).head(0).merge(frame(k = [1, 2], w = [5, 6]), on: k, join: anti)
+frame(k = [1.0, -0.0, NA], v = [1, 2, 3]).merge(frame(k = [0.0, 7.0, NA], w = [5, 6, 7]), on: k, join: semi)
+frame(k = [1, 1, 2, 2, 3], v = [1, 2, 3, 4, 5]).merge(frame(k = [2, 2, 3, 3], w = [5, 6, 7, 8]), on: k, join: semi)
+frame(k = [1, 1, 2, 2, 3], v = [1, 2, 3, 4, 5]).merge(frame(k = [2, 2, 3, 3], w = [5, 6, 7, 8]), on: k, join: anti)
+let p = frame(firm = [1, 2, 3], year = [2020, 2020, 2020], v = [1, 2, 3]).panel(unit: firm, time: year)
+p.merge(frame(firm = [1, 1, 3], w = [5, 6, 7]), on: firm, join: semi)
+p.merge(frame(firm = [1, 1, 3], w = [5, 6, 7]), on: firm, join: anti)
+let c = frame(ind = ["a", "b", "c"], v = [1, 2, 3]).add(ind = category(ind))
+let e = frame(ind = ["b", "c", "d"], w = [3, 4, 5]).add(ind = category(ind))
+c.merge(e, on: ind, join: semi)
+c.merge(e, on: ind, join: anti).describe()
+let labelled = frame(firm = [1, 2], v = [1, 2]).label(firm, "Firm id").label(v, "Value")
+labelled.merge(frame(firm = [2, 5], w = [5, 6]), on: firm, join: semi).describe()
+dataset(firms).merge(dataset(wages), on: firm, join: anti)
+dataset(wages).where(worker <= 2).merge(dataset(firms).where(size > 20), on: firm, join: semi).select([worker, year, firm, industry])
+"#;
+    let (code, stdout, stderr) = go(script);
+    assert_eq!(code, 0, "{stderr}");
+    let mut out = format!("{stdout}---\n{stderr}\n");
+    for script in [
+        "frame(k = [1, 2], v = [1, 2]).merge(frame(k = [1, 2], v = [3, 4]), on: k, join: semi, suffixes: [\"_a\", \"_b\"])\n",
+        "frame(k = [1, 2], v = [1, 2]).merge(frame(k = [1, 2], w = [3, 4]), on: k, join: anti, suffixes: [\"_a\", \"_b\"])\n",
+        "frame(k = [1, 1], v = [1, 2]).merge(frame(k = [1, 2], w = [3, 4]), on: k, join: semi, relation: one_to_one)\n",
+        "let b = frame(k = [1, 1], w = [3, 4])\nframe(k = [1, 2], v = [1, 2]).merge(b, on: k, join: anti, relation: many_to_one)\n",
+        "frame(k = [1, 2], v = [1, 2]).merge(frame(j = [1, 2], w = [3, 4]), on: k, join: semi)\n",
+        "frame(k = [1, 2], v = [1, 2]).merge(frame(k = [\"1\", \"2\"], w = [3, 4]), on: k, join: anti)\n",
+        "frame(k = [1, 2], v = [1, 2]).merge(frame(k = [1, 2], w = [3, 4]), join: semi)\n",
+        "frame(k = [1, 2], v = [1, 2]).merge(frame(k = [1, 2], w = [3, 4]), on: k, join: semi).mean(w)\n",
+    ] {
+        let (code, stdout, stderr) = go(script);
+        assert_eq!(code, 1, "{script}");
+        out.push_str(&format!("{script}---\n{stdout}{stderr}\n"));
+    }
+    insta::assert_snapshot!("semi_and_anti", out);
+}
+
+proptest! {
+    #![proptest_config(ProptestConfig::with_cases(32))]
+
+    /// The semi and the anti join split the left frame between them, each row in one of the two
+    /// and in the left order; the semi join keeps the left rows that the inner join holds, each
+    /// once; and filtering twice by the same frame changes nothing more.
+    #[test]
+    fn semi_and_anti_split_the_left_frame(
+        left_keys in proptest::collection::vec(prop_oneof![Just(None), (0i64..6).prop_map(Some)], 1..20),
+        right_keys in proptest::collection::vec(prop_oneof![Just(None), (0i64..6).prop_map(Some)], 1..20),
+    ) {
+        let text = |keys: &[Option<i64>]| keys.iter().map(|k| k.map_or("NA".to_string(), |k| k.to_string())).collect::<Vec<_>>().join(", ");
+        // The first key is present on each side, so that a list of `NA` alone, which has no
+        // type, is never written.
+        let mut left_keys = left_keys;
+        left_keys[0] = left_keys[0].or(Some(1));
+        let mut right_keys = right_keys;
+        right_keys[0] = right_keys[0].or(Some(2));
+        let present: std::collections::HashSet<i64> = right_keys.iter().flatten().copied().collect();
+        let with_match: Vec<usize> = left_keys
+            .iter()
+            .enumerate()
+            .filter(|(_, k)| k.is_some_and(|k| present.contains(&k)))
+            .map(|(i, _)| i + 1)
+            .collect();
+        let script = format!(
+            "let l = frame(k = [{lk}], li = seq(1, {ln}))\nlet r = frame(k = [{rk}], ri = seq(1, {rn}))\nlet s = l.merge(r, on: k, join: semi)\nlet a = l.merge(r, on: k, join: anti)\ns.n_rows()\na.n_rows()\nequal(s.append(a).sort(li)[\"li\"], l[\"li\"])\nequal(s.sort(li)[\"li\"], s[\"li\"])\nequal(a.sort(li)[\"li\"], a[\"li\"])\nequal(s.merge(r, on: k, join: semi)[\"li\"], s[\"li\"])\ns.merge(r, on: k, join: anti).n_rows()\nequal(l.merge(r.distinct(k), on: k, join: inner)[\"li\"], s[\"li\"])\n",
+            lk = text(&left_keys), ln = left_keys.len(), rk = text(&right_keys), rn = right_keys.len(),
+        );
+        let (code, stdout, stderr) = go(&script);
+        prop_assert_eq!(code, 0, "{}", stderr);
+        let expected = format!(
+            "{}\n{}\ntrue\ntrue\ntrue\ntrue\n0\ntrue\n",
+            with_match.len(),
+            left_keys.len() - with_match.len()
+        );
+        prop_assert_eq!(stdout, expected, "{}", stderr);
+    }
 }
 
 proptest! {

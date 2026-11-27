@@ -470,7 +470,7 @@ mod tests {
                 .map(|(_, words)| words.join(" "))
         };
         assert_eq!(of("se").as_deref(), Some("classical hc2 hc3 robust"));
-        assert_eq!(of("join").as_deref(), Some("full inner left"));
+        assert_eq!(of("join").as_deref(), Some("anti full inner left semi"));
         assert_eq!(of("cluster"), None);
         assert_eq!(of("x"), None);
         assert!(words.by_name.is_sorted() && words.by_name.len() > 20);

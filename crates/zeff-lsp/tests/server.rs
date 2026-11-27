@@ -727,8 +727,8 @@ fn completion_is_answered_with_the_engines_list_in_its_order() {
                 "items": [{
                     "label": "inner",
                     "kind": 20,
-                    "detail": "join: left | inner | full = left",
-                    "documentation": "Which rows to keep: `left` (all left rows), `inner` (matched rows only) or `full` (all rows of both frames); `left` unless given.",
+                    "detail": "join: left | inner | full | semi | anti = left",
+                    "documentation": "Which rows to keep: `left` (all left rows), `inner` (matched rows only), `full` (all rows of both frames), `semi` (the left rows with a match, and no column of the right frame) or `anti` (the left rows without a match, likewise); `left` unless given.",
                     "sortText": "00000",
                     // The word being typed is what the completion takes the place of.
                     "textEdit": {

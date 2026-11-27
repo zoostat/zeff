@@ -6,6 +6,12 @@
 //! checked before joining and a many-to-many relation is always refused; a non-key column both
 //! frames share is refused unless `suffixes:` tells the two apart. Every merge notes how many
 //! rows matched and how many did not on each side.
+//!
+//! `join: semi` and `join: anti` (release 0.10.0, step 7; open decision #88) keep the left
+//! frame's rows that have, or lack, a match, each once, and add no column of the right frame:
+//! a filter of one frame by the keys of another. Nothing is repeated and nothing can clash, so
+//! keys that repeat in both frames are allowed, a shared column needs no suffix, and
+//! `suffixes:`, which would have nothing to tell apart, is refused (Z0410).
 
 use std::collections::HashMap;
 use zeff_columns::{Column, ColumnType, Table, Value as Cell};
@@ -155,6 +161,21 @@ pub fn merge(ctx: &mut CallContext<'_>, args: Args) -> Result<Value, Fail> {
             ));
         }
     };
+    // A semi or an anti join filters the left frame and takes nothing from the right one.
+    let filtering = join == "semi" || join == "anti";
+    if filtering && suffixes.is_some() {
+        return Err(fail(
+            Diagnostic::error(
+                "Z0410",
+                format!("`suffixes:` cannot go with `join: {join}`"),
+            )
+            .in_file(ctx.script)
+            .primary(ctx.span_of(5), "no column of the right frame is added")
+            .help(format!(
+                "`join: {join}` keeps rows of the left frame and adds no column, so two columns of one name never meet: leave `suffixes:` out"
+            )),
+        ));
+    }
     // The shared non-key columns.
     let shared: Vec<String> = left
         .table
@@ -163,7 +184,7 @@ pub fn merge(ctx: &mut CallContext<'_>, args: Args) -> Result<Value, Fail> {
         .filter(|n| !on.contains(n) && right.table.position(n).is_some())
         .cloned()
         .collect();
-    if !shared.is_empty() && suffixes.is_none() {
+    if !shared.is_empty() && suffixes.is_none() && !filtering {
         return Err(fail(
             Diagnostic::error(
                 "Z0604",
@@ -277,7 +298,8 @@ pub fn merge(ctx: &mut CallContext<'_>, args: Args) -> Result<Value, Fail> {
                 .help(repeated_where("left", &left_shown)),
             ));
         }
-        None if both_repeat => {
+        // Keys that repeat in both frames multiply rows, unless the join only filters.
+        None if both_repeat && !filtering => {
             return Err(fail(
                 Diagnostic::error("Z0603", "many-to-many merge refused")
                     .in_file(ctx.script)
@@ -296,6 +318,52 @@ pub fn merge(ctx: &mut CallContext<'_>, args: Args) -> Result<Value, Fail> {
             ));
         }
         _ => {}
+    }
+    if filtering {
+        // The left rows with a match, each once whatever the number of right rows it meets,
+        // or the left rows without one; the left order and every left column kept.
+        let wanted = join == "semi";
+        let mut right_matched = vec![false; right_rows];
+        let mut kept: Vec<Option<usize>> = Vec::new();
+        let mut with_match = 0usize;
+        for l in 0..left_rows {
+            let found = keys_of(&left_keys, l).and_then(|k| right_index.get(&k));
+            if let Some(rs) = found {
+                with_match += 1;
+                for &r in rs {
+                    right_matched[r] = true;
+                }
+            }
+            if found.is_some() == wanted {
+                kept.push(Some(l));
+            }
+        }
+        let without_match = left_rows - with_match;
+        let right_unmatched = right_matched.iter().filter(|m| !**m).count();
+        ctx.message(Diagnostic::plain_note(if wanted {
+            format!(
+                "merge: {} matched and kept; {} unmatched and dropped; {} unmatched",
+                left_rows_text(with_match),
+                left_rows_text(without_match),
+                right_rows_text(right_unmatched)
+            )
+        } else {
+            format!(
+                "merge: {} unmatched and kept; {} matched and dropped; {} unmatched",
+                left_rows_text(without_match),
+                left_rows_text(with_match),
+                right_rows_text(right_unmatched)
+            )
+        }));
+        let columns: Vec<(String, Column)> = left
+            .table
+            .columns()
+            .map(|(name, column)| (name.clone(), column.take_optional(&kept)))
+            .collect();
+        let table = Table::new(columns).map_err(|e| internal(ctx, e))?;
+        // The rows are a subset of the left frame's and its columns are all there: the
+        // metadata, a panel declaration among it, stands as it was.
+        return Ok(derived(table.with_metadata(left.table.metadata().clone())));
     }
     // The pairs, in the left order and the right order within one left row.
     let mut pairs: Vec<(Option<usize>, Option<usize>)> = Vec::with_capacity(left_rows);
