@@ -1116,3 +1116,7 @@ The owner ruled on #239: "A: keep it, warn". The entry is marked decided: the ru
 ## 27 November 2026 — zeff_open_decisions.md, #234 (the owner's decision)
 
 The owner chose option A, "A, from JetBrains Mono": a letter the label face of a figure lacks is taken from JetBrains Mono, letter by letter. The entry is marked decided and step 4 of release 0.10.0 split into 4a and 4b. No normative text is changed here; section 7.6 of the Language Reference is amended at step 4b.
+
+## 27 November 2026 — zeff_open_decisions.md, new entry #240
+
+Asked how 1.0's data management falls short of R's and Stata's, the session found that most of the cheap gaps are the options of #99, section 3, that its ruling on question 3 placed after 1.0. The owner said "Yes, propose it". #240 is entered, open: nine everyday options (the median and quartiles in `summary`, mixed directions in `sort`, two cut-offs in `winsorize`, `sample` by group and with weights, running maximum and minimum, rounding to a multiple, equal-width bins, centring without scaling) and a new `data.expand(times:)`, recommended at 0.12.0; the other eight after 1.0 as #99 ruled. Deadline: the opening of 0.12.0. No normative text is changed.
