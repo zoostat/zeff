@@ -1124,3 +1124,7 @@ Asked how 1.0's data management falls short of R's and Stata's, the session foun
 ## 27 November 2026 — zeff_open_decisions.md, #240 (the owner's ruling) and #99
 
 The owner ruled on #240: "Go with B". The entry is marked decided: eight options of #99, section 3, and a new `data.expand(times:)` at 0.12.0; the other eight items of that section after 1.0. #99's paragraph on the items brought forward, and its row, now name these eight as well. No normative text is changed.
+
+## 27 November 2026 — zeff_open_decisions.md, new entry #241
+
+The owner asked for a plan for rating scales (Likert with reversed items, semantic differential, numeric rating, visual analogue, dichotomous, Guttman, Thurstone), and, shown it, said "Yes, record it". #241 is entered, open: endpoints declared, never taken from the answers; a warning in `reliability` for an item that runs against the others, and KR-20 named, at step 10 of 0.10.0; `rescale(x, from:, to:, reverse:)` and `weights:` of `row` at 0.12.0; `scalability` at 1.26. It also records an error found while planning: section 12 of `zeff_samples.zeff` scores the `engagement` scale without reversing `eng4`, to be corrected where 0.10.0 runs that section. No normative text is changed here.
