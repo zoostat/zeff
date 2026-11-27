@@ -105,6 +105,7 @@ dist/values 2ab6154ee800aa0d
 dist/draws ca2799137318d776
 dist/tukey 9fbedd1d79e23c46
 dist/weibull_logistic ad70b5980d8bb6dc
+dist/hypergeometric 2fd8df3931a77edb
 regress/arithmetic/stdout 689fd989a9774016
 regress/arithmetic/stderr cbf29ce484222325
 regress/categories/stdout 060df2ee936d339a

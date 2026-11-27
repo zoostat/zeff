@@ -165,6 +165,65 @@ families <- c(families, list(
   trunc_weibull, mix_logistic_weibull
 ))
 
+# The hypergeometric (release 0.10.0, step 6), from dhyper, phyper and qhyper, with R's names in
+# the engine's order: m successes, n failures, k draws. Appended, as the two families above.
+# On the shared grid a large population is read far in its lower tail; the cases after it read
+# large populations around their means, at points of their own.
+hypergeometric_family <- function(m, n, k) {
+  family("hypergeometric", list(successes = m, failures = n, draws = k),
+         function(x) dhyper(x, m, n, k),
+         function(x, lower.tail = TRUE) phyper(x, m, n, k, lower.tail = lower.tail),
+         function(p) qhyper(p, m, n, k))
+}
+families <- c(families, list(
+  hypergeometric_family(10, 7, 8), hypergeometric_family(50, 950, 100),
+  hypergeometric_family(1e6, 1e6, 1000), hypergeometric_family(2000, 1e9, 1e6),
+  hypergeometric_family(5e8, 5e8, 20)
+))
+# The quantile of a large population is not taken from qhyper, which adds the probabilities up
+# from the lower end of the range, each term through logarithms of binomial coefficients, and by
+# the upper tail has lost what it needs: for 1e6 draws from 5e8 and 5e8 it answers 1e6, the end
+# of the range, at 1 - 1e-10, where phyper shows the answer to be 503179; for 2000 successes among
+# 1e9 it answers 15 where the probability above 15 is 4.6e-10. The reference is the definition,
+# the smallest whole number at which phyper reaches p, found by halving the range; qhyper's own
+# answers are written beside it, to show where they part.
+smallest_reaching <- function(p, m, n, k) {
+  lo <- max(0, k - n) - 1
+  hi <- min(k, m)
+  while (hi - lo > 1) {
+    mid <- floor((lo + hi) / 2)
+    if (phyper(mid, m, n, k) >= p) hi <- mid else lo <- mid
+  }
+  hi
+}
+hypergeometric_case <- function(m, n, k, xs) {
+  list(
+    params = lapply(list(successes = m, failures = n, draws = k), dec),
+    x = as.list(dec(xs)),
+    pdf = as.list(num(dhyper(xs, m, n, k))),
+    lower = as.list(num(phyper(xs, m, n, k))),
+    upper = as.list(num(phyper(xs, m, n, k, lower.tail = FALSE))),
+    p = as.list(dec(ps)),
+    quantile = as.list(num(vapply(ps, smallest_reaching, 0, m = m, n = n, k = k))),
+    qhyper = as.list(num(qhyper(ps, m, n, k)))
+  )
+}
+around <- function(m, n, k, steps) {
+  mean <- k * m / (m + n)
+  sd <- sqrt(mean * (n / (m + n)) * ((m + n - k) / (m + n - 1)))
+  sort(unique(pmin(pmax(round(mean + steps * sd), max(0, k - n)), min(k, m))))
+}
+steps <- c(-12, -8, -5, -3, -1, -0.5, 0, 0.5, 1, 3, 5, 8, 12)
+hypergeometric <- list(
+  hypergeometric_case(300, 700, 400, around(300, 700, 400, steps)),
+  hypergeometric_case(1e6, 1e6, 1000, around(1e6, 1e6, 1000, steps)),
+  hypergeometric_case(5e5, 1.5e6, 1e6, around(5e5, 1.5e6, 1e6, steps)),
+  hypergeometric_case(5e8, 5e8, 1e6, around(5e8, 5e8, 1e6, steps)),
+  hypergeometric_case(1e8, 9e8, 5e8, around(1e8, 9e8, 5e8, steps)),
+  hypergeometric_case(2000, 1e9, 1e6, 0:12),
+  hypergeometric_case(1e9, 2000, 1e6, 1e6 - 0:12)
+)
+
 # A truncation near its bounds (release 0.8.0, step 20i). Close to a bound the formula above,
 # (F(x) - F(a)) / Z, subtracts two nearly equal numbers and keeps few digits, so the reference
 # takes the probability between two near points from the series of the integral of the density
@@ -264,4 +323,4 @@ near_bound <- list(
   near_t_case(5, c(tiny, 0.05, 0.5, 2, 10))
 )
 
-write_json(list(reference = reference_block(), families = families, near_bound = near_bound), file.path(here(), "distributions.json"))
+write_json(list(reference = reference_block(), families = families, near_bound = near_bound, hypergeometric = hypergeometric), file.path(here(), "distributions.json"))

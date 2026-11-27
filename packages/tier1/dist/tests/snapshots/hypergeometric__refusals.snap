@@ -1,0 +1,81 @@
+---
+source: packages/tier1/dist/tests/hypergeometric.rs
+expression: all
+---
+error[Z0406]: `dist.hypergeometric` needs `draws`
+ --> scripts/main.zeff:1:6
+  |
+1 | dist.hypergeometric(successes: 10, failures: 7)
+  |      ^^^^^^^^^^^^^^ `draws` is missing
+  |
+  = help: usage: `dist.hypergeometric(successes, failures, draws)`
+
+error[Z0413]: `draws` of `dist.hypergeometric` must be at most `successes` plus `failures`: the draws are made without replacement
+ --> scripts/main.zeff:1:56
+  |
+1 | dist.hypergeometric(successes: 10, failures: 7, draws: 20)
+  |                                                        ^^ outside the parameter's domain
+  |
+  = help: `zeff help dist.hypergeometric` gives the domain of every parameter
+
+error[Z0413]: `successes` of `dist.hypergeometric` must be a whole number of 0 or more, but this is -1
+ --> scripts/main.zeff:1:32
+  |
+1 | dist.hypergeometric(successes: -1, failures: 7, draws: 3)
+  |                                ^^ outside the parameter's domain
+  |
+  = help: `zeff help dist.hypergeometric` gives the domain of every parameter
+
+error[Z0413]: `failures` of `dist.hypergeometric` must be a whole number of 0 or more, but this is -7
+ --> scripts/main.zeff:1:46
+  |
+1 | dist.hypergeometric(successes: 10, failures: -7, draws: 3)
+  |                                              ^^ outside the parameter's domain
+  |
+  = help: `zeff help dist.hypergeometric` gives the domain of every parameter
+
+error[Z0413]: `draws` of `dist.hypergeometric` must be a whole number of 0 or more, but this is -3
+ --> scripts/main.zeff:1:56
+  |
+1 | dist.hypergeometric(successes: 10, failures: 7, draws: -3)
+  |                                                        ^^ outside the parameter's domain
+  |
+  = help: `zeff help dist.hypergeometric` gives the domain of every parameter
+
+error[Z0401]: `successes` of `dist.hypergeometric` must be an Int, but this is a Float
+ --> scripts/main.zeff:1:32
+  |
+1 | dist.hypergeometric(successes: 10.5, failures: 7, draws: 3)
+  |                                ^^^^ a Float
+  |
+  = help: usage: `dist.hypergeometric(successes, failures, draws)`
+
+error[Z0401]: `draws` of `dist.hypergeometric` must be an Int, but this is a Float
+ --> scripts/main.zeff:1:56
+  |
+1 | dist.hypergeometric(successes: 10, failures: 7, draws: 2.5)
+  |                                                        ^^^ a Float
+  |
+  = help: usage: `dist.hypergeometric(successes, failures, draws)`
+
+error[Z0413]: `successes` of `dist.hypergeometric` must be a whole number of 0 or more, but this is NA
+ --> scripts/main.zeff:1:32
+  |
+1 | dist.hypergeometric(successes: NA, failures: 7, draws: 3)
+  |                                ^^ outside the parameter's domain
+  |
+  = help: `zeff help dist.hypergeometric` gives the domain of every parameter
+
+error[Z0404]: `dist.hypergeometric` has no argument called `replace`
+ --> scripts/main.zeff:1:59
+  |
+1 | dist.hypergeometric(successes: 10, failures: 7, draws: 3, replace: true)
+  |                                                           ^^^^^^^ unknown argument
+  |
+  = help: usage: `dist.hypergeometric(successes, failures, draws)`
+
+error[Z0413]: `p` of `quantile` must be a probability between 0 and 1, but this is 1.2
+ --> scripts/main.zeff:1:68
+  |
+1 | dist.hypergeometric(successes: 10, failures: 7, draws: 3).quantile(1.2)
+  |                                                                    ^^^ not a probability

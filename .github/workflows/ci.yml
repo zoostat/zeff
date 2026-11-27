@@ -389,6 +389,7 @@ jobs:
           python3 -I tests/reference/special.py
           python3 -I tests/reference/kernels.py
           python3 -I tests/reference/tukey.py
+          python3 -I tests/reference/hypergeometric.py
 
       - name: Install the R the references were made with (tests/reference/r/renv.lock)
         uses: r-lib/actions/setup-r@v2

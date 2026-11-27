@@ -108,7 +108,7 @@ jobs:
             echo
             echo "## Nightly: the stochastic class"
             echo
-            echo "Each of the 16 distributions was drawn 100,000 times under each of 50 seeds and compared with its exact mean, variance and distribution function (mean within 5 standard errors, no lean over the seeds, Kolmogorov–Smirnov distance below 2.6/sqrt(n))."
+            echo "Each of the 17 distributions was drawn 100,000 times under each of 50 seeds and compared with its exact mean, variance and distribution function (mean within 5 standard errors, no lean over the seeds, Kolmogorov–Smirnov distance below 2.6/sqrt(n))."
             echo
             echo '```'
             cat stochastic.log || true

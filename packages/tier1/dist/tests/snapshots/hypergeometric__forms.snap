@@ -1,0 +1,71 @@
+---
+source: packages/tier1/dist/tests/hypergeometric.rs
+expression: "format!(\"{stdout}{stderr}\")"
+---
+hypergeometric distribution · successes: 10, failures: 7, draws: 8
+0
+0.000411353
+0.00185109
+0
+0
+0
+0
+0
+0.000411353
+0.419375
+1
+1
+1
+0
+1
+5
+8
+NA
+NA
+NA
+1
+1
+0
+1
+0
+0
+1
+0
+4
+1
+0
+9
+1
+Column<Int> · 6 values
+6
+4
+4
+4
+5
+6
+true
+frame · 4 rows × 3 variables
+
+       k             p         below
+  1    1   0.000411353   0.000411353
+  2    3      0.103661       0.11703
+  3   NA            NA            NA
+  4    8    0.00185109             1
+hypergeometric distribution · successes: 10, failures: 7, draws: 8 · truncated to [4, 6]
+0
+0.357143
+0.785714
+5
+1
+0.153279
+0.405143
+3
+Column<Int> · 4 values
+7
+7
+2
+3
+0.000798284
+0.0227501
+0.0226423
+500979

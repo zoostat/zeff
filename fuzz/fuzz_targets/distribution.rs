@@ -12,7 +12,7 @@ use zeff_engine::project::Project;
 use zeff_engine::run::run_script;
 
 /// Each family with the names of its parameters.
-const FAMILIES: [(&str, &[&str]); 14] = [
+const FAMILIES: [(&str, &[&str]); 15] = [
     ("normal", &["mean", "sd"]),
     ("lognormal", &["meanlog", "sdlog"]),
     ("uniform", &["min", "max"]),
@@ -27,6 +27,7 @@ const FAMILIES: [(&str, &[&str]); 14] = [
     ("negbinomial", &["size", "p"]),
     ("weibull", &["shape", "scale"]),
     ("logistic", &["location", "scale"]),
+    ("hypergeometric", &["successes", "failures", "draws"]),
 ];
 
 /// A number as a script writes it.
@@ -64,7 +65,16 @@ fn family(bytes: &mut &[u8]) -> String {
     let (name, params) = FAMILIES[which];
     let args: Vec<String> = params
         .iter()
-        .map(|p| format!("{p}: {}", literal(number(bytes))))
+        .map(|p| {
+            let x = number(bytes);
+            // The hypergeometric's parameters are Ints, reached only by a whole number written
+            // as one; kept to a million, so that a sum over a huge population is no timeout.
+            if name == "hypergeometric" && x.fract() == 0.0 && x.abs() <= 1e6 {
+                format!("{p}: {}", x as i64)
+            } else {
+                format!("{p}: {}", literal(x))
+            }
+        })
         .collect();
     format!("dist.{name}({})", args.join(", "))
 }

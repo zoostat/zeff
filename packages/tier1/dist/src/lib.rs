@@ -382,6 +382,41 @@ pub fn binomial(ctx: &mut CallContext<'_>, args: Args) -> Result<Value, Fail> {
     family(ctx, "binomial", &BINOMIAL, &args)
 }
 
+const HYPERGEOMETRIC: [Param; 3] = [
+    Param {
+        name: "successes",
+        default: f64::NAN,
+        rule: Rule::Count,
+    },
+    Param {
+        name: "failures",
+        default: f64::NAN,
+        rule: Rule::Count,
+    },
+    Param {
+        name: "draws",
+        default: f64::NAN,
+        rule: Rule::Count,
+    },
+];
+
+const HYPERGEOMETRIC_DRAWS: Joint = Joint {
+    at: "draws",
+    holds: |p| p[2].1 <= p[0].1 + p[1].1,
+    words: "be at most `successes` plus `failures`: the draws are made without replacement",
+};
+
+/// `dist.hypergeometric(successes: Int, failures: Int, draws: Int)`.
+pub fn hypergeometric(ctx: &mut CallContext<'_>, args: Args) -> Result<Value, Fail> {
+    family_checked(
+        ctx,
+        "hypergeometric",
+        &HYPERGEOMETRIC,
+        Some(&HYPERGEOMETRIC_DRAWS),
+        &args,
+    )
+}
+
 const POISSON: [Param; 1] = [Param {
     name: "lambda",
     default: f64::NAN,
@@ -905,6 +940,17 @@ pub fn functions() -> Vec<Function> {
             include_str!("../help/dist.binomial.md"),
             "R 4.6.0 dbinom, pbinom, qbinom",
             binomial,
+        ),
+        constructor(
+            "dist.hypergeometric",
+            vec![
+                ParamSpec::required("successes", "Int"),
+                ParamSpec::required("failures", "Int"),
+                ParamSpec::required("draws", "Int"),
+            ],
+            include_str!("../help/dist.hypergeometric.md"),
+            "R 4.6.0 dhyper, phyper, qhyper and exact rational arithmetic",
+            hypergeometric,
         ),
         constructor(
             "dist.poisson",

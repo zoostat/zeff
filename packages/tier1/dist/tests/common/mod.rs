@@ -1,4 +1,4 @@
-//! The sixteen distributions of the stochastic class with their exact mean and variance, shared by
+//! The seventeen distributions of the stochastic class with their exact mean and variance, shared by
 //! the quick recovery test and the nightly one.
 
 use zeff_core::value::Distribution;
@@ -117,6 +117,17 @@ pub fn recovery_cases() -> Vec<(String, Distribution, f64, f64)> {
                 },
                 1.0,
                 4.0 * std::f64::consts::PI * std::f64::consts::PI / 3.0,
+            ),
+            // The hypergeometric (step 6): 20 draws from 30 successes and 70 failures, with
+            // mean d m / N and variance d (m / N) (n / N) (N − d) / (N − 1).
+            (
+                "hypergeometric".to_string(),
+                Distribution::Family {
+                    name: "hypergeometric",
+                    params: vec![("successes", 30.0), ("failures", 70.0), ("draws", 20.0)],
+                },
+                6.0,
+                20.0 * 0.3 * 0.7 * 80.0 / 99.0,
             ),
         ])
         .collect()

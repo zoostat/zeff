@@ -77,6 +77,7 @@ fn every_family_agrees_with_r_at_six_digits() {
             "negbinomial",
             "weibull",
             "logistic",
+            "hypergeometric",
             "composite",
         ]
         .contains(&name)
@@ -91,8 +92,8 @@ fn every_family_agrees_with_r_at_six_digits() {
                 .unwrap()
                 .iter()
                 .map(|(k, v)| {
-                    // The binomial's `n` is an Int parameter.
-                    if k == "n" {
+                    // The binomial's `n` and the hypergeometric's three are Int parameters.
+                    if matches!(k.as_str(), "n" | "successes" | "failures" | "draws") {
                         format!(
                             "{k}: {}",
                             v.as_str().unwrap().parse::<f64>().unwrap() as i64
@@ -111,10 +112,23 @@ fn every_family_agrees_with_r_at_six_digits() {
             let x = literal(x);
             expressions.push(format!("{d}.pdf({x})"));
             expected.push(shown(&family["pdf"][i]));
+            // Just below nought R's count distributions disagree among themselves: `pbinom`,
+            // `ppois` and `pnbinom` give no probability at or below a negative value, while
+            // `phyper` first rounds a value within 1e-7 of nought up to it and answers P(X ≤ 0).
+            // Here every count distribution follows the first rule, which is also the truth.
+            let just_below_nought = name == "hypergeometric" && x == "-1e-10";
             expressions.push(format!("{d}.cdf({x})"));
-            expected.push(shown(&family["lower"][i]));
+            expected.push(if just_below_nought {
+                "0".to_string()
+            } else {
+                shown(&family["lower"][i])
+            });
             expressions.push(format!("{d}.cdf({x}, upper: true)"));
-            expected.push(shown(&family["upper"][i]));
+            expected.push(if just_below_nought {
+                "1".to_string()
+            } else {
+                shown(&family["upper"][i])
+            });
         }
         for (i, p) in family["p"].as_array().unwrap().iter().enumerate() {
             expressions.push(format!("{d}.quantile({})", literal(p)));
@@ -153,7 +167,7 @@ fn every_family_agrees_with_r_at_six_digits() {
         }
         if !round_trips.is_empty() {
             // A discrete quantile is the smallest k with F(k) ≥ p: F(k) ≥ p and F(k − 1) < p.
-            let discrete = ["binomial", "poisson", "negbinomial"]
+            let discrete = ["binomial", "poisson", "negbinomial", "hypergeometric"]
                 .iter()
                 .any(|f| d.contains(f));
             if discrete {

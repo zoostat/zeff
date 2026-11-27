@@ -1,9 +1,10 @@
-//! The fifteen families' density, distribution function, quantile and draw (Engine and Project
+//! The sixteen families' density, distribution function, quantile and draw (Engine and Project
 //! Specification, section 13: tails computed directly; every draw by inverse CDF from the uniform
 //! stream, section 8.3, point 3). This release's families: normal, log-normal, uniform and
 //! exponential (step 7); the rest follow at steps 8 to 10. The thirteenth, the studentized range
 //! (release 0.7.0, step 18), is summed in `zeff_numeric::tukey`; the Weibull and the logistic
-//! (release 0.10.0, step 5) have closed forms.
+//! (release 0.10.0, step 5) have closed forms, and the hypergeometric (step 6) sums each tail
+//! outwards from the point asked.
 
 use zeff_core::value::Distribution;
 use zeff_numeric::maths;
@@ -26,7 +27,10 @@ fn param(params: &[(&'static str, f64)], name: &str) -> f64 {
 pub fn is_discrete(d: &Distribution) -> bool {
     match d {
         Distribution::Family { name, .. } => {
-            matches!(*name, "binomial" | "poisson" | "negbinomial")
+            matches!(
+                *name,
+                "binomial" | "poisson" | "negbinomial" | "hypergeometric"
+            )
         }
         Distribution::Truncated { inner, .. } => is_discrete(inner),
         Distribution::Mixture { parts } => parts.iter().all(|(d, _)| is_discrete(d)),
@@ -186,6 +190,13 @@ pub fn pdf(d: &Distribution, x: f64) -> f64 {
                 _ => 0.0,
             }
         }
+        "hypergeometric" => {
+            let (successes, failures, draws) = hypergeometric_params(params);
+            match whole(x) {
+                Some(k) => hypergeometric_mass(k, successes, failures, draws),
+                None => 0.0,
+            }
+        }
         "poisson" => {
             let lambda = param(params, "lambda");
             match whole(x) {
@@ -294,6 +305,167 @@ fn poisson_mass(k: f64, lambda: f64) -> f64 {
             - 0.5 * maths::log(k)
             - LN_SQRT_2PI,
     )
+}
+
+/// The logarithm of C(n, k) p^k q^(n − k) by the same saddle-point form, for a success
+/// probability given with its complement, each worked out on its own; minus infinity where the
+/// probability is nought. The hypergeometric probabilities are quotients of three of these at
+/// p = draws / population, where one minus a probability near one would keep few digits of q,
+/// and the quotient is formed as a sum of logarithms: a product of two probabilities that are
+/// each small can fall among the smallest numbers a Float holds, which keep few digits, before
+/// the division brings it back. Kept apart from `binomial_mass`, whose every bit is published.
+fn ln_binomial_mass_pq(k: f64, n: f64, p: f64, q: f64) -> f64 {
+    let certain = |holds: bool| if holds { 0.0 } else { f64::NEG_INFINITY };
+    if p == 0.0 {
+        return certain(k == 0.0);
+    }
+    if q == 0.0 {
+        return certain(k == n);
+    }
+    if n == 0.0 {
+        return 0.0;
+    }
+    // n log q and n log p: where the base is near one the logarithm is taken through the
+    // deviance, which has n log q = −deviance(n, nq) − np without the logarithm of a number
+    // near one.
+    if k == 0.0 {
+        return if p < 0.1 {
+            -special::deviance(n, n * q) - n * p
+        } else {
+            n * maths::log(q)
+        };
+    }
+    if k == n {
+        return if q < 0.1 {
+            -special::deviance(n, n * p) - n * q
+        } else {
+            n * maths::log(p)
+        };
+    }
+    let remainder = special::stirling_remainder(n)
+        - special::stirling_remainder(k)
+        - special::stirling_remainder(n - k);
+    let deviance = special::deviance(k, n * p) + special::deviance(n - k, n * q);
+    let log_scale = -0.5 * maths::log(k * (n - k) / n) - LN_SQRT_2PI;
+    remainder - deviance + log_scale
+}
+
+/// The hypergeometric's successes, failures and draws.
+fn hypergeometric_params(params: &[(&'static str, f64)]) -> (f64, f64, f64) {
+    (
+        param(params, "successes"),
+        param(params, "failures"),
+        param(params, "draws"),
+    )
+}
+
+/// The smallest and the largest number of successes the draws can hold.
+fn hypergeometric_support(successes: f64, failures: f64, draws: f64) -> (f64, f64) {
+    ((draws - failures).max(0.0), draws.min(successes))
+}
+
+/// C(m, k) C(n, d − k) / C(m + n, d) for whole k: the probability of k successes among d draws
+/// made without replacement from m successes and n failures. With p = d / (m + n) it is the
+/// quotient b(k; m, p) b(d − k; n, p) / b(d; m + n, p) of three binomial probabilities, each by
+/// the saddle-point form, so that populations of 1e9 lose no digit to the logarithm of a
+/// binomial coefficient; the three are combined as logarithms and the exponential taken once.
+fn hypergeometric_mass(k: f64, successes: f64, failures: f64, draws: f64) -> f64 {
+    let (first, last) = hypergeometric_support(successes, failures, draws);
+    if k < first || k > last {
+        return 0.0;
+    }
+    if draws == 0.0 {
+        return 1.0;
+    }
+    let population = successes + failures;
+    let (p, q) = (draws / population, (population - draws) / population);
+    let log = ln_binomial_mass_pq(k, successes, p, q)
+        + ln_binomial_mass_pq(draws - k, failures, p, q)
+        - ln_binomial_mass_pq(draws, population, p, q);
+    // A probability: what is computed is held at one.
+    maths::exp(log).min(1.0)
+}
+
+/// A sum of positive terms with its rounding carried along (Neumaier's form), for the tails
+/// below, which may add tens of thousands of terms.
+struct Carried {
+    sum: f64,
+    lost: f64,
+}
+
+impl Carried {
+    fn add(&mut self, term: f64) {
+        let next = self.sum + term;
+        self.lost += if self.sum >= term {
+            (self.sum - next) + term
+        } else {
+            (term - next) + self.sum
+        };
+        self.sum = next;
+    }
+
+    fn total(&self) -> f64 {
+        self.sum + self.lost
+    }
+}
+
+/// P(X ≤ x) and P(X > x) for whole x inside the support. The tail on x's side of the mean is
+/// summed directly, outwards from x, each term from the one before by the ratio of neighbouring
+/// probabilities; the other tail is its complement, which loses nothing since the summed tail
+/// is the smaller one or near one half. A tail far out is therefore a sum of a few positive
+/// terms and keeps its digits however small it is.
+fn hypergeometric_tails(x: f64, successes: f64, failures: f64, draws: f64) -> Tails {
+    // The terms die away as a normal density does; a term is dropped once it is below 1e-24 of
+    // the sum, some ten standard deviations out, past which the rest cannot reach the last bit.
+    const NEGLIGIBLE: f64 = 1e-24;
+    let (first, last) = hypergeometric_support(successes, failures, draws);
+    let population = successes + failures;
+    if x * population <= draws * successes {
+        // At or below the mean: P(X ≤ x) = P(x) (1 + r(x) + r(x) r(x − 1) + ...), with
+        // r(j) = P(j − 1) / P(j) = j (n − d + j) / ((m − j + 1) (d − j + 1)).
+        let mut series = Carried {
+            sum: 1.0,
+            lost: 0.0,
+        };
+        let mut term = 1.0;
+        let mut j = x;
+        while j > first {
+            term *= j / (successes - j + 1.0) * ((failures - draws + j) / (draws - j + 1.0));
+            if term <= NEGLIGIBLE * series.sum {
+                break;
+            }
+            series.add(term);
+            j -= 1.0;
+        }
+        let lower = (hypergeometric_mass(x, successes, failures, draws) * series.total()).min(1.0);
+        Tails {
+            lower,
+            upper: 1.0 - lower,
+        }
+    } else {
+        // Above the mean: P(X > x) = P(x + 1) (1 + s(x + 1) + s(x + 1) s(x + 2) + ...), with
+        // s(j) = P(j + 1) / P(j) = (m − j) (d − j) / ((j + 1) (n − d + j + 1)).
+        let mut series = Carried {
+            sum: 1.0,
+            lost: 0.0,
+        };
+        let mut term = 1.0;
+        let mut j = x + 1.0;
+        while j < last {
+            term *= (successes - j) / (j + 1.0) * ((draws - j) / (failures - draws + j + 1.0));
+            if term <= NEGLIGIBLE * series.sum {
+                break;
+            }
+            series.add(term);
+            j += 1.0;
+        }
+        let upper =
+            (hypergeometric_mass(x + 1.0, successes, failures, draws) * series.total()).min(1.0);
+        Tails {
+            lower: 1.0 - upper,
+            upper,
+        }
+    }
 }
 
 /// The smallest whole number k with F(k) ≥ p, found from a start near the mean by widening a
@@ -519,9 +691,10 @@ const AGREES: f64 = 1e-9;
 /// continuous family other than the studentized range, whose density is itself summed.
 fn integrable(d: &Distribution) -> bool {
     match d {
-        Distribution::Family { name, .. } => {
-            !matches!(*name, "binomial" | "poisson" | "negbinomial" | "tukey")
-        }
+        Distribution::Family { name, .. } => !matches!(
+            *name,
+            "binomial" | "poisson" | "negbinomial" | "hypergeometric" | "tukey"
+        ),
         Distribution::Truncated { inner, .. } => integrable(inner),
         Distribution::Mixture { parts } => parts.iter().all(|(d, _)| integrable(d)),
     }
@@ -973,6 +1146,18 @@ pub fn cdf(d: &Distribution, x: f64) -> Tails {
                 }
             }
         }
+        "hypergeometric" => {
+            let (successes, failures, draws) = hypergeometric_params(params);
+            let (first, last) = hypergeometric_support(successes, failures, draws);
+            let k = floor_whole(x);
+            if k < first {
+                exact(0.0)
+            } else if k >= last {
+                exact(1.0)
+            } else {
+                hypergeometric_tails(k, successes, failures, draws)
+            }
+        }
         "binomial" => {
             let (n, p) = (param(params, "n"), param(params, "p"));
             let k = floor_whole(x);
@@ -1105,6 +1290,33 @@ pub fn quantile(d: &Distribution, p: f64) -> f64 {
                 maths::log(p / (1.0 - p))
             };
             location + scale * log_odds
+        }
+        "hypergeometric" => {
+            let (successes, failures, draws) = hypergeometric_params(params);
+            let (first, last) = hypergeometric_support(successes, failures, draws);
+            if p <= 0.0 {
+                return first;
+            }
+            if p >= 1.0 {
+                return last;
+            }
+            let population = successes + failures;
+            let mean = draws * successes / population;
+            let sd = if population > 1.0 {
+                (mean * (failures / population) * ((population - draws) / (population - 1.0)))
+                    .sqrt()
+            } else {
+                0.0
+            };
+            let start = mean + sd * special::normal_quantile(p.max(1e-300), false);
+            // A symmetric distribution has its distribution function at exactly one half at a
+            // whole number, and a computed one half may fall a rounding short of it. The
+            // probability asked is therefore lowered by about a thousand roundings of the
+            // smaller of p and 1 − p, so that a distribution function that equals p but for its
+            // last bits counts as reaching it. R's `qhyper` lowers p itself by that share,
+            // which near one is far more than the upper tail it leaves and moves the answer.
+            let reached = p - 1024.0 * f64::EPSILON * p.min(1.0 - p);
+            discrete_quantile(d, reached, start.clamp(first, last), last)
         }
         "binomial" => {
             let (n, q) = (param(params, "n"), param(params, "p"));

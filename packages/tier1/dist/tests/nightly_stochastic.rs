@@ -1,5 +1,5 @@
 //! The stochastic class of the testing handbook, run nightly (release 0.3.0, step 14): each of the
-//! sixteen distributions drawn 100,000 times under each of 50 seeds and compared with its exact
+//! seventeen distributions drawn 100,000 times under each of 50 seeds and compared with its exact
 //! mean, variance and distribution function. R's draws cannot be matched value for value (another
 //! generator), so the comparison is the one the handbook allows: agreement within Monte Carlo
 //! error. Run with `cargo test -p zeff-dist --release --test nightly_stochastic -- --ignored`.
@@ -13,7 +13,7 @@ const SEEDS: u64 = 50;
 const N: usize = 100_000;
 
 #[test]
-#[ignore = "nightly: 50 seeds of 100,000 draws for each of 16 distributions"]
+#[ignore = "nightly: 50 seeds of 100,000 draws for each of 17 distributions"]
 fn fifty_seeds_recover_every_distribution_within_monte_carlo_error() {
     let mut failures = Vec::new();
     for (ordinal, (name, d, mean, variance)) in common::recovery_cases().into_iter().enumerate() {

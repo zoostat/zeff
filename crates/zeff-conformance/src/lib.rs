@@ -872,11 +872,47 @@ fn distribution_cases() -> Vec<Line> {
         let mut stream = Stream::new(20_261_019, 4, 0);
         later.extend((0..8).map(|_| families::draw(&d, &mut stream)));
     }
+    // The hypergeometric (release 0.10.0, step 6), in a series of its own: small urns, rare
+    // successes and populations of a thousand million, each on the shared grid, which lies far
+    // in the lower tail of the large ones, and at points around its own mean, with the
+    // quantiles and the first draws.
+    let mut urns = Vec::new();
+    for (successes, failures, drawn) in [
+        (10.0, 7.0, 8.0),
+        (50.0, 950.0, 100.0),
+        (1e6, 1e6, 1000.0),
+        (2000.0, 1e9, 1e6),
+        (5e8, 5e8, 1e6),
+    ] {
+        let d = Distribution::Family {
+            name: "hypergeometric",
+            params: vec![
+                ("successes", successes),
+                ("failures", failures),
+                ("draws", drawn),
+            ],
+        };
+        let population: f64 = successes + failures;
+        let mean: f64 = drawn * successes / population;
+        let sd: f64 =
+            (mean * (failures / population) * ((population - drawn) / (population - 1.0))).sqrt();
+        let around = [-12.0, -5.0, -1.0, 0.0, 1.0, 5.0, 12.0].map(|z: f64| (mean + z * sd).round());
+        for &x in xs.iter().chain(&around) {
+            let tails = families::cdf(&d, x);
+            urns.extend([families::pdf(&d, x), tails.lower, tails.upper]);
+        }
+        for &p in &ps {
+            urns.push(families::quantile(&d, p));
+        }
+        let mut stream = Stream::new(20_261_019, 5, 0);
+        urns.extend((0..8).map(|_| families::draw(&d, &mut stream)));
+    }
     vec![
         series("dist/values", &values),
         series("dist/draws", &draws),
         series("dist/tukey", &tukey),
         series("dist/weibull_logistic", &later),
+        series("dist/hypergeometric", &urns),
     ]
 }
 
