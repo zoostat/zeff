@@ -1052,3 +1052,7 @@ Each change applies a decision the owner took with "Go, as recommended" at the o
 - **zeff_language_reference.md.** Section 7.3: `g.implied_independencies(data:)` (#158) and `g.instruments(exposure:, outcome:)` (#159) in the table of functions; a paragraph that no function, option or viewer draws or proposes an arrow that a test points to (#194, rule 1).
 - **zemp_specification.md.** Section 11, "Scale": 284 functions in Zeff 1.0, 187 tagged only `general`, 392 on the roadmap, 676 in all.
 - **zeff_risk_register.md.** The impact of R9 raised from Low to Medium; R14 entered, the publisher's signing key as one key kept by one person (Low, High), with its early warning, mitigation and fallback; a dated paragraph at the end.
+
+## 27 November 2026 — zeff_open_decisions.md, new entry #232
+
+The owner asked what could be done to Zemp Lite's look without changing its design. Zemp Lite 0.3, as published, was gone through at a desktop's width in light and dark, and ten small changes of finish were listed (the engine named once in the status bar, wrapped comments, the data grid's decimals and headings, the case of **Start**, the empty state of Plots, the project screen's balance, even wrapping of headings, a shadow under Paper's page and a lighter sample figure, whole labels on hover). Asked whether they should be recorded, he said "Yes, record them". #232 is entered as decided, placed at Zemp Lite 0.4; the phone's width and the keyboard's focus are to be gone through when 0.4 is planned. No normative text is changed.
