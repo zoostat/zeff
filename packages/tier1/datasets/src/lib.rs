@@ -27,7 +27,16 @@ pub struct Shipped {
 }
 
 /// The datasets of this release, in the order `datasets()` lists them.
-pub const SHIPPED: [Shipped; 4] = [
+pub const SHIPPED: [Shipped; 5] = [
+    Shipped {
+        name: "engagement",
+        kind: "synthetic",
+        licence: "CC0-1.0",
+        source: "generate/engagement.py, seed 20261127",
+        csv: include_bytes!("../data/engagement.csv"),
+        arrow: include_bytes!("../data/engagement.arrow"),
+        help: include_str!("../help/engagement.md"),
+    },
     Shipped {
         name: "firms",
         kind: "synthetic",

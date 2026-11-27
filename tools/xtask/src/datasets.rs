@@ -197,6 +197,66 @@ fn declarations() -> Vec<Dataset> {
                 variable("id", TypeSpec::Int, "Patient"),
             ],
         },
+        Dataset {
+            name: "engagement",
+            source: "zeff:engagement.csv (synthetic; generate/engagement.py, seed 20261127)",
+            panel: None,
+            variables: vec![
+                variable(
+                    "employee",
+                    TypeSpec::Int,
+                    "Employee identifier, as in staff",
+                ),
+                Variable {
+                    unit: "1 strongly disagree to 5 strongly agree",
+                    ..variable("eng1", TypeSpec::Int, "I look forward to coming to work")
+                },
+                Variable {
+                    unit: "1 strongly disagree to 5 strongly agree",
+                    ..variable("eng2", TypeSpec::Int, "My work matters to me")
+                },
+                Variable {
+                    unit: "1 strongly disagree to 5 strongly agree",
+                    ..variable(
+                        "eng3",
+                        TypeSpec::Int,
+                        "I put more into my work than is asked",
+                    )
+                },
+                Variable {
+                    unit: "1 strongly disagree to 5 strongly agree",
+                    ..variable(
+                        "eng4",
+                        TypeSpec::Int,
+                        "I often think of leaving (worded in reverse)",
+                    )
+                },
+                Variable {
+                    unit: "1 strongly disagree to 5 strongly agree",
+                    ..variable("eng5", TypeSpec::Int, "Time passes quickly when I work")
+                },
+                Variable {
+                    unit: "1 strongly disagree to 5 strongly agree",
+                    ..variable("eng6", TypeSpec::Int, "I am proud of what my team does")
+                },
+                Variable {
+                    value_labels: "{\"0\": \"no\", \"1\": \"yes\"}",
+                    ..variable(
+                        "recommend_before",
+                        TypeSpec::Int,
+                        "Would recommend the firm, before the course",
+                    )
+                },
+                Variable {
+                    value_labels: "{\"0\": \"no\", \"1\": \"yes\"}",
+                    ..variable(
+                        "recommend_after",
+                        TypeSpec::Int,
+                        "Would recommend the firm, after the course",
+                    )
+                },
+            ],
+        },
     ]
 }
 

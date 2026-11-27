@@ -47,6 +47,8 @@ fn the_shipped_files_match_their_checksums_and_the_scripts_output() {
     assert_eq!(
         files(),
         [
+            "engagement.csv",
+            "engagement.arrow",
             "firms.csv",
             "firms.arrow",
             "sleep.csv",
@@ -246,5 +248,116 @@ fn staff_has_the_shape_labels_and_category_of_its_page() {
             .metadata()
             .get(zeff_columns::MetadataKey::Label),
         Some("Offered the training course, by lot")
+    );
+}
+
+/// `engagement` (release 0.10.0, step 8) has the shape and the labels of its page: 1,200 of the
+/// employees of `staff`, each once and in the order of their numbers; six answers from 1 to 5
+/// with about three in a hundred missing; the fourth statement worded in reverse, so that it runs
+/// against the other five; a scale whose alpha in the 986 complete rows is 0.8508, beside the
+/// 0.8469 of the model; and the question asked twice, with more moves from no to yes than back.
+#[test]
+fn engagement_has_the_shape_labels_and_scale_of_its_page() {
+    let survey = zeff_datasets::table("engagement").expect("the shipped engagement");
+    assert_eq!((survey.rows(), survey.n_cols()), (1200, 9));
+    assert_eq!(
+        survey.names(),
+        [
+            "employee",
+            "eng1",
+            "eng2",
+            "eng3",
+            "eng4",
+            "eng5",
+            "eng6",
+            "recommend_before",
+            "recommend_after"
+        ]
+    );
+    assert!(survey.metadata().panel.is_none());
+    let column = |name: &str| -> Vec<Option<i64>> {
+        survey.column(name).unwrap().as_ints().unwrap().collect()
+    };
+    // The respondents are employees of `staff`, each once, in the order of their numbers.
+    let employees: Vec<i64> = column("employee").into_iter().flatten().collect();
+    assert_eq!(employees.len(), 1200);
+    assert!(employees.windows(2).all(|pair| pair[0] < pair[1]));
+    let staff = zeff_datasets::table("staff").expect("the shipped staff");
+    assert!(
+        employees
+            .iter()
+            .all(|e| (1..=staff.rows() as i64).contains(e))
+    );
+    // The answers: 1 to 5, about three in a hundred missing.
+    let items: Vec<Vec<Option<i64>>> = (1..=6).map(|j| column(&format!("eng{j}"))).collect();
+    let mut missing = 0;
+    for answers in &items {
+        assert!(answers.iter().flatten().all(|a| (1..=5).contains(a)));
+        missing += answers.iter().filter(|a| a.is_none()).count();
+    }
+    assert_eq!(missing, 242, "of 7,200 answers");
+    // The rows with all six answers, the fourth scored the right way round.
+    let complete: Vec<Vec<f64>> = (0..survey.rows())
+        .filter_map(|row| {
+            items
+                .iter()
+                .enumerate()
+                .map(|(j, answers)| answers[row].map(|a| if j == 3 { 6 - a } else { a } as f64))
+                .collect()
+        })
+        .collect();
+    assert_eq!(complete.len(), 986);
+    let variance = |values: &[f64]| {
+        let mean = values.iter().sum::<f64>() / values.len() as f64;
+        values.iter().map(|v| (v - mean).powi(2)).sum::<f64>() / (values.len() as f64 - 1.0)
+    };
+    let item_variances: f64 = (0..6)
+        .map(|j| variance(&complete.iter().map(|row| row[j]).collect::<Vec<_>>()))
+        .sum();
+    let totals: Vec<f64> = complete.iter().map(|row| row.iter().sum()).collect();
+    let alpha = 6.0 / 5.0 * (1.0 - item_variances / variance(&totals));
+    assert!((alpha - 0.850_751_7).abs() < 1e-6, "{alpha}");
+    // Within sampling error of the model's 0.8469, whose standard error at 986 rows is under 0.01.
+    assert!((alpha - 0.8469).abs() < 0.02);
+    // As written, the fourth statement runs against the first.
+    let covariance: f64 = {
+        let pairs: Vec<(f64, f64)> = complete.iter().map(|row| (row[0], 6.0 - row[3])).collect();
+        let (ma, mb) = (
+            pairs.iter().map(|p| p.0).sum::<f64>() / pairs.len() as f64,
+            pairs.iter().map(|p| p.1).sum::<f64>() / pairs.len() as f64,
+        );
+        pairs.iter().map(|p| (p.0 - ma) * (p.1 - mb)).sum()
+    };
+    assert!(covariance < 0.0);
+    // The question asked twice: the four cells of the pairs with both answers, and the missing.
+    let (before, after) = (column("recommend_before"), column("recommend_after"));
+    assert!(before.iter().all(|b| b.is_some()));
+    let cell = |b: i64, a: i64| {
+        before
+            .iter()
+            .zip(&after)
+            .filter(|(x, y)| **x == Some(b) && **y == Some(a))
+            .count()
+    };
+    assert_eq!(
+        (cell(0, 0), cell(0, 1), cell(1, 0), cell(1, 1)),
+        (465, 183, 114, 415)
+    );
+    assert_eq!(after.iter().filter(|a| a.is_none()).count(), 23);
+    let label = |name: &str| {
+        survey
+            .column(name)
+            .unwrap()
+            .metadata()
+            .get(zeff_columns::MetadataKey::Label)
+            .map(str::to_string)
+    };
+    assert_eq!(
+        label("eng4").as_deref(),
+        Some("I often think of leaving (worded in reverse)")
+    );
+    assert_eq!(
+        label("recommend_after").as_deref(),
+        Some("Would recommend the firm, after the course")
     );
 }
