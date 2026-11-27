@@ -1060,3 +1060,7 @@ The owner asked what could be done to Zemp Lite's look without changing its desi
 ## 27 November 2026 — zeff_open_decisions.md, new entry #233
 
 The owner asked for Zeff's counterparts of R's `do.call`, `map`, `apply`, `sweep`, `outer`, `expand.grid`, `split` and `tapply`; each was run on the engine. Shown that `expand.grid` has only a workaround, he asked that it be recorded "and any new function that you would suggest based on above discussions". #233 is entered, open: `cross` and `data.cross` (every combination; the absent combinations added to a frame), `data.subsets(by:)`, `map(..., with:)`, an optional `start` for `reduce`, `data.append` of a list of frames, more statistics for `row`, all recommended at 0.12.0, and the names `outer` and `m.apply` reserved for the matrices of 1.15. Deadline: the opening of 0.12.0. No normative text is changed.
+
+## 27 November 2026 — zeff_open_decisions.md, #233 (the owner's ruling)
+
+The owner ruled on #233: "Go with A, names as recommended". The entry is marked decided: F1 to F6 at 0.12.0, F7 at 1.15, under the names `cross`, `data.cross`, `data.subsets`, `with:` of `map`, `outer` and `m.apply`; the catalogue's rows to be entered at the opening of 0.12.0. No normative text is changed.
