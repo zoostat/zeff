@@ -722,6 +722,48 @@
       "Source": "Repository",
       "Repository": "CRAN",
       "Note": "a dependency of emmeans, installed with it"
+    },
+    "dagitty": {
+      "Package": "dagitty",
+      "Version": "0.3-4",
+      "Source": "Repository",
+      "Repository": "CRAN",
+      "Note": "installed by tests/reference/r/install.R into tests/reference/r/library (ignored by Git); the reference section 13 of the Engine and Project Specification names for the package identify: adjustmentSets(), impliedConditionalIndependencies(), instrumentalVariables(), dseparated() and localTests() (release 0.10.0, question 4 of its opening; GPL-2, reference tooling only, never linked)"
+    },
+    "V8": {
+      "Package": "V8",
+      "Version": "8.2.0",
+      "Source": "Repository",
+      "Repository": "CRAN",
+      "Note": "a dependency of dagitty, installed with it; its own dependencies Rcpp, jsonlite and curl are recorded above"
+    },
+    "psych": {
+      "Package": "psych",
+      "Version": "2.6.9",
+      "Source": "Repository",
+      "Repository": "CRAN",
+      "Note": "installed by tests/reference/r/install.R; alpha() is the reference for reliability, beside the formula written out in base R (release 0.10.0, question 4 of its opening; GPL, reference tooling only, never linked)"
+    },
+    "mnormt": {
+      "Package": "mnormt",
+      "Version": "2.1.2",
+      "Source": "Repository",
+      "Repository": "CRAN",
+      "Note": "a dependency of psych, installed with it"
+    },
+    "GPArotation": {
+      "Package": "GPArotation",
+      "Version": "2026.8-2",
+      "Source": "Repository",
+      "Repository": "CRAN",
+      "Note": "a dependency of psych, installed with it"
+    },
+    "pROC": {
+      "Package": "pROC",
+      "Version": "1.19.1",
+      "Source": "Repository",
+      "Repository": "CRAN",
+      "Note": "installed by tests/reference/r/install.R; roc() and ci.auc() are the reference for the area under the ROC curve and its interval by the method of DeLong, beside base R (release 0.10.0, open decision #218; GPL, reference tooling only, never linked)"
     }
   }
 }

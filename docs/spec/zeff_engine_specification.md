@@ -247,7 +247,7 @@ ascii = false
 
 ## 8. Packages and tiers
 
-Zeff's functions live in 31 packages on four tiers around a centre, `core`. Packages are grouped by method family, not by research question, because most methods serve several questions; every function also carries `purpose` tags (one or more of the 13 research goals of the Zemp Specification, section 11, or `general` for infrastructure), which Zemp uses to build question-first menus.
+Zeff's functions live in 32 packages on four tiers around a centre, `core`. Packages are grouped by method family, not by research question, because most methods serve several questions; every function also carries `purpose` tags (one or more of the 13 research goals of the Zemp Specification, section 11, or `general` for infrastructure), which Zemp uses to build question-first menus.
 
 ```
 Tier 4  extensions   project functions/ · third-party packages not before 2.0
@@ -256,7 +256,7 @@ Tier 3  designs      identify → experiment → quasi → adjust → mediate �
 Tier 2  models       regress → glm → multilevel → explore → series → latent →
                      measure → learn → groups
 Tier 1  toolkit      time → text → data → dist → results → stats → optim →
-                     resample → survey → plot → datasets → web
+                     resample → survey → plot → datasets → web → publish
 Tier 0  centre       core
         engine kernel (Rust only; its modules are fixed by rule 8)
 ```
@@ -296,16 +296,17 @@ Counts are functions in 1.0 / proposed for 1.0 (none since 16 October 2026) / on
 | 7 | `optim` | Fit anything defined by an objective | Minimisers, MLE and GMM frameworks, mathematical programming | 0 / 0 / 11 |
 | 8 | `resample` | Uncertainty and validation by resampling | Bootstrap, jackknife, permutation, holdout splits and cross-validation folds | 0 / 0 / 7 |
 | 9 | `survey` | Design-correct estimates from survey data | Design declaration, replicate weights, calibration | 0 / 0 / 8 |
-| 10 | `plot` | Draw anything the same way | Layered plot grammar and renderer (section 7.6 of the Language Reference), shorthands, result plots | 35 / 0 / 95 |
+| 10 | `plot` | Draw anything the same way | Layered plot grammar and renderer (section 7.6 of the Language Reference), shorthands, result plots | 36 / 0 / 94 |
 | 11 | `datasets` | Data for examples, tests and users | Shipped public and synthetic datasets with help pages; the `zeff:` data root (section 8.5) | 2 / 0 / 0 |
 | 12 | `web` | Data from APIs, reproducibly | `fetch` with caching, pagination and recorded provenance; secrets kept out of projects (section 8.6) | 0 / 0 / 4 |
+| 13 | `publish` | Say what was found, and cite it | Citations of Zeff, of methods and of datasets; publication tables, moved here from `results` at release 0.10.0; reports written in Markdown after 1.0 (zeff_open_decisions.md, #135 and #141) | 1 / 0 / 0 |
 
 **Tier 2: models**, which fit a model and return a result
 
 | # | Package | Objective | Focus | 1.0 / proposed / roadmap |
 | --- | --- | --- | --- | --- |
-| 1 | `regress` | Linear and IV regression | OLS, fixed effects, IV with the Anderson–Rubin test, event-study terms, linear-model diagnostics, wild bootstrap, quantile regression | 10 / 0 / 15 |
-| 2 | `glm` | Non-linear outcomes | Binary models with their classification table and ROC curve; count, ordinal, multinomial, censored and selection models | 3 / 0 / 12 |
+| 1 | `regress` | Linear and IV regression | OLS, fixed effects, IV with the Anderson–Rubin test, event-study terms, linear-model diagnostics, wild bootstrap, quantile regression | 11 / 0 / 14 |
+| 2 | `glm` | Non-linear outcomes | Binary models with their classification table, ROC curve and calibration table; count, ordinal, multinomial, censored and selection models | 4 / 0 / 12 |
 | 3 | `multilevel` | Repeated and nested data | Random effects (`re:`), mixed and growth models, dynamic panels | 0 / 0 / 7 |
 | 4 | `explore` | Find structure before testing | Dimension reduction, missingness, imputation and outlier checks | 0 / 0 / 12 |
 | 5 | `series` | Time series and forecasting | ARIMA, ETS, VAR, state space, dynamic factors | 0 / 0 / 10 |
@@ -318,7 +319,7 @@ Counts are functions in 1.0 / proposed for 1.0 (none since 16 October 2026) / on
 
 | # | Package | Objective | Focus | 1.0 / proposed / roadmap |
 | --- | --- | --- | --- | --- |
-| 1 | `identify` | Say what a causal question needs before anything is fitted | Causal graphs, adjustment sets, implied independencies, checks of fitted models and instruments against a graph, graph drawing | 6 / 0 / 1 |
+| 1 | `identify` | Say what a causal question needs before anything is fitted | Causal graphs, adjustment sets, implied independencies, the instruments a graph allows, checks of fitted models and instruments against a graph, graph drawing | 7 / 0 / 1 |
 | 2 | `experiment` | Design and analyse randomised trials | Designed experiments, randomisation, balance, variance reduction, randomisation inference, non-compliance | 0 / 0 / 12 |
 | 3 | `quasi` | Natural-experiment designs | DiD and event studies, RDD, synthetic control, shift-share | 0 / 0 / 14 |
 | 4 | `adjust` | Selection on observables | Matching, weighting, double machine learning, sensitivity | 0 / 0 / 11 |
@@ -330,7 +331,7 @@ Counts are functions in 1.0 / proposed for 1.0 (none since 16 October 2026) / on
 
 **Tier 4: extensions.** The project's own functions in `functions/` (they may call every package) and, from 2.0 at the earliest, third-party packages under rule 9.
 
-Totals: 279 functions in 1.0 (74 in tier 0, 185 in tier 1, 14 in tier 2, 6 in tier 3), of which 265 are written in Rust and 14 in Zeff; none remain proposed, and 394 are on the roadmap, 673 in all (at release 0.9.0 `n_chars` and `row_number` were added, zeff_open_decisions.md, #165 and #167, and `glm` took the place of `logistic` and `probit` and `curve` that of `roc`, zeff_open_decisions.md, #112; at release 0.8.0 `time_between` took the place of `days_between` and `months_between`, and `hour`, `minute`, `second` and `start_of` were added, zeff_open_decisions.md, #96; `add_time` took the place of `add_days` and `add_months`, `bin` took in `quantile_group` as its option `n:`, and `fill_missing` took in `fill_forward` as its option `method:` and moved from `core` to `data`, and `variance_test` joined 1.0 in the place of the two variance tests planned for after it, #97; `running` took the place of `running_sum` and `running_product`, and `row` of `row_mean` and `row_sum`, #99; at release 0.8.0 the merges of the plan of releases after 1.0 took eighteen roadmap rows, zeff_open_decisions.md, #113, and the graphics and diagram proposals added 148, of which 41 are further options of functions that exist, #121 and #122; eight functions joined 1.0 on 7 November 2026, five of them from the roadmap; zeff_open_decisions.md, #88; six methods of a test's result joined `results` on 9 November 2026, #94, and `design` joined `regress` at release 0.7.0, #71). Eighteen packages have no function in 1.0 (four in tier 1, six in tier 2 and every tier-3 package but `identify`): they give the roadmap its structure and stay out of menus until they ship (rule 7). Most 1.0 functions are small; what limits the schedule is the seven hard engine pieces listed in section 14.
+Totals: 284 functions in 1.0 (74 in tier 0, 187 in tier 1, 16 in tier 2, 7 in tier 3), of which 270 are written in Rust and 14 in Zeff; none remain proposed, and 392 are on the roadmap, 676 in all (at release 0.10.0 `cite`, `instruments` and the `calibration` of a binary fit were added, and `residual_plot` and `influence_plot` brought forward from 1.2, zeff_open_decisions.md, #135, #159 and #218; at release 0.9.0 `n_chars` and `row_number` were added, zeff_open_decisions.md, #165 and #167, and `glm` took the place of `logistic` and `probit` and `curve` that of `roc`, zeff_open_decisions.md, #112; at release 0.8.0 `time_between` took the place of `days_between` and `months_between`, and `hour`, `minute`, `second` and `start_of` were added, zeff_open_decisions.md, #96; `add_time` took the place of `add_days` and `add_months`, `bin` took in `quantile_group` as its option `n:`, and `fill_missing` took in `fill_forward` as its option `method:` and moved from `core` to `data`, and `variance_test` joined 1.0 in the place of the two variance tests planned for after it, #97; `running` took the place of `running_sum` and `running_product`, and `row` of `row_mean` and `row_sum`, #99; at release 0.8.0 the merges of the plan of releases after 1.0 took eighteen roadmap rows, zeff_open_decisions.md, #113, and the graphics and diagram proposals added 148, of which 41 are further options of functions that exist, #121 and #122; eight functions joined 1.0 on 7 November 2026, five of them from the roadmap; zeff_open_decisions.md, #88; six methods of a test's result joined `results` on 9 November 2026, #94, and `design` joined `regress` at release 0.7.0, #71). Eighteen packages have no function in 1.0 (four in tier 1, six in tier 2 and every tier-3 package but `identify`): they give the roadmap its structure and stay out of menus until they ship (rule 7). Most 1.0 functions are small; what limits the schedule is the seven hard engine pieces listed in section 14.
 
 ### 8.3 Engine architecture
 
@@ -458,7 +459,7 @@ A run uses the lock, never the requirement (Z0703). The desktop stores packages 
 
 ### 8.5 The `datasets` package
 
-`datasets`, last in tier 1, ships every dataset the help pages, tests and samples use, and lets a user load one by name. It is also the package behind the `zeff:` data root, so the two spellings are one thing:
+`datasets`, eleventh in tier 1, ships every dataset the help pages, tests and samples use, and lets a user load one by name. It is also the package behind the `zeff:` data root, so the two spellings are one thing:
 
 ```
 let wages = dataset(wages)                 // by name, with labels, categories and panel declaration
@@ -672,12 +673,12 @@ fn share_missing(data: Frame, var: Var) -> Float {
 
 - **Roadmap, by release:** `survey`, `total`, `ratio`, `replicate_weights`, `design_effect`, `poststratify`, `rake`, `calibrate` (1.17)
 
-#### `plot` (tier 1) · 35 in 1.0, 0 proposed, 95 on the roadmap
+#### `plot` (tier 1) · 36 in 1.0, 0 proposed, 94 on the roadmap
 
 - **Grammar (section 7.6 of the Language Reference):** `plot`; marks `points`, `lines`, `step`, `bars`, `area`, `ribbon`, `text`, `tile`, `rug`, `hline`, `vline`; statistical layers `histogram`, `density`, `boxplot`, `errorbars`; `scale_x`, `scale_y`, `scale`, `coord`, `facet`, `labels`, `legend`, `theme`, `annotate`
 - **Shorthands:** `histogram`, `scatter`, `line`, `bar`, `boxplot`, `density`, `qq_plot`, `heatmap`
-- **Result plots:** `plot`, `coef_plot`
-- **Roadmap, by release:** `smooth`, `violin`, `aggregate`, `arrange`, `computed`, `paths`, `segments`, `rects`, `polygons`, `raster`, `brackets`, `highlight`, `callout`, `inset`, `margins`, `residual_plot`, `prediction_plot`, `sample_flow`, and further options of `plot`, `errorbars`, `text`, `points`, `area`, `histogram`, `aggregate`, `boxplot`, `scale_x`, `scale`, `facet`, `legend`, `annotate`, `labels`, `theme`, `arrange`, `coef_plot` (1.2); `scatter_matrix`, `ecdf`, `bins2d`, `mosaic`, `violin`, `hexbin`, `dotchart`, `dumbbell`, `likert`, and further options of `heatmap` (1.5); `slope_plot`, `comparison_plot`, and further options of `smooth` (1.6); `geometry`, and further options of `scale`, `coord`, `annotate`, `plot` (1.15); `qq`, `ridges`, `beeswarm`, `halfeye`, `raincloud`, `density2d`, `ellipse`, `curve`, and further options of `density` (1.16); `contour`, `trace_plot`, `posterior_plot`, `ppc_plot` (1.17); `dotplot`, `pointdensity`, `hull`, `magnify`, `parallel_coordinates`, `slopegraph`, `lollipop`, `bump`, `waffle`, `treemap`, `alluvial`, `upset`, `calendar`, `animate`, `surface`, and further options of `text`, `annotate`, `scale_y`, `scale`, `coord`, `facet` (1.28)
+- **Result plots:** `plot`, `coef_plot`, `residual_plot` (0.10.0; for `reg` and `glm`, zeff_open_decisions.md, #218)
+- **Roadmap, by release:** `smooth`, `violin`, `aggregate`, `arrange`, `computed`, `paths`, `segments`, `rects`, `polygons`, `raster`, `brackets`, `highlight`, `callout`, `inset`, `margins`, `prediction_plot`, `sample_flow`, and further options of `plot`, `errorbars`, `text`, `points`, `area`, `histogram`, `aggregate`, `boxplot`, `scale_x`, `scale`, `facet`, `legend`, `annotate`, `labels`, `theme`, `arrange`, `coef_plot` (1.2); `scatter_matrix`, `ecdf`, `bins2d`, `mosaic`, `violin`, `hexbin`, `dotchart`, `dumbbell`, `likert`, and further options of `heatmap` (1.5); `slope_plot`, `comparison_plot`, and further options of `smooth` (1.6); `geometry`, and further options of `scale`, `coord`, `annotate`, `plot` (1.15); `qq`, `ridges`, `beeswarm`, `halfeye`, `raincloud`, `density2d`, `ellipse`, `curve`, and further options of `density` (1.16); `contour`, `trace_plot`, `posterior_plot`, `ppc_plot` (1.17); `dotplot`, `pointdensity`, `hull`, `magnify`, `parallel_coordinates`, `slopegraph`, `lollipop`, `bump`, `waffle`, `treemap`, `alluvial`, `upset`, `calendar`, `animate`, `surface`, and further options of `text`, `annotate`, `scale_y`, `scale`, `coord`, `facet` (1.28)
 
 #### `datasets` (tier 1) · 2 in 1.0, 0 proposed, 0 on the roadmap
 
@@ -687,17 +688,23 @@ fn share_missing(data: Frame, var: Var) -> Float {
 
 - **Roadmap, by release:** `fetch`, `secret`, `flatten`, `rate_limit` (1.1)
 
-#### `regress` (tier 2) · 10 in 1.0, 0 proposed, 15 on the roadmap
+#### `publish` (tier 1) · 1 in 1.0, 0 proposed, 0 on the roadmap
+
+- **Citations:** `cite` (0.10.0; zeff_open_decisions.md, #135)
+- **To come:** `report` moves here from `results` in the course of release 0.10.0 (zeff_open_decisions.md, #141); `render` and the reports written in Markdown follow after 1.0, and enter the catalogue when their release is planned
+
+#### `regress` (tier 2) · 11 in 1.0, 0 proposed, 14 on the roadmap
 
 - **Models:** `reg`, `ivreg`
 - **Linear-model methods:** `r_squared`, `influence`, `vif`, `design`, `first_stage`, `ar_test` (the generic result methods are in `results`)
 - **Formula terms:** `interact`, `event`
-- **Roadmap, by release:** `het_test`, `spec_test`, `serial_test`, `binscatter`, `influence_plot`, `vif_plot`, `event_plot`, `first_stage_plot`, `ar_plot` (1.2); `partial_plot`, `component_plot` (1.6); `quantile_reg` (1.11); `power.reg` (1.17); `wild_bootstrap`, `ivreg` with `method: liml` (1.18)
+- **Result plots:** `influence_plot` (0.10.0; zeff_open_decisions.md, #218)
+- **Roadmap, by release:** `het_test`, `spec_test`, `serial_test`, `binscatter`, `vif_plot`, `event_plot`, `first_stage_plot`, `ar_plot` (1.2); `partial_plot`, `component_plot` (1.6); `quantile_reg` (1.11); `power.reg` (1.17); `wild_bootstrap`, `ivreg` with `method: liml` (1.18)
 
-#### `glm` (tier 2) · 3 in 1.0, 0 proposed, 12 on the roadmap
+#### `glm` (tier 2) · 4 in 1.0, 0 proposed, 12 on the roadmap
 
 - **Generalized linear models:** `glm` (`family: binomial`, with the logit and probit links)
-- **Methods on a binary fit:** `curve`, `confusion`
+- **Methods on a binary fit:** `curve`, `confusion`, `calibration` (0.10.0; the table with the Hosmer–Lemeshow statistic, zeff_open_decisions.md, #218)
 - **Roadmap, by release:** `glm` with `family: poisson | negbin | gamma | quasibinomial`, `beta_reg`, `ordinal`, `multinomial`, `tobit`, `selection`, `zero_inflated`, `hurdle`, `rootogram_plot` (1.7); `surv`, `survival_plot`, `zph_plot` (1.10)
 
 #### `multilevel` (tier 2) · 0 in 1.0, 0 proposed, 7 on the roadmap
@@ -729,9 +736,9 @@ fn share_missing(data: Frame, var: Var) -> Float {
 
 - **Roadmap, by release:** `cluster`, `silhouette_plot`, `heatmap` (1.5); `topic_model`, `communities` (1.15)
 
-#### `identify` (tier 3) · 6 in 1.0, 0 proposed, 1 on the roadmap
+#### `identify` (tier 3) · 7 in 1.0, 0 proposed, 1 on the roadmap
 
-- **Causal graphs:** `dag`, `adjustment_sets`, `implied_independencies`, `check`, `exclusion_check` (the exclusion-restriction check on an IV fit), `plot` (`g.plot()`, drawing the graph)
+- **Causal graphs:** `dag`, `adjustment_sets`, `implied_independencies`, `instruments` (zeff_open_decisions.md, #159), `check`, `exclusion_check` (the exclusion-restriction check on an IV fit), `plot` (`g.plot()`, drawing the graph)
 - **Roadmap, by release:** further options of `plot` (1.9)
 
 #### `experiment` (tier 3) · 0 in 1.0, 0 proposed, 12 on the roadmap
@@ -871,7 +878,7 @@ Zeff ships a language server (`zeff lsp`, the Language Server Protocol), a forma
 
 Before 1.0 every release is a minor release and is written in full (0.7.0). After 1.0 a minor release is written as 1.2 and a patch as 1.2.1 in prose; pins, tags and `zeff engine` always carry three numbers (`zeff = "1.2.0"`). A version number never goes back to 0.0.x: the first release is 0.1.0. No version has been released: an earlier prototype engine (built as 0.0.1) was set aside on 17 October 2026, and the code starts afresh at 0.1.0, built on the architecture of section 8 from its first commit.
 
-The 279 functions of 1.0 arrive over eleven minor releases, 0.1.0 to 0.11.0, then 1.0.0 freezes the names. Each release is named for what it is for. A function waits for everything it uses; functions written in Zeff wait for `fn` in 0.5.0 (frame `summary` runs in Rust until then). By 0.7.0, 249 of the 277 functions have shipped and every release up to it lets someone run one more real analysis; the four releases after it are engine milestones, each with a hard engine piece of its own.
+The 284 functions of 1.0 arrive over eleven minor releases, 0.1.0 to 0.11.0; a twelfth, 0.12.0, builds the bridges to R and Python and adds none (zeff_open_decisions.md, #162); then 1.0.0 freezes the names. Each release is named for what it is for. A function waits for everything it uses; functions written in Zeff wait for `fn` in 0.5.0 (frame `summary` runs in Rust until then). By 0.7.0, 249 of the 277 functions have shipped and every release up to it lets someone run one more real analysis; the four releases after it are engine milestones, each with a hard engine piece of its own.
 
 **Why this scope.** The schedule is set by hard engine pieces, not by the number of functions. 1.0 has seven: the formula engine and model matrix with QR and robust and clustered SEs; fixed-effects demeaning; two-stage least squares with weak-instrument statistics; logistic and probit fitting; accurate special functions and distributions; the plot renderer; and the language server with the schema pass. Callaway–Sant'Anna DiD, PPML, the thread pool and bootstrap, SEM, mixed models, lasso and forests, WLSMV and ESEM, latent classes, streaming and lazy chains are each a project of their own, and come after 1.0, one per release. Causal graphs join 1.0 because their algorithms (cycle detection, d-separation, back-door adjustment sets) are small, exact and well documented, and checking a fitted model against a causal graph is something mainstream statistics packages do not do.
 
@@ -886,8 +893,9 @@ The 279 functions of 1.0 arrive over eleven minor releases, 0.1.0 to 0.11.0, the
 | 0.7.0 | Tests, plots and the language server | 66: `note` and `name_of` (open decision #70); `map`, `filter` and `reduce` (#79); `tabulate`; nine tests, `anova` with factorial tables, `posthoc` and `dist.tukey`; `p_adjust`; the plot grammar and its shorthands (35 functions, section 7.6 of the Language Reference); `design` on a fit (#71); 12 text functions | Language server (completion, signature help, hover, live diagnostics), tree-sitter grammar, `zeff fmt` and `zeff test`, ready for Zemp's prototype (Zemp 0.1; its alpha follows at 0.8.0); layered-grammar plot renderer with the Okabe–Ito and viridis scales, redraw to fit and journal sizes; exact Wilcoxon distribution; engine worker with progress, cancellation and memory budget; `zeff completions` | Exploratory analysis; Zemp's interface starts |
 | 0.8.0 | Instrumental variables | 3: `ivreg`, `first_stage`, `ar_test` | Two-stage least squares with `instruments:`; Kleibergen–Paap, Cragg–Donald and effective F; the Anderson–Rubin test and confidence set, valid when instruments are weak; `zeff report-bug` with shrinking; `zeff explain` | IV studies |
 | 0.9.0 | Binary outcomes | 5: `glm` (logistic and probit regression, zeff_open_decisions.md, #112), `margins`, `curve`, `confusion`, `timer` | The likelihood trait and shared optimiser; IRLS and Newton fitting; separation checks; robust and clustered SEs from the variance layer; marginal effects with delta-method standard errors for `reg` and `glm`; patch releases begin, with the launcher and engine split, `zeff engine`, `zeff doctor` and signed engine downloads (section 2.1); the known-issues list and `zeff audit`, which patch releases need from their first day | Binary outcomes |
-| 0.10.0 | Causal graphs and validation | 11: `reliability`; `dag`, `adjustment_sets`, `implied_independencies`, `check`, `exclusion_check`, `g.plot`; `dist.weibull`, `dist.logistic`, `dist.hypergeometric`; `mcnemar_test` | `merge` gains `join: semi \| anti`; `dag { }` parser; cycle detection, d-separation and back-door adjustment sets; the validation suite run in full for every function and published | Scale reliability; causal graphs; public validation results |
+| 0.10.0 | Causal graphs and validation | 16: `reliability`; `dag`, `adjustment_sets`, `implied_independencies`, `instruments`, `check`, `exclusion_check`, `g.plot`; `dist.weibull`, `dist.logistic`, `dist.hypergeometric`; `mcnemar_test`; `cite`; `residual_plot`, `influence_plot`, `calibration` (the last five by zeff_open_decisions.md, #135, #159 and #218) | `merge` gains `join: semi \| anti`; `dag { }` parser; cycle detection, d-separation and back-door adjustment sets; the engine's own layered layout for `g.plot()`, on one graph form under every diagram (#121, #190, #191); the package `publish`, with `report` moved into it (#141); the validation suite run in full for every function and published | Scale reliability; causal graphs; public validation results |
 | 0.11.0 | Help and formats | 2: `version`, `help` | Help built from `///`; the reader interface (section 6.1 of the Language Reference) and, through it, Excel, OpenDocument, Parquet, Arrow, Stata, JSON, fixed-width and compressed files in `import` and `save`, with opaque columns carried (section 4.3 of the Language Reference); versioned result and run-record schemas; the content-addressed result cache and the import cache, both Arrow IPC, deterministic Parquet writing and the Zeff Parquet profile (section 8.7); `zeff runs`, `zeff export replication`, `zeff verify` and `zeff dataset fetch`; `zeff app` for the desktop apps and the offline bundle (section 2.1), which Zemp's desktop beta installs through | Replication packages; a stable engine for Zemp's desktop beta |
+| 0.12.0 | Bridges | None | An R package on CRAN and a Python wheel on PyPI, each running a script or a project and returning frames and results (zeff_open_decisions.md, #152 and #162); the browser playground with the article's examples and the page translating Zeff to R and Stata (#161); any change of name or layout that the bridges show to be needed, made before the names freeze | Zeff run from R and from Python |
 | 1.0.0 | Names frozen | None | Names frozen; edition 2027 declared; extension interfaces and the package manifest published; public benchmark suite; documentation; the installer script, signed archives, Homebrew, winget, Scoop, the container image, the GitHub Action, `zeff self update` and reproducible official builds (section 2.1) | Public release of the language, installable from a package manager |
 
 The ten functions once proposed for 1.0 were decided on 16 October 2026 (section 15): `iterate`, `event`, `posthoc` with factorial `anova` and `iv.check` (renamed `exclusion_check` on 17 October 2026) are in, and the five power functions and `survey()` form the Design release, 1.9.
@@ -899,7 +907,7 @@ The ten functions once proposed for 1.0 were decided on 16 October 2026 (section
 | Release | Level | Domain | Contents | Functions in the catalogue | Engine work |
 | --- | --- | --- | --- | --- | --- |
 | 1.1 | Basic | Engine | `se: bootstrap` with `on_fail:` and `max_fail:` on every model; SPSS, SAS, R and HTML readers in `import` and SPSS in `save` (section 6.1 of the Language Reference); data from APIs (section 8.6); opaque columns unnested (section 4.3 of the Language Reference); the command `zeff graph`, which draws a script's steps as a graph with the stale ones marked (zeff_open_decisions.md, #121) | `external`, `fetch`, `secret`, `flatten`, `rate_limit`, `unnest` | Thread pool with reproducible streams and deterministic parallelism (`--threads`); bootstrap in the variance layer; lazy chains with projection and filter pushdown; the remaining language-server features (quick fixes, navigation, rename, inlay hints) |
-| 1.2 | Basic | Econometrics | Diagnostic tests and plots, model selection, Box–Cox, LOESS, time-series basics (moving averages, exponential smoothing, AR, forecasts); the plot layers of section 7.6 of the Language Reference | `duration`, `to_timezone`, `moving_average`, `growth_rate`, `index_number`, `effect_size`, `kernel_reg`, `het_test`, `spec_test`, `arima`, `ets`, `forecast`, `smooth`, `violin`, `aggregate`, `arrange`, `computed`, `normality_test`, `serial_test`, `rolling`, `paths`, `segments`, `rects`, `polygons`, `raster`, `brackets`, `highlight`, `callout`, `inset`, `margins`, `binscatter`, `residual_plot`, `prediction_plot`, `influence_plot`, `vif_plot`, `event_plot`, `first_stage_plot`, `ar_plot`, `acf_plot`, `diagram`, `sample_flow`, and further options of `plot`, `errorbars`, `text`, `points`, `area`, `histogram`, `aggregate`, `boxplot`, `scale_x`, `scale`, `facet`, `legend`, `annotate`, `labels`, `theme`, `arrange`, `coef_plot`, `predict`, `export`, `where`, `drop_missing`, `distinct`, `merge` | — |
+| 1.2 | Basic | Econometrics | Diagnostic tests and plots, model selection, Box–Cox, LOESS, time-series basics (moving averages, exponential smoothing, AR, forecasts); the plot layers of section 7.6 of the Language Reference | `duration`, `to_timezone`, `moving_average`, `growth_rate`, `index_number`, `effect_size`, `kernel_reg`, `het_test`, `spec_test`, `arima`, `ets`, `forecast`, `smooth`, `violin`, `aggregate`, `arrange`, `computed`, `normality_test`, `serial_test`, `rolling`, `paths`, `segments`, `rects`, `polygons`, `raster`, `brackets`, `highlight`, `callout`, `inset`, `margins`, `binscatter`, `prediction_plot`, `vif_plot`, `event_plot`, `first_stage_plot`, `ar_plot`, `acf_plot`, `diagram`, `sample_flow`, and further options of `plot`, `errorbars`, `text`, `points`, `area`, `histogram`, `aggregate`, `boxplot`, `scale_x`, `scale`, `facet`, `legend`, `annotate`, `labels`, `theme`, `arrange`, `coef_plot`, `predict`, `export`, `where`, `drop_missing`, `distinct`, `merge` | — |
 | 1.3 | Basic | Psychometrics | PCA, basic EFA, KMO and Bartlett, scale scores, item statistics | `pca`, `efa`, `kmo`, `factor_count`, `item_stats`, `cov_test`, `scree_plot`, `biplot`, `loadings_plot` | — |
 | 1.4 | Basic | Machine learning | Train/test split, k-fold cross-validation, the regression tree, error metrics | `holdout`, `folds`, `tree`, `score`, `training`, `testing`, `confusion_plot`, `gain_plot` | The leakage checker on column lineage (section 7.5 of the Language Reference) |
 | 1.5 | Basic | Other | Clustering, linear discriminant analysis, correspondence analysis, contingency plots, association rules, linear programming | `ci_median`, `lp`, `mip`, `scatter_matrix`, `correspondence`, `cluster`, `cochran_q_test`, `friedman_test`, `sign_test`, `gini`, `theil`, `atkinson`, `herfindahl`, `lorenz`, `ecdf`, `bins2d`, `mosaic`, `violin`, `hexbin`, `dotchart`, `dumbbell`, `likert`, `silhouette_plot`, `heatmap`, and further options of `heatmap` | — |

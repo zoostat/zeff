@@ -8138,3 +8138,21 @@ Step 42c4b6 is split in three as it was met: 42c4b6 (this entry), the halves rea
 **For the risk register (R7), at the close.** A clean build of the workspace's tests in a minute and a half; the routine of a step in six minutes.
 
 **Reason.** Testing handbook, section 2.1 ("under 5 minutes"); risk register, R7; the close of 0.9.0, item 3 for the owner.
+
+## 27 November 2026: release 0.10.0, step 3 — the names of the decisions in the documents
+
+**Choice.** The decisions of the opening are written into the catalogue, the two volumes, the Zemp Specification and the risk register, and the three reference packages into the installing script. Nothing is built. The list of changes is in `docs/spec_changes.md` under this date.
+
+**Rulings.**
+
+- *`publish` is the thirteenth and last package of tier 1.* #141 places it "after `plot`"; section 8.5 called `datasets` the last of the tier. A package may call the packages before it in its tier (section 8.1), and `publish` needs `results` and `plot`, and may read a dataset's citation, while nothing in tier 1 needs `publish`. Placing it last costs no renumbering of `datasets` and `web` in the catalogue or the tier check. The sentence of section 8.5 is corrected to "eleventh in tier 1", which `web`, the twelfth, had already made the truth.
+- *`report` moves at step 24, not here.* Its catalogue row names the package of its help page, and the registry holds the two to each other; the row carries a note until the crate exists.
+- *A row that is implemented keeps its usage until its step.* Rows 165, 166, 228 and 515 say in their notes what this release gives them (as row 115 has said of `semi` and `anti` since 7 November); the usage column changes with the page, in the step that builds the option.
+- *`calibration` has a second home.* The table of a binary `glm` fit is row 702 in `glm`; row 339 of `learn` keeps the models of that package and the plot. One name, one home per type of first argument (section 8.1, rule 6).
+- *`influence_plot` for a `glm` fit is not settled here.* Row 630 is in `regress`, and no package of tier 2 may call another (rule 5). Whether a `glm` fit gets a second home of the name in `glm`, or the plot moves to `plot` and reads the leverage through the estimator interface, is decided at step 35, where the influence measures of a `glm` fit are first computed.
+- *What question 6 left for the steps stays there.* The usage of `mcnemar_test`, `reliability` and `g.plot` changes at steps 9, 10 and 22, each shown to the owner; the adjustment of the p values in `implied_independencies(data:)` at step 18.
+- *Counts.* 676 rows; 284 functions in 1.0 (74 in tier 0, 187 in tier 1, 16 in tier 2, 7 in tier 3; 270 in Rust and 14 in Zeff); 392 on the roadmap; 16 functions in release 0.10.0; 187 tagged only `general`. Counted from the file and written in section 8.2, section 14 and the Zemp Specification.
+
+**The reference packages.** `dagitty` 0.3-4 (the version the specification's own example page names), `psych` 2.6.9 and `pROC` 1.19.1 are the versions of the dated snapshot of 1 October 2026 that the library is pinned to, read from the snapshot's index; with them come V8 8.2.0, mnormt 2.1.2 and GPArotation 2026.8-2 (Rcpp, jsonlite and curl were recorded already; boot, MASS, lattice and nlme ship with R). All are under the GPL and are reference tooling, installed into the folder Git ignores and never linked. `install.R` and `renv.lock` name them. The continuous integration's reference job installs them from this commit on; on the owner's machine `Rscript tests/reference/r/install.R` is his to run, and until he has, the steps that want them hold their references as question 4 says.
+
+**Reason.** The checklist's step 3; the owner's answers of 27 November 2026.

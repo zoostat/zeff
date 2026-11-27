@@ -30,8 +30,14 @@ if (Sys.info()[["sysname"]] == "Linux" && file.exists("/etc/os-release")) {
 # DescTools and emmeans (release 0.7.0, step 19, 11 November 2026) are references for `posthoc`:
 # ScheffeTest() for Scheffe's method, and pairs() with adjust = "sidak" for Sidak's, which
 # p.adjust() does not have. DescTools brings some thirty packages with it and emmeans one.
+# dagitty, psych and pROC (release 0.10.0, question 4 of its opening, taken by the owner on 27
+# November 2026): dagitty is the reference the specification names for causal graphs (adjustment
+# sets, implied independencies and their tests, instruments), and brings V8 with it; psych's
+# alpha() is the reference for `reliability`, with mnormt and GPArotation; pROC's ci.auc() is the
+# reference for the interval of the area under the ROC curve. All three are under the GPL and
+# are reference tooling only, as fixest is.
 wanted <- c(sandwich = "3.1.1", wooldridge = "1.4-7", fixest = "0.14.2", nortest = "1.0-4", car = "3.1-5",
-            DescTools = "0.99.60", emmeans = "2.0.4")
+            DescTools = "0.99.60", emmeans = "2.0.4", dagitty = "0.3-4", psych = "2.6.9", pROC = "1.19.1")
 # A dated snapshot serves one version of a package, the one current on its day, and that is not
 # always the one the references were made with: on 1 October 2026 it serves sandwich 3.1-3, and
 # the references are of 3.1-1 (found on 21 November 2026, when the continuous integration

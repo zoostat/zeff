@@ -16,11 +16,12 @@ Likelihood and impact are rated High, Medium or Low. The owner is the project le
 | R6 | Dependency churn, above all `arrow-rs` | Medium | Medium | Every upgrade |
 | R7 | Rust learning curve and slow builds | Low | Medium | 0.1.0 to 0.2.0 |
 | R8 | Byte-identical plot export (SVG, PDF, fonts) | Low | Low | 0.7.0 |
-| R9 | CI and reference costs (ARM runners, second x86 machine, Stata licence) | Medium | Low | 0.1.0 CI |
+| R9 | CI and reference costs (ARM runners, second x86 machine, Stata licence) | Medium | Medium | 0.1.0 CI |
 | R10 | Adoption: researchers stay with R and Stata | High | High | Zemp Lite preview, 0.8.0 |
 | R11 | Momentum: a long solo build with no users | Medium | High | Any release that slips twice |
 | R12 | The specification grows faster than the code | Low | Medium | Now |
 | R13 | A browser keeps a wrong file of Zemp Lite for a year | Low | Medium | Zemp Lite 0.2.5 (seen); every deployment |
+| R14 | The publisher's signing key is one key, kept by one person | Low | High | Release 0.9.0, the first signed archives |
 
 ## Risks
 
@@ -117,6 +118,14 @@ Found by the Zemp Lite session at the pre-release routine of 0.2.5 (24 November 
 - **Early warning:** a check after a deployment that fails on a file which is not the one asked for; a report of a Zemp Lite that will not start in one browser and starts once that browser's data is cleared.
 - **Mitigation:** an engineering choice of the Zemp Lite session at its next release, among: the host's function over every built file (about nineteen calls for each first visit, against the free plan's 100,000 a day); a page for a missing file, so that the host answers an unknown address with "not found" and never with the app's page (to be checked against the host); or the year's keeping given only where the file is known to be the one asked, with a short keeping and revalidation elsewhere. The notes of Zemp Lite 0.2.5 list it among the known issues.
 
+### R14 · The publisher's signing key is one key, kept by one person
+
+From release 0.9.0 an engine is installed only from an archive whose checksums are signed with the publisher's key, and the launcher has that key's public half built in (id DB06ECEA9967641F). The private half is one file with one password, kept by the owner. Lost, no later engine can be signed for the launchers already in readers' hands, and each of them needs a new launcher; copied, it signs as the publisher, and a launcher would install whatever it signed. Entered on 27 November 2026 by the owner's decision at the opening of release 0.10.0, its early warning not having been seen.
+
+- **Early warning:** the key's folder or its password cannot be found when a release is to be signed; the key or its password is found anywhere but its one place; an archive signed with the key that no release workflow made.
+- **Mitigation:** the key's folder and its password kept apart and each in a second safe place; the key used by the release workflow alone, from the repository's secrets, and never copied to another machine; a second key, made and kept apart, entered on the signed key list, which the launcher already reads, so that the loss of one key is survived without a new launcher.
+- **Fallback:** a new key, a new launcher that carries it, and a notice with the release saying which launchers must be replaced; an engine already installed keeps working, since it is checked when it is installed and not when it runs.
+
 ## The first test of the register
 
 0.1.0 (ten functions, the tiered workspace, four-target CI, the help build-check and the first five commands) tests R1, R2, R4, R6 and R7 within weeks. Its review is the register's first scheduled update.
@@ -168,3 +177,7 @@ At step 6b of Zemp Lite 0.2.4, measuring what the live address sends showed that
 **The rating (24 November 2026, the owner).** Put to him with the figures above, first at 4.1 MB with a recommendation to raise the likelihood to Medium, then, once the tight packing held, at 2.93 MB with a recommendation to keep it: "Yes, keep it Low". The summary stands at Low likelihood and High impact; the next review reads the figure as the host sends it.
 
 **At the release of Zemp Lite 0.2.5 (24 November 2026).** The engine travels as 2,929,528 bytes at the address at each of the four deployments that packed it, 2.93 MB of the 5 MB limit (the release's own build packs it to 2,918,316 of 15,148,342 bytes; the Zeff measure reads 2,928.2 kB on the release's tree); the first start over the release's six deployments was 1.1 to 1.5 s in Chromium and 1.6 to 2.1 s in WebKit. No early warning was seen. Every deployment is now tried on a preview address of the host before it reaches the address. R13 was found at this release's routine and is entered on its own.
+
+## At the opening of release 0.10.0 (27 November 2026)
+
+Two changes put to the owner by the review at 0.9.0 are made on his word ("Go, as recommended"). The impact of R9 is raised from Low to Medium: the weekly mutation job on the free runners set the length of the close of 0.9.0, half of whose six days went to reading one run and running its cut-off shards again. And the keeping of the signing key is entered as R14, Low likelihood and High impact. Step 2 of the release bears on R7 and R9 both: development and test builds are lightly optimised, the tests of the workspace run in under 5 minutes where they ran in 27, and the weekly mutation job reads the same setting.

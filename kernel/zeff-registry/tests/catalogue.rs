@@ -19,11 +19,13 @@ fn the_compiled_catalogue_reads_in_full() {
     // 672 until step 2 of release 0.9.0, where `glm` took the place of `logistic` and `probit` (#112).
     // 671 until step 31a of release 0.9.0, which added `n_chars` (#165).
     // 672 until step 31b, which added `row_number` (#167).
-    assert_eq!(catalogue.rows().len(), 673);
+    // 673 until step 3 of release 0.10.0, which added `cite` (#135), `instruments` (#159) and the
+    // `calibration` of a binary fit (#218).
+    assert_eq!(catalogue.rows().len(), 676);
     let mut ids: Vec<u32> = catalogue.rows().iter().map(|r| r.id).collect();
     ids.sort_unstable();
     ids.dedup();
-    assert_eq!(ids.len(), 673, "ids are distinct");
+    assert_eq!(ids.len(), 676, "ids are distinct");
 }
 
 #[test]
