@@ -277,6 +277,9 @@ identify/exclusion_refused/stderr 8abbc59dc10973b4
 identify/instruments/stdout ea5382b5eca10512
 identify/instruments/stderr cbf29ce484222325
 identify/instruments_refused/stderr e7ab217b05985ab8
+identify/independencies_tested/stdout b255f92cd9e9cc5d
+identify/independencies_tested/stderr cbf29ce484222325
+identify/independencies_tested_refused/stderr b09c5adc26dffd27
 tests/fields/stdout cbf29ce484222325
 tests/fields/stderr 066add1139daf971
 tests/shapiro/stdout bb094c197a0d6c4d

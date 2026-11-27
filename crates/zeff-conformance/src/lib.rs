@@ -1906,6 +1906,27 @@ fn panel_cases() -> Vec<Line> {
         );
         allowed_refused.push('\n');
     }
+    // The implied independencies tested on data (release 0.10.0, step 18; open decisions
+    // #158 and #251): the graph of #158 on the workers of 2019, which the data contradict
+    // twice and which holds a statement that cannot be tested; no adjustment and another
+    // level; another method; the staff, with a category of four levels; the figures as a
+    // frame; a small frame with a category given, a variable that does not vary
+    // and text.
+    let on_data = "let w = dataset(wages).where(year == 2019).add(lwage = log(wage))\nlet earnings = dag {\n    [female, ability] -> educ\n    [female, educ, exper, union, ability] -> lwage\n    female -> union\n    [age, educ] -> exper\n    latent ability\n}\nearnings.implied_independencies(data: w)\nearnings.implied_independencies(data: w, adjust: none, level: 0.99)\nearnings.implied_independencies(data: w, adjust: bh, level: 0.9)\nlet r = earnings.implied_independencies(data: w)\nprint(r.statistic(), r.n_obs())\nr.estimates()\nlet g = dag {\n    ability -> training -> productivity\n    ability -> productivity\n    training -> tenure -> productivity\n    [age, region] -> training\n    latent ability\n}\ng.implied_independencies(data: dataset(staff))\nlet small = frame(a = [2.1, 3.4, 1.9, 5.2, 4.4, 3.8, 2.7, 6.1, 5.5, 4.0, 3.1, 2.2], b = [1.0, 2.2, 1.4, 3.9, 3.1, 2.4, 2.0, 4.8, 4.1, 2.9, 2.5, 1.1], c = [5.0, 4.1, 5.5, 2.2, 3.0, 3.6, 4.4, 1.5, 2.1, 3.3, 3.9, 5.1], d = [false, true, false, true, true, false, false, true, true, false, true, false], g = category([\"u\", \"v\", \"w\", \"u\", \"v\", \"w\", \"u\", \"v\", \"w\", \"u\", \"v\", \"w\"]), flat = [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1], word = [\"p\", \"q\", \"p\", \"q\", \"p\", \"q\", \"p\", \"q\", \"p\", \"q\", \"p\", \"q\"])\ndag {\n    g -> [a, c]\n    b -> d\n}.implied_independencies(data: small)\ndag {\n    a -> flat\n    word -> d\n    b -> c\n}.implied_independencies(data: small)\n";
+    let on_data_outcome = run_script(&fs, &project, "scripts/main.zeff", on_data);
+    let mut on_data_refused = String::new();
+    for script in [
+        "dag { x -> m -> y }.implied_independencies(data: dataset(staff))\n",
+        "dag { age -> training -> tenure }.implied_independencies(data: dataset(staff), level: 1.5)\n",
+        "dag { age -> training -> tenure }.implied_independencies(data: 3)\n",
+    ] {
+        on_data_refused.push_str(
+            &run_script(&fs, &project, "scripts/main.zeff", script)
+                .output
+                .stderr,
+        );
+        on_data_refused.push('\n');
+    }
     let mut graph_refused = String::new();
     for script in [
         "let g = dag {\n    price -> demand\n    demand -> price\n}\n",
@@ -2073,6 +2094,18 @@ fn panel_cases() -> Vec<Line> {
             &allowed_outcome.output.stderr,
         ),
         text("identify/instruments_refused/stderr", &allowed_refused),
+        text(
+            "identify/independencies_tested/stdout",
+            &on_data_outcome.output.stdout,
+        ),
+        text(
+            "identify/independencies_tested/stderr",
+            &on_data_outcome.output.stderr,
+        ),
+        text(
+            "identify/independencies_tested_refused/stderr",
+            &on_data_refused,
+        ),
         text("tests/fields/stdout", &fields_outcome.output.stdout),
         text("tests/fields/stderr", &fields_outcome.output.stderr),
         text("tests/shapiro/stdout", &normality_outcome.output.stdout),

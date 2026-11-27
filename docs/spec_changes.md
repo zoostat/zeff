@@ -1188,3 +1188,7 @@ At step 16 of release 0.10.0. The specification says what `iv.exclusion_check` c
 ## 28 November 2026 — zeff_language_reference.md, section 7.3 (`g.instruments`); zeff_functions.csv, row 701; zeff_open_decisions.md, new entry #250
 
 At step 17 of release 0.10.0. The row of `g.instruments` in section 7.3 said what is listed and not by what definition. It now says: an observed variable that would pass `exclusion_check` with a set of observed variables held fixed, and that the graph relates to the exposure given that set, listed once with the smallest such set (open decision #250, option A of each part taken as recommended, the owner's to overturn). Row 701 of the catalogue is `implemented`, with a note of the definition and of what it is held to.
+
+## 28 November 2026 — zeff_language_reference.md, section 7.3 (`g.implied_independencies(data:)`); zeff_functions.csv, row 431; zeff_open_decisions.md, new entry #251
+
+At step 18 of release 0.10.0. Row 431 of the catalogue left the adjustment of the p values to this step. The usage gains `adjust:`, with the methods of `p_adjust` and `holm` by default, and `level:`; section 7.3 says how a statement is tested and when it is contradicted (open decision #251, option A of each part taken as recommended, the owner's to overturn).

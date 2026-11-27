@@ -15,6 +15,7 @@ pub mod exclusion;
 pub mod graph;
 pub mod independencies;
 pub mod instruments;
+pub mod tested;
 
 use zeff_core::runtime::{Args, CallContext, Fail, Function, fail};
 use zeff_core::value::Value;
@@ -189,13 +190,28 @@ pub fn functions() -> Vec<Function> {
                 name: "implied_independencies",
                 package: "identify",
                 method: true,
-                params: vec![ParamSpec::required("g", "Dag")],
+                params: vec![
+                    ParamSpec::required("g", "Dag"),
+                    ParamSpec::option("data", "Frame"),
+                    ParamSpec::option_with_default(
+                        "adjust",
+                        "holm | bonferroni | hochberg | hommel | bh | by | sidak | none",
+                        "holm",
+                    ),
+                    ParamSpec::option_with_default("level", "Float", "0.95"),
+                ],
                 rest: None,
                 returns: "TestResult",
-                diagnostics: vec![DiagnosticDecl::new(
-                    "Z0401",
-                    "a graph with an undirected edge",
-                )],
+                diagnostics: vec![
+                    DiagnosticDecl::new(
+                        "Z0101",
+                        "with `data:`, a node of a statement that is no variable of the frame",
+                    ),
+                    DiagnosticDecl::new(
+                        "Z0401",
+                        "a graph with an undirected edge; `level:` outside (0, 1)",
+                    ),
+                ],
                 help: include_str!("../help/implied_independencies.md"),
                 accuracy: None,
             },

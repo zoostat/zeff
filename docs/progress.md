@@ -104,7 +104,11 @@ Step 16 `[function]` (28 November 2026): `iv.exclusion_check(g, instrument:)` on
 
 Step 17 `[function]` (28 November 2026): `g.instruments(exposure:, outcome:)`. The observed variables the graph allows as instruments, each once with the smallest set it needs held fixed: what `exclusion_check` would pass, and related to the exposure. Held to a second search by the definition on every graph of up to four nodes and 2,000 generated graphs (59,968 questions), and each instrument to the rule of `exclusion_check`. dagitty is not installed and no agreement with it is claimed. Decisions: docs/decisions.md.
 
-**Next.** Step 18 `[engine]`: `g.implied_independencies(data:)`.
+Step 18 `[engine]` (28 November 2026): `g.implied_independencies(data:, adjust:, level:)`. Each implied independence tested on a frame by a partial correlation: r, Fisher's interval, the t test's p value and the p value adjusted (`holm` by default), the rows used; the statements contradicted named, those that cannot be tested said to be so with the reason. Held to base R (`tests/reference/r/partial.R`, 26 cases) within a relative 1e-9. The graph of #158 is contradicted twice on the workers of 2019. Block C, causal graphs, is complete. Decisions: docs/decisions.md.
+
+**Next.** Step 19 `[engine]`: one graph form in the scene (#191), the first step of block D, diagrams.
+
+**For the owner, from step 18.** #251 is yours to overturn, three statistical choices, each taken as recommended: the p values are adjusted by Holm's method unless `adjust:` says otherwise, the unadjusted one printed beside; the test is the t test with Fisher's interval, as R's `cor.test`; a category of more than two levels as one of the two variables is not tested.
 
 **For the owner, from step 17.** #250 is yours to overturn: an instrument is defined as `exclusion_check` defines it (every arrow out of the exposure removed), not as the literature behind dagitty does (one arrow removed), so the list can differ from dagitty's where the exposure acts through a mediator; and each instrument is listed once, with its smallest set.
 

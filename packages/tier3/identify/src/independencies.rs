@@ -193,6 +193,10 @@ fn listed(names: &[&str]) -> String {
 }
 
 /// `g.implied_independencies()`.
+const DATA: usize = 1;
+const ADJUST: usize = 2;
+const LEVEL: usize = 3;
+
 pub fn implied_independencies(ctx: &mut CallContext<'_>, args: Args) -> Result<Value, Fail> {
     let Some(Value::Dag(dag)) = args.get(0) else {
         return Err(fail(
@@ -217,6 +221,28 @@ pub fn implied_independencies(ctx: &mut CallContext<'_>, args: Args) -> Result<V
         ));
     }
     let found = implied(&graph);
+    // With a frame, each statement is tested on it (open decision #158).
+    if let Some(Value::Frame(frame)) = args.get(DATA) {
+        let word = match args.get(ADJUST) {
+            Some(Value::Word(word)) => word.clone(),
+            _ => "holm".to_string(),
+        };
+        let method = zeff_stats::p_adjust::Method::from_word(&word)
+            .unwrap_or(zeff_stats::p_adjust::Method::Holm);
+        let level = zeff_stats::testing::level(ctx, &args, LEVEL, "implied_independencies")?;
+        return crate::tested::on_frame(
+            ctx,
+            &graph,
+            &found,
+            frame,
+            &crate::tested::How {
+                data_slot: DATA,
+                method,
+                word: &word,
+                level,
+            },
+        );
+    }
     let name = |v: usize| graph.name(v);
     let observed = (0..graph.written())
         .filter(|&v| !graph.is_latent(v) && !graph.is_selected(v))

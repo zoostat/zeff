@@ -10,13 +10,11 @@ error[Z0401]: the graph has an undirected edge, `--`, so `implied_independencies
   |
   = help: an undirected edge is for drawing and says nothing of cause: write `a -> b` for a cause, or `a <-> b` for a common cause that is not observed
 
-error[Z0407]: `implied_independencies` takes 0 arguments, but more were given
+error[Z0101]: nothing is called `a` here
  --> scripts/main.zeff:2:26
   |
 2 | g.implied_independencies(a)
-  |                          ^ one too many
-  |
-  = help: usage: `g.implied_independencies()`
+  |                          ^ not a binding
 
 error[Z0404]: `implied_independencies` has no argument called `type`
  --> scripts/main.zeff:2:26
@@ -24,7 +22,7 @@ error[Z0404]: `implied_independencies` has no argument called `type`
 2 | g.implied_independencies(type: basis_set)
   |                          ^^^^ unknown argument
   |
-  = help: usage: `g.implied_independencies()`
+  = help: usage: `g.implied_independencies(data: Frame, adjust: holm | bonferroni | hochberg | hommel | bh | by | sidak | none = holm, level: Float = 0.95)`
 
 error[Z0401]: `implied_independencies` cannot be called on a Frame
  --> scripts/main.zeff:1:1
@@ -40,4 +38,4 @@ error[Z0406]: `implied_independencies` needs `g`
 1 | implied_independencies()
   | ^^^^^^^^^^^^^^^^^^^^^^ `g` is missing
   |
-  = help: usage: `g.implied_independencies()`
+  = help: usage: `g.implied_independencies(data: Frame, adjust: holm | bonferroni | hochberg | hommel | bh | by | sidak | none = holm, level: Float = 0.95)`

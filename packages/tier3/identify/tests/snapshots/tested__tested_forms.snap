@@ -1,0 +1,141 @@
+---
+source: packages/tier3/identify/tests/tested.rs
+expression: "format!(\"{stdout}---\\n{stderr}\")"
+---
+implied_independencies · 7 statements tested on w
+
+  variable   independent of   given                  r   95% CI                p   p (holm)       N
+  age        educ                               -0.005   [-0.056, 0.045]   0.837      1.000   1,518
+  age        female                             -0.014   [-0.065, 0.036]   0.575      1.000   1,518
+  age        union                               0.085   [0.035, 0.135]    0.001      0.006   1,518
+  educ       union            female            -0.038   [-0.088, 0.012]   0.139      0.558   1,518
+  exper      female           educ              -0.014   [-0.065, 0.036]   0.578      1.000   1,516
+  exper      union            educ               0.085   [0.035, 0.135]    0.001      0.006   1,516
+  age        lwage            educ, exper   not tested
+
+the data contradict 2 of the 6 statements tested, at the 5% level, the p values adjusted for 6 tests by `holm`: age and union; exper and union given educ
+not tested: age and lwage given educ, exper: educ and exper determine age in these rows, so nothing of it is left to test
+latent, in no statement: ability
+implied_independencies · 7 statements tested on w
+
+  variable   independent of   given                  r   95% CI                p       N
+  age        educ                               -0.005   [-0.056, 0.045]   0.837   1,518
+  age        female                             -0.014   [-0.065, 0.036]   0.575   1,518
+  age        union                               0.085   [0.035, 0.135]    0.001   1,518
+  educ       union            female            -0.038   [-0.088, 0.012]   0.139   1,518
+  exper      female           educ              -0.014   [-0.065, 0.036]   0.578   1,516
+  exper      union            educ               0.085   [0.035, 0.135]    0.001   1,516
+  age        lwage            educ, exper   not tested
+
+the data contradict 2 of the 6 statements tested, at the 5% level, the p values not adjusted: age and union; exper and union given educ
+not tested: age and lwage given educ, exper: educ and exper determine age in these rows, so nothing of it is left to test
+latent, in no statement: ability
+implied_independencies · 7 statements tested on w
+
+  variable   independent of   given                  r   90% CI                p   p (bh)       N
+  age        educ                               -0.005   [-0.048, 0.037]   0.837    0.837   1,518
+  age        female                             -0.014   [-0.057, 0.028]   0.575    0.694   1,518
+  age        union                               0.085   [0.043, 0.127]    0.001    0.003   1,518
+  educ       union            female            -0.038   [-0.080, 0.004]   0.139    0.279   1,518
+  exper      female           educ              -0.014   [-0.057, 0.028]   0.578    0.694   1,516
+  exper      union            educ               0.085   [0.043, 0.127]    0.001    0.003   1,516
+  age        lwage            educ, exper   not tested
+
+the data contradict 2 of the 6 statements tested, at the 10% level, the p values adjusted for 6 tests by `bh`: age and union; exper and union given educ
+not tested: age and lwage given educ, exper: educ and exper determine age in these rows, so nothing of it is left to test
+latent, in no statement: ability
+frame · 6 rows × 9 variables
+
+      term                             estimate   std_error   statistic     df   df2      p_value     ci_lower
+  1   age and educ                  -0.00529008          NA   -0.205977   1516    NA            1   -0.0555877
+  2   age and female                   -0.01442          NA   -0.561513   1516    NA            1   -0.0646854
+  3   age and union                   0.0847987          NA     3.31365   1516    NA   0.00565556    0.0346341
+  4   educ and union given female    -0.0379611          NA    -1.47862   1515    NA     0.557795   -0.0881217
+  5   exper and female given educ    -0.0142873          NA   -0.555794   1513    NA            1    -0.064603
+  6   exper and union given educ      0.0847543          NA     3.30862   1513    NA   0.00565556    0.0345395
+
+       ci_upper
+  1   0.0450343
+  2   0.0359185
+  3    0.134537
+  4   0.0123916
+  5   0.0361009
+  6    0.134542
+implied_independencies · 3 statements tested on staff
+
+  variable   independent of   given               r   95% CI                p   p (holm)       N
+  age        region                      not tested
+  age        tenure           training       -0.017   [-0.057, 0.023]   0.406      0.406   2,400
+  region     tenure           training   not tested
+
+the data do not contradict the one statement tested, at the 5% level, the p values adjusted for one test by `holm`
+not tested: age and region: region is a category of 4 levels, and a correlation is of numbers
+not tested: region and tenure given training: region is a category of 4 levels, and a correlation is of numbers
+latent, in no statement: ability
+implied_independencies · 1 statement tested on small
+
+  variable   independent of   given        r   95% CI                 p   p (holm)    N
+  a          c                b       -0.819   [-0.951, -0.431]   0.002      0.002   12
+
+the data contradict the one statement tested, at the 5% level, the p values adjusted for one test by `holm`: a and c given b
+implied_independencies · 7 statements tested on small
+
+  variable   independent of   given            r   95% CI                  p   p (holm)    N
+  a          b                             0.981   [0.933, 0.995]     <0.001     <0.001   12
+  a          d                             0.687   [0.187, 0.904]      0.014      0.026   12
+  b          c                            -0.982   [-0.995, -0.936]   <0.001     <0.001   12
+  b          g                        not tested
+  c          d                            -0.690   [-0.905, -0.192]    0.013      0.026   12
+  d          g                        not tested
+  a          c                g           -0.996   [-0.999, -0.981]   <0.001     <0.001   12
+
+the data contradict 5 of the 5 statements tested, at the 5% level, the p values adjusted for 5 tests by `holm`: a and b; a and d; b and c; c and d; a and c given g
+not tested: b and g: g is a category of 3 levels, and a correlation is of numbers
+not tested: d and g: g is a category of 3 levels, and a correlation is of numbers
+implied_independencies · 16 statements tested on small
+
+  variable   independent of   given            r   95% CI                  p   p (holm)    N
+  a          b                             0.981   [0.933, 0.995]     <0.001     <0.001   12
+  a          d                             0.687   [0.187, 0.904]      0.014      0.059   12
+  a          word                     not tested
+  b          d                             0.709   [0.227, 0.912]      0.010      0.059   12
+  b          flat                     not tested
+  b          word                     not tested
+  c          d                            -0.690   [-0.905, -0.192]    0.013      0.059   12
+  c          word                     not tested
+  d          flat                     not tested
+  d          sum                           0.704   [0.218, 0.910]      0.011      0.059   12
+  flat       word                     not tested
+  sum        word                     not tested
+  a          c                sum         -0.614   [-0.887, -0.023]    0.044      0.089   12
+  b          c                sum          0.614   [0.023, 0.887]      0.044      0.089   12
+  c          flat             a       not tested
+  flat       sum              a       not tested
+
+the data contradict 1 of the 7 statements tested, at the 5% level, the p values adjusted for 7 tests by `holm`: a and b
+not tested: a and word: word is text, and a correlation is of numbers
+not tested: b and flat: flat has one value in the rows that have every variable
+not tested: b and word: word is text, and a correlation is of numbers
+not tested: c and word: word is text, and a correlation is of numbers
+not tested: d and flat: flat has one value in the rows that have every variable
+not tested: flat and word: word is text, and a correlation is of numbers
+not tested: sum and word: word is text, and a correlation is of numbers
+not tested: c and flat given a: flat has one value in the rows that have every variable
+not tested: flat and sum given a: flat has one value in the rows that have every variable
+implied_independencies · 0 statements tested on small
+the graph implies no independence among its observed variables, so the data have nothing of it to test
+implied_independencies · 2 statements tested on the frame
+
+  variable   independent of   given        r   95% CI                  p   p (holm)   N
+  a          c                        -0.989   [-0.999, -0.899]   <0.001     <0.001   6
+  b          c                        -0.994   [-0.999, -0.943]   <0.001     <0.001   6
+
+the data contradict 2 of the 2 statements tested, at the 5% level, the p values adjusted for 2 tests by `holm`: a and c; b and c
+the data are selected on d: every statement is of data so selected
+implied_independencies · 1 statement tested on the frame
+
+  variable   independent of   given            r   95% CI   p   p (holm)   N
+  a          c                b       not tested
+
+not tested: a and c given b: 3 with every variable rows are too few
+---

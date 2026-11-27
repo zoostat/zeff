@@ -1053,10 +1053,15 @@ dependencies = [
 name = "zeff-identify"
 version = "0.10.0-dev"
 dependencies = [
+ "zeff-columns",
  "zeff-core",
  "zeff-diagnostics",
+ "zeff-dist",
+ "zeff-kernels",
+ "zeff-numeric",
  "zeff-registry",
  "zeff-regress",
+ "zeff-stats",
 ]
 
 [[package]]

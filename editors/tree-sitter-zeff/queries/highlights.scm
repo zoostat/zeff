@@ -97,6 +97,10 @@
 ; the lines between the two marks, and `check-grammar` fails when they are not current.
 ; BEGIN WORDS
 ((named_argument name: (identifier) @property value: (qualified_name . (identifier) @constant.option .))
+  (#eq? @property "adjust") (#any-of? @constant.option "bh" "bonferroni" "by" "hochberg" "holm" "hommel" "none" "sidak"))
+((field name: (identifier) @property value: (qualified_name . (identifier) @constant.option .))
+  (#eq? @property "adjust") (#any-of? @constant.option "bh" "bonferroni" "by" "hochberg" "holm" "hommel" "none" "sidak"))
+((named_argument name: (identifier) @property value: (qualified_name . (identifier) @constant.option .))
   (#eq? @property "alternative") (#any-of? @constant.option "greater" "less" "two_sided"))
 ((field name: (identifier) @property value: (qualified_name . (identifier) @constant.option .))
   (#eq? @property "alternative") (#any-of? @constant.option "greater" "less" "two_sided"))
