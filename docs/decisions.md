@@ -8220,3 +8220,13 @@ Both differences are in the pages' Details, in the pages' own words, and held by
 **Stored outputs that follow**, each read before it was stored and changed only by the two words, the longer text of `join:` or the new script: the usage line and the list of allowed words in two stored messages of `merge`; the grammar's list of option words and the test that holds it; two completion corpora and the language server's answer for `join:`; the stored text of every conformance script as the formatter writes it; and the fixture page of `merge` in the registry's tests, which is held word for word to the specification's example page and so gained the usage and the example that page gained.
 
 **Reason.** Open decision #88; catalogue row 115; Language Reference, section 6, "Combine" and "Row order", and section 4.1, "Merge keys".
+
+## 27 November 2026: release 0.10.0, step 6, a correction — R's `qhyper` out of the reference file
+
+**What failed.** The reference job of the continuous integration on the commit of step 6 (8cc5a2d), and so on that of step 7 above it; every other job was green on both, the four targets' identity among them. The job rebuilds R's files on Linux and compares them with the committed copies within a tolerance. One value differed: `hypergeometric[2].qhyper[14]`, committed 251750 and rebuilt as 251753.
+
+**Cause.** Step 6 had written R's own `qhyper` answers into the file beside the reference quantiles, "to show where they part". The value is `qhyper(1 - 1e-10, 5e5, 1.5e6, 1e6)`, whose true answer is 251,948: R's answer is wrong on both machines, and differently wrong, since its sum runs in extended precision on Linux and in doubles on Apple silicon. No test of the engine read the field. The local routine cannot see a difference between two machines' R; the job that can did.
+
+**Correction.** `qhyper` is used nowhere in the script. The five parameter sets on the shared grid take their quantiles from the definition applied to `phyper`, as the seven cases around the means already did, and the field of `qhyper`'s answers is gone. One committed value changes with it, from R's wrong answer to the right one: the quantile at 1 − 1e-10 for 2,000 successes among a thousand million, 15 by `qhyper` and 16 by `phyper`, which the engine gave from the start (the shared six-digit test had held the engine there by the distribution function it inverts, as it does wherever a quantile differs from R's). The script's comment says why, with the two machines' answers.
+
+**Reason.** Testing handbook, section 1.1; the standing rule that a red check is read and repaired before anything else.

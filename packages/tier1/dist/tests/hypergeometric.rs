@@ -100,8 +100,8 @@ fn small_populations_agree_with_exact_rational_arithmetic() {
 /// numbers and must be the reference's, which is the smallest number at which R's distribution
 /// function reaches the probability, found by halving: R's own `qhyper` adds the probabilities
 /// up from the lower end and is wrong in the upper tail of a large population (it gives the
-/// end of the range, a million, where the answer is 503,179), and its answers are kept in the
-/// file beside the reference only to show where.
+/// end of the range, a million, where the answer is 503,179), and its wrong answers differ from
+/// one machine to another, so they are not in the file.
 #[test]
 fn large_populations_agree_with_r() {
     let text =

@@ -165,28 +165,18 @@ families <- c(families, list(
   trunc_weibull, mix_logistic_weibull
 ))
 
-# The hypergeometric (release 0.10.0, step 6), from dhyper, phyper and qhyper, with R's names in
-# the engine's order: m successes, n failures, k draws. Appended, as the two families above.
+# The hypergeometric (release 0.10.0, step 6), from dhyper and phyper, with R's names in the
+# engine's order: m successes, n failures, k draws. Appended, as the two families above.
 # On the shared grid a large population is read far in its lower tail; the cases after it read
 # large populations around their means, at points of their own.
-hypergeometric_family <- function(m, n, k) {
-  family("hypergeometric", list(successes = m, failures = n, draws = k),
-         function(x) dhyper(x, m, n, k),
-         function(x, lower.tail = TRUE) phyper(x, m, n, k, lower.tail = lower.tail),
-         function(p) qhyper(p, m, n, k))
-}
-families <- c(families, list(
-  hypergeometric_family(10, 7, 8), hypergeometric_family(50, 950, 100),
-  hypergeometric_family(1e6, 1e6, 1000), hypergeometric_family(2000, 1e9, 1e6),
-  hypergeometric_family(5e8, 5e8, 20)
-))
-# The quantile of a large population is not taken from qhyper, which adds the probabilities up
-# from the lower end of the range, each term through logarithms of binomial coefficients, and by
-# the upper tail has lost what it needs: for 1e6 draws from 5e8 and 5e8 it answers 1e6, the end
-# of the range, at 1 - 1e-10, where phyper shows the answer to be 503179; for 2000 successes among
-# 1e9 it answers 15 where the probability above 15 is 4.6e-10. The reference is the definition,
-# the smallest whole number at which phyper reaches p, found by halving the range; qhyper's own
-# answers are written beside it, to show where they part.
+# The quantile is not taken from qhyper, which adds the probabilities up from the lower end of the
+# range, each term through logarithms of binomial coefficients, and by the upper tail of a large
+# population has lost what it needs: for 1e6 draws from 5e8 and 5e8 it answers 1e6, the end of the
+# range, at 1 - 1e-10, where phyper shows the answer to be 503179; for 2000 successes among 1e9 it
+# answers 15 where the probability above 15 is 4.6e-10. Its wrong answers are not even the same on
+# every machine (251750 on macOS and 251753 on Linux for 1e6 draws from 5e5 and 1.5e6, where the
+# answer is 251948), so they are not written to the file at all. The reference is the definition,
+# the smallest whole number at which phyper reaches p, found by halving the range.
 smallest_reaching <- function(p, m, n, k) {
   lo <- max(0, k - n) - 1
   hi <- min(k, m)
@@ -196,6 +186,17 @@ smallest_reaching <- function(p, m, n, k) {
   }
   hi
 }
+hypergeometric_family <- function(m, n, k) {
+  family("hypergeometric", list(successes = m, failures = n, draws = k),
+         function(x) dhyper(x, m, n, k),
+         function(x, lower.tail = TRUE) phyper(x, m, n, k, lower.tail = lower.tail),
+         function(p) vapply(p, smallest_reaching, 0, m = m, n = n, k = k))
+}
+families <- c(families, list(
+  hypergeometric_family(10, 7, 8), hypergeometric_family(50, 950, 100),
+  hypergeometric_family(1e6, 1e6, 1000), hypergeometric_family(2000, 1e9, 1e6),
+  hypergeometric_family(5e8, 5e8, 20)
+))
 hypergeometric_case <- function(m, n, k, xs) {
   list(
     params = lapply(list(successes = m, failures = n, draws = k), dec),
@@ -204,8 +205,7 @@ hypergeometric_case <- function(m, n, k, xs) {
     lower = as.list(num(phyper(xs, m, n, k))),
     upper = as.list(num(phyper(xs, m, n, k, lower.tail = FALSE))),
     p = as.list(dec(ps)),
-    quantile = as.list(num(vapply(ps, smallest_reaching, 0, m = m, n = n, k = k))),
-    qhyper = as.list(num(qhyper(ps, m, n, k)))
+    quantile = as.list(num(vapply(ps, smallest_reaching, 0, m = m, n = n, k = k)))
   )
 }
 around <- function(m, n, k, steps) {
