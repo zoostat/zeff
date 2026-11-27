@@ -1080,3 +1080,7 @@ The owner asked for Zeff's counterparts of R's `Reduce`, `Filter` and `Position`
 ## 27 November 2026 — zeff_open_decisions.md, #235 (the owner's ruling)
 
 The owner ruled on #235: "Go with A". The entry is marked decided: `give: positions` of `filter`, and `steps:` and `direction:` of `reduce`, at 0.12.0 beside #233; the catalogue's rows to be amended at the opening of 0.12.0. No normative text is changed.
+
+## 27 November 2026 — zeff_open_decisions.md, new entry #236
+
+The owner asked for Zeff's counterparts of R's `lapply` over a data frame, `by` and `ave`; each was run on the engine. Shown that one change over many columns and the groups' names in a table of fits have only workarounds, he said "Yes, record them". #236 is entered, open: an option `each:` of `add` and `update`, `map` over a mapping keeping its keys, and `report` taking a mapping whose keys title its columns, recommended at 0.12.0 beside #233 and #235. Deadline: the opening of 0.12.0. No normative text is changed.
