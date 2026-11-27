@@ -366,14 +366,115 @@ fn reference() -> Json {
     serde_json::from_str(&text).unwrap()
 }
 
+/// The whole numbers of a list of the reference.
+fn numbers(list: &Json) -> Vec<i64> {
+    list.as_array()
+        .unwrap()
+        .iter()
+        .map(|n| n.as_i64().unwrap())
+        .collect()
+}
+
+/// Whether the independent reader finds a point for `mark` on `letter` in the tables that put
+/// marks on letters.
+fn their_point(theirs: &ttf_parser::Face<'_>, letter: u16, mark: u16) -> bool {
+    let Some(gpos) = theirs.tables().gpos else {
+        return false;
+    };
+    gpos.lookups.into_iter().any(|lookup| {
+        (0..lookup.subtables.len()).any(|k| {
+            let Some(PositioningSubtable::MarkToBase(on)) =
+                lookup.subtables.get::<PositioningSubtable>(k)
+            else {
+                return false;
+            };
+            let (Some(row), Some(at)) = (
+                on.base_coverage.get(GlyphId(letter)),
+                on.mark_coverage.get(GlyphId(mark)),
+            ) else {
+                return false;
+            };
+            on.marks
+                .get(at)
+                .is_some_and(|(class, _)| on.anchors.get(row, class).is_some())
+        })
+    })
+}
+
+/// The one thing the engine does that HarfBuzz does not: a mark drawn above the small letters,
+/// for which the font has no point on the letter before it, is raised by as much as that
+/// letter rises above the small letters. Given the glyphs of a stretch, where the engine drew
+/// them and where HarfBuzz does, this holds that the two agree along the baseline everywhere
+/// and above it but for that rise, worked out from the independent reader's outlines and
+/// tables; it gives the number of marks raised.
+fn agrees_but_for_the_rise(
+    name: FaceName,
+    glyphs: &[u16],
+    ours: &[(i64, i64)],
+    harfbuzz: &[(i64, i64)],
+    text: &str,
+) -> usize {
+    let (font, theirs) = (face(name), other(name));
+    let small = i64::from(theirs.x_height().unwrap());
+    let mut raised = 0;
+    for i in 0..glyphs.len() {
+        assert_eq!(ours[i].0, harfbuzz[i].0, "{} {text:?}", name.file());
+        if !font.is_mark(glyphs[i]) {
+            assert_eq!(ours[i].1, 0, "{} {text:?}", name.file());
+            assert_eq!(harfbuzz[i].1, 0, "{} {text:?}", name.file());
+            continue;
+        }
+        // The rise of the letter the mark belongs to; no letter, no rise.
+        let letter = glyphs[..i].iter().rposition(|&g| !font.is_mark(g));
+        let rise = letter
+            .and_then(|at| theirs.glyph_bounding_box(GlyphId(glyphs[at])))
+            .map_or(0, |bounds| (i64::from(bounds.y_max) - small).max(0));
+        let above = ours[i].1 - harfbuzz[i].1;
+        assert!(above == 0 || above == rise, "{} {text:?}", name.file());
+        // The first mark after its letter is raised exactly when the font has no point for
+        // the two and draws the mark above the small letters; a later mark stands on it, or
+        // follows the same rule.
+        if let Some(at) = letter.filter(|&at| at + 1 == i) {
+            let high = theirs
+                .glyph_bounding_box(GlyphId(glyphs[i]))
+                .is_some_and(|bounds| i64::from(bounds.y_min) >= small);
+            let wanted = if !their_point(&theirs, glyphs[at], glyphs[i]) && high {
+                rise
+            } else {
+                0
+            };
+            assert_eq!(above, wanted, "{} {text:?}", name.file());
+        }
+        raised += usize::from(above > 0);
+    }
+    raised
+}
+
+/// Where HarfBuzz draws each glyph of a stretch: the place its advances give it, moved by
+/// what HarfBuzz moves it by (a mark put on its letter), along the baseline and above it.
+fn harfbuzz_places(case: &Json) -> Vec<(i64, i64)> {
+    let (advances, dx, dy) = (
+        numbers(&case["advances"]),
+        numbers(&case["dx"]),
+        numbers(&case["dy"]),
+    );
+    let mut pen = 0;
+    let mut places = Vec::new();
+    for i in 0..advances.len() {
+        places.push((pen + dx[i], dy[i]));
+        pen += advances[i];
+    }
+    places
+}
+
 #[test]
-fn a_hundred_and_ten_texts_are_set_as_harfbuzz_sets_them() {
+fn a_hundred_and_thirty_five_texts_are_set_as_harfbuzz_sets_them() {
     let reference = reference();
-    let mut texts = 0;
+    let (mut texts, mut marks, mut raised) = (0, 0, 0);
     for name in FaceName::ALL {
         let ours = face(name);
         let cases = reference["faces"][name.file()].as_array().unwrap();
-        assert_eq!(cases.len(), 110);
+        assert_eq!(cases.len(), 135);
         for case in cases {
             let text = case["text"].as_str().unwrap();
             let shaped = ours.shape(text);
@@ -385,22 +486,16 @@ fn a_hundred_and_ten_texts_are_set_as_harfbuzz_sets_them() {
                 .map(|g| g.as_u64().unwrap())
                 .collect();
             assert_eq!(glyphs, wanted, "{} {text:?}", name.file());
-            // The advance of a glyph is from its origin to the next one's.
-            let advances: Vec<i64> = shaped
+            // Each glyph stands where HarfBuzz draws it: where the advances before it put
+            // it, and a mark where the font puts it on its letter.
+            let places: Vec<(i64, i64)> = shaped
                 .glyphs
                 .iter()
-                .enumerate()
-                .map(|(i, g)| {
-                    i64::from(shaped.glyphs.get(i + 1).map_or(shaped.width, |next| next.x) - g.x)
-                })
+                .map(|g| (i64::from(g.x), i64::from(g.y)))
                 .collect();
-            let wanted: Vec<i64> = case["advances"]
-                .as_array()
-                .unwrap()
-                .iter()
-                .map(|a| a.as_i64().unwrap())
-                .collect();
-            assert_eq!(advances, wanted, "{} {text:?}", name.file());
+            let drawn: Vec<u16> = shaped.glyphs.iter().map(|g| g.glyph).collect();
+            raised += agrees_but_for_the_rise(name, &drawn, &places, &harfbuzz_places(case), text);
+            marks += places.iter().filter(|place| place.1 != 0).count();
             assert_eq!(
                 i64::from(shaped.width),
                 case["width"].as_i64().unwrap(),
@@ -417,7 +512,12 @@ fn a_hundred_and_ten_texts_are_set_as_harfbuzz_sets_them() {
             texts += 1;
         }
     }
-    assert_eq!(texts, 330);
+    assert_eq!(texts, 405);
+    // Marks the fonts raise or lower on their letters, beyond those they only move along.
+    assert!(marks > 20, "{marks}");
+    // Marks raised over a tall letter the font has no point for: the hat of β and of θ in the
+    // mono face, and nothing in the two sans faces that the list holds.
+    assert!(raised >= 2, "{raised}");
     // The rule on ligatures, on record: HarfBuzz left to itself joins `fi` and `ffi` in the
     // Sans faces, and the text is then a few units narrower; the engine does not join them.
     let sans = &reference["faces"]["AtkinsonHyperlegibleNext-Regular.ttf"];
@@ -442,16 +542,16 @@ fn a_hundred_and_ten_texts_are_set_as_harfbuzz_sets_them() {
 
 // ----- a line in two faces (release 0.10.0, step 4a; open decision #234) -----
 
-/// Twenty-one lines, set in each sans face with the mono face behind it, against HarfBuzz
+/// Thirty-one lines, set in each sans face with the mono face behind it, against HarfBuzz
 /// asked for each stretch in the face that draws it: the stretches, the face of each, its glyphs
-/// and where each stands along the line, and the width of the whole.
+/// and where each stands along the line and above it, and the width of the whole.
 #[test]
 fn a_line_in_two_faces_is_set_as_harfbuzz_sets_its_stretches() {
     let reference = reference();
     let mut in_two = 0;
     for first in [FaceName::Sans, FaceName::SansSemiBold] {
         let cases = reference["lines"][first.file()].as_array().unwrap();
-        assert_eq!(cases.len(), 21);
+        assert_eq!(cases.len(), 31);
         for case in cases {
             let text = case["text"].as_str().unwrap();
             let line = set(first, text);
@@ -471,12 +571,15 @@ fn a_line_in_two_faces_is_set_as_harfbuzz_sets_its_stretches() {
                     .map(|g| g.as_u64().unwrap())
                     .collect();
                 assert_eq!(glyphs, wanted, "{} {text:?}", first.file());
-                // Each glyph stands where HarfBuzz's advances of its stretch put it, the
-                // stretch starting where the one before it ended.
-                for (placed, advance) in run.iter().zip(their["advances"].as_array().unwrap()) {
-                    assert_eq!(i64::from(placed.x), along, "{} {text:?}", first.file());
-                    along += advance.as_i64().unwrap();
-                }
+                // Each glyph stands where HarfBuzz draws it in its stretch, the stretch
+                // starting where the one before it ended.
+                let places: Vec<(i64, i64)> = run
+                    .iter()
+                    .map(|placed| (i64::from(placed.x) - along, i64::from(placed.y)))
+                    .collect();
+                let drawn: Vec<u16> = run.iter().map(|placed| placed.glyph).collect();
+                agrees_but_for_the_rise(by, &drawn, &places, &harfbuzz_places(their), text);
+                along += their["width"].as_i64().unwrap();
             }
             assert_eq!(i64::from(line.width), along, "{} {text:?}", first.file());
             assert_eq!(i64::from(line.width), case["width"].as_i64().unwrap());
@@ -665,6 +768,130 @@ fn what_is_not_a_font_of_this_kind_is_refused() {
     assert_eq!(Face::parse(whole).as_ref(), Ok(face(FaceName::Sans)));
 }
 
+// ----- a mark on its letter (release 0.10.0, step 4c) -----
+
+/// The rule case by case, with the numbers of the embedded faces: where a mark stands on a
+/// small letter, on a capital and on another mark; kerning across a mark; and which face
+/// draws a letter with a mark.
+#[test]
+fn a_mark_is_put_on_its_letter_and_a_letter_and_its_marks_are_of_one_face() {
+    let (sans, mono) = (face(FaceName::Sans), face(FaceName::Mono));
+    let places = |font: &Face, text: &str| -> Vec<(i32, i32)> {
+        font.shape(text).glyphs.iter().map(|g| (g.x, g.y)).collect()
+    };
+    // The bar of x̄: the x advances 481 and the font brings the bar back by 418, at the
+    // height it is drawn at. Over a capital the bar is brought back by 489 and raised by 172.
+    assert_eq!(places(sans, "x\u{304}"), [(0, 0), (63, 0)]);
+    assert_eq!(places(sans, "X\u{304}"), [(0, 0), (134, 172)]);
+    // A second mark stands on the first: the hat above the bar, 172 higher.
+    assert_eq!(
+        places(sans, "x\u{304}\u{302}"),
+        [(0, 0), (63, 0), (39, 172)]
+    );
+    // A mark takes no room, and what follows stands where it would without the mark.
+    assert_eq!(sans.shape("x\u{304}y").width, sans.shape("xy").width);
+    assert_eq!(
+        sans.shape("x\u{304}y").glyphs[2].x,
+        sans.shape("xy").glyphs[1].x
+    );
+    // Kerning passes over a mark: T and o are set closer, with a bar on the T or without.
+    let (t, o) = (sans.glyph('T').unwrap(), sans.glyph('o').unwrap());
+    assert!(sans.kern(t, o) < 0);
+    assert_eq!(sans.shape("T\u{304}o").width, sans.shape("To").width);
+    assert_eq!(
+        sans.shape("T\u{304}o").glyphs[2].x,
+        i32::from(sans.advance(t)) + i32::from(sans.kern(t, o))
+    );
+    // A mark is a mark by the font's own classes, and advances nothing.
+    let (bar, hat) = (
+        sans.glyph('\u{304}').unwrap(),
+        sans.glyph('\u{302}').unwrap(),
+    );
+    assert!(sans.is_mark(bar) && !sans.is_mark(t));
+    assert_eq!(sans.advance(bar), 0);
+    assert!(sans.places_marks(&[t, bar]) && sans.places_marks(&[t, bar, hat]));
+
+    // Which face draws a letter and its marks, in a line of the sans face.
+    let faces = |text: &str| -> Vec<FaceName> {
+        set(FaceName::Sans, text)
+            .glyphs
+            .iter()
+            .map(|g| g.face)
+            .collect()
+    };
+    // The sans face has the letter and a point for the mark: it draws both.
+    assert_eq!(faces("x\u{304}"), [FaceName::Sans; 2]);
+    // The sans face has the mark and not the letter: the mono face draws both, so that the
+    // mark stands on a letter of its own face.
+    assert_eq!(sans.glyph('β'), None);
+    assert_eq!(faces("β\u{302}"), [FaceName::Mono; 2]);
+    // The sans face has both and no point for the one on the other: the mono face draws
+    // both. A statistician's estimate of a mean is such a letter.
+    let mu = sans.glyph('μ').unwrap();
+    assert!(!sans.places_marks(&[mu, hat]));
+    assert_eq!(faces("μ\u{302}"), [FaceName::Mono; 2]);
+    assert_eq!(faces("μ"), [FaceName::Sans]);
+    // The sans face has the letter and not the mark (a hook above): the mono face draws both.
+    assert_eq!(sans.glyph('\u{309}'), None);
+    assert_eq!(faces("x\u{309}"), [FaceName::Mono; 2]);
+    assert_eq!(faces("x\u{304}\u{309}"), [FaceName::Mono; 3]);
+    // A mark that opens a line has no letter in any face and stays in the face of the line;
+    // so does a mark after a character neither face has.
+    assert_eq!(faces("\u{304}x"), [FaceName::Sans; 2]);
+    assert_eq!(faces("中\u{304}"), [FaceName::Sans; 2]);
+    assert_eq!(set(FaceName::Sans, "中\u{304}").missing, ['中']);
+    // A line of the mono face has no face behind it.
+    assert!(
+        set(FaceName::Mono, "μ\u{302}")
+            .glyphs
+            .iter()
+            .all(|g| g.face == FaceName::Mono)
+    );
+
+    // In the mono face a mark is drawn over the letter before it as the font keeps it, with
+    // no point needed, at the height that clears a small letter: μ̂ and σ̂ as they are.
+    let line = set(FaceName::Sans, "μ\u{302}");
+    assert_eq!((line.glyphs[1].x, line.glyphs[1].y), (600, 0));
+    assert_eq!(set(FaceName::Sans, "σ\u{302}").glyphs[1].y, 0);
+    // Over a tall letter the font has no point for, β or θ, the mark is raised by as much as
+    // the letter rises above the small letters, 740 and 730 units against 550.
+    assert_eq!(mono.x_height(), 550);
+    assert_eq!(set(FaceName::Sans, "β\u{302}").glyphs[1].y, 190);
+    assert_eq!(set(FaceName::Sans, "θ\u{302}").glyphs[1].y, 180);
+    assert_eq!(set(FaceName::Sans, "λ\u{303}").glyphs[1].y, 180);
+    // The font's own point raises a hat on b by the same 180, and a second mark stands on
+    // the first, raised with it.
+    assert_eq!(places(mono, "b\u{302}"), [(0, 0), (600, 180)]);
+    let two = set(FaceName::Sans, "β\u{302}\u{304}");
+    assert_eq!(two.glyphs[1].y, 190);
+    assert!(two.glyphs[2].y > 190 + 100);
+    // A mark below a tall letter is not raised.
+    assert_eq!(places(mono, "β\u{323}")[1].1, 0);
+    // A mark adds no width in either face, and the line is as wide as its letters.
+    assert_eq!(
+        set(FaceName::Sans, "β\u{302} x\u{304}").width,
+        set(FaceName::Sans, "β x").width
+    );
+
+    // The stretches a PDF writes: one for each face at each height.
+    let line = set(FaceName::Sans, "X\u{304} = β\u{302}");
+    assert_eq!(line.runs().count(), 2);
+    let stretches: Vec<(FaceName, i32, usize)> = line
+        .stretches()
+        .map(|run| (run[0].face, run[0].y, run.len()))
+        .collect();
+    assert_eq!(
+        stretches,
+        [
+            (FaceName::Sans, 0, 1),
+            (FaceName::Sans, 172, 1),
+            (FaceName::Sans, 0, 3),
+            (FaceName::Mono, 0, 1),
+            (FaceName::Mono, 190, 1),
+        ]
+    );
+}
+
 // ----- the properties -----
 
 /// A text of characters the Sans faces draw, with a few they lack.
@@ -709,30 +936,58 @@ proptest! {
         for name in FaceName::ALL {
             let alone = face(name).shape(&text);
             let line = set(name, &text);
-            if alone.missing.is_empty() {
-                let same: Vec<(u16, i32)> = line.glyphs.iter().map(|g| (g.glyph, g.x)).collect();
-                let before: Vec<(u16, i32)> = alone.glyphs.iter().map(|g| (g.glyph, g.x)).collect();
+            let font = face(name);
+            let marked = alone.glyphs.iter().any(|g| font.is_mark(g.glyph));
+            // The first face draws the whole line when it lacks nothing and the text has no
+            // mark; with marks, when it also has a point for each of them.
+            if alone.missing.is_empty() && !marked {
+                prop_assert!(line.glyphs.iter().all(|g| g.face == name));
+            }
+            if line.glyphs.iter().all(|g| g.face == name) {
+                let same: Vec<(u16, i32, i32)> =
+                    line.glyphs.iter().map(|g| (g.glyph, g.x, g.y)).collect();
+                let before: Vec<(u16, i32, i32)> =
+                    alone.glyphs.iter().map(|g| (g.glyph, g.x, g.y)).collect();
                 prop_assert_eq!(same, before);
                 prop_assert_eq!(line.width, alone.width);
-                prop_assert!(line.glyphs.iter().all(|g| g.face == name));
-                prop_assert!(line.missing.is_empty());
+                prop_assert_eq!(&line.missing, &alone.missing);
             }
-            // As many glyphs as the first face alone draws, in the same order of characters,
-            // and never fewer characters drawn: what was a box may be a letter, not the reverse.
+            // Never fewer characters drawn: what was a box may be a letter, not the reverse.
             prop_assert!(line.missing.len() <= alone.missing.len());
+            // The letters of the line, its marks set aside, stand one after the other, each
+            // kerned with the letter before it when one face draws both and no other face
+            // stands between them; a mark takes no room, is drawn on what stands before it,
+            // and is the only glyph off the baseline.
             let mut along = 0_i32;
+            let mut before: Option<&Set> = None;
             for (i, placed) in line.glyphs.iter().enumerate() {
                 let by = face(placed.face);
-                let kern = if i > 0 && line.glyphs[i - 1].face == placed.face {
-                    i32::from(by.kern(line.glyphs[i - 1].glyph, placed.glyph))
-                } else {
-                    0
-                };
+                prop_assert!(placed.face == name || Some(placed.face) == name.fallback());
+                if i > 0 && line.glyphs[i - 1].face != placed.face {
+                    before = None;
+                }
+                if by.is_mark(placed.glyph) {
+                    prop_assert_eq!(by.advance(placed.glyph), 0);
+                    continue;
+                }
+                prop_assert_eq!(placed.y, 0);
+                let kern = before.map_or(0, |left| i32::from(by.kern(left.glyph, placed.glyph)));
                 prop_assert_eq!(placed.x, along + kern);
                 along = placed.x + i32::from(by.advance(placed.glyph));
-                prop_assert!(placed.face == name || Some(placed.face) == name.fallback());
+                before = Some(placed);
             }
             prop_assert_eq!(line.width, along);
+            // Each stretch is set as its own face sets its glyphs, from where the stretch
+            // before it ended.
+            let mut start = 0_i32;
+            for run in line.runs() {
+                let glyphs: Vec<u16> = run.iter().map(|g| g.glyph).collect();
+                let (places, width) = face(run[0].face).place(&glyphs);
+                let got: Vec<(i32, i32)> = run.iter().map(|g| (g.x - start, g.y)).collect();
+                prop_assert_eq!(got, places);
+                start += width;
+            }
+            prop_assert_eq!(line.width, start);
             // The stretches cover the line, in order, each of one face and no two neighbours
             // of the same.
             let runs: Vec<&[Set]> = line.runs().collect();
@@ -761,20 +1016,40 @@ proptest! {
             let font = face(name);
             for text in [&first, &second] {
                 let shaped = font.shape(text);
-                // Each glyph starts where the one before ends, moved by their kerning.
+                // Each letter starts where the one before ends, moved by their kerning,
+                // which passes over the marks between them; a mark takes no room.
                 let mut width = 0_i32;
-                for (i, placed) in shaped.glyphs.iter().enumerate() {
-                    let kern = if i > 0 {
-                        i32::from(font.kern(shaped.glyphs[i - 1].glyph, placed.glyph))
-                    } else {
-                        0
-                    };
+                let mut before: Option<u16> = None;
+                for placed in &shaped.glyphs {
+                    if font.is_mark(placed.glyph) {
+                        prop_assert_eq!(font.advance(placed.glyph), 0);
+                        continue;
+                    }
+                    prop_assert_eq!(placed.y, 0);
+                    let kern = before.map_or(0, |left| i32::from(font.kern(left, placed.glyph)));
                     prop_assert_eq!(placed.x, width + kern);
                     width = placed.x + i32::from(font.advance(placed.glyph));
+                    before = Some(placed.glyph);
                 }
                 prop_assert_eq!(shaped.width, width);
-                // A text of characters the face has, none of them a mark, is one glyph for
-                // each, the glyph of the font's map.
+                // Taking the marks out moves no letter.
+                let bare: Vec<u16> = shaped
+                    .glyphs
+                    .iter()
+                    .map(|g| g.glyph)
+                    .filter(|&glyph| !font.is_mark(glyph))
+                    .collect();
+                let (places, bare_width) = font.place(&bare);
+                let letters: Vec<(i32, i32)> = shaped
+                    .glyphs
+                    .iter()
+                    .filter(|g| !font.is_mark(g.glyph))
+                    .map(|g| (g.x, g.y))
+                    .collect();
+                prop_assert_eq!(letters, places);
+                prop_assert_eq!(shaped.width, bare_width);
+                // A text of characters the face has is one glyph for each, the glyph of the
+                // font's map.
                 let composed: Vec<char> = text.nfc().collect();
                 if composed.iter().all(|c| font.glyph(*c).is_some()) {
                     let wanted: Vec<u16> = composed.iter().map(|c| font.glyph(*c).unwrap()).collect();
@@ -802,7 +1077,9 @@ proptest! {
             let apart: Vec<char> = first.nfc().chain(second.nfc()).collect();
             if joined_text.nfc().eq(apart.iter().copied()) {
                 let (a, b) = (font.shape(&first), font.shape(&second));
-                let meet = match (a.glyphs.last(), b.glyphs.first()) {
+                // The letters that meet, the marks between them passed over.
+                let letter = |g: &&zeff_plot::font::Placed| !font.is_mark(g.glyph);
+                let meet = match (a.glyphs.iter().rfind(letter), b.glyphs.iter().find(letter)) {
                     (Some(left), Some(right)) => i32::from(font.kern(left.glyph, right.glyph)),
                     _ => 0,
                 };

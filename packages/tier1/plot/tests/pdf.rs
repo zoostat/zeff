@@ -469,10 +469,11 @@ fn read(pdf: &[u8], drawing: &Drawing) -> Result<Read, String> {
         for span in spans {
             // A span is one stretch of glyphs for each face that draws part of it: its own
             // face, and the face behind it for the characters its own lacks (release 0.10.0,
-            // step 4a). Each stretch is written from its own start.
+            // step 4a); and a mark the font raises on its letter is a stretch of its own
+            // (step 4c). Each stretch is written from its own start.
             let line = set(span.face, &span.text);
             let per_em = 1000.0 / f64::from(face(span.face).units_per_em());
-            for run in line.runs() {
+            for run in line.stretches() {
                 let by = face(run[0].face);
                 for placed in run {
                     if let Some(character) = by.character_of(placed.glyph) {
@@ -885,6 +886,78 @@ fn a_line_of_two_faces_is_written_stretch_by_stretch_in_the_font_of_each() {
     );
     // The same drawing gives the same bytes, and a text of one face is one stretch as before.
     assert_eq!(write(&drawing), write(&drawing));
+}
+
+/// A mark on its letter (release 0.10.0, step 4c): a mark the font moves along the baseline
+/// stays in the string of its letter, moved inside it; a mark the font raises is written by
+/// itself from its own place; the words are recovered whole, the mark after its letter.
+#[test]
+fn a_mark_is_written_where_the_font_puts_it_on_its_letter() {
+    let sans = face(FaceName::Sans);
+    let text = |words: &str| {
+        of(vec![unnamed(Primitive::Text {
+            at: (100.0, 60.0),
+            anchor: Anchor::Start,
+            turn: 0.0,
+            spans: vec![Span {
+                text: words.to_string(),
+                face: FaceName::Sans,
+                size: 10.0,
+                colour: "#222222".to_string(),
+            }],
+            frame: None,
+        })])
+    };
+    let (x, capital, bar, one) = (
+        sans.glyph('x').unwrap(),
+        sans.glyph('X').unwrap(),
+        sans.glyph('\u{304}').unwrap(),
+        sans.glyph('1').unwrap(),
+    );
+    // The bar of x̄ stands at the height the font draws it, 418 units back from the end of
+    // the x: one string, the bar moved inside it, and the 1 back where the x ended.
+    let low = text("x\u{304}1");
+    let found = read(&write(&low), &low).unwrap();
+    assert_eq!(found.words, ["x\u{304}1"]);
+    assert_eq!(found.runs.len(), 1);
+    assert!(
+        found.page.contains(&format!(
+            " 1 0 0 -1 100 60 Tm [<{x:04X}> 418 <{bar:04X}> -418 <{one:04X}>] TJ\n"
+        )),
+        "{}",
+        found.page
+    );
+    // The bar of X̄ is raised 172 units, 1.72 points at this size, and stands 489 units back
+    // from the end of the X, which advances 623: a stretch of its own, and the 1 after it
+    // again on the baseline where the X ended.
+    let high = text("X\u{304}1");
+    let found = read(&write(&high), &high).unwrap();
+    assert_eq!(found.words, ["X\u{304}1"]);
+    assert_eq!(found.runs.len(), 3);
+    for wanted in [
+        format!(" 1 0 0 -1 100 60 Tm [<{capital:04X}>] TJ\n"),
+        format!(" 1 0 0 -1 101.34 58.28 Tm [<{bar:04X}>] TJ\n"),
+        format!(" 1 0 0 -1 106.23 60 Tm [<{one:04X}>] TJ\n"),
+    ] {
+        assert!(found.page.contains(&wanted), "{wanted} {}", found.page);
+    }
+    // Turned a quarter, the raised bar is to the left of its letter by as much.
+    let mut turned = text("X\u{304}");
+    let Primitive::Text { turn, .. } = &mut turned.items[0].primitive else {
+        unreachable!()
+    };
+    *turn = 90.0;
+    let found = read(&write(&turned), &turned).unwrap();
+    assert!(
+        found.page.contains(" 0 -1 -1 0 98.28 58.66 Tm "),
+        "{}",
+        found.page
+    );
+    // A mark adds nothing to the width of its line.
+    assert_eq!(
+        set(FaceName::Sans, "X\u{304}1").width,
+        set(FaceName::Sans, "X1").width
+    );
 }
 
 // ----- a layer drawn in dots (step 22b3b) -----

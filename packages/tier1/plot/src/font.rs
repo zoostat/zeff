@@ -13,29 +13,37 @@
 //! - how far each glyph advances (`hmtx`) and the heights of the face (`hhea`, `OS/2`);
 //! - the outline of each glyph (`glyf` and `loca`), simple or made of other glyphs;
 //! - how much closer or farther two neighbours are set (`GPOS`, the pair adjustments of the
-//!   `kern` feature).
+//!   `kern` feature);
+//! - which glyphs are marks (`GDEF`) and where a mark is put on a letter or on another mark
+//!   (`GPOS`, the anchors of the `mark` and `mkmk` features; release 0.10.0, step 4c).
 //!
 //! A text is set by one fixed rule. It is first brought to its composed form (Unicode's NFC),
 //! so that a letter and a mark written after it are the one letter Unicode has for the two,
 //! `é` for `e` and U+0301; a composed letter the face lacks is drawn by its parts when the
 //! face has them all. Each character is then drawn by the glyph the map gives it, in order
 //! from left to right, and the advance of a glyph is corrected by the kerning with the glyph
-//! after it. No ligature is formed (`fi` is two glyphs), no mark is moved onto a letter, and
-//! nothing depends on a language. A character the face lacks is drawn by the glyph the face
-//! keeps for that, an empty box, and is reported.
+//! after it. A mark Unicode has no composed letter for, the bar of x̄ or the hat of β̂, is put
+//! on the letter before it at the point the font keeps for the two, and a second mark on the
+//! first; where the font keeps no point (JetBrains Mono has none for most Greek letters) the
+//! mark stays where the font draws it, over the letter before it, and is raised over a tall
+//! letter by as much as the letter rises above the small ones. No ligature is formed (`fi` is two glyphs), no glyph is put in the place of another
+//! (the dot of an i stays under a mark), and nothing depends on a script or a language: a
+//! feature is read wherever the font lists it. A character the face lacks is drawn by the
+//! glyph the face keeps for that, an empty box, and is reported.
 //!
 //! A line of a figure is set in two faces where one is not enough ([`set`]; release 0.10.0,
 //! step 4a; open decision #234): a character the face of the line lacks is taken, letter by
 //! letter, from the face that stands behind it, the mono face for the two sans faces, and only
-//! a character neither has is the empty box. A text the first face has whole is set exactly as
-//! [`Face::shape`] sets it.
+//! a character neither has is the empty box. A letter and the marks written after it are
+//! drawn by one face, since a face has points for marks on its own letters alone. A text the
+//! first face has whole is set exactly as [`Face::shape`] sets it.
 //!
 //! Every length is a whole number of font units, of which the faces have 1000 to the em: a
 //! text of `w` units set at `s` points is `w × s / 1000` points wide.
 
 use std::sync::OnceLock;
 use unicode_normalization::UnicodeNormalization;
-use unicode_normalization::char::decompose_canonical;
+use unicode_normalization::char::{compose, decompose_canonical, is_combining_mark};
 
 /// The faces embedded.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
@@ -85,12 +93,14 @@ impl FaceName {
 }
 
 /// A glyph of a line, with the face that draws it and the place of its origin along the
-/// baseline, in font units.
+/// baseline and above it, in font units. Every glyph stands on the baseline but a mark the
+/// font puts higher or lower on its letter.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct Set {
     pub face: FaceName,
     pub glyph: u16,
     pub x: i32,
+    pub y: i32,
 }
 
 /// A line of a figure, set in its face and, where that face lacks a character, in the face
@@ -105,66 +115,133 @@ pub struct Line {
 }
 
 impl Line {
-    /// The glyphs in runs of one face each, in order: what a writer that selects a font for a
-    /// stretch of text, as a PDF does, writes one stretch at a time.
+    /// The glyphs in runs of one face each, in order: what is kerned within itself and has
+    /// its marks put on its own letters.
     pub fn runs(&self) -> impl Iterator<Item = &[Set]> {
         self.glyphs.chunk_by(|a, b| a.face == b.face)
+    }
+
+    /// The glyphs in stretches of one face at one height each, in order: what a writer that
+    /// selects a font and a baseline for a stretch of text, as a PDF does, writes one stretch
+    /// at a time. A mark the font raises on its letter is a stretch of its own.
+    pub fn stretches(&self) -> impl Iterator<Item = &[Set]> {
+        self.glyphs.chunk_by(|a, b| a.face == b.face && a.y == b.y)
     }
 }
 
 /// The glyphs `face` draws `character` by: its own glyph, or, for a composed letter it lacks,
-/// the glyphs of its parts when it has them all.
+/// the glyphs of its parts when it has them all. The parts are the fewest the face can draw
+/// the letter by: of a letter with two marks, the letter the face has with the first mark, and
+/// the second mark, before the bare letter and both marks.
 fn glyphs_of(face: &Face, character: char) -> Option<Vec<u16>> {
     if let Some(glyph) = face.glyph(character) {
         return Some(vec![glyph]);
     }
-    let mut parts: Vec<Option<u16>> = Vec::new();
-    decompose_canonical(character, |part| parts.push(face.glyph(part)));
-    if parts.len() > 1 && parts.iter().all(Option::is_some) {
-        Some(parts.into_iter().flatten().collect())
-    } else {
-        None
-    }
+    let mut parts: Vec<char> = Vec::new();
+    decompose_canonical(character, |part| parts.push(part));
+    // The first `kept` parts joined again into one letter, the rest each by its own glyph.
+    (1..parts.len()).rev().find_map(|kept| {
+        let mut joined = parts[0];
+        for &part in &parts[1..kept] {
+            joined = compose(joined, part)?;
+        }
+        let mut glyphs = vec![face.glyph(joined)?];
+        for &part in &parts[kept..] {
+            glyphs.push(face.glyph(part)?);
+        }
+        Some(glyphs)
+    })
 }
 
 /// `text` set on one line in the face `name` and, letter by letter, in the face behind it
-/// where `name` lacks a character. The text is brought to its composed form; each character is
-/// drawn by `name` when it can be, whole or by its parts, and otherwise by the fallback face
-/// in the same way; a character neither face has is the empty box of `name`, and is listed.
-/// Two neighbouring glyphs are kerned when one face draws both and not across a change of
-/// face, since a face knows nothing of another's shapes. The faces have the same number of
-/// units to the em, so that a place along the line is one count of units whatever the face.
+/// where `name` lacks a character. The text is brought to its composed form and taken a
+/// letter at a time, a letter being a character with the marks written after it. The letter is
+/// drawn by `name` when that face has all of it, each character whole or by its parts, and
+/// has a point for each of its marks; otherwise by the fallback face when that one has all of
+/// it, so that a mark stands on a letter of its own face, the only letters a face knows the
+/// shapes of; otherwise by `name` after all, when it has all of it, the marks left where
+/// their advances put them. A letter neither face has whole is drawn character by character,
+/// each by the first face that has it, and a character neither has is the empty box of
+/// `name`, and is listed.
+///
+/// A stretch of one face is then set as that face sets it ([`Face::place`]): kerned within
+/// itself and not across a change of face, its marks put on its own letters. The faces have
+/// the same number of units to the em, so that a place along the line is one count of units
+/// whatever the face.
 pub fn set(name: FaceName, text: &str) -> Line {
     let first = face(name);
     let behind = name.fallback().map(|other| (other, face(other)));
-    let mut drawn: Vec<(FaceName, u16)> = Vec::with_capacity(text.len());
+    let characters: Vec<char> = text.nfc().collect();
+    let mut drawn: Vec<(FaceName, u16)> = Vec::with_capacity(characters.len());
     let mut missing: Vec<char> = Vec::new();
-    for character in text.nfc() {
-        if let Some(glyphs) = glyphs_of(first, character) {
-            drawn.extend(glyphs.into_iter().map(|glyph| (name, glyph)));
-        } else if let Some((other, glyphs)) =
-            behind.and_then(|(other, second)| Some((other, glyphs_of(second, character)?)))
+    let mut at = 0;
+    while at < characters.len() {
+        let marks = characters[at + 1..]
+            .iter()
+            .take_while(|&&character| is_combining_mark(character))
+            .count();
+        let letter = &characters[at..=at + marks];
+        at += letter.len();
+        // The whole letter by one face, where one face has it.
+        let whole = |by: &Face| -> Option<Vec<u16>> {
+            let mut glyphs = Vec::new();
+            for &character in letter {
+                glyphs.extend(glyphs_of(by, character)?);
+            }
+            Some(glyphs)
+        };
+        let by_first = whole(first);
+        // A mark that opens a text has no letter to stand on in any face.
+        let lone = is_combining_mark(letter[0]);
+        if let Some(glyphs) = by_first
+            .as_ref()
+            .filter(|glyphs| lone || first.places_marks(glyphs))
+        {
+            drawn.extend(glyphs.iter().map(|&glyph| (name, glyph)));
+            continue;
+        }
+        if let Some((other, glyphs)) =
+            behind.and_then(|(other, second)| Some((other, whole(second)?)))
         {
             drawn.extend(glyphs.into_iter().map(|glyph| (other, glyph)));
-        } else {
-            if !missing.contains(&character) {
-                missing.push(character);
+            continue;
+        }
+        if let Some(glyphs) = by_first {
+            drawn.extend(glyphs.into_iter().map(|glyph| (name, glyph)));
+            continue;
+        }
+        for &character in letter {
+            if let Some(glyphs) = glyphs_of(first, character) {
+                drawn.extend(glyphs.into_iter().map(|glyph| (name, glyph)));
+            } else if let Some((other, glyphs)) =
+                behind.and_then(|(other, second)| Some((other, glyphs_of(second, character)?)))
+            {
+                drawn.extend(glyphs.into_iter().map(|glyph| (other, glyph)));
+            } else {
+                if !missing.contains(&character) {
+                    missing.push(character);
+                }
+                drawn.push((name, 0));
             }
-            drawn.push((name, 0));
         }
     }
     let mut glyphs: Vec<Set> = Vec::with_capacity(drawn.len());
-    let mut x = 0_i32;
-    for (i, &(by, glyph)) in drawn.iter().enumerate() {
-        if i > 0 && drawn[i - 1].0 == by {
-            x += i32::from(face(by).kern(drawn[i - 1].1, glyph));
-        }
-        glyphs.push(Set { face: by, glyph, x });
-        x += i32::from(face(by).advance(glyph));
+    let mut along = 0_i32;
+    for run in drawn.chunk_by(|a, b| a.0 == b.0) {
+        let by = run[0].0;
+        let of: Vec<u16> = run.iter().map(|&(_, glyph)| glyph).collect();
+        let (places, width) = face(by).place(&of);
+        glyphs.extend(of.iter().zip(places).map(|(&glyph, (x, y))| Set {
+            face: by,
+            glyph,
+            x: along + x,
+            y,
+        }));
+        along += width;
     }
     Line {
         glyphs,
-        width: x,
+        width: along,
         missing,
     }
 }
@@ -247,11 +324,14 @@ pub enum Segment {
     Close,
 }
 
-/// A glyph of a text, with the place of its origin along the baseline, in font units.
+/// A glyph of a text, with the place of its origin along the baseline and above it, in font
+/// units. Every glyph stands on the baseline but a mark the font puts higher or lower on its
+/// letter.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct Placed {
     pub glyph: u16,
     pub x: i32,
+    pub y: i32,
 }
 
 /// A text set on one line.
@@ -331,6 +411,116 @@ impl Classes {
             _ => 0,
         }
     }
+}
+
+/// The classes a font gives its glyphs (`GDEF`): a letter, a ligature, a mark.
+const LETTER: usize = 1;
+const LIGATURE: usize = 2;
+const MARK: usize = 3;
+
+/// The glyphs a lookup passes over as if they were not in the line: the bits of its flag, and
+/// the set of marks it looks at alone when it names one.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+struct Passing {
+    flag: u16,
+    set: usize,
+}
+
+impl Passing {
+    const LETTERS: u16 = 0x0002;
+    const LIGATURES: u16 = 0x0004;
+    const MARKS: u16 = 0x0008;
+    const MARKS_OUTSIDE_A_SET: u16 = 0x0010;
+    const MARKS_BY_ATTACHMENT: u16 = 0xFF00;
+
+    /// The same lookup looking back for the mark another mark stands on: it passes over no
+    /// class of glyph, and still over the marks outside its set.
+    fn back(self) -> Passing {
+        Passing {
+            flag: self.flag & !(Passing::LETTERS | Passing::LIGATURES | Passing::MARKS),
+            set: self.set,
+        }
+    }
+}
+
+/// One subtable that puts marks on glyphs: for each mark covered, its class and the point of
+/// the mark that is brought onto the glyph; for each glyph covered, the point each class of
+/// mark is brought to, where the glyph has one.
+#[derive(Debug, Clone, PartialEq, Eq)]
+struct Anchors {
+    marks: Coverage,
+    mark: Vec<(usize, (i16, i16))>,
+    onto: Coverage,
+    classes: usize,
+    points: Vec<Option<(i16, i16)>>,
+}
+
+impl Anchors {
+    fn read(table: Bytes<'static>) -> Result<Anchors, FontError> {
+        if table.u16(0)? != 1 {
+            return Err(FontError::Unsupported("mark placing of another format"));
+        }
+        let point = |from: Bytes<'static>, at: usize| -> Result<(i16, i16), FontError> {
+            let anchor = from.from(at)?;
+            // The three formats start alike; the rest (a point of the outline, or changes for
+            // a size in dots) is for a rasteriser that fits outlines to dots, which this is not.
+            match anchor.u16(0)? {
+                1..=3 => Ok((anchor.i16(2)?, anchor.i16(4)?)),
+                _ => Err(FontError::Unsupported("an anchor of another format")),
+            }
+        };
+        let marks = Coverage::read(table.from(usize::from(table.u16(2)?))?)?;
+        let onto = Coverage::read(table.from(usize::from(table.u16(4)?))?)?;
+        let classes = usize::from(table.u16(6)?);
+        let listed = table.from(usize::from(table.u16(8)?))?;
+        let mut mark = Vec::new();
+        for i in 0..usize::from(listed.u16(0)?) {
+            let at = 2 + 4 * i;
+            let class = usize::from(listed.u16(at)?);
+            if class >= classes {
+                return Err(FontError::Unsupported("a mark of a class the table lacks"));
+            }
+            mark.push((class, point(listed, usize::from(listed.u16(at + 2)?))?));
+        }
+        let rows = table.from(usize::from(table.u16(10)?))?;
+        let mut points = Vec::new();
+        for cell in 0..usize::from(rows.u16(0)?) * classes {
+            points.push(match usize::from(rows.u16(2 + 2 * cell)?) {
+                0 => None,
+                at => Some(point(rows, at)?),
+            });
+        }
+        Ok(Anchors {
+            marks,
+            mark,
+            onto,
+            classes,
+            points,
+        })
+    }
+
+    /// How far the origin of `mark` stands from the origin of `glyph` when this subtable puts
+    /// the one on the other, or `None` when it says nothing of the two (it covers one of them
+    /// alone, or the glyph has no point for a mark of that class) and the next is asked.
+    fn offset(&self, mark: u16, glyph: u16) -> Option<(i32, i32)> {
+        let &(class, from) = self.mark.get(self.marks.index(mark)?)?;
+        let to = (*self
+            .points
+            .get(self.onto.index(glyph)? * self.classes + class)?)?;
+        Some((
+            i32::from(to.0) - i32::from(from.0),
+            i32::from(to.1) - i32::from(from.1),
+        ))
+    }
+}
+
+/// A lookup that puts marks on the letters before them (the `mark` feature) or on the marks
+/// before them (`mkmk`).
+#[derive(Debug, Clone, PartialEq, Eq)]
+struct Placing {
+    on_marks: bool,
+    passing: Passing,
+    subtables: Vec<Anchors>,
 }
 
 /// One subtable of pair adjustments: the change to the advance of the first glyph of a pair.
@@ -419,8 +609,15 @@ pub struct Face {
     /// Where each glyph's outline starts in `glyf`, and after the last where it ends.
     offsets: Vec<u32>,
     glyf: (usize, usize),
-    /// The lookups of the `kern` feature, each a list of subtables.
-    kerning: Vec<Vec<Pairs>>,
+    /// The lookups of the `kern` feature, each with the glyphs it passes over and its
+    /// subtables.
+    kerning: Vec<(Passing, Vec<Pairs>)>,
+    /// The class the font gives each glyph: 1 a letter, 2 a ligature, 3 a mark.
+    classes: Classes,
+    /// The sets of marks a lookup may name, to look at those marks and no others.
+    mark_sets: Vec<Coverage>,
+    /// The lookups of the `mark` and `mkmk` features, in the order of the font.
+    placing: Vec<Placing>,
 }
 
 impl Face {
@@ -513,10 +710,20 @@ impl Face {
             }
             offsets.push(offset);
         }
-        let kerning = match table("GPOS")? {
-            Some((offset, length)) => Face::read_kerning(file.part(offset, length)?)?,
-            None => Vec::new(),
+        let (classes, mark_sets) = match table("GDEF")? {
+            Some((offset, length)) => Face::read_classes(file.part(offset, length)?)?,
+            None => (Classes(Vec::new()), Vec::new()),
         };
+        let (kerning, placing) = match table("GPOS")? {
+            Some((offset, length)) => {
+                Face::read_positioning(file.part(offset, length)?, mark_sets.len())?
+            }
+            None => (Vec::new(), Vec::new()),
+        };
+        // A mark takes no room of its own: the placing below counts on it.
+        if (0..glyphs).any(|glyph| classes.of(glyph as u16) == MARK && advances[glyph] != 0) {
+            return Err(FontError::Unsupported("a mark that advances"));
+        }
         Ok(Face {
             data,
             units_per_em,
@@ -536,6 +743,9 @@ impl Face {
             offsets,
             glyf,
             kerning,
+            classes,
+            mark_sets,
+            placing,
         })
     }
 
@@ -672,35 +882,90 @@ impl Face {
         Ok(map)
     }
 
-    /// The lookups of pair adjustments that the `kern` features name, in the order of the
-    /// table.
-    fn read_kerning(gpos: Bytes<'static>) -> Result<Vec<Vec<Pairs>>, FontError> {
-        let features = gpos.from(usize::from(gpos.u16(6)?))?;
-        let mut named: Vec<u16> = Vec::new();
-        for i in 0..usize::from(features.u16(0)?) {
-            let at = 2 + 6 * i;
-            if features.part(at, 4)?.0 != b"kern" {
-                continue;
-            }
-            let feature = features.from(usize::from(features.u16(at + 4)?))?;
-            for k in 0..usize::from(feature.u16(2)?) {
-                let lookup = feature.u16(4 + 2 * k)?;
-                if !named.contains(&lookup) {
-                    named.push(lookup);
+    /// The classes of the glyphs and the sets of marks (`GDEF`).
+    fn read_classes(gdef: Bytes<'static>) -> Result<(Classes, Vec<Coverage>), FontError> {
+        let classes = match usize::from(gdef.u16(4)?) {
+            0 => Classes(Vec::new()),
+            at => Classes::read(gdef.from(at)?)?,
+        };
+        let mut sets = Vec::new();
+        // From version 1.2 of the table on, the sets of marks a lookup may name.
+        if (gdef.u16(0)?, gdef.u16(2)?) >= (1, 2) {
+            let at = usize::from(gdef.u16(12)?);
+            if at != 0 {
+                let listed = gdef.from(at)?;
+                if listed.u16(0)? != 1 {
+                    return Err(FontError::Unsupported("sets of marks of another format"));
+                }
+                for i in 0..usize::from(listed.u16(2)?) {
+                    sets.push(Coverage::read(
+                        listed.from(listed.u32(4 + 4 * i)? as usize)?,
+                    )?);
                 }
             }
         }
-        named.sort_unstable();
+        Ok((classes, sets))
+    }
+
+    /// The lookups of `GPOS` this reader applies: those of the `kern` feature that adjust
+    /// pairs, and those of `mark` and `mkmk` that put marks on glyphs, each kind in the order
+    /// of the font. A feature is read whatever script or language the font lists it under.
+    #[allow(clippy::type_complexity)]
+    fn read_positioning(
+        gpos: Bytes<'static>,
+        sets: usize,
+    ) -> Result<(Vec<(Passing, Vec<Pairs>)>, Vec<Placing>), FontError> {
+        let features = gpos.from(usize::from(gpos.u16(6)?))?;
+        // Each lookup named, with the features that name it: kerning, marks on letters, marks
+        // on marks.
+        let mut named: Vec<(u16, [bool; 3])> = Vec::new();
+        for i in 0..usize::from(features.u16(0)?) {
+            let at = 2 + 6 * i;
+            let which = match features.part(at, 4)?.0 {
+                b"kern" => 0,
+                b"mark" => 1,
+                b"mkmk" => 2,
+                _ => continue,
+            };
+            let feature = features.from(usize::from(features.u16(at + 4)?))?;
+            for k in 0..usize::from(feature.u16(2)?) {
+                let lookup = feature.u16(4 + 2 * k)?;
+                match named.iter_mut().find(|(index, _)| *index == lookup) {
+                    Some((_, by)) => by[which] = true,
+                    None => {
+                        let mut by = [false; 3];
+                        by[which] = true;
+                        named.push((lookup, by));
+                    }
+                }
+            }
+        }
+        named.sort_unstable_by_key(|&(index, _)| index);
         let lookups = gpos.from(usize::from(gpos.u16(8)?))?;
-        let mut kerning = Vec::new();
-        for index in named {
+        let (mut kerning, mut placing) = (Vec::new(), Vec::new());
+        for (index, by) in named {
             if index >= lookups.u16(0)? {
                 return Err(FontError::Truncated);
             }
             let lookup = lookups.from(usize::from(lookups.u16(2 + 2 * usize::from(index))?))?;
-            let kind = lookup.u16(0)?;
-            let mut subtables = Vec::new();
-            for k in 0..usize::from(lookup.u16(4)?) {
+            let (kind, flag, count) = (lookup.u16(0)?, lookup.u16(2)?, usize::from(lookup.u16(4)?));
+            if flag & Passing::MARKS_BY_ATTACHMENT != 0 {
+                return Err(FontError::Unsupported(
+                    "a lookup that tells marks apart by their class of attachment",
+                ));
+            }
+            let set = if flag & Passing::MARKS_OUTSIDE_A_SET != 0 {
+                let set = usize::from(lookup.u16(6 + 2 * count)?);
+                if set >= sets {
+                    return Err(FontError::Unsupported("a set of marks the font lacks"));
+                }
+                set
+            } else {
+                0
+            };
+            let passing = Passing { flag, set };
+            let (mut pairs, mut on_letters, mut on_marks) = (Vec::new(), Vec::new(), Vec::new());
+            for k in 0..count {
                 let mut subtable = lookup.from(usize::from(lookup.u16(6 + 2 * k)?))?;
                 let mut of = kind;
                 // An extension holds a subtable of another kind farther away.
@@ -708,13 +973,32 @@ impl Face {
                     of = subtable.u16(2)?;
                     subtable = subtable.from(subtable.u32(4)? as usize)?;
                 }
-                if of == 2 {
-                    subtables.push(Face::read_pairs(subtable)?);
+                match of {
+                    2 if by[0] => pairs.push(Face::read_pairs(subtable)?),
+                    4 if by[1] => on_letters.push(Anchors::read(subtable)?),
+                    6 if by[2] => on_marks.push(Anchors::read(subtable)?),
+                    _ => {}
                 }
             }
-            kerning.push(subtables);
+            if by[0] {
+                kerning.push((passing, pairs));
+            }
+            if !on_letters.is_empty() {
+                placing.push(Placing {
+                    on_marks: false,
+                    passing,
+                    subtables: on_letters,
+                });
+            }
+            if !on_marks.is_empty() {
+                placing.push(Placing {
+                    on_marks: true,
+                    passing,
+                    subtables: on_marks,
+                });
+            }
         }
-        Ok(kerning)
+        Ok((kerning, placing))
     }
 
     fn read_pairs(table: Bytes<'static>) -> Result<Pairs, FontError> {
@@ -869,7 +1153,7 @@ impl Face {
     /// says.
     pub fn kern(&self, left: u16, right: u16) -> i16 {
         let mut total = 0_i16;
-        for lookup in &self.kerning {
+        for (_, lookup) in &self.kerning {
             if let Some(value) = lookup.iter().find_map(|pairs| pairs.adjust(left, right)) {
                 total = total.saturating_add(value);
             }
@@ -877,22 +1161,157 @@ impl Face {
         total
     }
 
+    /// Whether `glyph` is a mark: a glyph the font classes as one, drawn on the glyph before
+    /// it and taking no room of its own.
+    pub fn is_mark(&self, glyph: u16) -> bool {
+        self.classes.of(glyph) == MARK
+    }
+
+    /// Whether a lookup passes over `glyph`.
+    fn passes(&self, passing: Passing, glyph: u16) -> bool {
+        match self.classes.of(glyph) {
+            LETTER => passing.flag & Passing::LETTERS != 0,
+            LIGATURE => passing.flag & Passing::LIGATURES != 0,
+            MARK => {
+                passing.flag & Passing::MARKS != 0
+                    || (passing.flag & Passing::MARKS_OUTSIDE_A_SET != 0
+                        && self
+                            .mark_sets
+                            .get(passing.set)
+                            .is_none_or(|set| set.index(glyph).is_none()))
+            }
+            _ => false,
+        }
+    }
+
+    /// The glyphs of one stretch of a line set one after the other: where the origin of each
+    /// stands, along the baseline and above it, and the width of the stretch, in font units.
+    ///
+    /// The advance of a glyph is corrected by the kerning with the glyph after it, a lookup
+    /// that passes over marks kerning the letters on either side of them. A mark is then put
+    /// on the letter before it, or on the mark before it, where the font has a point for the
+    /// two: each lookup of `mark` and `mkmk` in the order of the font, the first of its
+    /// subtables that speaks of the pair, a later lookup overruling an earlier one. A mark the
+    /// font places nowhere stays where its advance puts it, raised where the letter before it
+    /// is a tall one ([`Face::lift`]).
+    pub fn place(&self, glyphs: &[u16]) -> (Vec<(i32, i32)>, i32) {
+        let mut advances: Vec<i32> = glyphs
+            .iter()
+            .map(|&glyph| i32::from(self.advance(glyph)))
+            .collect();
+        for (passing, subtables) in &self.kerning {
+            let mut before: Option<usize> = None;
+            for (i, &glyph) in glyphs.iter().enumerate() {
+                if self.passes(*passing, glyph) {
+                    continue;
+                }
+                if let Some(left) = before
+                    && let Some(value) = subtables
+                        .iter()
+                        .find_map(|pairs| pairs.adjust(glyphs[left], glyph))
+                {
+                    advances[left] += i32::from(value);
+                }
+                before = Some(i);
+            }
+        }
+        let on = self.marks_on(glyphs);
+        let mut places: Vec<(i32, i32)> = Vec::with_capacity(glyphs.len());
+        let mut x = 0_i32;
+        for (i, advance) in advances.iter().enumerate() {
+            places.push(match on[i] {
+                Some((j, dx, dy)) => (places[j].0 + dx, places[j].1 + dy),
+                None => (x, self.lift(glyphs, i)),
+            });
+            x += advance;
+        }
+        (places, x)
+    }
+
+    /// How far above its own height a mark is drawn that the font has no point for on the
+    /// letter before it. A font keeps such a mark where it clears a small letter, so over a
+    /// letter that rises higher, β or θ, it would run into the letter: a mark whose outline
+    /// lies above the small letters is raised by as much as the letter rises above them,
+    /// which is what the fonts' own points do for a tall letter they have one for. 0 for any
+    /// other glyph, for a mark with no letter before it, and for a mark drawn low.
+    fn lift(&self, glyphs: &[u16], at: usize) -> i32 {
+        let small = i32::from(self.x_height);
+        if small <= 0 || !self.is_mark(glyphs[at]) {
+            return 0;
+        }
+        let Some(letter) = glyphs[..at].iter().rposition(|&other| !self.is_mark(other)) else {
+            return 0;
+        };
+        match (self.heights(glyphs[at]), self.heights(glyphs[letter])) {
+            (Some((bottom, _)), Some((_, top))) if i32::from(bottom) >= small => {
+                (i32::from(top) - small).max(0)
+            }
+            _ => 0,
+        }
+    }
+
+    /// The lowest and the highest point of the outline of `glyph`, in font units, as the font
+    /// records them; `None` for a glyph with no outline.
+    fn heights(&self, glyph: u16) -> Option<(i16, i16)> {
+        let data = self.glyph_data(glyph).ok()?;
+        Some((data.i16(4).ok()?, data.i16(8).ok()?))
+    }
+
+    /// For each glyph of a stretch, the glyph before it that the font puts it on and how far
+    /// from that glyph's origin its own origin then stands; `None` for a glyph that is put on
+    /// nothing: a letter, or a mark the font has no point for on what stands before it.
+    fn marks_on(&self, glyphs: &[u16]) -> Vec<Option<(usize, i32, i32)>> {
+        let mut on: Vec<Option<(usize, i32, i32)>> = vec![None; glyphs.len()];
+        for lookup in &self.placing {
+            for (i, &glyph) in glyphs.iter().enumerate() {
+                if self.passes(lookup.passing, glyph) {
+                    continue;
+                }
+                let found = if lookup.on_marks {
+                    // The glyph before it that the lookup looks at, which must be a mark.
+                    let back = lookup.passing.back();
+                    glyphs[..i]
+                        .iter()
+                        .rposition(|&other| !self.passes(back, other))
+                        .filter(|&j| self.is_mark(glyphs[j]))
+                } else {
+                    // The letter before it, the marks between passed over.
+                    glyphs[..i].iter().rposition(|&other| !self.is_mark(other))
+                };
+                let Some(j) = found else { continue };
+                if let Some((dx, dy)) = lookup
+                    .subtables
+                    .iter()
+                    .find_map(|anchors| anchors.offset(glyph, glyphs[j]))
+                {
+                    on[i] = Some((j, dx, dy));
+                }
+            }
+        }
+        on
+    }
+
+    /// Whether the font puts every mark of `glyphs`, a letter and the marks after it, on the
+    /// letter or on a mark before it.
+    pub fn places_marks(&self, glyphs: &[u16]) -> bool {
+        self.marks_on(glyphs)
+            .iter()
+            .zip(glyphs)
+            .skip(1)
+            .all(|(on, &glyph)| on.is_some() || !self.is_mark(glyph))
+    }
+
     /// `text` set on one line: brought to its composed form, each character by its glyph, in
-    /// order, each advance corrected by the kerning with the glyph after it. A composed
-    /// letter the face lacks is drawn by its parts when the face has them all; any other
-    /// character the face lacks is drawn by glyph 0, the face's empty box, and listed.
+    /// order, each advance corrected by the kerning with the glyph after it, and each mark put
+    /// on its letter ([`Face::place`]). A composed letter the face lacks is drawn by its parts
+    /// when the face has them all; any other character the face lacks is drawn by glyph 0, the
+    /// face's empty box, and listed.
     pub fn shape(&self, text: &str) -> Shaped {
         let mut drawn: Vec<u16> = Vec::with_capacity(text.len());
         let mut missing: Vec<char> = Vec::new();
         for character in text.nfc() {
-            if let Some(glyph) = self.glyph(character) {
-                drawn.push(glyph);
-                continue;
-            }
-            let mut parts: Vec<Option<u16>> = Vec::new();
-            decompose_canonical(character, |part| parts.push(self.glyph(part)));
-            if parts.len() > 1 && parts.iter().all(Option::is_some) {
-                drawn.extend(parts.into_iter().flatten());
+            if let Some(glyphs) = glyphs_of(self, character) {
+                drawn.extend(glyphs);
             } else {
                 if !missing.contains(&character) {
                     missing.push(character);
@@ -900,18 +1319,14 @@ impl Face {
                 drawn.push(0);
             }
         }
-        let mut glyphs: Vec<Placed> = Vec::with_capacity(drawn.len());
-        let mut x = 0_i32;
-        for (i, &glyph) in drawn.iter().enumerate() {
-            if i > 0 {
-                x += i32::from(self.kern(drawn[i - 1], glyph));
-            }
-            glyphs.push(Placed { glyph, x });
-            x += i32::from(self.advance(glyph));
-        }
+        let (places, width) = self.place(&drawn);
         Shaped {
-            glyphs,
-            width: x,
+            glyphs: drawn
+                .iter()
+                .zip(places)
+                .map(|(&glyph, (x, y))| Placed { glyph, x, y })
+                .collect(),
+            width,
             missing,
         }
     }

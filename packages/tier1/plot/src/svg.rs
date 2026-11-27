@@ -667,8 +667,10 @@ impl Writer {
             let mut d = String::new();
             for placed in &shaped.glyphs {
                 let origin = along + f64::from(placed.x) * scale;
+                // A mark the font puts higher or lower on its letter.
+                let raised = f64::from(placed.y) * scale;
                 let point = |x: f64, y: f64| {
-                    let (px, py) = place(origin + x * scale, y * scale);
+                    let (px, py) = place(origin + x * scale, raised + y * scale);
                     format!("{} {}", length(px), length(py))
                 };
                 // A glyph whose outline cannot be read is left out; the embedded faces

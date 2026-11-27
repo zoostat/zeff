@@ -332,9 +332,9 @@ plot/lines/svg 440bffa038959ef8
 plot/lines/pdf e8dba8e18bec6745
 plot/lines/png e246a4c14ffa9c6e
 plot/fonts/metrics b3d7efb32f3c4d1f
-plot/fonts/texts 337dd9975587517c
+plot/fonts/texts 8be4067156597d6d
 plot/fonts/outlines d39420f8dedd77e2
-plot/fonts/lines 6d7770fc15e5aeb2
+plot/fonts/lines 015fa8d4e80551ae
 plot/fills/stdout a36158679d30985a
 plot/fills/stderr 18dd155e800057b8
 plot/fills/band.svg b8ecbc2b1cff51f2
@@ -359,6 +359,11 @@ plot/two_faces/stderr cf8eeca5d7a83282
 plot/two_faces/two_faces.svg 616f06be6b00bf31
 plot/two_faces/two_faces.pdf 9f0d78eda769deae
 plot/two_faces/two_faces.png 91190828ed5c5598
+plot/marks/stdout 5d4e70d6e26889e8
+plot/marks/stderr cf8eeca5d7a83282
+plot/marks/marks.svg a7c16895da046411
+plot/marks/marks.pdf 5c742a3a522aebb0
+plot/marks/marks.png ecd68c1dba25e53b
 plots/labels/stdout e48b17e26d9f4eaa
 plots/labels/stderr cd5c0fd7d48a43b2
 plots/labels/labels.svg 037aee3fc51096d3

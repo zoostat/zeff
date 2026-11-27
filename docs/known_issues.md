@@ -216,8 +216,12 @@ is never listed here as accepted: it is fixed or the function is withdrawn.
   points elsewhere). There is no italic, no ligature and no shaping of scripts that need it.
   The label face has four letters of the Greek alphabet (Δ, Ω, μ, π), no arrow and no
   Cyrillic: such a character is taken from JetBrains Mono, so a Greek letter in a label is a
-  little wider and squarer than the words around it. A character neither face has (Chinese, an
-  emoji) is drawn as an empty box, with a note. (Since 0.7.0; the two faces since 0.10.0, open
+  little wider and squarer than the words around it. A mark written after a letter (the bar
+  of x̄, the hat of β̂) is drawn on the letter, and a second mark on the first; a letter
+  whose mark the label face cannot place (μ̂, π̂) is taken with its mark from JetBrains Mono,
+  and the dot of an i or a j stays under a mark for which Unicode has no joined letter. A
+  character neither face has (Chinese, an emoji, a subscript letter such as ₙ or ᵢ, though
+  the subscript digits are there) is drawn as an empty box, with a note. (Since 0.7.0; the two faces since 0.10.0, open
   decisions #222 and #234; italic by open decision #119, after 1.0; wider coverage with the
   fetch store of 0.11.0.)
 - **A figure file is plain.** SVG: the text is drawn as outlines, so a dense figure is large

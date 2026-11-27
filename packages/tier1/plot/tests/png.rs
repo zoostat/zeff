@@ -545,6 +545,9 @@ fn the_letters_have_the_area_of_their_outlines_and_stand_where_the_font_sets_the
         ("Wage 0.47", FaceName::SansSemiBold),
         ("lm(y)", FaceName::Mono),
         (mixed.as_str(), FaceName::Sans),
+        // A mark the font raises on its letter (release 0.10.0, step 4c): the bar of X̄ clears
+        // the X, so the ink of the two adds up.
+        ("X\u{304}g", FaceName::Sans),
     ] {
         // The area of the letters as the independent reader of fonts gives their outlines.
         // Each glyph by the face that draws it: a line may be set in two (release 0.10.0,
@@ -594,6 +597,26 @@ fn the_letters_have_the_area_of_their_outlines_and_stand_where_the_font_sets_the
             }
         }
     }
+    // The bar of X̄ is drawn above the X, as high as the font puts it there: the highest ink
+    // of the line is the top of the bar, raised by the 172 units the font raises it on an X,
+    // and that of x̄, where the font raises nothing, is the top of the bar as it is drawn.
+    let highest = |words: &str| {
+        let picture = render(&line(words, FaceName::Sans, 0.0), 72.0).unwrap();
+        (0..picture.height)
+            .find(|&y| (0..picture.width).any(|x| picture.dot(x, y)[0] < 128))
+            .unwrap() as f64
+    };
+    let theirs = ttf_parser::Face::parse(FaceName::Sans.bytes(), 0).unwrap();
+    let sans = face(FaceName::Sans);
+    let top = |character: char| {
+        let glyph = ttf_parser::GlyphId(sans.glyph(character).unwrap());
+        f64::from(theirs.glyph_bounding_box(glyph).unwrap().y_max) * size / 1000.0
+    };
+    let raise = 172.0 * size / 1000.0;
+    assert!((highest("X") - (200.0 - top('X'))).abs() <= 1.0);
+    assert!((highest("X\u{304}") - (200.0 - top('\u{304}') - raise)).abs() <= 1.0);
+    assert!((highest("x\u{304}") - (200.0 - top('\u{304}'))).abs() <= 1.0);
+    assert!(highest("X\u{304}") < highest("X") - 4.0);
 }
 
 #[test]

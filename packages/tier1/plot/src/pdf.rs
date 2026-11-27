@@ -672,10 +672,11 @@ impl Content {
         let mut along = start;
         for (span, font, width, shaped) in &set {
             let per_em = 1000.0 / f64::from(font.units_per_em());
-            // A span is written one stretch of one face at a time: a stretch in the face of
-            // the span, or in the face behind it for the characters the first lacks. Each
-            // stretch selects its own embedded font and starts where its first glyph stands.
-            for run in shaped.runs() {
+            // A span is written one stretch of one face at one height at a time: a stretch in
+            // the face of the span, or in the face behind it for the characters the first
+            // lacks, and a mark the font raises on its letter by itself. Each stretch selects
+            // its own embedded font and starts where its first glyph stands.
+            for run in shaped.stretches() {
                 let by = run[0].face;
                 let drawer = face(by);
                 let index = index_of(by);
@@ -696,8 +697,11 @@ impl Content {
                 shown.push_str(">] TJ");
                 // The letters of a font stand upright on a page that counts upwards: the
                 // text is turned over once more, and then turned as it was asked to be.
-                let from = f64::from(run[0].x) * span.size / f64::from(font.units_per_em());
-                let origin = place(along + from, 0.0);
+                let (from, raised) = (
+                    f64::from(run[0].x) * span.size / f64::from(font.units_per_em()),
+                    f64::from(run[0].y) * span.size / f64::from(font.units_per_em()),
+                );
+                let origin = place(along + from, raised);
                 self.out.push_str(&format!(
                     "/F{} {} Tf {} rg {} {} {} {} {} {} Tm {shown}\n",
                     index + 1,

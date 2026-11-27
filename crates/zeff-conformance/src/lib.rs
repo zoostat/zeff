@@ -2625,6 +2625,20 @@ fn plot_cases() -> Vec<Line> {
             .unwrap_or_default();
         fills.push(bytes(&format!("plot/two_faces/{name}"), &data));
     }
+    // Marks on their letters (release 0.10.0, step 4c): the means and estimates a statistician
+    // writes in a title and on both axes, the upright one turned: a mark the label face has a
+    // point for, on a small letter and on a capital; a letter with its mark from the mono
+    // face, small and tall; two marks on one letter; what the script prints and the figure in
+    // the three formats.
+    let script = "let w = dataset(wages).where(worker <= 60)\nlet p = w.plot(x: educ, y: wage).points(alpha: 0.5).labels(title: \"Means x\u{304} and y\u{304}, estimates \u{3b2}\u{302}, \u{3bc}\u{302} and \u{3c3}\u{302}\u{b2}\", x: \"X\u{304} = 13.4, p\u{302} = 0.21, \u{3b8}\u{302} and y\u{303}\", y: \"y\u{304} and \u{3b2}\u{302}\u{304} with \u{3bb}\u{302}, T\u{304}o\")\np\np.export(\"output/marks.svg\")\np.export(\"output/marks.pdf\")\np.export(\"output/marks.png\")\n";
+    let marked = run_script(&fs, &project, "scripts/main.zeff", script);
+    fills.push(text("plot/marks/stdout", &marked.output.stdout));
+    fills.push(text("plot/marks/stderr", &marked.output.stderr));
+    for name in ["marks.svg", "marks.pdf", "marks.png"] {
+        let data = zeff_engine::fs::FileSystem::read(&fs, Path::new(&format!("/g/output/{name}")))
+            .unwrap_or_default();
+        fills.push(bytes(&format!("plot/marks/{name}"), &data));
+    }
     // The titles of the legends of fill, size and shape (release 0.8.0, step 8a2; open decision
     // #131): `labels(size:, shape:)` on points, `fill:` on bars beside and in the place of
     // `color:`, an empty text taking a title away; what the script prints and the first figure.
@@ -3382,6 +3396,12 @@ fn font_lines() -> String {
         "A\u{2192}V To \u{3b2} Ty",
         "\u{4e2d}\u{6587} \u{3b2} \u{1f600}",
         "",
+        // Marks on their letters (step 4c): in the face of the line, in the face behind it,
+        // two on one letter, across a pair that is kerned, and with no letter to stand on.
+        "Means x\u{304} and y\u{304}, X\u{304} \u{2192} \u{3bc}",
+        "\u{3b2}\u{302} and \u{3bc}\u{302}, \u{3c3}\u{302}\u{b2}, \u{3b8}\u{302}\u{304}",
+        "T\u{304}o x\u{304}\u{302} x\u{309} a\u{328}\u{304}",
+        "\u{304}x \u{4e2d}\u{304}",
     ];
     let mut out = String::new();
     for name in FaceName::ALL {
@@ -3394,6 +3414,10 @@ fn font_lines() -> String {
                     .position(|face| *face == placed.face)
                     .unwrap_or(0);
                 out.push_str(&format!(" {by}:{}@{}", placed.glyph, placed.x));
+                // A mark the font raises or lowers on its letter.
+                if placed.y != 0 {
+                    out.push_str(&format!("^{}", placed.y));
+                }
             }
             out.push_str(&format!(" lacking {:?}\n", line.missing));
         }
@@ -3420,6 +3444,7 @@ fn font_texts() -> String {
         "\u{3b1} \u{3b2} \u{3a3} \u{3c7}\u{b2}",
         "\u{4e2d}\u{6587} a\tb",
         "",
+        "x\u{304} X\u{304} x\u{304}\u{302} T\u{304}o \u{3b2}\u{302}",
     ];
     let mut out = String::new();
     for name in FaceName::ALL {
@@ -3429,6 +3454,9 @@ fn font_texts() -> String {
             out.push_str(&format!("{} {text:?} width {}", name.file(), shaped.width));
             for placed in &shaped.glyphs {
                 out.push_str(&format!(" {}@{}", placed.glyph, placed.x));
+                if placed.y != 0 {
+                    out.push_str(&format!("^{}", placed.y));
+                }
             }
             out.push_str(&format!(" lacking {:?}", shaped.missing));
             for size in [8.0, 9.5, 24.0] {
