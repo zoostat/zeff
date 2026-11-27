@@ -526,6 +526,7 @@ fn the_sample_script_of_the_specification_checks_with_its_module() {
     // of which 4 wait, for the `dag { }` block and its three functions. From step 11 the block
     // is taken, and the statement that draws the graph, which stood behind the block's
     // refusal, waits in its place for `plot` of a graph: 4 wait still, the three functions of
-    // a graph and its plot. From step 13, `implied_independencies` is taken: 3 wait.
-    assert_eq!((parsed.script.items.len(), waiting), (76, 3));
+    // a graph and its plot. From step 13, `implied_independencies` is taken: 3 wait. From
+    // step 14, `adjustment_sets`: 2 wait, the check of a fit against the graph and the plot.
+    assert_eq!((parsed.script.items.len(), waiting), (76, 2));
 }

@@ -265,6 +265,9 @@ identify/kernel b9950d0a114cf488
 identify/independencies/stdout 19805c2121a119ea
 identify/independencies/stderr cbf29ce484222325
 identify/independencies_refused/stderr 2f56f18e7b29f209
+identify/adjustment/stdout f0706e0203bb7513
+identify/adjustment/stderr a6e28f3f2ebb7f72
+identify/adjustment_refused/stderr 6596a1033313bd4f
 tests/fields/stdout cbf29ce484222325
 tests/fields/stderr 066add1139daf971
 tests/shapiro/stdout bb094c197a0d6c4d

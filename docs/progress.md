@@ -96,7 +96,9 @@ Step 12 `[engine]` (28 November 2026): the graph kernel, in the package `identif
 
 Step 13 `[function]` (28 November 2026): `g.implied_independencies()`. One statement for each pair of observed variables with no edge between them that observed variables can separate, with a smallest set that does so, in one order however the graph was written; latent variables in no statement, selected ones conditioned on throughout, a graph with an undirected edge refused. Which list the specification meant was a question, entered as #246 and taken as recommended (dagitty's default list, not the one it calls the basis set). Held to a second way that tries every set, on 32,108 small graphs and 2,000 generated ones; dagitty's one printed example agrees. Catalogue row 431 is implemented, `data:` waiting for step 18: 273 of the 284 functions of 1.0.
 
-**Next.** Step 14 `[engine]`: `g.adjustment_sets(exposure:, outcome:, type:)`.
+Step 14 `[engine]` (28 November 2026): `g.adjustment_sets(exposure:, outcome:, type: minimal | all)`. The sets of observed variables that satisfy the generalized adjustment criterion, as a `List<Vars>` printed one set to a line in braces (`{}` is "adjust for nothing"), by size and then by name; latent variables in no set, selected ones given in every question. When no set exists the list is empty and a note names what stands in the way (a latent common cause by name, a selection, an arrow from the outcome into the exposure) with advice. Held to a second search that checks the criterion by its definition, path by path: every exposure and outcome on every graph of up to five nodes, and 2,000 generated graphs with common causes, latent and selected nodes; the specification's two examples word for word. dagitty is not installed, and no agreement with it is claimed. Decisions: docs/decisions.md.
+
+**Next.** Step 15 `[engine]`: `fit.check(g, exposure:)`.
 
 **For the owner, from step 13.** #246 is yours to overturn: `implied_independencies` lists dagitty's default kind of statement (two variables and a smallest set), not what dagitty calls the basis set, though section 7.3 used that word.
 

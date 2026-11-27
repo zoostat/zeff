@@ -522,8 +522,9 @@ EXAMPLES
     >     latent ability
     > }
     > g.adjustment_sets(exposure: training, outcome: productivity)
-    no adjustment set among observed variables: ability is latent and confounds training -> productivity
-      consider an instrument for training, or a front-door variable
+    []
+    note: no adjustment set among observed variables: ability is latent and confounds training -> productivity
+      = help: consider an instrument for training, or a front-door variable
     > g.adjustment_sets(exposure: tenure, outcome: productivity)
     { training }
 ```

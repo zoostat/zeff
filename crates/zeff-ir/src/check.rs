@@ -7174,6 +7174,11 @@ impl Checker<'_> {
                         Ty::Var if fname == "dataset" => {
                             "name the dataset without quotes, as in `dataset(wages)`; `datasets()` lists them".to_string()
                         }
+                        // A method of a causal graph names a node of the graph (release
+                        // 0.10.0, step 14).
+                        Ty::Var if spec.method && params.first().is_some_and(|(_, t, _)| *t == Ty::Dag) => {
+                            "name one node of the graph, without quotes".to_string()
+                        }
                         Ty::Var => "name a variable of the frame, without quotes".to_string(),
                         Ty::Vars => {
                             "name the variables in a list, as in `[lwage, educ]`".to_string()

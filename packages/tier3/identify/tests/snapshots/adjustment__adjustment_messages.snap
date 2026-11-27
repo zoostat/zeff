@@ -1,0 +1,121 @@
+---
+source: packages/tier3/identify/tests/adjustment.rs
+expression: all
+---
+error[Z0401]: the graph has an undirected edge, `--`, so `adjustment_sets` cannot say what to adjust for
+ --> scripts/main.zeff:1:1
+  |
+1 | dag {
+  | ^^^^^ a graph with an undirected edge
+  |
+  = help: an undirected edge is for drawing and says nothing of cause: write `a -> b` for a cause, or `a <-> b` for a common cause that is not observed
+
+error[Z0101]: no node `cc` in the graph
+ --> scripts/main.zeff:2:41
+  |
+2 | g.adjustment_sets(exposure: a, outcome: cc)
+  |                                         ^^ not a node of the graph
+  |
+  = help: did you mean `c`?
+
+error[Z0101]: no node `wage` in the graph
+ --> scripts/main.zeff:2:29
+  |
+2 | g.adjustment_sets(exposure: wage, outcome: c)
+  |                             ^^^^ not a node of the graph
+  |
+  = help: the nodes of the graph are: a, b, c
+
+error[Z0401]: `exposure:` and `outcome:` of `adjustment_sets` are both `a`
+ --> scripts/main.zeff:2:41
+  |
+2 | g.adjustment_sets(exposure: a, outcome: a)
+  |                                         ^ the exposure again
+  |
+  = help: an effect is of one variable on another: name two nodes of the graph
+
+error[Z0406]: `adjustment_sets` needs `outcome:`
+ --> scripts/main.zeff:2:3
+  |
+2 | g.adjustment_sets(exposure: a)
+  |   ^^^^^^^^^^^^^^^ `outcome:` is missing
+  |
+  = help: usage: `g.adjustment_sets(exposure: Var, outcome: Var, type: minimal | all = minimal)`
+
+error[Z0406]: `adjustment_sets` needs `exposure:`
+ --> scripts/main.zeff:2:3
+  |
+2 | g.adjustment_sets(outcome: c)
+  |   ^^^^^^^^^^^^^^^ `exposure:` is missing
+  |
+  = help: usage: `g.adjustment_sets(exposure: Var, outcome: Var, type: minimal | all = minimal)`
+
+error[Z0406]: `adjustment_sets` needs `exposure:`
+ --> scripts/main.zeff:2:3
+  |
+2 | g.adjustment_sets()
+  |   ^^^^^^^^^^^^^^^ `exposure:` is missing
+  |
+  = help: usage: `g.adjustment_sets(exposure: Var, outcome: Var, type: minimal | all = minimal)`
+
+error[Z0402]: `canonical` is not one of the allowed words
+ --> scripts/main.zeff:2:50
+  |
+2 | g.adjustment_sets(exposure: a, outcome: c, type: canonical)
+  |                                                  ^^^^^^^^^ expected one of minimal, all
+
+error[Z0401]: `exposure` of `adjustment_sets` must be a Var, but this is a List<?>
+ --> scripts/main.zeff:2:29
+  |
+2 | g.adjustment_sets(exposure: [a, b], outcome: c)
+  |                             ^^^^^^ a List<?>
+  |
+  = help: name one node of the graph, without quotes
+
+error[Z0401]: `exposure` of `adjustment_sets` must be a Var, but this is a Str
+ --> scripts/main.zeff:2:29
+  |
+2 | g.adjustment_sets(exposure: "a", outcome: c)
+  |                             ^^^ a Str
+  |
+  = help: name one node of the graph, without quotes
+
+error[Z0404]: `adjustment_sets` has no argument called `effect`
+ --> scripts/main.zeff:2:44
+  |
+2 | g.adjustment_sets(exposure: a, outcome: c, effect: direct)
+  |                                            ^^^^^^ unknown argument
+  |
+  = help: usage: `g.adjustment_sets(exposure: Var, outcome: Var, type: minimal | all = minimal)`
+
+error[Z0401]: `exposure:` of `adjustment_sets` is `u`, which is latent
+ --> scripts/main.zeff:6:29
+  |
+6 | g.adjustment_sets(exposure: u, outcome: b)
+  |                             ^ declared `latent` in the graph
+  |
+  = help: a variable that is not observed has no relation in the data to adjust; if `u` is measured after all, take it out of the `latent` line
+
+error[Z0401]: `outcome:` of `adjustment_sets` is `s`, which is one the data are selected on
+ --> scripts/main.zeff:5:41
+  |
+5 | g.adjustment_sets(exposure: a, outcome: s)
+  |                                         ^ declared `selected` in the graph
+  |
+  = help: the data hold `s` fixed, so they show no relation of it to anything; if `s` varies in the data, take it out of the `selected` line
+
+error[Z0401]: `adjustment_sets` cannot be called on a Frame
+ --> scripts/main.zeff:1:1
+  |
+1 | dataset(wages).adjustment_sets(exposure: educ, outcome: wage)
+  | ^^^^^^^^^^^^^^ this is a Frame
+  |
+  = help: `adjustment_sets` takes a Dag first; `x.adjustment_sets(...)` is `adjustment_sets(x, ...)`
+
+error[Z0406]: `adjustment_sets` needs `g`
+ --> scripts/main.zeff:1:1
+  |
+1 | adjustment_sets(exposure: a, outcome: b)
+  | ^^^^^^^^^^^^^^^ `g` is missing
+  |
+  = help: usage: `g.adjustment_sets(exposure: Var, outcome: Var, type: minimal | all = minimal)`

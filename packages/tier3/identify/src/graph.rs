@@ -216,4 +216,65 @@ impl Graph {
         let reached = self.reach(&x, &joined, &conditioned);
         !y.iter().any(|&v| reached[v])
     }
+
+    /// The same graph without the arrows listed, each as its two nodes.
+    fn without_arrows(&self, removed: &[(usize, usize)]) -> Graph {
+        let mut graph = self.clone();
+        for &(from, to) in removed {
+            graph.children[from].retain(|&child| child != to);
+            graph.parents[to].retain(|&parent| parent != from);
+        }
+        graph
+    }
+
+    /// The same graph with no node selected on: what it would say of data that were not
+    /// selected, by which a difficulty is laid to the selection or not.
+    pub fn without_selection(&self) -> Graph {
+        let mut graph = self.clone();
+        graph.selected = vec![false; self.len()];
+        graph
+    }
+
+    /// The proper back-door graph of an exposure and an outcome (van der Zander, Liśkiewicz and
+    /// Textor 2014): the graph without the first arrow of every proper causal path from the
+    /// exposure to the outcome. What still joins the two in it is no part of the effect.
+    pub fn proper_back_door(&self, exposure: &[usize], outcome: &[usize]) -> Graph {
+        let causal = self.proper_causal_nodes(exposure, outcome);
+        let first: Vec<(usize, usize)> = exposure
+            .iter()
+            .flat_map(|&x| {
+                self.children[x]
+                    .iter()
+                    .filter(|&&child| causal[child])
+                    .map(move |&child| (x, child))
+            })
+            .collect();
+        self.without_arrows(&first)
+    }
+
+    /// The nodes no adjustment set may hold: those on a proper causal path from the exposure
+    /// to the outcome, the exposure left out, and their descendants. To hold one fixed takes
+    /// away part of the effect, or opens a way between the two that is no effect.
+    pub fn forbidden(&self, exposure: &[usize], outcome: &[usize]) -> Vec<bool> {
+        let causal = self.proper_causal_nodes(exposure, outcome);
+        let on: Vec<usize> = (0..self.len()).filter(|&v| causal[v]).collect();
+        self.descendants(&on)
+    }
+
+    /// Whether adjusting for `set` gives the total effect of the exposure on the outcome, by
+    /// the generalized adjustment criterion (Shpitser, VanderWeele and Robins 2010, in the
+    /// form of van der Zander, Liśkiewicz and Textor 2014): the set and the nodes the data are
+    /// selected on hold no forbidden node, and they separate the exposure from the outcome in
+    /// the proper back-door graph. Whether the nodes of the set are observed is the caller's
+    /// business.
+    pub fn is_adjustment_set(&self, exposure: &[usize], outcome: &[usize], set: &[usize]) -> bool {
+        let forbidden = self.forbidden(exposure, outcome);
+        if set.iter().any(|&v| forbidden[v])
+            || (0..self.len()).any(|v| self.selected[v] && forbidden[v])
+        {
+            return false;
+        }
+        self.proper_back_door(exposure, outcome)
+            .d_separated(exposure, outcome, set)
+    }
 }

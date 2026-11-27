@@ -72,6 +72,17 @@ fn trim_zeros(text: &str) -> String {
     }
 }
 
+/// An item of a list on one line. A list of variables that is itself an item is a set, and is
+/// written in braces, `{ age, region }`, so that where one set ends and the next begins is
+/// seen; the set of no variables is `{}` (`adjustment_sets`: "adjust for nothing").
+fn item(value: &Value) -> String {
+    match value {
+        Value::Vars(names) if names.is_empty() => "{}".to_string(),
+        Value::Vars(names) => format!("{{ {} }}", names.join(", ")),
+        other => inline(other),
+    }
+}
+
 /// A value on one line, as it appears inside a list or a record.
 fn inline(value: &Value) -> String {
     match value {
@@ -114,7 +125,7 @@ fn inline(value: &Value) -> String {
         Value::TermExpr { text, .. } | Value::Expr { text, .. } => text.clone(),
         Value::List(items) => format!(
             "[{}]",
-            items.iter().map(inline).collect::<Vec<_>>().join(", ")
+            items.iter().map(item).collect::<Vec<_>>().join(", ")
         ),
         Value::Record(fields) => {
             format!(
@@ -714,7 +725,7 @@ pub fn show(value: &Value) -> String {
 pub fn show_width(value: &Value, width: usize) -> String {
     match value {
         Value::Nothing => String::new(),
-        Value::List(items) => lines(items.iter().map(inline), items.len(), "item"),
+        Value::List(items) => lines(items.iter().map(item), items.len(), "item"),
         Value::Record(fields) => lines(
             fields.iter().map(|(n, v)| format!("{n}: {}", inline(v))),
             fields.len(),
@@ -842,6 +853,23 @@ mod tests {
         assert_eq!(elapsed_text(3_723_000_000), "1 h 2 min 3 s");
         // A clock put back while the expression ran: no time, not a negative one.
         assert_eq!(elapsed_text(-5_000_000), "0.000 s");
+    }
+
+    #[test]
+    fn a_list_of_variables_inside_a_list_is_a_set_in_braces() {
+        let vars = |names: &[&str]| Value::Vars(names.iter().map(|n| n.to_string()).collect());
+        let sets = Value::List(vec![vars(&[]), vars(&["age"]), vars(&["age", "region"])]);
+        // One set to a line, the set of no variables as `{}`.
+        assert_eq!(show(&sets), "{}\n{ age }\n{ age, region }\n");
+        // Inside another value, on one line.
+        assert_eq!(
+            show(&Value::List(vec![sets.clone()])),
+            "[{}, { age }, { age, region }]\n"
+        );
+        // A list of variables on its own prints as it did, and an empty list of anything
+        // is `[]`.
+        assert_eq!(show(&vars(&["age", "region"])), "age, region\n");
+        assert_eq!(show(&Value::List(Vec::new())), "[]\n");
     }
 
     #[test]

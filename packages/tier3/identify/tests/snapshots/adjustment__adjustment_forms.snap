@@ -1,0 +1,44 @@
+---
+source: packages/tier3/identify/tests/adjustment.rs
+expression: "format!(\"{stdout}---\\n{stderr}\")"
+---
+{ training }
+{ training }
+{ age, training }
+{ region, training }
+{ age, region, training }
+{}
+{}
+{ region }
+[]
+{}
+[]
+[]
+[]
+[]
+[]
+[]
+{ z }
+[]
+[]
+{}
+{}
+---
+note: no adjustment set among observed variables: ability is latent and confounds training -> productivity (line 12)
+  = help: consider an instrument for training, or a front-door variable
+note: no adjustment set among observed variables: the graph has tenure -> productivity, a path between the two that no variable closes (line 14)
+  = help: by this graph productivity does not act on tenure; if it does, the arrow is the other way, `productivity -> tenure`
+note: no adjustment set among observed variables: the common cause of x and y is not observed and confounds x -> y (line 15)
+  = help: consider an instrument for x, or a front-door variable
+note: no adjustment set among observed variables: u and w are latent and confound x -> y (line 19)
+  = help: consider an instrument for x, or a front-door variable
+note: no adjustment set among observed variables: u and the common cause of x and y are not observed and confound x -> y (line 24)
+  = help: consider an instrument for x, or a front-door variable
+note: no adjustment set among observed variables: the data are selected on kept, which lies on a causal path from x to y or below one (line 30)
+  = help: no adjustment undoes a selection on what the exposure brings about: the effect is estimated from data not selected so, or with a model of the selection
+note: no adjustment set among observed variables: the data are selected on kept, which opens a path between x and y that no observed variable closes (line 35)
+  = help: consider an instrument for x, or a front-door variable
+note: no adjustment set among observed variables: the data are selected on employed, which lies on a causal path from educ to wage or below one (line 48)
+  = help: no adjustment undoes a selection on what the exposure brings about: the effect is estimated from data not selected so, or with a model of the selection
+note: no adjustment set among observed variables: the graph has a -> b, a path between the two that no variable closes (line 54)
+  = help: by this graph b does not act on a; if it does, the arrow is the other way, `b -> a`

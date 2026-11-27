@@ -1817,6 +1817,30 @@ fn panel_cases() -> Vec<Line> {
         "scripts/main.zeff",
         "dag {\n    price -- demand\n    season -> demand\n}.implied_independencies()\n",
     );
+    // The adjustment sets of a graph (release 0.10.0, step 14): the two examples of the
+    // specification's page on the graph of section 7.3, every set and the minimal ones, a
+    // collider, two minimal sets, each reason for which no observed set exists (a latent
+    // common cause, a bidirected edge, a selection below a causal path, a selection that
+    // opens a path, an arrow from the outcome into the exposure), a selection an observed
+    // variable repairs, the count as a value, and the graph with its lines in another order.
+    let adjustment = "let g = dag {\n    ability -> training -> productivity\n    ability -> productivity\n    training -> tenure -> productivity\n    [age, region] -> training\n    latent ability\n}\ng.adjustment_sets(exposure: training, outcome: productivity)\ng.adjustment_sets(exposure: tenure, outcome: productivity)\ng.adjustment_sets(exposure: tenure, outcome: productivity, type: all)\ng.adjustment_sets(exposure: age, outcome: productivity, type: all)\nlet m = dag {\n    dose -> recovery\n    [income, health] -> motive\n    income -> dose\n    health -> recovery\n}\nm.adjustment_sets(exposure: dose, outcome: recovery)\nm.adjustment_sets(exposure: dose, outcome: recovery, type: all)\ndag {\n    x -> y\n    a -> [x, b]\n    b -> y\n}.adjustment_sets(exposure: x, outcome: y)\ndag {\n    x -> m -> y\n    x <-> y\n}.adjustment_sets(exposure: x, outcome: y)\ndag {\n    educ -> skill -> wage\n    skill -> employed\n    union -> wage\n    selected employed\n}.adjustment_sets(exposure: educ, outcome: wage)\ndag {\n    x -> y\n    [x, u] -> kept\n    u -> y\n    latent u\n    selected kept\n}.adjustment_sets(exposure: x, outcome: y)\ndag {\n    x -> y\n    [x, z] -> kept\n    z -> y\n    selected kept\n}.adjustment_sets(exposure: x, outcome: y)\ndag { a -> b }.adjustment_sets(exposure: b, outcome: a)\nlet s = m.adjustment_sets(exposure: dose, outcome: recovery, type: all)\nprint(len(s), type_of(s), type_of(s[2]))\ndag {\n    latent ability\n    [region, age] -> training\n    tenure -> productivity\n    training -> [tenure, productivity]\n    ability -> [productivity, training]\n}.adjustment_sets(outcome: productivity, exposure: tenure, type: all)\n";
+    let adjustment_outcome = run_script(&fs, &project, "scripts/main.zeff", adjustment);
+    let mut adjustment_refused = String::new();
+    for script in [
+        "dag {\n    price -- demand\n    season -> demand\n}.adjustment_sets(exposure: season, outcome: demand)\n",
+        "let g = dag { a -> b -> c }\ng.adjustment_sets(exposure: a, outcome: cc)\n",
+        "let g = dag { a -> b -> c }\ng.adjustment_sets(exposure: a, outcome: a)\n",
+        "let g = dag { a -> b -> c }\ng.adjustment_sets(exposure: a)\n",
+        "let g = dag {\n    u -> [a, b]\n    a -> b\n    latent u\n}\ng.adjustment_sets(exposure: u, outcome: b)\n",
+        "let g = dag {\n    a -> b -> s\n    selected s\n}\ng.adjustment_sets(exposure: a, outcome: s)\n",
+    ] {
+        adjustment_refused.push_str(
+            &run_script(&fs, &project, "scripts/main.zeff", script)
+                .output
+                .stderr,
+        );
+        adjustment_refused.push('\n');
+    }
     let mut graph_refused = String::new();
     for script in [
         "let g = dag {\n    price -> demand\n    demand -> price\n}\n",
@@ -1954,6 +1978,15 @@ fn panel_cases() -> Vec<Line> {
             "identify/independencies_refused/stderr",
             &implied_refused.output.stderr,
         ),
+        text(
+            "identify/adjustment/stdout",
+            &adjustment_outcome.output.stdout,
+        ),
+        text(
+            "identify/adjustment/stderr",
+            &adjustment_outcome.output.stderr,
+        ),
+        text("identify/adjustment_refused/stderr", &adjustment_refused),
         text("tests/fields/stdout", &fields_outcome.output.stdout),
         text("tests/fields/stderr", &fields_outcome.output.stderr),
         text("tests/shapiro/stdout", &normality_outcome.output.stdout),

@@ -4,9 +4,11 @@
 //! finds it a graph of causes or refuses it (Z0508), and the value is `Dag` of `core`. The
 //! graph kernel ([`graph`], step 12) answers what the functions of a graph ask of it: its
 //! ancestors and descendants, its proper causal paths and its separations. The functions
-//! themselves (adjustment sets, implied independencies, the check of a fitted model) join it
-//! in the steps that follow.
+//! themselves join it step by step: the implied independencies ([`independencies`], step 13)
+//! and the adjustment sets ([`adjustment`], step 14) are here; the check of a fitted model and
+//! the instruments follow.
 
+pub mod adjustment;
 pub mod graph;
 pub mod independencies;
 
@@ -48,6 +50,38 @@ pub fn functions() -> Vec<Function> {
                 accuracy: None,
             },
             body: dag,
+        },
+        Function {
+            spec: FunctionSpec {
+                name: "adjustment_sets",
+                package: "identify",
+                method: true,
+                params: vec![
+                    ParamSpec::required("g", "Dag"),
+                    ParamSpec::option("exposure", "Var"),
+                    ParamSpec::option("outcome", "Var"),
+                    ParamSpec::option_with_default("type", "minimal | all", "minimal"),
+                ],
+                rest: None,
+                returns: "List<Vars>",
+                diagnostics: vec![
+                    DiagnosticDecl::note(
+                        "no adjustment set among observed variables, with what stands in the way and a design that may still give the effect",
+                    ),
+                    DiagnosticDecl::new(
+                        "Z0101",
+                        "`exposure:` or `outcome:` names no node of the graph",
+                    ),
+                    DiagnosticDecl::new(
+                        "Z0401",
+                        "a graph with an undirected edge; the exposure and the outcome the same node; an exposure or an outcome that is latent or selected on",
+                    ),
+                    DiagnosticDecl::new("Z0406", "`exposure:` or `outcome:` not given"),
+                ],
+                help: include_str!("../help/adjustment_sets.md"),
+                accuracy: None,
+            },
+            body: adjustment::adjustment_sets,
         },
         Function {
             spec: FunctionSpec {

@@ -6,8 +6,6 @@ error[Z0103]: no module is called `robustness`: there is no `functions/robustnes
  --> zeff_samples.zeff:17:1
 error[Z0103]: no function is called `robustness`
  --> zeff_samples.zeff:135:14
-error[Z0103]: no function is called `adjustment_sets`
- --> zeff_samples.zeff:222:3
 error[Z0401]: `plot` cannot be called on a Dag
  --> zeff_samples.zeff:224:1
 error[Z0103]: no function is called `check`
