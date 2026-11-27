@@ -1144,3 +1144,7 @@ At step 10 of release 0.10.0. Row 315: the usage reads `data.reliability(items, 
 ## 27 November 2026 — zeff_open_decisions.md, entry 242
 
 A new entry, open: the size of release 0.12.0, which the rulings of 27 November 2026 on #233, #235 to #238, #240 and #241 have given four new names and some thirty-six options beside the bridges of #152, #161 and #162. It records that the row of 0.12.0 in section 14 of the Engine and Project Specification ("None" under Functions) and the count of 284 functions of 1.0 no longer hold, to be corrected at the opening of the release that carries the new names. No normative text is changed.
+
+## 27 November 2026 — zeff_open_decisions.md, entries 241 and 243
+
+Entry 241 decided by the owner ("Go with A, pass it on"): the status of its row and a paragraph *Decided* after its status of step 10. Entry 243 added, decided for phones and open for tablets: Zemp Lite is not built for phones for now, as #33 ruled for 1.0, and the phone rules of the design guide of #146 and #220 are withdrawn; whether a tablet is supported, and in which direction, is open, with its deadline the Zemp Lite release that next changes its layout. No normative text is changed: the catalogue's rows for #241 are amended at the opening of 0.12.0, and section 5 of the Zemp Specification at that Zemp Lite release.

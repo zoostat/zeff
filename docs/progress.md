@@ -90,7 +90,7 @@ Step 10 `[function]`: `reliability(items, standardize:, reverse:, ci: feldt | du
 
 **Next.** Step 11 `[engine]`: the first step of block C, causal graphs.
 
-**For the owner, from step 10.** #241 is still yours: S1 and S2 are built, being in all three of its options; the principle, `rescale`, `weights:` of `row`, `scalability` and their releases wait for your word.
+**For the owner, from step 10.** #241 decided on 27 November 2026 (the owner: "Go with A, pass it on"): S1 and S2 stand as built; `rescale` and `weights:` of `row` come at 0.12.0, `scalability` at 1.26. Nothing more is asked of this release.
 
 
 **For the owner, carried from release 0.9.0, none blocking.** `Rscript tests/reference/r/install.R`, run by you, installs what the references want: `dagitty`, `psych` and `pROC` since step 3, wanted from steps 10 and 12 on, and `emmeans` 2.0.4. The one-time link of the repository to an archive gives each release its identifier (#116, #161). The folder `~/dev/zeff-signing` and its password are to be kept safe and apart. Yours to overturn before 1.0: #198 to #200, the first part of #201, #202 and #204 to #207, the name `exponentiate:`, the readings taken with the six layouts of #171, and whether Stata's `rownonmiss` is a word of `stat:`; open and yours, the second part of #201 (which standardized coefficients a `glm` fit has). The citation file names you as Patra, Sabyasachi, with no affiliation and no ORCID. No Stata output stands behind any page.
