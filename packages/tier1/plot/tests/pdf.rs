@@ -18,7 +18,7 @@ use proptest::prelude::*;
 use std::collections::BTreeMap;
 use zeff_core::value::Aesthetic;
 use zeff_plot::drawing::{Anchor, Drawing, Item, LineType, Primitive, Span, length};
-use zeff_plot::font::{FaceName, face};
+use zeff_plot::font::{FaceName, face, set};
 use zeff_plot::layout::{JOURNAL, SMALLEST_TEXT, Size, layout};
 use zeff_plot::pdf::{DOTS, SHARED, rgb, write, write_plain};
 
@@ -467,25 +467,25 @@ fn read(pdf: &[u8], drawing: &Drawing) -> Result<Read, String> {
         }
         let mut text = String::new();
         for span in spans {
-            let font = face(span.face);
-            let shaped = font.shape(&span.text);
-            if shaped.glyphs.is_empty() {
-                continue;
-            }
-            let per_em = 1000.0 / f64::from(font.units_per_em());
-            for placed in &shaped.glyphs {
-                if let Some(character) = font.character_of(placed.glyph) {
-                    text.push(character);
+            // A span is one stretch of glyphs for each face that draws part of it: its own
+            // face, and the face behind it for the characters its own lacks (release 0.10.0,
+            // step 4a). Each stretch is written from its own start.
+            let line = set(span.face, &span.text);
+            let per_em = 1000.0 / f64::from(face(span.face).units_per_em());
+            for run in line.runs() {
+                let by = face(run[0].face);
+                for placed in run {
+                    if let Some(character) = by.character_of(placed.glyph) {
+                        text.push(character);
+                    }
                 }
+                expected_runs.push((
+                    run[0].face,
+                    run.iter()
+                        .map(|placed| (placed.glyph, f64::from(placed.x - run[0].x) * per_em))
+                        .collect::<Vec<_>>(),
+                ));
             }
-            expected_runs.push((
-                span.face,
-                shaped
-                    .glyphs
-                    .iter()
-                    .map(|placed| (placed.glyph, f64::from(placed.x) * per_em))
-                    .collect::<Vec<_>>(),
-            ));
         }
         expected_words.push(text);
     }
@@ -811,6 +811,79 @@ fn text_is_set_glyph_by_glyph_with_the_kerning_of_the_font() {
     let found = read(&write(&drawing), &drawing).unwrap();
     assert_eq!(found.words, ["résumé  β"]);
     assert_eq!(found.runs[0].glyphs[7].0, 0);
+}
+
+/// A line that needs two faces (release 0.10.0, step 4a; open decision #234): each stretch is
+/// written in the font that draws it, from where its first glyph stands, the file carries both
+/// fonts, and a reader recovers the words whole.
+#[test]
+fn a_line_of_two_faces_is_written_stretch_by_stretch_in_the_font_of_each() {
+    let (sans, mono) = (face(FaceName::Sans), face(FaceName::Mono));
+    // A character of the mono face alone, found among whatever faces are embedded.
+    let other: char = mono
+        .characters()
+        .find(|c| {
+            let mut parts = 0;
+            unicode_normalization::char::decompose_canonical(*c, |_| parts += 1);
+            sans.glyph(*c).is_none()
+                && !c.is_control()
+                && !unicode_normalization::char::is_combining_mark(*c)
+                && parts == 1
+        })
+        .expect("the mono face draws a character the sans face lacks");
+    let words = format!("AV{other}{other}VA");
+    let drawing = of(vec![unnamed(Primitive::Text {
+        at: (100.0, 60.0),
+        anchor: Anchor::Start,
+        turn: 0.0,
+        spans: vec![Span {
+            text: words.clone(),
+            face: FaceName::Sans,
+            size: 10.0,
+            colour: "#222222".to_string(),
+        }],
+        frame: None,
+    })]);
+    let found = read(&write(&drawing), &drawing).unwrap();
+    assert_eq!(found.words, [words.as_str()]);
+    // Three stretches: the sans face, the mono face, the sans face again.
+    let faces: Vec<FaceName> = found.runs.iter().map(|run| run.face).collect();
+    assert_eq!(faces, [FaceName::Sans, FaceName::Mono, FaceName::Sans]);
+    assert!(found.faces.contains(&FaceName::Sans) && found.faces.contains(&FaceName::Mono));
+    assert!(!found.faces.contains(&FaceName::SansSemiBold));
+    // The first stretch as it would stand alone, kerned within itself.
+    let (a, v) = (sans.glyph('A').unwrap(), sans.glyph('V').unwrap());
+    let closer = -sans.kern(a, v);
+    assert!(
+        found.page.contains(&format!(
+            "/F1 10 Tf 0.133 0.133 0.133 rg 1 0 0 -1 100 60 Tm [<{a:04X}> {closer} <{v:04X}>] TJ\n"
+        )),
+        "{}",
+        found.page
+    );
+    // The second in the mono font, starting where the first ends: no kerning across the join.
+    let o = mono.glyph(other).unwrap();
+    let first = sans.width("AV", 10.0);
+    assert!(
+        found.page.contains(&format!(
+            "/F3 10 Tf 0.133 0.133 0.133 rg 1 0 0 -1 {} 60 Tm [<{o:04X}{o:04X}>] TJ\n",
+            length(100.0 + first)
+        )),
+        "{}",
+        found.page
+    );
+    // The third after two advances of the mono face.
+    let second = 2.0 * f64::from(mono.advance(o)) * 10.0 / 1000.0;
+    assert!(
+        found.page.contains(&format!(
+            " 1 0 0 -1 {} 60 Tm [<{v:04X}> {closer} <{a:04X}>] TJ\n",
+            length(100.0 + first + second)
+        )),
+        "{}",
+        found.page
+    );
+    // The same drawing gives the same bytes, and a text of one face is one stretch as before.
+    assert_eq!(write(&drawing), write(&drawing));
 }
 
 // ----- a layer drawn in dots (step 22b3b) -----

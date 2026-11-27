@@ -2612,6 +2612,19 @@ fn plot_cases() -> Vec<Line> {
             .unwrap_or_default();
         fills.push(bytes(&format!("plot/rug/{name}"), &data));
     }
+    // Labels set in two faces (release 0.10.0, step 4a; open decision #234): a title and two
+    // axis titles with Greek letters, an arrow, a superscript and signs that only one of the
+    // faces may have, and one character that neither has; what the script prints and the
+    // figure in the three formats, in a case of its own so that no published digest moves.
+    let script = "let w = dataset(wages).where(worker <= 60)\nlet p = w.plot(x: educ, y: wage).points(alpha: 0.5).labels(title: \"Wage and schooling: \u{3b2}, \u{3c3}\u{b2} and x\u{203e}\", x: \"Years of schooling \u{2192} \u{2400}\", y: \"Hourly wage (\u{3c7}\u{b2}, \u{4e2d})\")\np\np.export(\"output/two_faces.svg\")\np.export(\"output/two_faces.pdf\")\np.export(\"output/two_faces.png\")\n";
+    let lettered = run_script(&fs, &project, "scripts/main.zeff", script);
+    fills.push(text("plot/two_faces/stdout", &lettered.output.stdout));
+    fills.push(text("plot/two_faces/stderr", &lettered.output.stderr));
+    for name in ["two_faces.svg", "two_faces.pdf", "two_faces.png"] {
+        let data = zeff_engine::fs::FileSystem::read(&fs, Path::new(&format!("/g/output/{name}")))
+            .unwrap_or_default();
+        fills.push(bytes(&format!("plot/two_faces/{name}"), &data));
+    }
     // The titles of the legends of fill, size and shape (release 0.8.0, step 8a2; open decision
     // #131): `labels(size:, shape:)` on points, `fill:` on bars beside and in the place of
     // `color:`, an empty text taking a title away; what the script prints and the first figure.
@@ -3055,6 +3068,7 @@ fn plot_cases() -> Vec<Line> {
         text("plot/fonts/metrics", &font_metrics()),
         text("plot/fonts/texts", &font_texts()),
         text("plot/fonts/outlines", &font_outlines()),
+        text("plot/fonts/lines", &font_lines()),
     ];
     cases.extend(fills);
     cases
@@ -3351,6 +3365,42 @@ fn font_metrics() -> String {
 /// Texts set in each face: what a figure writes, pairs the fonts kern, letters with marks
 /// written joined and apart, a joined letter drawn by its parts, and characters no face has;
 /// each as its glyphs, their places and its width at three sizes.
+/// Lines set in two faces (release 0.10.0, step 4a; open decision #234): for each sans face,
+/// each text with the face, the glyph and the place of every glyph, the width and the
+/// characters neither face has, so that the four targets prove the same setting.
+fn font_lines() -> String {
+    use zeff_plot::font::{FaceName, set};
+    let texts = [
+        "Hourly wage",
+        "Estimated coefficient \u{3b2} and its 95% interval",
+        "\u{3c3}\u{b2} = 2.1, \u{3b1} = 0.05",
+        "\u{3c7}\u{b2} = 12.4 on 3 df",
+        "training \u{2192} tenure \u{2192} productivity",
+        "x\u{2074} + x\u{2075}, H\u{2080}: \u{3bc}\u{2081} = \u{3bc}\u{2082}",
+        "\u{421}\u{440}\u{435}\u{434}\u{43d}\u{44f}\u{44f} \u{437}\u{430}\u{440}\u{43f}\u{43b}\u{430}\u{442}\u{430}",
+        "mean x\u{203e}, end \u{2400} of text",
+        "A\u{2192}V To \u{3b2} Ty",
+        "\u{4e2d}\u{6587} \u{3b2} \u{1f600}",
+        "",
+    ];
+    let mut out = String::new();
+    for name in FaceName::ALL {
+        for text in texts {
+            let line = set(name, text);
+            out.push_str(&format!("{} {text:?} width {}", name.file(), line.width));
+            for placed in &line.glyphs {
+                let by = FaceName::ALL
+                    .iter()
+                    .position(|face| *face == placed.face)
+                    .unwrap_or(0);
+                out.push_str(&format!(" {by}:{}@{}", placed.glyph, placed.x));
+            }
+            out.push_str(&format!(" lacking {:?}\n", line.missing));
+        }
+    }
+    out
+}
+
 fn font_texts() -> String {
     use zeff_plot::font::{FaceName, face};
     let texts = [

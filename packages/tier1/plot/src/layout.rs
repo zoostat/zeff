@@ -226,7 +226,7 @@ pub enum LayoutError {
     TooThin { panel: (f64, f64), filling: f64 },
 }
 
-/// Measures text and remembers the characters no face has.
+/// Measures text and remembers the characters neither its face nor the face behind it has.
 #[derive(Default)]
 struct Setter {
     lacking: Vec<char>,
@@ -235,13 +235,15 @@ struct Setter {
 impl Setter {
     /// The width of `text` in `name` at `size` points.
     fn width(&mut self, text: &str, name: FaceName, size: f64) -> f64 {
-        let shaped = face(name).shape(text);
-        for character in shaped.missing {
+        // As the writers draw it: in `name`, and in the face behind it where `name` lacks a
+        // character.
+        let line = crate::font::set(name, text);
+        for character in line.missing {
             if !self.lacking.contains(&character) {
                 self.lacking.push(character);
             }
         }
-        f64::from(shaped.width) * size / f64::from(face(name).units_per_em())
+        f64::from(line.width) * size / f64::from(face(name).units_per_em())
     }
 
     /// `text` broken between words into lines no wider than `limit`; a word wider than the
@@ -3237,7 +3239,7 @@ fn lay(scene: &Scene, size: Size, theme: &Theme, noted: bool) -> Result<Drawing,
             None => (String::new(), "are"),
         };
         notes.push(format!(
-            "{list} {verb} not in the font of the figure and {verb} drawn as an empty box"
+            "{list} {verb} not in the fonts of the figure and {verb} drawn as an empty box"
         ));
     }
     Ok(Drawing {

@@ -21,6 +21,12 @@
 //! nothing depends on a language. A character the face lacks is drawn by the glyph the face
 //! keeps for that, an empty box, and is reported.
 //!
+//! A line of a figure is set in two faces where one is not enough ([`set`]; release 0.10.0,
+//! step 4a; open decision #234): a character the face of the line lacks is taken, letter by
+//! letter, from the face that stands behind it, the mono face for the two sans faces, and only
+//! a character neither has is the empty box. A text the first face has whole is set exactly as
+//! [`Face::shape`] sets it.
+//!
 //! Every length is a whole number of font units, of which the faces have 1000 to the em: a
 //! text of `w` units set at `s` points is `w × s / 1000` points wide.
 
@@ -58,6 +64,102 @@ impl FaceName {
             FaceName::SansSemiBold => "IBMPlexSans-SemiBold.ttf",
             FaceName::Mono => "IBMPlexMono-Regular.ttf",
         }
+    }
+}
+
+impl FaceName {
+    /// The face a character is taken from when this one lacks it: the mono face stands behind
+    /// the two sans faces, and nothing stands behind the mono face.
+    pub fn fallback(self) -> Option<FaceName> {
+        match self {
+            FaceName::Sans | FaceName::SansSemiBold => Some(FaceName::Mono),
+            FaceName::Mono => None,
+        }
+    }
+}
+
+/// A glyph of a line, with the face that draws it and the place of its origin along the
+/// baseline, in font units.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct Set {
+    pub face: FaceName,
+    pub glyph: u16,
+    pub x: i32,
+}
+
+/// A line of a figure, set in its face and, where that face lacks a character, in the face
+/// behind it.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct Line {
+    pub glyphs: Vec<Set>,
+    /// From the origin of the first glyph to the end of the advance of the last, in font units.
+    pub width: i32,
+    /// The characters neither face has, each once, in the order met.
+    pub missing: Vec<char>,
+}
+
+impl Line {
+    /// The glyphs in runs of one face each, in order: what a writer that selects a font for a
+    /// stretch of text, as a PDF does, writes one stretch at a time.
+    pub fn runs(&self) -> impl Iterator<Item = &[Set]> {
+        self.glyphs.chunk_by(|a, b| a.face == b.face)
+    }
+}
+
+/// The glyphs `face` draws `character` by: its own glyph, or, for a composed letter it lacks,
+/// the glyphs of its parts when it has them all.
+fn glyphs_of(face: &Face, character: char) -> Option<Vec<u16>> {
+    if let Some(glyph) = face.glyph(character) {
+        return Some(vec![glyph]);
+    }
+    let mut parts: Vec<Option<u16>> = Vec::new();
+    decompose_canonical(character, |part| parts.push(face.glyph(part)));
+    if parts.len() > 1 && parts.iter().all(Option::is_some) {
+        Some(parts.into_iter().flatten().collect())
+    } else {
+        None
+    }
+}
+
+/// `text` set on one line in the face `name` and, letter by letter, in the face behind it
+/// where `name` lacks a character. The text is brought to its composed form; each character is
+/// drawn by `name` when it can be, whole or by its parts, and otherwise by the fallback face
+/// in the same way; a character neither face has is the empty box of `name`, and is listed.
+/// Two neighbouring glyphs are kerned when one face draws both and not across a change of
+/// face, since a face knows nothing of another's shapes. The faces have the same number of
+/// units to the em, so that a place along the line is one count of units whatever the face.
+pub fn set(name: FaceName, text: &str) -> Line {
+    let first = face(name);
+    let behind = name.fallback().map(|other| (other, face(other)));
+    let mut drawn: Vec<(FaceName, u16)> = Vec::with_capacity(text.len());
+    let mut missing: Vec<char> = Vec::new();
+    for character in text.nfc() {
+        if let Some(glyphs) = glyphs_of(first, character) {
+            drawn.extend(glyphs.into_iter().map(|glyph| (name, glyph)));
+        } else if let Some((other, glyphs)) =
+            behind.and_then(|(other, second)| Some((other, glyphs_of(second, character)?)))
+        {
+            drawn.extend(glyphs.into_iter().map(|glyph| (other, glyph)));
+        } else {
+            if !missing.contains(&character) {
+                missing.push(character);
+            }
+            drawn.push((name, 0));
+        }
+    }
+    let mut glyphs: Vec<Set> = Vec::with_capacity(drawn.len());
+    let mut x = 0_i32;
+    for (i, &(by, glyph)) in drawn.iter().enumerate() {
+        if i > 0 && drawn[i - 1].0 == by {
+            x += i32::from(face(by).kern(drawn[i - 1].1, glyph));
+        }
+        glyphs.push(Set { face: by, glyph, x });
+        x += i32::from(face(by).advance(glyph));
+    }
+    Line {
+        glyphs,
+        width: x,
+        missing,
     }
 }
 

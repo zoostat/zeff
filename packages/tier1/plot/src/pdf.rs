@@ -47,7 +47,7 @@ pub use crate::drawing::rgb;
 use crate::drawing::{
     Anchor, Drawing, Head, Item, Place, Primitive, Span, Stroke, TextBox, length,
 };
-use crate::font::{FaceName, face};
+use crate::font::{FaceName, face, set};
 use crate::shape::Geometry;
 use crate::svg::{ABOVE, BELOW, MARK_STROKE, geometry, turned};
 use crate::trace::{Piece, Trace};
@@ -634,7 +634,7 @@ impl Content {
             .iter()
             .map(|span| {
                 let font = face(span.face);
-                let shaped = font.shape(&span.text);
+                let shaped = set(span.face, &span.text);
                 let width = f64::from(shaped.width) * span.size / f64::from(font.units_per_em());
                 (span, font, width, shaped)
             })
@@ -671,16 +671,21 @@ impl Content {
         self.out.push_str("BT\n");
         let mut along = start;
         for (span, font, width, shaped) in &set {
-            if !shaped.glyphs.is_empty() {
-                let index = index_of(span.face);
-                let per_em = 1000.0 / f64::from(font.units_per_em());
+            let per_em = 1000.0 / f64::from(font.units_per_em());
+            // A span is written one stretch of one face at a time: a stretch in the face of
+            // the span, or in the face behind it for the characters the first lacks. Each
+            // stretch selects its own embedded font and starts where its first glyph stands.
+            for run in shaped.runs() {
+                let by = run[0].face;
+                let drawer = face(by);
+                let index = index_of(by);
                 // The glyphs in one string, broken where a glyph stands closer to the one
                 // before it, or farther from it, than its advance puts it.
                 let mut shown = String::from("[<");
-                for (i, placed) in shaped.glyphs.iter().enumerate() {
+                for (i, placed) in run.iter().enumerate() {
                     if i > 0 {
-                        let before = &shaped.glyphs[i - 1];
-                        let closer = before.x + i32::from(font.advance(before.glyph)) - placed.x;
+                        let before = &run[i - 1];
+                        let closer = before.x + i32::from(drawer.advance(before.glyph)) - placed.x;
                         if closer != 0 {
                             shown.push_str(&format!("> {} <", length(f64::from(closer) * per_em)));
                         }
@@ -691,7 +696,8 @@ impl Content {
                 shown.push_str(">] TJ");
                 // The letters of a font stand upright on a page that counts upwards: the
                 // text is turned over once more, and then turned as it was asked to be.
-                let origin = place(along, 0.0);
+                let from = f64::from(run[0].x) * span.size / f64::from(font.units_per_em());
+                let origin = place(along + from, 0.0);
                 self.out.push_str(&format!(
                     "/F{} {} Tf {} rg {} {} {} {} {} {} Tm {shown}\n",
                     index + 1,

@@ -519,16 +519,35 @@ fn the_letters_have_the_area_of_their_outlines_and_stand_where_the_font_sets_the
             })],
         )
     };
+    // A line of two faces among them: a character of the mono face alone, found among
+    // whatever faces are embedded, between letters of the sans face (release 0.10.0, step 4a).
+    let other: char = {
+        let (sans, mono) = (face(FaceName::Sans), face(FaceName::Mono));
+        mono.characters()
+            .find(|c| {
+                let mut parts = 0;
+                unicode_normalization::char::decompose_canonical(*c, |_| parts += 1);
+                sans.glyph(*c).is_none()
+                    && !c.is_control()
+                    && !unicode_normalization::char::is_combining_mark(*c)
+                    && parts == 1
+            })
+            .expect("the mono face draws a character the sans face lacks")
+    };
+    let mixed = format!("H{other}g");
     for (words, name) in [
         ("Hxg", FaceName::Sans),
         ("Wage 0.47", FaceName::SansSemiBold),
         ("lm(y)", FaceName::Mono),
+        (mixed.as_str(), FaceName::Sans),
     ] {
         // The area of the letters as the independent reader of fonts gives their outlines.
+        // Each glyph by the face that draws it: a line may be set in two (release 0.10.0,
+        // step 4a).
         let font = face(name);
-        let theirs = ttf_parser::Face::parse(name.bytes(), 0).unwrap();
         let mut area = Area::default();
-        for placed in font.shape(words).glyphs {
+        for placed in zeff_plot::font::set(name, words).glyphs {
+            let theirs = ttf_parser::Face::parse(placed.face.bytes(), 0).unwrap();
             theirs.outline_glyph(ttf_parser::GlyphId(placed.glyph), &mut area);
         }
         let em = f64::from(font.units_per_em());
@@ -552,7 +571,7 @@ fn the_letters_have_the_area_of_their_outlines_and_stand_where_the_font_sets_the
                 "{words} turned {turn}: {ink} dots of ink, {wanted} in the outlines"
             );
             // The line stands on its baseline from its start to the end of its advance.
-            let long = font.width(words, size);
+            let long = f64::from(zeff_plot::font::set(name, words).width) * size / em;
             let (up, down) = (
                 f64::from(font.ascender()) * size / em,
                 -f64::from(font.descender()) * size / em,

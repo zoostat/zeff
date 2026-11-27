@@ -45,7 +45,7 @@ use zeff_numeric::maths::sqrt;
 use crate::drawing::{
     Anchor, Drawing, Head, Item, LineType, Place, Primitive, Span, Stroke, TextBox, rgb,
 };
-use crate::font::{Segment, face};
+use crate::font::{Segment, face, set};
 use crate::shape::Geometry;
 use crate::svg::{ABOVE, BELOW, MARK_STROKE, geometry, turned};
 use crate::trace::{Piece, Trace};
@@ -989,7 +989,7 @@ impl Page {
             .map(|span| {
                 let font = face(span.face);
                 let scale = span.size / f64::from(font.units_per_em());
-                let shaped = font.shape(&span.text);
+                let shaped = set(span.face, &span.text);
                 (span, font, scale, f64::from(shaped.width) * scale, shaped)
             })
             .collect();
@@ -1023,7 +1023,7 @@ impl Page {
             self.paint(&lines_of(&trace, s), &frame.fill, &frame.border, 1.0, false);
         }
         let mut along = start;
-        for (span, font, scale, width, shaped) in &set {
+        for (span, _, scale, width, shaped) in &set {
             let mut shapes: Vec<Vec<Place>> = Vec::new();
             for placed in &shaped.glyphs {
                 let origin = along + f64::from(placed.x) * scale;
@@ -1034,7 +1034,7 @@ impl Page {
                 // A glyph whose outline cannot be read is left out; the embedded faces
                 // have none.
                 let mut open: Vec<Place> = Vec::new();
-                for step in font.outline(placed.glyph).unwrap_or_default() {
+                for step in face(placed.face).outline(placed.glyph).unwrap_or_default() {
                     match step {
                         Segment::Move(x, y) => {
                             if open.len() > 2 {

@@ -12,7 +12,7 @@ use proptest::prelude::*;
 use serde_json::Value as Json;
 use ttf_parser::gpos::{PairAdjustment, PositioningSubtable};
 use ttf_parser::{GlyphId, OutlineBuilder, Tag};
-use zeff_plot::font::{Face, FaceName, FontError, Segment, face};
+use zeff_plot::font::{Face, FaceName, FontError, Segment, Set, face, set};
 use zeff_testkit::root;
 
 fn property_cases(usual: u32) -> u32 {
@@ -411,6 +411,137 @@ fn a_hundred_and_ten_texts_are_set_as_harfbuzz_sets_them() {
     assert!(office["width_with_ligatures"].as_i64() < office["width"].as_i64());
 }
 
+// ----- a line in two faces (release 0.10.0, step 4a; open decision #234) -----
+
+/// Twenty-one lines, set in each sans face with the mono face behind it, against HarfBuzz
+/// asked for each stretch in the face that draws it: the stretches, the face of each, its glyphs
+/// and where each stands along the line, and the width of the whole.
+#[test]
+fn a_line_in_two_faces_is_set_as_harfbuzz_sets_its_stretches() {
+    let reference = reference();
+    let mut in_two = 0;
+    for first in [FaceName::Sans, FaceName::SansSemiBold] {
+        let cases = reference["lines"][first.file()].as_array().unwrap();
+        assert_eq!(cases.len(), 21);
+        for case in cases {
+            let text = case["text"].as_str().unwrap();
+            let line = set(first, text);
+            let runs: Vec<&[Set]> = line.runs().collect();
+            let theirs = case["runs"].as_array().unwrap();
+            assert_eq!(runs.len(), theirs.len(), "{} {text:?}", first.file());
+            let mut along = 0_i64;
+            for (run, their) in runs.iter().zip(theirs) {
+                let by = run[0].face;
+                assert_eq!(by.file(), their["face"].as_str().unwrap(), "{text:?}");
+                assert!(run.iter().all(|placed| placed.face == by));
+                let glyphs: Vec<u64> = run.iter().map(|placed| u64::from(placed.glyph)).collect();
+                let wanted: Vec<u64> = their["glyphs"]
+                    .as_array()
+                    .unwrap()
+                    .iter()
+                    .map(|g| g.as_u64().unwrap())
+                    .collect();
+                assert_eq!(glyphs, wanted, "{} {text:?}", first.file());
+                // Each glyph stands where HarfBuzz's advances of its stretch put it, the
+                // stretch starting where the one before it ended.
+                for (placed, advance) in run.iter().zip(their["advances"].as_array().unwrap()) {
+                    assert_eq!(i64::from(placed.x), along, "{} {text:?}", first.file());
+                    along += advance.as_i64().unwrap();
+                }
+            }
+            assert_eq!(i64::from(line.width), along, "{} {text:?}", first.file());
+            assert_eq!(i64::from(line.width), case["width"].as_i64().unwrap());
+            // A character is reported exactly when neither face draws it.
+            assert_eq!(
+                line.missing.is_empty(),
+                !line.glyphs.iter().any(|placed| placed.glyph == 0),
+                "{} {text:?}",
+                first.file()
+            );
+            in_two += usize::from(runs.len() > 1);
+        }
+    }
+    // Some of the lines do need two faces, whichever faces are embedded.
+    assert!(in_two >= 4, "{in_two} lines in two faces");
+    // Nothing stands behind the mono face: it sets a line alone, as `shape` does.
+    assert_eq!(FaceName::Mono.fallback(), None);
+    assert_eq!(FaceName::Sans.fallback(), Some(FaceName::Mono));
+    assert_eq!(FaceName::SansSemiBold.fallback(), Some(FaceName::Mono));
+    // The faces count the same units to the em, so that a place along a line of two faces is
+    // one count of units.
+    for name in FaceName::ALL {
+        assert_eq!(face(name).units_per_em(), 1000, "{}", name.file());
+    }
+}
+
+/// The rule, case by case: a character the first face has is drawn by it; one it lacks and the
+/// mono face has is drawn by the mono face, at its own advance and with no kerning across the
+/// join; one neither has is the first face's empty box, and is the only kind reported.
+#[test]
+fn a_character_is_taken_from_the_face_behind_only_where_the_first_lacks_it() {
+    let (sans, mono) = (face(FaceName::Sans), face(FaceName::Mono));
+    // A character of the mono face alone, whatever faces are embedded: found, not assumed.
+    let only_mono: char = mono
+        .characters()
+        .find(|c| {
+            // One the sans face cannot draw by parts either: a character that is not a letter
+            // and its mark.
+            let mut parts = 0;
+            unicode_normalization::char::decompose_canonical(*c, |_| parts += 1);
+            sans.glyph(*c).is_none()
+                && !c.is_control()
+                && !unicode_normalization::char::is_combining_mark(*c)
+                && parts == 1
+        })
+        .expect("the mono face draws a character the sans face lacks");
+    let neither = '\u{4e2d}';
+    assert!(sans.glyph(neither).is_none() && mono.glyph(neither).is_none());
+    let text = format!("ab{only_mono}{only_mono}c{neither}d");
+    let line = set(FaceName::Sans, &text);
+    let faces: Vec<FaceName> = line.glyphs.iter().map(|placed| placed.face).collect();
+    assert_eq!(
+        faces,
+        [
+            FaceName::Sans,
+            FaceName::Sans,
+            FaceName::Mono,
+            FaceName::Mono,
+            FaceName::Sans,
+            FaceName::Sans,
+            FaceName::Sans
+        ]
+    );
+    assert_eq!(line.missing, [neither]);
+    assert_eq!(line.glyphs[5].glyph, 0, "the empty box of the first face");
+    assert_eq!(line.glyphs[2].glyph, mono.glyph(only_mono).unwrap());
+    // The width is the widths of the stretches, each set by its own face alone.
+    let stretch = |font: &Face, words: &str| font.shape(words).width;
+    let pair: String = [only_mono, only_mono].iter().collect();
+    let boxed = i32::from(sans.advance(0));
+    assert_eq!(
+        line.width,
+        stretch(sans, "ab")
+            + stretch(mono, &pair)
+            + stretch(sans, "c")
+            + boxed
+            + stretch(sans, "d")
+    );
+    assert_eq!(line.runs().count(), 3);
+    // In the mono face the same text has no face behind it: its own glyphs, and two boxes.
+    let alone = set(FaceName::Mono, &format!("a{only_mono}{neither}"));
+    assert!(
+        alone
+            .glyphs
+            .iter()
+            .all(|placed| placed.face == FaceName::Mono)
+    );
+    assert_eq!(alone.missing, [neither]);
+    // An empty text is an empty line.
+    let empty = set(FaceName::Sans, "");
+    assert!(empty.glyphs.is_empty() && empty.width == 0 && empty.missing.is_empty());
+    assert_eq!(empty.runs().count(), 0);
+}
+
 // ----- the edge cases -----
 
 #[test]
@@ -517,6 +648,73 @@ fn a_text() -> impl Strategy<Value = String> {
         0..40,
     )
     .prop_map(|characters| characters.into_iter().collect())
+}
+
+/// A text of characters of either face, with a few neither has.
+fn a_text_of_two_faces() -> impl Strategy<Value = String> {
+    let sans: Vec<char> = face(FaceName::Sans).characters().collect();
+    let mono: Vec<char> = face(FaceName::Mono).characters().collect();
+    prop::collection::vec(
+        prop_oneof![
+            6 => prop::sample::select(sans),
+            3 => prop::sample::select(mono),
+            1 => prop::sample::select(vec!['中', '\t', '😀', '\u{E000}']),
+        ],
+        0..40,
+    )
+    .prop_map(|characters| characters.into_iter().collect())
+}
+
+proptest! {
+    #![proptest_config(ProptestConfig::with_cases(property_cases(256)))]
+
+    /// A line in two faces: a text its face sets without an empty box is set exactly as that
+    /// face alone sets it, glyph for glyph and to the unit; any line is its stretches end to
+    /// end, each kerned within itself as its own face kerns it and not across a join; and no
+    /// glyph is taken from the face behind where the first face could draw the character.
+    #[test]
+    fn a_line_is_its_stretches_and_a_text_of_one_face_is_set_as_before(
+        text in a_text_of_two_faces(),
+    ) {
+        for name in FaceName::ALL {
+            let alone = face(name).shape(&text);
+            let line = set(name, &text);
+            if alone.missing.is_empty() {
+                let same: Vec<(u16, i32)> = line.glyphs.iter().map(|g| (g.glyph, g.x)).collect();
+                let before: Vec<(u16, i32)> = alone.glyphs.iter().map(|g| (g.glyph, g.x)).collect();
+                prop_assert_eq!(same, before);
+                prop_assert_eq!(line.width, alone.width);
+                prop_assert!(line.glyphs.iter().all(|g| g.face == name));
+                prop_assert!(line.missing.is_empty());
+            }
+            // As many glyphs as the first face alone draws, in the same order of characters,
+            // and never fewer characters drawn: what was a box may be a letter, not the reverse.
+            prop_assert!(line.missing.len() <= alone.missing.len());
+            let mut along = 0_i32;
+            for (i, placed) in line.glyphs.iter().enumerate() {
+                let by = face(placed.face);
+                let kern = if i > 0 && line.glyphs[i - 1].face == placed.face {
+                    i32::from(by.kern(line.glyphs[i - 1].glyph, placed.glyph))
+                } else {
+                    0
+                };
+                prop_assert_eq!(placed.x, along + kern);
+                along = placed.x + i32::from(by.advance(placed.glyph));
+                prop_assert!(placed.face == name || Some(placed.face) == name.fallback());
+            }
+            prop_assert_eq!(line.width, along);
+            // The stretches cover the line, in order, each of one face and no two neighbours
+            // of the same.
+            let runs: Vec<&[Set]> = line.runs().collect();
+            prop_assert_eq!(runs.iter().map(|run| run.len()).sum::<usize>(), line.glyphs.len());
+            prop_assert!(runs.windows(2).all(|pair| pair[0][0].face != pair[1][0].face));
+            // The empty box is drawn exactly where a character is reported.
+            prop_assert_eq!(
+                line.missing.is_empty(),
+                !line.glyphs.iter().any(|g| g.glyph == 0)
+            );
+        }
+    }
 }
 
 proptest! {

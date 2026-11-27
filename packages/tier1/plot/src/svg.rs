@@ -35,7 +35,7 @@ use zeff_numeric::maths::{cos, sin};
 use crate::drawing::{
     Anchor, Drawing, Head, Item, LineType, Primitive, Span, Step, Stroke, TextBox, hex, length,
 };
-use crate::font::{Segment, face};
+use crate::font::{Segment, face, set};
 use crate::png;
 use crate::raster::Picture;
 use crate::shape::{self, Geometry};
@@ -616,7 +616,7 @@ impl Writer {
             .map(|span| {
                 let font = face(span.face);
                 let scale = span.size / f64::from(font.units_per_em());
-                let shaped = font.shape(&span.text);
+                let shaped = set(span.face, &span.text);
                 (span, font, scale, f64::from(shaped.width) * scale, shaped)
             })
             .collect();
@@ -663,7 +663,7 @@ impl Writer {
             ));
         }
         let mut along = start;
-        for (span, font, scale, width, shaped) in &set {
+        for (span, _, scale, width, shaped) in &set {
             let mut d = String::new();
             for placed in &shaped.glyphs {
                 let origin = along + f64::from(placed.x) * scale;
@@ -673,7 +673,7 @@ impl Writer {
                 };
                 // A glyph whose outline cannot be read is left out; the embedded faces
                 // have none.
-                for step in font.outline(placed.glyph).unwrap_or_default() {
+                for step in face(placed.face).outline(placed.glyph).unwrap_or_default() {
                     match step {
                         Segment::Move(x, y) => d.push_str(&format!("M{}", point(x, y))),
                         Segment::Line(x, y) => d.push_str(&format!("L{}", point(x, y))),

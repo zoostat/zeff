@@ -878,7 +878,7 @@ fn a_character_no_font_has_is_drawn_and_told_of() {
         figure.notes,
         [
             "1 row with NA in dose dropped",
-            "a tab, `剂` and `量` are not in the font of the figure and are drawn as an empty box"
+            "a tab, `剂` and `量` are not in the fonts of the figure and are drawn as an empty box"
         ]
     );
     // One character: said in the singular.
@@ -890,7 +890,7 @@ fn a_character_no_font_has_is_drawn_and_told_of() {
     one.scales[1].title = "réponse → 中".to_string();
     assert_eq!(
         layout(&one, Size::OneColumn, &JOURNAL).unwrap().notes,
-        ["`中` is not in the font of the figure and is drawn as an empty box"]
+        ["`中` is not in the fonts of the figure and is drawn as an empty box"]
     );
     // A figure all of whose characters the font has says nothing.
     let plain = drawn(

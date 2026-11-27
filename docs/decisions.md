@@ -8269,3 +8269,21 @@ Both differences are in the pages' Details, in the pages' own words, and held by
 **The split.** Step 4a is the engine piece the decision needs and the plan did not have: one line set in two faces. It is built on the faces of today (IBM Plex Sans falling back to IBM Plex Mono), so that it has its own tests and commit, and so that no stored figure changes with it: a text the first face has whole must be set exactly as before. Step 4b is the step 4 of the plan, the change of faces and the redrawing of every stored figure, taken up from the work kept in the scratch folder.
 
 **Reason.** Open decision #234; the rule that a step that turns out too large is split in the checklist.
+
+## 27 November 2026: release 0.10.0, step 4a — one line set in two faces (#234)
+
+**Choice.** A line of a figure is set in its face and, letter by letter, in the face behind it where the first lacks a character. `FaceName::fallback` names the face behind: the mono face for the two sans faces, none for the mono face. `font::set(name, text)` gives the line: each glyph with the face that draws it and its place along the baseline, the width, and the characters neither face has.
+
+**The rule, in order, for each character of the text in its composed form.** (1) The first face draws it when it has it. (2) Else the first face draws it by its parts when it is a letter and its marks and the face has them all, as it did before. (3) Else the face behind draws it, whole or by its parts in the same way. (4) Else it is the first face's empty box and is reported. Two neighbouring glyphs are kerned when one face draws both, and never across a change of face, since a face knows nothing of another's shapes. The three faces count 1,000 units to the em, so a place along a line of two faces is one count of units; a test holds that.
+
+**Nothing that stood changes.** The rule only ever turns an empty box into a letter. A text the first face sets without a box is set exactly as before, glyph for glyph and to the unit (a property test over generated texts of both faces' characters), and the conformance report gains lines and changes none: every stored figure is byte for byte what it was.
+
+**The writers.** The layout measures a line with the same function that draws it. The SVG and the PNG take each glyph's outline from the face that draws it. The PDF, which carries its text as text in embedded fonts, writes a span one stretch of one face at a time, each stretch selecting its own font and starting where its first glyph stands; a font is carried only if a stretch uses it, as before, so a figure whose labels need the mono face carries it and no other figure grows. `Line::runs` gives the stretches.
+
+**The message** for a character no face draws says "not in the fonts of the figure", in the plural, where it said "font".
+
+**Held by.** HarfBuzz, asked for each stretch in the face that draws it: 21 lines in each of the two sans faces, with Greek, arrows, superscripts, Cyrillic, signs of the mono face alone and characters of neither (`tests/reference/fonts/shaping.py`, whose earlier entries are unchanged); the engine agrees glyph for glyph and to the unit. The rule case by case, with a character of the mono face alone found among whatever faces are embedded, so that the tests hold after the faces change at 4b. The property above. In the PDF tests, whose own reader now expects a stretch for each face of a span: a line of three stretches, each in its font at its place, the words recovered whole, both fonts carried. In the PNG tests: the ink of a line of two faces equals the area of its outlines, each from its own face, and the line stands where it is set. Conformance: `plot/fonts/lines`, and `plot/two_faces`, a figure with such labels in SVG, PDF and PNG, read by eye.
+
+**On the faces of today.** IBM Plex Sans has the Greek alphabet, so on these faces only a few signs come from the mono face (the overline, the pictures of control characters). The step is the machinery; step 4b changes the faces, after which Greek letters and arrows are what the mono face supplies.
+
+**Reason.** Open decision #234, option A; Language Reference, section 7.6 (a figure is the same on every machine, so no font of the system may stand in).

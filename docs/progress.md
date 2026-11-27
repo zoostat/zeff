@@ -76,8 +76,11 @@ Step 8 `[function]`: the dataset `engagement`, the fifth shipped: 1,200 responde
 
 Step 4 `[engine]`, begun on the owner's word ("Yes, fetch the fonts") and stopped for him: the three font files were fetched and read, and the engine's reader reads them without a fault, but Atkinson Hyperlegible Next has only four Greek letters (Δ, Ω, μ, π), no arrows, no Cyrillic and superscripts to 3, so that a label β, σ² or χ² would print empty boxes. Entered as #234 with four options (recommended: the missing letters taken from JetBrains Mono, letter by letter). Nothing of the trial is committed; figures are in IBM Plex as before.
 
-**Next.** Step 9 `[function]`, `mcnemar_test`; step 4 `[engine]` when #234 is decided.
+#234 decided by the owner on 27 November 2026: "A, from JetBrains Mono". Step 4 is split into 4a and 4b.
 
-**For the owner to decide: #234**, how a figure draws the letters its new face lacks. The four options are set side by side, in the real fonts, on a page made for him.
+Step 4a `[engine]`: one line set in two faces. A character the face of a line lacks is taken, letter by letter, from the mono face behind it; a stretch of one face is kerned within itself and not across the join; only a character neither face has is the empty box. The layout measures, and the SVG, PNG and PDF writers draw, by the one rule; the PDF writes each stretch in its own embedded font, the text still text. Held to HarfBuzz stretch by stretch on 21 lines in each sans face. No stored figure changed: the rule only turns a box into a letter.
+
+**Next.** Step 4b `[engine]`: the faces changed to Atkinson Hyperlegible Next and JetBrains Mono, and every stored figure drawn again.
+
 
 **For the owner, carried from release 0.9.0, none blocking.** `Rscript tests/reference/r/install.R`, run by you, installs what the references want: `dagitty`, `psych` and `pROC` since step 3, wanted from steps 10 and 12 on, and `emmeans` 2.0.4. The one-time link of the repository to an archive gives each release its identifier (#116, #161). The folder `~/dev/zeff-signing` and its password are to be kept safe and apart. Yours to overturn before 1.0: #198 to #200, the first part of #201, #202 and #204 to #207, the name `exponentiate:`, the readings taken with the six layouts of #171, and whether Stata's `rownonmiss` is a word of `stat:`; open and yours, the second part of #201 (which standardized coefficients a `glm` fit has). The citation file names you as Patra, Sabyasachi, with no affiliation and no ORCID. No Stata output stands behind any page.
