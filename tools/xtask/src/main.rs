@@ -1,15 +1,18 @@
-//! Build tooling. `cargo run -p xtask -- check-tiers` enforces the tier rules of section 8.1.
+//! Build tooling. `cargo run -p xtask -- check-tiers` enforces the tier rules of section 8.1;
+//! `cargo run -p xtask -- routine` is the whole routine of a step (testing handbook, 2.1).
 
 mod datasets;
 mod grammar;
 mod identity;
 mod messages;
+mod routine;
 mod tiers;
 
 use std::process::{Command, ExitCode};
 
 fn main() -> ExitCode {
     match std::env::args().nth(1).as_deref() {
+        Some("routine") => routine::routine(),
         Some("check-tiers") => check_tiers(),
         Some("compare-identity") => compare_identity(),
         Some("check-messages") => check_messages(),
@@ -20,7 +23,8 @@ fn main() -> ExitCode {
         Some("archive") => archive(),
         _ => {
             eprintln!(
-                "usage: cargo run -p xtask -- check-tiers\n       \
+                "usage: cargo run -p xtask -- routine\n       \
+                 cargo run -p xtask -- check-tiers\n       \
                  cargo run -p xtask -- check-messages\n       \
                  cargo run -p xtask -- check-grammar\n       \
                  cargo run -p xtask -- grammar-words\n       \

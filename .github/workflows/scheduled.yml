@@ -306,6 +306,11 @@ jobs:
           tool: cargo-llvm-cov
 
       - name: Measure coverage
+        env:
+          # Coverage is measured on unoptimised code, as every figure since 0.2.0 was, so that
+          # a line the optimiser folds into another is still counted on its own and the
+          # figures stay comparable from release to release (release 0.10.0, step 2).
+          CARGO_PROFILE_DEV_OPT_LEVEL: 0
         run: |
           cargo llvm-cov --workspace --locked --json --output-path coverage.json
           cargo llvm-cov report --summary-only | tee coverage-summary.txt

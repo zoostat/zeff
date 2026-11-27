@@ -86,6 +86,13 @@ overflow-checks = true
 debug-assertions = false
 
 [profile.dev]
+# Light optimisation in development and test builds. Unoptimised, the tests of the workspace
+# ran for 27 minutes and the engine took half a minute to start in each test program that
+# builds the registry; at this level they run in under 5 minutes, and the build takes as long
+# as before (release 0.10.0, step 2; docs/decisions.md, 27 November 2026). Overflow checks and
+# debug assertions stay on, so no check a test relied on is lost, and the compiler makes no
+# change to floating-point arithmetic at any level: every stored digest is what it was.
+opt-level = 1
 overflow-checks = true
 # No debugging information in development and test builds. On a Mac the compiler keeps
 # every object file beside the build to serve a debugger and never removes the old ones,

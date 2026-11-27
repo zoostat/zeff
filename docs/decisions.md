@@ -8114,3 +8114,27 @@ Step 42c4b6 is split in three as it was met: 42c4b6 (this entry), the halves rea
 **The progress file.** The entries of release 0.9.0 are folded into one paragraph; what they left for the owner is carried into the entry of this step.
 
 **Reason.** The standing procedure for starting a release; the checklist's step 1.
+
+## 27 November 2026: release 0.10.0, step 2 — the routine of a step, measured and shortened (R7)
+
+**The measure.** The whole routine was run three times on this machine (Apple silicon, the machine otherwise idle) and each test program's own time read from what the harness prints. From an empty build folder, unoptimised as every development build has been: the test programs build and link in 1 minute 18 seconds; they then run for 35 minutes. With nothing to rebuild: 26.8 minutes, of which the programs' own times are 26.4. Six programs take 16 of those minutes (the command line's `cli` 239 s, the column store's `selection` 239 s, `margins` 126 s, `posthoc` 120 s, the two of the conformance suite, `format` 117 s and `regressions` 117 s), and eight more take 31 s each, which is what an unoptimised engine needs to build its registry of functions once.
+
+**The planning was wrong about the cause.** The checklist said the linking of some 350 test programs was the cost and proposed to gather them into one per crate. Linking is a minute and a half. The cost is unoptimised code. The checklist's ruling and its step 2 are rewritten, each with a sentence saying so.
+
+**Choice.** `opt-level = 1` in `[profile.dev]`, which the test profile inherits: light optimisation of development and test builds. Measured: the build from an empty folder takes 1 minute 31 seconds (13 seconds more), and every test of the workspace then runs in 4 minutes 45 seconds where it ran in 26.8 minutes; the registry is built in under 5 seconds where it took 31.
+
+**Why it loses no test and changes no figure.** Overflow checks stay on (they are set by name in the profile) and so do debug assertions, which do not depend on the level; the same 2,837 tests pass with the same 16 ignored. The Rust compiler makes no change to floating-point arithmetic at any level of optimisation (no reordering of sums, no fused multiply-add unless written), which is what the determinism contract rests on already: the release build is at level 3 and gives the published digests, and at level 1 every stored value of the suite still agrees to the bit. Continuous integration reads the same profile, so its `test` job runs the same build.
+
+**Left as they were.** (1) The weekly coverage job sets the level back to 0 for itself (`CARGO_PROFILE_DEV_OPT_LEVEL: 0`), so that its figures stay comparable with those recorded since 0.2.0. (2) The weekly mutation job reads the new level and should gain most from it, since the check of its second pass was 11 to 20 minutes of unoptimised tests for every mutant no test catches; a mutant recorded as a timeout may now be caught in time, so the first weekly run under the new setting (30 November) is read with that in mind at step 49. (3) The nightly job, which runs the tests of a release build, is unchanged.
+
+**What was not built, and why.** Gathering the test programs into one per crate. Its only gain would be the 4 minutes a Mac spends checking each freshly built program the first time it is run (about 0.7 s for each of 354; seen as the difference between a first run, 9.0 minutes, and a second, 4.75), and only in a step that rebuilds every program. Its cost is the moving of 292 files, the names by which the workflows and the weekly job call single programs, and the placing of every stored output. Declined; the figure is here if it is wanted later.
+
+**One command.** `cargo run -p xtask -- routine` runs the routine whole: format, lint with warnings denied, every test with no stop at the first failure, the format of the sample projects' scripts, and the tier, message and grammar checks, each timed. It runs every part even after a failure, counts the tests from the harness's own lines, names every failed test and every failed program with the words that run it again, keeps what each part printed under `target/routine/`, keeps the Mac awake while it runs, and says how many entries the debug build folder holds. A result line it cannot read counts as a failure. It answers three slips of earlier releases: a run that stopped at the first failing program, a grammar check left out of the local routine, and a machine that slept. Its reader of the harness's lines has four tests; a trial with one failing test added by hand was reported as red, with the test and its program named, and the trial removed.
+
+**Figures.** The whole routine through the command, twice: 6.0 and 5.6 minutes (the tests 302 and 308 s, lint 13 and 5 s, the grammar check 19 s), against about 30 minutes before for the same parts and about 40 as steps of 0.9.0 ran them. 2,841 tests pass, the 2,837 of step 1 and the four of the new reader, with 16 ignored, in 354 test programs.
+
+**A count corrected.** The record of step 1 says 357 test programs. The count was made by searching for lines that begin with "test result", and three tests have names that begin with `result`; the programs are 354. The number of tests was read rightly.
+
+**For the risk register (R7), at the close.** A clean build of the workspace's tests in a minute and a half; the routine of a step in six minutes.
+
+**Reason.** Testing handbook, section 2.1 ("under 5 minutes"); risk register, R7; the close of 0.9.0, item 3 for the owner.
