@@ -8521,3 +8521,17 @@ Both differences are in the pages' Details, in the pages' own words, and held by
 **Dependencies.** `identify` now reads `columns`, `kernels`, `numeric`, `dist` and `stats` (its `p_adjust` and its reading of `level:`), all lower tiers; no new crate.
 
 **Reason.** Language Reference, section 7.3; catalogue row 431; open decisions #158, #194, #246 and #251.
+
+## 28 November 2026: release 0.10.0, step 19 — one graph form in the scene (#191)
+
+**Choice.** `zeff_plot::graph::GraphForm` (`packages/tier1/plot/src/graph.rs`): nodes, edges and groups, with ports on the nodes. A node has the name the script gave it, a kind (`observed`, `latent`), an outline (`box`, `ellipse`: the layout must know a node's room before anything is drawn), the lines of its label, whether the data are selected on it, the part it plays (`exposure`, `outcome`, set by the figure and no part of the graph) and its ports. An edge has its two ends, each a node and an optional port, a kind (`path`, `common_cause`, `link`) from which its arrow heads follow, and the lines of its label. A group has a name, a label and its members. The kinds are those a causal graph needs; a flowchart (1.2) and a path diagram (1.12) add kinds, and an end that is an edge for a moderation, without changing what is here.
+
+**A causal graph and back.** `GraphForm::of_dag` gives a node for each node and an edge for each edge, in the order of the graph: an observed node a box, a latent one an ellipse, as path diagrams draw them. `to_dag` is the way back, with nothing lost; the parts played in a figure are left behind, and a form with a port, a group or a label on an edge is refused as no causal graph. `check` refuses a form that is not what it says: a node or a group named twice, an edge or a group naming a node that is not there, an edge ending on a port its node lacks.
+
+**Element names.** `node:tenure`, `edge:training->tenure`, `edge:price<->demand`, `edge:demand--season`, `group:measurement`: made from the names the script gave and nothing else, so the same graph has the same names in every run. A second edge of one kind between the same two nodes, which a causal graph cannot have, is `edge:a->b#2`.
+
+**In the scene.** `Scene` gained `graph: Option<GraphForm>`, written as the section `graph` of its JSON only when present, with `version: 1` of its own (`GRAPH_VERSION`). A scene that has the section is written as `zeff_scene: 2`: a reader of version 1 does not know the section and would draw an empty figure, which is the misreading the version exists to prevent. A scene without a diagram is version 1 and its JSON is the text it was, to the byte, so no stored plot changed and Zemp Lite's reader of today reads every plot as before. The layout and the figure of a graph come at steps 20 to 22; until then no function makes a scene with the section.
+
+**Held by.** The graph of section 7.3 and a graph with every kind of link, a selected node, a latent one, a node alone and a name with a space, each lowered, named, written and brought back; 256 generated graphs lowered and brought back equal and printing alike; the section read back by a reader written in the tests on `serde_json`, which shares nothing with the writer, with ports, groups and labels too; each refusal; and a scene with and without the section. The conformance case `plot/graph_form` holds the section's text for three graphs on the four targets.
+
+**Reason.** Open decision #191, decided 27 November 2026; Language Reference, section 7.6.

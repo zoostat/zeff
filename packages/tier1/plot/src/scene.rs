@@ -61,6 +61,11 @@
 //! reader that meets one it does not draw must refuse the scene and say so, never draw it
 //! without ([`Scene::undrawn`]). A layer also has the flag `raster`, false in this release:
 //! true asks a writer of vector figures to draw that one layer as a grid of pixels.
+//!
+//! **Diagrams** (open decision #191; release 0.10.0, step 19). A scene that draws a diagram
+//! holds it as a graph form ([`crate::graph::GraphForm`]) in its section `graph`: the nodes,
+//! edges, groups and ports the figure was laid out from, each with its element name. The
+//! section is written only when present, and a scene that has it is version 2.
 
 use std::borrow::Cow;
 
@@ -84,6 +89,12 @@ use crate::shape;
 /// The version of the scene format, the value of `zeff_scene` in its JSON. It rises when a
 /// reader of the earlier version would misread the new one.
 pub const SCENE_VERSION: u32 = 1;
+
+/// The version of a scene that holds a diagram (release 0.10.0, step 19; open decision
+/// #191): its section `graph`, which a reader of version 1 does not know and would pass
+/// over, drawing an empty figure. A scene without a diagram is written as version 1, to the
+/// byte as before.
+pub const DIAGRAM_SCENE_VERSION: u32 = 2;
 
 /// The diameter of a point when `size:` is not given, in points of 1/72 inch: the default of
 /// Observable Plot, a radius of 3 pixels at 96 to the inch.
@@ -156,6 +167,9 @@ pub struct Scene {
     pub notes: Vec<String>,
     /// Reserved: the place of this scene in an animation. `None` in this release.
     pub frame: Option<usize>,
+    /// The diagram the scene draws, in the one form every diagram has before it is laid out
+    /// ([`crate::graph`]); `None` for a plot of data.
+    pub graph: Option<crate::graph::GraphForm>,
 }
 
 /// A scale: how the values of an aesthetic are placed, coloured, sized or shaped, with the
@@ -4606,6 +4620,7 @@ pub fn scene<'a>(plot: &'a Plot) -> Scene {
         subtitle: said(&plot.labels.subtitle),
         caption: said(&plot.labels.caption).or(stated),
         frame: None,
+        graph: None,
     }
 }
 
@@ -4647,7 +4662,7 @@ impl Scene {
         let name = |id: Option<&'static str>| id.map_or(Json::Null, Json::text);
         Json::Object(
             vec![
-                ("zeff_scene", Json::Number(f64::from(SCENE_VERSION))),
+                ("zeff_scene", Json::Number(f64::from(self.version()))),
                 (
                     "layout",
                     Json::Object(vec![
@@ -5232,8 +5247,19 @@ impl Scene {
                     .then(|| ("legend", Json::text(self.legend.name()))),
             )
             .chain(self.frame.map(|frame| ("frame", Json::whole(frame))))
+            // The diagram, when the scene draws one.
+            .chain(self.graph.as_ref().map(|graph| ("graph", graph.json())))
             .collect(),
         )
+    }
+
+    /// The version this scene is written as: 2 when it holds a diagram, 1 otherwise.
+    pub fn version(&self) -> u32 {
+        if self.graph.is_some() {
+            DIAGRAM_SCENE_VERSION
+        } else {
+            SCENE_VERSION
+        }
     }
 
     /// What this scene holds that this version of Zeff does not draw, as a sentence for the

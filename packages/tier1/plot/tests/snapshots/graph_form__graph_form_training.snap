@@ -1,0 +1,170 @@
+---
+source: packages/tier1/plot/tests/graph_form.rs
+expression: form.json().write()
+---
+{
+  "version": 1,
+  "nodes": [
+    {
+      "name": "node:ability",
+      "id": "ability",
+      "kind": "latent",
+      "shape": "ellipse",
+      "label": ["ability"],
+      "selected": false,
+      "role": null,
+      "ports": []
+    },
+    {
+      "name": "node:training",
+      "id": "training",
+      "kind": "observed",
+      "shape": "box",
+      "label": ["training"],
+      "selected": false,
+      "role": null,
+      "ports": []
+    },
+    {
+      "name": "node:productivity",
+      "id": "productivity",
+      "kind": "observed",
+      "shape": "box",
+      "label": ["productivity"],
+      "selected": false,
+      "role": null,
+      "ports": []
+    },
+    {
+      "name": "node:tenure",
+      "id": "tenure",
+      "kind": "observed",
+      "shape": "box",
+      "label": ["tenure"],
+      "selected": false,
+      "role": null,
+      "ports": []
+    },
+    {
+      "name": "node:age",
+      "id": "age",
+      "kind": "observed",
+      "shape": "box",
+      "label": ["age"],
+      "selected": false,
+      "role": null,
+      "ports": []
+    },
+    {
+      "name": "node:region",
+      "id": "region",
+      "kind": "observed",
+      "shape": "box",
+      "label": ["region"],
+      "selected": false,
+      "role": null,
+      "ports": []
+    }
+  ],
+  "edges": [
+    {
+      "name": "edge:ability->training",
+      "from": {
+        "node": 0,
+        "port": null
+      },
+      "to": {
+        "node": 1,
+        "port": null
+      },
+      "kind": "path",
+      "heads": [false, true],
+      "label": []
+    },
+    {
+      "name": "edge:training->productivity",
+      "from": {
+        "node": 1,
+        "port": null
+      },
+      "to": {
+        "node": 2,
+        "port": null
+      },
+      "kind": "path",
+      "heads": [false, true],
+      "label": []
+    },
+    {
+      "name": "edge:ability->productivity",
+      "from": {
+        "node": 0,
+        "port": null
+      },
+      "to": {
+        "node": 2,
+        "port": null
+      },
+      "kind": "path",
+      "heads": [false, true],
+      "label": []
+    },
+    {
+      "name": "edge:training->tenure",
+      "from": {
+        "node": 1,
+        "port": null
+      },
+      "to": {
+        "node": 3,
+        "port": null
+      },
+      "kind": "path",
+      "heads": [false, true],
+      "label": []
+    },
+    {
+      "name": "edge:tenure->productivity",
+      "from": {
+        "node": 3,
+        "port": null
+      },
+      "to": {
+        "node": 2,
+        "port": null
+      },
+      "kind": "path",
+      "heads": [false, true],
+      "label": []
+    },
+    {
+      "name": "edge:age->training",
+      "from": {
+        "node": 4,
+        "port": null
+      },
+      "to": {
+        "node": 1,
+        "port": null
+      },
+      "kind": "path",
+      "heads": [false, true],
+      "label": []
+    },
+    {
+      "name": "edge:region->training",
+      "from": {
+        "node": 5,
+        "port": null
+      },
+      "to": {
+        "node": 1,
+        "port": null
+      },
+      "kind": "path",
+      "heads": [false, true],
+      "label": []
+    }
+  ],
+  "groups": []
+}

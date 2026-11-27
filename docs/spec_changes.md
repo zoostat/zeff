@@ -1192,3 +1192,7 @@ At step 17 of release 0.10.0. The row of `g.instruments` in section 7.3 said wha
 ## 28 November 2026 — zeff_language_reference.md, section 7.3 (`g.implied_independencies(data:)`); zeff_functions.csv, row 431; zeff_open_decisions.md, new entry #251
 
 At step 18 of release 0.10.0. Row 431 of the catalogue left the adjustment of the p values to this step. The usage gains `adjust:`, with the methods of `p_adjust` and `holm` by default, and `level:`; section 7.3 says how a statement is tested and when it is contradicted (open decision #251, option A of each part taken as recommended, the owner's to overturn).
+
+## 28 November 2026 — zeff_language_reference.md, section 7.6 (a new paragraph, "Diagrams")
+
+At step 19 of release 0.10.0, applying the owner's decision on open decision #191 (27 November 2026, option A: every diagram lowered to one graph form, a versioned section of the scene format, fixed at this step). Section 7.6 now says what the graph form holds, that the layout reads it alone, how its elements are named, that the scene keeps it as its section `graph`, and that a scene with the section is version 2 while a plot of data stays version 1.

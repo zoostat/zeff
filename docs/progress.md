@@ -106,7 +106,9 @@ Step 17 `[function]` (28 November 2026): `g.instruments(exposure:, outcome:)`. T
 
 Step 18 `[engine]` (28 November 2026): `g.implied_independencies(data:, adjust:, level:)`. Each implied independence tested on a frame by a partial correlation: r, Fisher's interval, the t test's p value and the p value adjusted (`holm` by default), the rows used; the statements contradicted named, those that cannot be tested said to be so with the reason. Held to base R (`tests/reference/r/partial.R`, 26 cases) within a relative 1e-9. The graph of #158 is contradicted twice on the workers of 2019. Block C, causal graphs, is complete. Decisions: docs/decisions.md.
 
-**Next.** Step 19 `[engine]`: one graph form in the scene (#191), the first step of block D, diagrams.
+Step 19 `[engine]` (28 November 2026): one graph form under every diagram (#191). `plot::graph::GraphForm` holds nodes, edges, groups and ports, each with a stable element name (`node:tenure`, `edge:training->tenure`); a `Dag` lowers to it and comes back with nothing lost; the scene keeps it as its section `graph`, and a scene that has it is version 2, a plot of data staying version 1 to the byte. Section 7.6 gained its paragraph. Nothing is drawn yet: the layout is steps 20 and 21, `g.plot()` step 22.
+
+**Next.** Step 20 `[engine]`: the layered layout, layers and order.
 
 **For the owner, from step 18.** #251 is yours to overturn, three statistical choices, each taken as recommended: the p values are adjusted by Holm's method unless `adjust:` says otherwise, the unadjusted one printed beside; the test is the t test with Fisher's interval, as R's `cor.test`; a category of more than two levels as one of the two variables is not tested.
 

@@ -2051,6 +2051,7 @@ fn panel_cases() -> Vec<Line> {
         text("identify/dag/stdout", &graph_outcome.output.stdout),
         text("identify/dag/stderr", &graph_outcome.output.stderr),
         text("identify/dag_refused/stderr", &graph_refused),
+        text("plot/graph_form", &graph_forms()),
         text("identify/kernel", &graph_kernel()),
         text(
             "identify/independencies/stdout",
@@ -3602,6 +3603,77 @@ fn font_metrics() -> String {
 /// ancestors and the descendants of every node, the nodes on the causal paths between every
 /// two, and whether every two written nodes are d-separated given each set of the others,
 /// so that the four targets prove the same answers.
+/// The graph form (release 0.10.0, step 19; open decision #191): three causal graphs lowered
+/// to the one form every diagram has, as the section `graph` of a scene's JSON writes it,
+/// each brought back and printed as the graph it was.
+fn graph_forms() -> String {
+    use zeff_core::dag::{Dag, Edge, Link};
+    use zeff_plot::graph::GraphForm;
+    type Described = (
+        &'static [&'static str],
+        &'static [(usize, usize, Link)],
+        &'static [usize],
+        &'static [usize],
+    );
+    let graphs: [Described; 3] = [
+        (
+            &[
+                "ability",
+                "training",
+                "productivity",
+                "tenure",
+                "age",
+                "region",
+            ],
+            &[
+                (0, 1, Link::Directed),
+                (1, 2, Link::Directed),
+                (0, 2, Link::Directed),
+                (1, 3, Link::Directed),
+                (3, 2, Link::Directed),
+                (4, 1, Link::Directed),
+                (5, 1, Link::Directed),
+            ],
+            &[0],
+            &[],
+        ),
+        (
+            &[
+                "price", "demand", "season", "weather", "ad spend", "listed", "taste",
+            ],
+            &[
+                (0, 1, Link::Bidirected),
+                (1, 2, Link::Undirected),
+                (4, 1, Link::Directed),
+                (6, 1, Link::Directed),
+            ],
+            &[6],
+            &[5],
+        ),
+        (&[], &[], &[], &[]),
+    ];
+    let mut out = String::new();
+    for (names, edges, latent, selected) in graphs {
+        let dag = Dag::new(
+            names.iter().map(|n| (*n).to_string()).collect(),
+            edges
+                .iter()
+                .map(|&(from, to, link)| Edge { from, to, link })
+                .collect(),
+            latent.to_vec(),
+            selected.to_vec(),
+        );
+        let form = GraphForm::of_dag(&dag);
+        out.push_str(&format!("{}\n", form.summary()));
+        out.push_str(&form.json().write());
+        match form.to_dag() {
+            Ok(back) => out.push_str(&format!("{back}\nthe same graph: {}\n", back == dag)),
+            Err(fault) => out.push_str(&format!("{fault:?}\n")),
+        }
+    }
+    out
+}
+
 fn graph_kernel() -> String {
     use zeff_core::dag::{Dag, Edge, Link};
     use zeff_identify::graph::Graph;

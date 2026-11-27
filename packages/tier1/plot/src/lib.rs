@@ -22,6 +22,7 @@ pub mod figure;
 pub mod fits;
 pub mod font;
 pub mod grammar;
+pub mod graph;
 pub mod json;
 pub mod layout;
 mod mapping;

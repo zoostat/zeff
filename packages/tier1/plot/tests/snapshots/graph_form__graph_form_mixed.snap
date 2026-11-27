@@ -1,0 +1,138 @@
+---
+source: packages/tier1/plot/tests/graph_form.rs
+expression: "GraphForm::of_dag(&mixed()).json().write()"
+---
+{
+  "version": 1,
+  "nodes": [
+    {
+      "name": "node:price",
+      "id": "price",
+      "kind": "observed",
+      "shape": "box",
+      "label": ["price"],
+      "selected": false,
+      "role": null,
+      "ports": []
+    },
+    {
+      "name": "node:demand",
+      "id": "demand",
+      "kind": "observed",
+      "shape": "box",
+      "label": ["demand"],
+      "selected": false,
+      "role": null,
+      "ports": []
+    },
+    {
+      "name": "node:season",
+      "id": "season",
+      "kind": "observed",
+      "shape": "box",
+      "label": ["season"],
+      "selected": false,
+      "role": null,
+      "ports": []
+    },
+    {
+      "name": "node:weather",
+      "id": "weather",
+      "kind": "observed",
+      "shape": "box",
+      "label": ["weather"],
+      "selected": false,
+      "role": null,
+      "ports": []
+    },
+    {
+      "name": "node:ad spend",
+      "id": "ad spend",
+      "kind": "observed",
+      "shape": "box",
+      "label": ["ad spend"],
+      "selected": false,
+      "role": null,
+      "ports": []
+    },
+    {
+      "name": "node:listed",
+      "id": "listed",
+      "kind": "observed",
+      "shape": "box",
+      "label": ["listed"],
+      "selected": true,
+      "role": null,
+      "ports": []
+    },
+    {
+      "name": "node:taste",
+      "id": "taste",
+      "kind": "latent",
+      "shape": "ellipse",
+      "label": ["taste"],
+      "selected": false,
+      "role": null,
+      "ports": []
+    }
+  ],
+  "edges": [
+    {
+      "name": "edge:price<->demand",
+      "from": {
+        "node": 0,
+        "port": null
+      },
+      "to": {
+        "node": 1,
+        "port": null
+      },
+      "kind": "common_cause",
+      "heads": [true, true],
+      "label": []
+    },
+    {
+      "name": "edge:demand--season",
+      "from": {
+        "node": 1,
+        "port": null
+      },
+      "to": {
+        "node": 2,
+        "port": null
+      },
+      "kind": "link",
+      "heads": [false, false],
+      "label": []
+    },
+    {
+      "name": "edge:ad spend->demand",
+      "from": {
+        "node": 4,
+        "port": null
+      },
+      "to": {
+        "node": 1,
+        "port": null
+      },
+      "kind": "path",
+      "heads": [false, true],
+      "label": []
+    },
+    {
+      "name": "edge:taste->demand",
+      "from": {
+        "node": 6,
+        "port": null
+      },
+      "to": {
+        "node": 1,
+        "port": null
+      },
+      "kind": "path",
+      "heads": [false, true],
+      "label": []
+    }
+  ],
+  "groups": []
+}
