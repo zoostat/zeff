@@ -1156,3 +1156,7 @@ The note of row 508, written at step 9 of release 0.10.0, said that the continui
 ## 27 November 2026 — zeff_open_decisions.md, entry 244
 
 A new entry, decided by the owner ("I choose cobalt."): the accent of the Zeff brand is cobalt, `#2448A8` in light and `#9db2ff` in dark, in place of the logo's violet of #146; function names in code turn teal and operators slate grey. No normative text is changed now: section 5 of the Zemp Specification and the editors' colour files are amended at the Zemp Lite release that next changes its layout.
+
+## 27 November 2026 — zeff_open_decisions.md, entries 33 and 245
+
+Entry 245 added, decided by the owner ("Yes, record it"): Zemp Lite revamped as drawn in the mockup of 27 November 2026, with the front page "Reproducible empirical research, in your browser.", the projects table, one slim top bar, a side menu of icons named on hover, a toolbar row in Script and Paper, and each place laid out for the most room; it revises #146, #203 and #220 where they differ. Entry 33, point 2 (no icons in 1.0), amended for that side menu alone: its row and a paragraph *Amended*. No normative text is changed now: section 5 of the Zemp Specification is amended at the Zemp Lite release that builds it.
