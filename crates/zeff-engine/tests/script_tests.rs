@@ -521,6 +521,8 @@ fn the_sample_script_of_the_specification_checks_with_its_module() {
     // step 13b, `ivreg` is taken, and from step 14b `first_stage`: 10 wait. From release 0.9.0,
     // step 5a, `glm`: the two fits without `cluster:` and the one inside `attempt` are taken,
     // and the two with `cluster:` wait for step 7: 7 wait. From step 7b, `cluster:` on `glm`:
-    // 5 wait.
-    assert_eq!((parsed.script.items.len(), waiting), (75, 5));
+    // 5 wait. From release 0.10.0, step 10, `reliability` is taken, and section 12 has one
+    // statement more, which turns the reversed item round (open decision #241): 76 statements,
+    // of which 4 wait, for the `dag { }` block and its three functions.
+    assert_eq!((parsed.script.items.len(), waiting), (76, 4));
 }

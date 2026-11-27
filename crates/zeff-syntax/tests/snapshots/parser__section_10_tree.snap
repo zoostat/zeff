@@ -24,4 +24,4 @@ expression: "sexp::script(&parsed.script)"
 (method t_test wages lwage group:female)
 (let lg (method glm wages (~ union (+ (+ educ exper) female)) family:binomial cluster:worker))
 (let engage (import "data/engagement.csv"))
-(method reliability engage [(.. eng1 eng6)])
+(method reliability engage [(.. eng1 eng6)] reverse:[eng4])

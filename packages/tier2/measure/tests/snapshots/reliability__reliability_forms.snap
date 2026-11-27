@@ -1,0 +1,131 @@
+---
+source: packages/tier2/measure/tests/reliability.rs
+expression: "format!(\"{stdout}---\\n{stderr}\")"
+---
+reliability · Cronbach's alpha · 6 items
+N = 986 rows with every item
+alpha = 0.851   95% CI [0.836, 0.865] (Feldt)
+alpha of the standardized items = 0.851   average correlation between items = 0.487
+
+  item               mean      sd   item–rest correlation   alpha without the item
+  eng1              3.042   1.007                   0.691                    0.815
+  eng2              3.060   0.980                   0.652                    0.823
+  eng3              3.067   1.005                   0.628                    0.827
+  eng4 (reversed)   2.966   1.027                   0.656                    0.822
+  eng5              3.024   0.976                   0.575                    0.837
+  eng6              3.055   1.032                   0.607                    0.831
+reliability · Cronbach's alpha · 6 items
+N = 986 rows with every item
+alpha = 0.508   95% CI [0.459, 0.554] (Feldt)
+alpha of the standardized items = 0.520   average correlation between items = 0.153
+
+  item    mean      sd   item–rest correlation   alpha without the item
+  eng1   3.042   1.007                   0.582                    0.280
+  eng2   3.060   0.980                   0.580                    0.288
+  eng3   3.067   1.005                   0.552                    0.300
+  eng4   2.966   1.027                  -0.656                    0.822
+  eng5   3.024   0.976                   0.479                    0.347
+  eng6   3.055   1.032                   0.524                    0.312
+reliability · Cronbach's alpha · 6 items · standardized
+N = 986 rows with every item
+alpha of the standardized items = 0.851   90% CI [0.839, 0.863] (Duhachek)
+alpha of the items as scored = 0.851   average correlation between items = 0.487
+
+  item               mean      sd   item–rest correlation   alpha without the item
+  eng1              3.042   1.007                   0.691                    0.815
+  eng2              3.060   0.980                   0.651                    0.823
+  eng3              3.067   1.005                   0.628                    0.827
+  eng4 (reversed)   2.966   1.027                   0.656                    0.822
+  eng5              3.024   0.976                   0.575                    0.837
+  eng6              3.055   1.032                   0.607                    0.831
+frame · 3 rows × 9 variables
+
+      term                  estimate    std_error   statistic   df   df2   p_value   ci_lower   ci_upper
+  1   alpha                 0.850752           NA    0.850752   NA    NA        NA         NA         NA
+  2   standardized alpha    0.850752   0.00736346    0.850752   NA    NA        NA    0.83864   0.862863
+  3   average correlation    0.48719           NA     0.48719   NA    NA        NA         NA         NA
+ci · 90%
+
+  term                 lower   upper
+  standardized alpha   0.839   0.863
+0.850752 0.850752 986
+reliability · Cronbach's alpha · 3 items
+N = 1,091 rows with every item
+alpha = 0.781   95% CI [0.758, 0.803] (Duhachek)
+alpha of the standardized items = 0.781   average correlation between items = 0.543
+
+  item    mean      sd   item–rest correlation   alpha without the item
+  eng1   3.027   1.011                   0.634                    0.687
+  eng2   3.053   0.995                   0.615                    0.707
+  eng3   3.046   1.022                   0.606                    0.717
+reliability · Cronbach's alpha · 4 items
+N = 16 rows with every item
+alpha = 0.748   95% CI [0.460, 0.902] (Feldt)
+alpha of the standardized items = 0.750   average correlation between items = 0.428
+
+  item    mean      sd   item–rest correlation   alpha without the item
+  q1     0.625   0.500                   0.881                    0.484
+  q2     0.562   0.512                   0.447                    0.742
+  q3     0.562   0.512                   0.447                    0.742
+  q4     0.562   0.512                   0.447                    0.742
+
+every item is 0 or 1: this alpha is Kuder and Richardson's coefficient KR-20
+reliability · Cronbach's alpha · 2 items
+N = 16 rows with every item
+alpha = 0.764   95% CI [0.324, 0.917] (Feldt)
+alpha of the standardized items = 0.764   average correlation between items = 0.618
+
+  item    mean      sd   item–rest correlation   alpha without the item
+  q1     0.625   0.500                   0.618                       NA
+  q2     0.562   0.512                   0.618                       NA
+
+every item is 0 or 1: this alpha is Kuder and Richardson's coefficient KR-20
+with two items there is no alpha without one of them
+reliability · Cronbach's alpha · 3 items
+N = 10 rows with every item
+alpha = -1.965   95% CI [-7.685, 0.199] (Feldt)
+alpha of the standardized items = -2.413   average correlation between items = -0.308
+
+  item    mean      sd   item–rest correlation   alpha without the item
+  u      3.000   1.491                  -0.170                   -7.536
+  v      3.000   1.333                  -0.917                    0.897
+  w      3.100   1.370                   0.344                  -34.000
+reliability · Cronbach's alpha · 3 items
+N = 10 rows with every item
+alpha = 0.945   95% CI [0.838, 0.985] (Feldt)
+alpha of the standardized items = 0.945   average correlation between items = 0.852
+
+  item            mean      sd   item–rest correlation   alpha without the item
+  u              3.000   1.491                   0.932                    0.883
+  v (reversed)   3.000   1.333                   0.917                    0.897
+  w              3.100   1.370                   0.814                    0.971
+reliability · Cronbach's alpha · 3 items
+N = 10 rows with every item
+alpha = 0.673   95% CI [0.041, 0.912] (Feldt)
+alpha of the standardized items = NA   average correlation between items = NA
+
+  item    mean      sd   item–rest correlation   alpha without the item
+  u      3.000   1.491                   0.816                    0.000
+  w      3.100   1.370                   0.816                    0.000
+  same   3.000   0.000                      NA                    0.897
+reliability · Cronbach's alpha · 3 items
+N = 8 rows with every item
+alpha = 0.962   95% CI [0.870, 0.992] (Feldt)
+alpha of the standardized items = 0.964   average correlation between items = 0.898
+
+  item    mean      sd   item–rest correlation   alpha without the item
+  u      3.250   1.581                   0.949                    0.927
+  w      3.375   1.302                   0.862                    0.986
+  gap    3.125   1.408                   0.965                    0.910
+---
+note: 214 rows with NA in eng1, eng2, eng3, eng4, eng5 or eng6 dropped (line 2)
+note: 214 rows with NA in eng1, eng2, eng3, eng4, eng5 or eng6 dropped (line 3)
+warning[W0213]: `eng4` runs against the rest of the scale: its correlation with the sum of the other items is negative (line 3)
+  = help: an item worded the other way round is named in `reverse:`, as `reverse: [eng4]`; the items are left as they are here
+note: 214 rows with NA in eng1, eng2, eng3, eng4, eng5 or eng6 dropped (line 4)
+note: 109 rows with NA in eng1, eng2 or eng3 dropped (line 9)
+warning[W0213]: `u` and `v` run against the rest of the scale: their correlations with the sum of the other items are negative, and alpha is below 0 (line 14)
+  = help: an item worded the other way round is named in `reverse:`, as `reverse: [v]`; the items are left as they are here
+warning[W0213]: `same` has the same value in every row kept, so it has no correlation with the rest of the scale (line 16)
+  = help: an item that does not vary adds nothing to a scale: consider leaving it out
+note: 2 rows with NA in u, w or gap dropped (line 17)

@@ -1,0 +1,122 @@
+---
+source: packages/tier2/measure/tests/reliability.rs
+expression: all
+---
+error[Z0401]: `reliability` needs at least two items, but `items:` names one
+ --> scripts/main.zeff:1:33
+  |
+1 | dataset(engagement).reliability([eng1])
+  |                                 ^^^^^^ too few items
+  |
+  = help: a scale is the sum of several items: write them as a list, `[q1, q2, q3]` or `[q1..q3]`
+
+error[Z0219]: `[]` alone has no type
+ --> scripts/main.zeff:1:33
+  |
+1 | dataset(engagement).reliability([])
+  |                                 ^^ an empty list of what?
+  |
+  = help: where a parameter takes the list, its type is known; elsewhere give one value
+
+error[Z0401]: `eng1` is written twice among the items of `reliability`
+ --> scripts/main.zeff:1:33
+  |
+1 | dataset(engagement).reliability([eng1, eng2, eng1])
+  |                                 ^^^^^^^^^^^^^^^^^^ an item twice
+  |
+  = help: an item counted twice agrees with itself and raises alpha: name each item once
+
+error[Z0101]: no variable `eng9` in `engagement`
+ --> scripts/main.zeff:1:33
+  |
+1 | dataset(engagement).reliability([eng1, eng9])
+  |                                 ^^^^^^^^^^^^ not a variable of engagement
+  |
+  = help: did you mean `eng1`? If you meant a category level, write it in quotes: `"eng1"`
+
+error[Z0401]: an item of `reliability` is a number or a Bool, but `industry` is a Category
+ --> scripts/main.zeff:1:28
+  |
+1 | dataset(wages).reliability([wage, industry])
+  |                            ^^^^^^^^^^^^^^^^ not a number
+  |
+  = help: score the answers as numbers first, for example with `case` or `to(x, Int)`
+
+error[Z0401]: `reverse:` names `eng4`, which is not among the items
+ --> scripts/main.zeff:1:56
+  |
+1 | dataset(engagement).reliability([eng1, eng2], reverse: [eng4])
+  |                                                        ^^^^^^ not an item
+  |
+  = help: `reverse:` lists the items of `items:` that are worded the other way round
+
+note: 2 rows with NA in a or b dropped (line 1)
+error[Z0401]: `reliability` needs at least two rows with every item, but there is one
+ --> scripts/main.zeff:1:51
+  |
+1 | frame(a = [1, NA, 3], b = [NA, 2, 4]).reliability([a, b])
+  |                                                   ^^^^^^ too few rows
+  |
+  = help: a row with `NA` in any item is left out; check the items and the rows kept
+
+error[Z0401]: the sum of the items is the same in every row, so `reliability` has no variation of the scale to divide by
+ --> scripts/main.zeff:1:55
+  |
+1 | frame(a = [1, 2, 3, 4], b = [4, 3, 2, 1]).reliability([a, b])
+  |                                                       ^^^^^^ a scale that does not vary
+  |
+  = help: check the items and the rows kept; items that cancel one another exactly may need `reverse:`
+
+error[Z0401]: `c` has the same value in every row kept, so it cannot be standardized
+ --> scripts/main.zeff:1:97
+  |
+1 | frame(a = [1, 2, 3, 4], b = [2, 1, 4, 3], c = [5, 5, 5, 5]).reliability([a, b, c], standardize: true)
+  |                                                                                                 ^^^^ an item that does not vary
+  |
+  = help: leave the item out, or leave out `standardize: true`
+
+error[Z0803]: `a` has values too large to compute with (above 1e150 in size)
+ --> scripts/main.zeff:1:59
+  |
+1 | frame(a = [1e200, 2, 3, 4], b = [2, 1, 4, 3]).reliability([a, b])
+  |                                                           ^^^^^^ a variable too large to square
+  |
+  = help: divide the variable by a power of ten first, `add(a_m = a / 1e6)`, and read the result in those units; no p-value changes
+
+error[Z0401]: `level:` of `reliability` is a confidence level between 0 and 1, but this is 1.5
+ --> scripts/main.zeff:1:54
+  |
+1 | dataset(engagement).reliability([eng1, eng2], level: 1.5)
+  |                                                      ^^^ outside (0, 1)
+  |
+  = help: write a level such as 0.95 or 0.99
+
+error[Z0402]: `bootstrap` is not one of the allowed words
+ --> scripts/main.zeff:1:51
+  |
+1 | dataset(engagement).reliability([eng1, eng2], ci: bootstrap)
+  |                                                   ^^^^^^^^^ expected one of feldt, duhachek
+
+error[Z0401]: `standardize` of `reliability` must be a Bool, but this is an Int
+ --> scripts/main.zeff:1:60
+  |
+1 | dataset(engagement).reliability([eng1, eng2], standardize: 1)
+  |                                                            ^ an Int
+  |
+  = help: usage: `data.reliability(items, standardize: Bool = false, reverse: Vars, ci: feldt | duhachek = feldt, level: Float = 0.95)`
+
+error[Z0406]: `reliability` needs `items`
+ --> scripts/main.zeff:1:21
+  |
+1 | dataset(engagement).reliability()
+  |                     ^^^^^^^^^^^ `items` is missing
+  |
+  = help: usage: `data.reliability(items, standardize: Bool = false, reverse: Vars, ci: feldt | duhachek = feldt, level: Float = 0.95)`
+
+error[Z0404]: `reliability` has no argument called `omega`
+ --> scripts/main.zeff:1:47
+  |
+1 | dataset(engagement).reliability([eng1, eng2], omega: true)
+  |                                               ^^^^^ unknown argument
+  |
+  = help: usage: `data.reliability(items, standardize: Bool = false, reverse: Vars, ci: feldt | duhachek = feldt, level: Float = 0.95)`

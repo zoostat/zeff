@@ -22,7 +22,7 @@ fn go(script: &str) -> (i32, String, String) {
 const FRAMES: &str = "let w = dataset(wages).where(year == 2019)\nlet wide = frame(firm = [1, 2], region = [\"North\", \"South\"], sales_2010 = [120, 80], sales_2011 = [130, NA])\nlet long = frame(firm = [1, 1, 2, 2], region = [\"North\", \"North\", \"South\", \"South\"], year = [2010, 2011, 2010, 2011], sales = [120, 130, 80, NA])\nlet other = w.select([worker, year, hours]).rename(h = hours)\n";
 
 /// A function, its parameter, the call with a range and the call with the names written out.
-const CASES: [(&str, &str, &str, &str, &str); 38] = [
+const CASES: [(&str, &str, &str, &str, &str); 40] = [
     (
         "core",
         "vars",
@@ -281,6 +281,20 @@ const CASES: [(&str, &str, &str, &str, &str); 38] = [
         "vars",
         "w.covariance([educ..age])",
         "w.covariance([educ, exper, age])",
+    ),
+    (
+        "measure",
+        "reliability",
+        "items",
+        "dataset(engagement).reliability([eng1..eng3])",
+        "dataset(engagement).reliability([eng1, eng2, eng3])",
+    ),
+    (
+        "measure",
+        "reliability",
+        "reverse",
+        "dataset(engagement).reliability([eng1, eng2, eng3, eng4, eng5], reverse: [eng4..eng5])",
+        "dataset(engagement).reliability([eng1, eng2, eng3, eng4, eng5], reverse: [eng4, eng5])",
     ),
     // A method of a fit: the range is read against the frame the fit was computed on.
     (

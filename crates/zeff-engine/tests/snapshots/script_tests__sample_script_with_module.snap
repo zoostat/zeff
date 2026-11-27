@@ -2,13 +2,11 @@
 source: crates/zeff-engine/tests/script_tests.rs
 expression: all
 ---
-error[Z0103]: no function is called `reliability`
- --> zeff_samples.zeff:208:8
 error[Z0304]: a `dag { }` block is not available in this release
- --> zeff_samples.zeff:214:9
+ --> zeff_samples.zeff:215:9
 error[Z0103]: no function is called `adjustment_sets`
- --> zeff_samples.zeff:221:3
-error[Z0103]: no function is called `implied_independencies`
  --> zeff_samples.zeff:222:3
+error[Z0103]: no function is called `implied_independencies`
+ --> zeff_samples.zeff:223:3
 error[Z0103]: no function is called `check`
- --> zeff_samples.zeff:227:4
+ --> zeff_samples.zeff:228:4

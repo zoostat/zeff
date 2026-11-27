@@ -205,8 +205,9 @@ frame(b = slopes).summary([b])                        // sampling distribution o
 // # 12. Reliability of a survey scale
 
 let engage = import("data/engagement.csv")
-engage.reliability([eng1..eng6])                      // alpha and item-total statistics; omega from 1.12
-let engage = engage.add(engagement = row([eng1..eng6], stat: mean, min_valid: 5))
+engage.reliability([eng1..eng6], reverse: [eng4])     // alpha and item statistics, the fourth statement worded in reverse; omega from 1.12
+let engage = engage.add(eng4r = 6 - eng4)             // the fourth item the right way round, on its scale of 1 to 5
+let engage = engage.add(engagement = row([eng1..eng3, eng4r, eng5, eng6], stat: mean, min_valid: 5))
 
 
 // # 13. Causal graph: check the model against its assumptions

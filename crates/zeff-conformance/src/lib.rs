@@ -1790,6 +1790,12 @@ fn panel_cases() -> Vec<Line> {
     // under the exact test, rows with `NA`, and the figures read as values.
     let paired = "let survey = dataset(engagement)\nsurvey.mcnemar_test(recommend_before, recommend_after)\nsurvey.mcnemar_test(recommend_before, recommend_after, correct: false)\nlet e = survey.mcnemar_test(recommend_before, recommend_after, method: exact)\ne\nprint(format(e.p_values(), digits: 17))\nlet t = frame(first = [\"pos\", \"pos\", \"neg\", \"neg\"], second = [\"pos\", \"neg\", \"pos\", \"neg\"], pairs = [8, 1, 9, 12])\nlet r = t.mcnemar_test(first, second, weights: pairs, weight_type: frequency)\nr\nprint(format(r.statistic(), digits: 17), r.df(), format(r.p_values(), digits: 17), r.n_obs())\nr.estimates()\nr.ci()\nt.mcnemar_test(first, second, method: exact, weights: pairs, weight_type: frequency)\nlet same = frame(a = [true, true, false, false, true, false], b = [true, false, false, true, true, false])\nsame.mcnemar_test(a, b)\nlet agreed = frame(a = [1, 1, 0, 0, 1], b = [1, 1, 0, 0, 1])\nagreed.mcnemar_test(a, b, method: exact)\nlet big = frame(a = [0, 0, 1, 1], b = [0, 1, 0, 1], k = [41000, 2250, 1980, 39500])\nprint(format(big.mcnemar_test(a, b, method: exact, weights: k, weight_type: frequency).p_values(), digits: 17))\nlet gaps = frame(a = [1, 0, NA, 1, 0, 1, 0, 0], b = [0, 0, 1, NA, 1, 1, 1, 1])\ngaps.mcnemar_test(a, b, correct: false)\n";
     let paired_outcome = run_script(&fs, &project, "scripts/main.zeff", paired);
+    // Cronbach's alpha (release 0.10.0, step 10): the survey with its reversed item named and
+    // as written (with the warning), standardized with the other interval at another level,
+    // three items, yes-or-no items (KR-20), two items, items that run against one another, an
+    // item that does not vary, rows with `NA`, and the figures read as values at full length.
+    let scale = "let survey = dataset(engagement)\nlet a = survey.reliability([eng1..eng6], reverse: [eng4])\na\nprint(format(a.statistic(), digits: 15), format(a.statistic(\"standardized alpha\"), digits: 15), format(a.statistic(\"average correlation\"), digits: 15), a.n_obs())\na.estimates()\na.ci()\nsurvey.reliability([eng1..eng6])\nlet s = survey.reliability([eng1..eng6], reverse: [eng4], standardize: true, ci: duhachek, level: 0.9)\ns\ns.estimates()\nsurvey.reliability([eng1, eng2, eng3], ci: duhachek)\nlet quiz = frame(q1 = [1, 0, 1, 1, 0, 1, 0, 1, 1, 0, 1, 1, 0, 0, 1, 1], q2 = [1, 0, 1, 0, 0, 1, 0, 1, 1, 0, 1, 1, 0, 1, 1, 0], q3 = [true, true, true, true, false, true, false, false, true, false, true, false, false, false, true, true], q4 = [0, 0, 1, 1, 0, 1, 1, 1, 1, 0, 0, 1, 0, 0, 1, 1])\nquiz.reliability([q1, q2, q3, q4])\nquiz.reliability([q1, q2])\nlet odd = frame(u = [1, 2, 3, 4, 5, 2, 4, 3, 5, 1], v = [5, 4, 3, 2, 1, 4, 3, 3, 1, 4], w = [2, 3, 3, 5, 4, 1, 4, 2, 5, 2], same = [3, 3, 3, 3, 3, 3, 3, 3, 3, 3], gap = [1.5, NA, 2.5, 4.0, 4.5, NA, 3.5, 3.0, 5.0, 1.0])\nodd.reliability([u, v, w])\nodd.reliability([u, v, w], reverse: [v])\nodd.reliability([u, w, same])\nodd.reliability([u, w, gap])\n";
+    let scale_outcome = run_script(&fs, &project, "scripts/main.zeff", scale);
     // A `TestResult` read as values (release 0.7.0, step 12b; open decision #94): the six
     // methods on a t test, a chi-squared test, a Wald test and an exact test, the widened
     // `estimates` of a test and of a fit, the sentence built with `format` and `join`, and the
@@ -1892,6 +1898,8 @@ fn panel_cases() -> Vec<Line> {
         text("tests/fisher/stderr", &exact_outcome.output.stderr),
         text("tests/mcnemar/stdout", &paired_outcome.output.stdout),
         text("tests/mcnemar/stderr", &paired_outcome.output.stderr),
+        text("measure/reliability/stdout", &scale_outcome.output.stdout),
+        text("measure/reliability/stderr", &scale_outcome.output.stderr),
         text("tests/fields/stdout", &fields_outcome.output.stdout),
         text("tests/fields/stderr", &fields_outcome.output.stderr),
         text("tests/shapiro/stdout", &normality_outcome.output.stdout),

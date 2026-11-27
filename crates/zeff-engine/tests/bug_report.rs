@@ -423,8 +423,8 @@ fn the_report_of_the_sample_scripts_failure_reads_as_the_specification_describes
     let report = self::report(&fs, &asked(script)).unwrap();
     assert_eq!(report.kind, Kind::Error);
     assert!(report.code.is_some());
-    // Seventy-five items: a `use` line and seventy-four statements.
-    assert_eq!(report.of, 74);
+    // Seventy-six items: a `use` line and seventy-five statements.
+    assert_eq!(report.of, 75);
     assert!(
         report.kept < 15,
         "{} of {} statements are kept:\n{}",

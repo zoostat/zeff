@@ -999,6 +999,7 @@ dependencies = [
  "zeff-glm",
  "zeff-hash",
  "zeff-ir",
+ "zeff-measure",
  "zeff-numeric",
  "zeff-plot",
  "zeff-registry",
@@ -1067,6 +1068,19 @@ version = "0.10.0-dev"
 dependencies = [
  "serde_json",
  "zeff-engine",
+]
+
+[[package]]
+name = "zeff-measure"
+version = "0.10.0-dev"
+dependencies = [
+ "zeff-columns",
+ "zeff-core",
+ "zeff-diagnostics",
+ "zeff-dist",
+ "zeff-numeric",
+ "zeff-registry",
+ "zeff-stats",
 ]
 
 [[package]]

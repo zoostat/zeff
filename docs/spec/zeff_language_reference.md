@@ -1167,7 +1167,7 @@ let lg = wages.glm(union ~ educ + exper + female, family: binomial, cluster: wor
 
 // 7. Reliability of a survey scale (CFA and SEM from 1.12)
 let engage = import("data/engagement.csv")
-engage.reliability([eng1..eng6])
+engage.reliability([eng1..eng6], reverse: [eng4])
 ```
 
 ### 10.2 What Zeff prints
@@ -1345,6 +1345,7 @@ Zeff reports problems the way Rust does: a code, the location, a marker under th
 | W0210 | Values of `bin` outside every interval of its breaks, which are `NA`, with the count (section 4.2) |
 | W0211 | Expected counts below 5 in `chi2_test`, where the chi-squared approximation may be poor, with the count of such cells |
 | W0212 | Tied values in `ks_test`, whose distribution theory assumes a continuous distribution, with their count; the asymptotic p-value is used |
+| W0213 | An item of `reliability` that runs against the rest of its scale, its correlation with the sum of the other items negative, and is not named in `reverse:`; or an item with one value in every row kept. The item is named and the scale is not changed |
 | W0401 | An option written out that changes nothing in the call, printed as a note: `level:` of `posthoc` with a step-wise method, which has no intervals (open decision #105) |
 | Z0225 | A function whose body, or a `return` in it, gives a type other than the declared return type, or no value where one is declared (sections 3.7, "Inference", and 5.3) |
 | Z0226 | `x == NA` or `x != NA` written with the literal `NA`: the comparison is `NA` whatever `x` holds, so the checker refuses it and names `is_missing(x)` (section 4.1, the row "Testing") |

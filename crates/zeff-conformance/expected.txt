@@ -256,6 +256,8 @@ tests/fisher/stdout 7f517681ac48644e
 tests/fisher/stderr 7f2386a6c7511b94
 tests/mcnemar/stdout 4e3e27af6a64f068
 tests/mcnemar/stderr 919d2ca7a6ab09ec
+measure/reliability/stdout cb5286632ea289e4
+measure/reliability/stderr 75407367403d4d4d
 tests/fields/stdout cbf29ce484222325
 tests/fields/stderr 066add1139daf971
 tests/shapiro/stdout bb094c197a0d6c4d

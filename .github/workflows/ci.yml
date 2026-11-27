@@ -464,13 +464,14 @@ jobs:
           Rscript tests/reference/r/posthoc_games_howell.R
           Rscript tests/reference/r/exports.R
           Rscript tests/reference/r/mcnemar.R
+          Rscript tests/reference/r/reliability.R
 
       - name: R's values agree with the committed copies within tolerance
         # R uses the platform's maths library and, on x86, extended precision for means, so its
         # last bits differ between Linux and macOS; the committed copies are compared within
         # tolerance (tests/reference/r/check_r.py) and the differences are printed.
         run: |
-          for name in maths descriptive special distributions association kernels types design regression fixed_effects event dates time format text text_regex panel running row_number quantile_group distinct aggregate merge reshape tabulate t_test counts wilcoxon kruskal variance iv ar fisher shapiro ks anova tukey posthoc posthoc_level posthoc_games_howell binary separation margins margins_binary curve confusion mcnemar; do
+          for name in maths descriptive special distributions association kernels types design regression fixed_effects event dates time format text text_regex panel running row_number quantile_group distinct aggregate merge reshape tabulate t_test counts wilcoxon kruskal variance iv ar fisher shapiro ks anova tukey posthoc posthoc_level posthoc_games_howell binary separation margins margins_binary curve confusion mcnemar reliability; do
             git show HEAD:tests/reference/r/$name.json > /tmp/committed_r_$name.json
             git diff --stat -- tests/reference/r/$name.json
             python3 -I tests/reference/r/check_r.py $name /tmp/committed_r_$name.json tests/reference/r/$name.json || { git diff -- tests/reference/r/$name.json | head -400; exit 1; }

@@ -23,6 +23,7 @@ zeff-plot.workspace = true
 zeff-results.workspace = true
 zeff-regress.workspace = true
 zeff-glm.workspace = true
+zeff-measure.workspace = true
 zeff-columns.workspace = true
 zeff-numeric.workspace = true
 zeff-registry.workspace = true

@@ -60,19 +60,20 @@ expression: "said.join(\"\\n\")"
  56 lines 198-201 slopes         reads [54]
  57 lines 202-202 -              reads [56]
  58 lines 207-207 engage         reads [] reads a file
- 59 lines 208-208 -              reads []
+ 59 lines 208-208 -              reads [58]
  60 lines 209-209 engage         reads [58]
- 61 lines 214-220 g              reads []
- 62 lines 221-221 -              reads []
+ 61 lines 210-210 engage         reads [60]
+ 62 lines 215-221 g              reads []
  63 lines 222-222 -              reads []
- 64 lines 223-223 -              reads [61] writes a file
- 65 lines 225-225 staff          reads [] reads a file
- 66 lines 226-226 mt             reads [65]
- 67 lines 227-227 -              reads []
- 68 lines 232-232 wages          reads [16]
- 69 lines 233-233 m5             reads [68]
- 70 lines 234-235 -              reads [69]
- 71 lines 240-240 -              reads [68]
- 72 lines 241-247 -              reads [68] writes a file
- 73 lines 249-251 means          reads [68]
- 74 lines 252-255 -              reads [73]
+ 64 lines 223-223 -              reads []
+ 65 lines 224-224 -              reads [62] writes a file
+ 66 lines 226-226 staff          reads [] reads a file
+ 67 lines 227-227 mt             reads [66]
+ 68 lines 228-228 -              reads []
+ 69 lines 233-233 wages          reads [16]
+ 70 lines 234-234 m5             reads [69]
+ 71 lines 235-236 -              reads [70]
+ 72 lines 241-241 -              reads [69]
+ 73 lines 242-248 -              reads [69] writes a file
+ 74 lines 250-252 means          reads [69]
+ 75 lines 253-256 -              reads [74]

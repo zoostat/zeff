@@ -99,3 +99,17 @@ frame · 2 rows × 3 variables
   2   yes        593     0.572165
 note: merge: 1,200 rows matched; 0 left rows unmatched; 1,200 right rows unmatched (line 6)
 warning[W0201]: 23 rows with NA in recommend_after were skipped (line 6)
+> survey.reliability([eng1..eng6], reverse: [eng4])
+reliability · Cronbach's alpha · 6 items
+N = 986 rows with every item
+alpha = 0.851   95% CI [0.836, 0.865] (Feldt)
+alpha of the standardized items = 0.851   average correlation between items = 0.487
+
+  item               mean      sd   item–rest correlation   alpha without the item
+  eng1              3.042   1.007                   0.691                    0.815
+  eng2              3.060   0.980                   0.652                    0.823
+  eng3              3.067   1.005                   0.628                    0.827
+  eng4 (reversed)   2.966   1.027                   0.656                    0.822
+  eng5              3.024   0.976                   0.575                    0.837
+  eng6              3.055   1.032                   0.607                    0.831
+note: 214 rows with NA in eng1, eng2, eng3, eng4, eng5 or eng6 dropped (line 7)

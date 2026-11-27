@@ -2,7 +2,7 @@
 source: crates/zeff-cli/tests/cli.rs
 expression: list
 ---
-148 codes are explained; `zeff explain <code>` prints a code's page.
+149 codes are explained; `zeff explain <code>` prints a code's page.
 
 Z00xx  Errors a script raises itself
     Z0001  the script stopped itself with error()
@@ -154,6 +154,7 @@ W0xxx  Warnings, numbered by the same areas
     W0210  values of `bin` outside every interval
     W0211  expected counts below 5 in a chi-squared test
     W0212  tied values in the Kolmogorov–Smirnov test
+    W0213  an item runs against the rest of its scale
     W0301  a `case` arm that can never be reached
     W0302  a `let` that shadows a loop variable
     W0303  a function without a summary line

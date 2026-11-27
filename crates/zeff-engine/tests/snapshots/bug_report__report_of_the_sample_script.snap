@@ -1,6 +1,6 @@
 ---
 source: crates/zeff-engine/tests/bug_report.rs
-expression: report.text
+expression: masked(&report.text)
 ---
 # Zeff bug report: an error, Z0101
 
@@ -31,7 +31,7 @@ The script stopped with an error:
 
 ## The statements
 
-The failing statement and the statements it depends on: 2 of the 74 statements of
+The failing statement and the statements it depends on: 2 of the 75 statements of
 `scripts/main.zeff` (lines 19 and 24). Run alone, they fail in the same way.
 
     use functions::robustness                             // functions/robustness.zeff, shown in section 6; use comes first

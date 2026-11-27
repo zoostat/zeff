@@ -1138,8 +1138,9 @@ fn zeff_help_lists_a_package_and_says_when_a_function_arrives() {
         "{}",
         out(&two_shipped)
     );
-    // `glm` until release 0.9.0, step 2, where `glm` became a function's name as well (#112).
-    let package_later = zeff(dir.path(), &["help", "measure"]);
+    // `glm` until release 0.9.0, step 2, where `glm` became a function's name as well (#112);
+    // `measure` until release 0.10.0, step 10, where `reliability` arrived.
+    let package_later = zeff(dir.path(), &["help", "publish"]);
     assert!(
         out(&package_later)
             .contains("has no function in this release; its first arrives with release 0.10.0"),
