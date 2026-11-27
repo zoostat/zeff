@@ -1088,3 +1088,7 @@ The owner asked for Zeff's counterparts of R's `lapply` over a data frame, `by` 
 ## 27 November 2026 — zeff_open_decisions.md, #236 (the owner's ruling)
 
 The owner ruled on #236: "Go with A". The entry is marked decided: `each:` of `add` and `update`, `map` over a mapping, and `report` titling its columns from a mapping's keys, at 0.12.0 beside #233 and #235; the catalogue's rows to be amended at the opening of 0.12.0. No normative text is changed.
+
+## 27 November 2026 — zeff_open_decisions.md, new entry #237
+
+The owner asked for Zeff's counterparts of R's `aggregate`, `merge` and `reshape`; each was run on the engine. Shown that `merge` cannot join keys of different names nor match on the nearest date or within a range, and that five reshape and merge gaps of #99 stand after 1.0, he said "Yes, record them". #237 is entered, open: `on:` taking a mapping of key names, `nearest:` and `between:` of `merge`, and, amending #99's ruling on question 3 for those five items alone, several stubs and value columns in `to_long` and `to_wide`, `indicator:`, `join: right` and `relation: many_to_many`, recommended at 0.12.0 beside #233 to #236. Deadline: the opening of 0.12.0. No normative text is changed.
