@@ -2,8 +2,12 @@
 //! and 14; Language Reference, section 7.3). At this release the package holds the page of the
 //! `dag { }` block, which the language itself reads: the parser reads the block, the checker
 //! finds it a graph of causes or refuses it (Z0508), and the value is `Dag` of `core`. The
-//! functions that work on a graph (its paths and separations, adjustment sets, implied
-//! independencies, the check of a fitted model) join it in the steps that follow.
+//! graph kernel ([`graph`], step 12) answers what the functions of a graph ask of it: its
+//! ancestors and descendants, its proper causal paths and its separations. The functions
+//! themselves (adjustment sets, implied independencies, the check of a fitted model) join it
+//! in the steps that follow.
+
+pub mod graph;
 
 use zeff_core::runtime::{Args, CallContext, Fail, Function, fail};
 use zeff_core::value::Value;

@@ -1928,6 +1928,7 @@ fn panel_cases() -> Vec<Line> {
         text("identify/dag/stdout", &graph_outcome.output.stdout),
         text("identify/dag/stderr", &graph_outcome.output.stderr),
         text("identify/dag_refused/stderr", &graph_refused),
+        text("identify/kernel", &graph_kernel()),
         text("tests/fields/stdout", &fields_outcome.output.stdout),
         text("tests/fields/stderr", &fields_outcome.output.stderr),
         text("tests/shapiro/stdout", &normality_outcome.output.stdout),
@@ -3414,6 +3415,111 @@ fn font_metrics() -> String {
         }
         for glyph in 0..font.glyphs() {
             out.push_str(&format!("{glyph} {}\n", font.advance(glyph)));
+        }
+    }
+    out
+}
+
+/// The graph kernel (release 0.10.0, step 12): for six graphs, the study of section 7.3 of the
+/// Language Reference among them, with latent and selected nodes and bidirected edges, the
+/// ancestors and the descendants of every node, the nodes on the causal paths between every
+/// two, and whether every two written nodes are d-separated given each set of the others,
+/// so that the four targets prove the same answers.
+fn graph_kernel() -> String {
+    use zeff_core::dag::{Dag, Edge, Link};
+    use zeff_identify::graph::Graph;
+    type Described = (
+        &'static str,
+        usize,
+        &'static [(usize, usize)],
+        &'static [(usize, usize)],
+        &'static [usize],
+        &'static [usize],
+    );
+    let graphs: [Described; 6] = [
+        (
+            "study",
+            6,
+            &[(0, 1), (1, 2), (0, 2), (1, 3), (3, 2), (4, 1), (5, 1)],
+            &[],
+            &[0],
+            &[],
+        ),
+        ("m", 5, &[(0, 2), (0, 4), (1, 4), (1, 3)], &[], &[0, 1], &[]),
+        ("arcs", 3, &[], &[(0, 2), (2, 1)], &[], &[]),
+        ("confounded", 2, &[(0, 1)], &[(0, 1)], &[], &[]),
+        ("selected", 4, &[(0, 1), (2, 1), (1, 3)], &[], &[], &[3]),
+        (
+            "butterfly",
+            5,
+            &[(0, 2), (1, 2), (0, 3), (1, 4), (2, 3), (2, 4), (3, 4)],
+            &[],
+            &[],
+            &[],
+        ),
+    ];
+    let bits =
+        |marks: &[bool]| -> String { marks.iter().map(|&m| if m { '1' } else { '0' }).collect() };
+    let mut out = String::new();
+    for (name, written, directed, bidirected, latent, selected) in graphs {
+        let nodes: Vec<String> = (0..written).map(|i| format!("v{i}")).collect();
+        let mut edges: Vec<Edge> = directed
+            .iter()
+            .map(|&(from, to)| Edge {
+                from,
+                to,
+                link: Link::Directed,
+            })
+            .collect();
+        edges.extend(bidirected.iter().map(|&(from, to)| Edge {
+            from,
+            to,
+            link: Link::Bidirected,
+        }));
+        let graph = Graph::of(&Dag::new(nodes, edges, latent.to_vec(), selected.to_vec()));
+        out.push_str(&format!(
+            "{name}: {} nodes, {} written\n",
+            graph.len(),
+            written
+        ));
+        for v in 0..graph.len() {
+            out.push_str(&format!(
+                "  {} above {} below {}\n",
+                graph.name(v),
+                bits(&graph.ancestors(&[v])),
+                bits(&graph.descendants(&[v]))
+            ));
+        }
+        for x in 0..written {
+            for y in 0..written {
+                if x == y {
+                    continue;
+                }
+                out.push_str(&format!(
+                    "  causal {x} to {y}: {}\n",
+                    bits(&graph.proper_causal_nodes(&[x], &[y]))
+                ));
+                if x > y {
+                    continue;
+                }
+                let others: Vec<usize> = (0..written).filter(|&v| v != x && v != y).collect();
+                let answers: String = (0u32..(1 << others.len()))
+                    .map(|set| {
+                        let given: Vec<usize> = others
+                            .iter()
+                            .enumerate()
+                            .filter(|(i, _)| set >> i & 1 == 1)
+                            .map(|(_, &v)| v)
+                            .collect();
+                        if graph.d_separated(&[x], &[y], &given) {
+                            '1'
+                        } else {
+                            '0'
+                        }
+                    })
+                    .collect();
+                out.push_str(&format!("  apart {x} and {y}: {answers}\n"));
+            }
         }
     }
     out

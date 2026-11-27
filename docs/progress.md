@@ -92,7 +92,11 @@ Step 10 `[function]`: `reliability(items, standardize:, reverse:, ci: feldt | du
 
 Step 11 `[engine]` (28 November 2026): the `dag { }` block is a value of type `Dag`. The checker lowers the block (chains, groups on either side, the three links, a node alone, `latent` and `selected`) and refuses what is no graph of causes with the new code Z0508: a directed cycle, named; an edge from a node to itself; a node both latent and selected. A graph prints as a block that reads back as itself, is kept by `let`, told by `type_of` and compared by `equal` whatever the order of its lines. The new package `identify` (tier 3) holds the block's page; the usage line of a page now follows the catalogue's kind, so that `dag`, `PI` and `E` are no longer written as calls. A fuzz target for the block joins the nightly job. The catalogue's row 429 is implemented: 272 of the 284 functions of 1.0.
 
-**Next.** Step 12 `[engine]`: the graph kernel, paths and d-separation. It wants `dagitty` as a reference where installed (the owner's `Rscript tests/reference/r/install.R`); without it the kernel is held to a second, independent search, as the step says.
+Step 12 `[engine]` (28 November 2026): the graph kernel, in the package `identify`. A graph is prepared (a bidirected edge becomes a latent common cause; a selected node is conditioned on in every question) and answers for ancestors, descendants, the nodes on proper causal paths, and d-separation on the moral graph of the ancestors. Held to a second way that shares nothing with it, a walk over every path, on all 29,854 graphs of causes over up to five nodes (2.36 million questions) and on 2,000 generated graphs with latent and selected nodes; two faults put in on purpose were each caught. No function of the language is added.
+
+**Next.** Step 13 `[function]`: `g.implied_independencies()`, the basis set as dagitty returns it.
+
+**For the owner, from step 12.** dagitty is not installed here, so the graph kernel has no value of dagitty behind it: its reference is the independent search above. `Rscript tests/reference/r/install.R`, run by you, installs it; steps 13, 14, 16 and 17 name dagitty as their reference, and until it is there each is held to the same kind of independent search and says so.
 
 **For the owner, from step 10.** #241 decided on 27 November 2026 (the owner: "Go with A, pass it on"): S1 and S2 stand as built; `rescale` and `weights:` of `row` come at 0.12.0, `scalability` at 1.26. Nothing more is asked of this release.
 

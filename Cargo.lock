@@ -2391,6 +2391,7 @@ dependencies = [
  "zeff-datasets",
  "zeff-dist",
  "zeff-engine",
+ "zeff-identify",
  "zeff-kernels",
  "zeff-numeric",
  "zeff-plot",

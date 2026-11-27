@@ -26,6 +26,7 @@ zeff-stats.workspace = true
 zeff-core.workspace = true
 zeff-results.workspace = true
 zeff-plot.workspace = true
+zeff-identify.workspace = true
 zeff-datasets.workspace = true
 zeff-syntax.workspace = true
 
