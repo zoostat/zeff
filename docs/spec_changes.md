@@ -1148,3 +1148,7 @@ A new entry, open: the size of release 0.12.0, which the rulings of 27 November 
 ## 27 November 2026 — zeff_open_decisions.md, entries 241 and 243
 
 Entry 241 decided by the owner ("Go with A, pass it on"): the status of its row and a paragraph *Decided* after its status of step 10. Entry 243 added, decided for phones and open for tablets: Zemp Lite is not built for phones for now, as #33 ruled for 1.0, and the phone rules of the design guide of #146 and #220 are withdrawn; whether a tablet is supported, and in which direction, is open, with its deadline the Zemp Lite release that next changes its layout. No normative text is changed: the catalogue's rows for #241 are amended at the opening of 0.12.0, and section 5 of the Zemp Specification at that Zemp Lite release.
+
+## 27 November 2026 — zeff_functions.csv, row 508 (`mcnemar_test`), a correction
+
+The note of row 508, written at step 9 of release 0.10.0, said that the continuity correction "is never larger than the difference of the two counts, so that equal counts give 0 where R gives 1/(b + c)". R gives 0 there too: `mcnemar.test` corrects only a table whose two counts differ. The note now reads "two equal counts are not corrected and give 0, as in R". The entry of this file for row 508 above repeats the wrong statement and is corrected by this one. No rule and no result is changed.

@@ -53,9 +53,9 @@ Write the paired table with `a` down the side and `b` along the top, and call b 
 pairs with the second value in `b` alone and c the number with it in `a` alone. The pairs on
 which the two agree enter neither test. The chi-squared statistic is (b − c)² / (b + c), and
 with the continuity correction (|b − c| − 1)² / (b + c), referred to the chi-squared
-distribution on one degree of freedom. The correction is never larger than the difference it
-corrects, so two equal counts give a statistic of 0; R's `mcnemar.test` gives 1 / (b + c)
-there. With no pair that differs there is no statistic, and the call is refused.
+distribution on one degree of freedom. Two equal counts have no difference to correct, and
+give a statistic of 0 with the correction or without, as in R's `mcnemar.test`. With no pair
+that differs there is no statistic, and the call is refused.
 
 Under H0 each pair that differs falls either way with probability one half, so the smaller of
 b and c is binomial on b + c trials. `method: exact` gives twice the probability of a count no

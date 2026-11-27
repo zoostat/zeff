@@ -98,6 +98,10 @@
     "df": 1,
     "p_value": "1"
    },
+   "corrected": {
+    "statistic": "0",
+    "p_value": "1"
+   },
    "exact_p_value": "1",
    "difference": {
     "estimate": "0",

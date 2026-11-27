@@ -45,7 +45,7 @@ fn thirteen_tables_agree_with_r() {
     let reference = reference();
     let cases = reference["cases"].as_array().unwrap();
     assert_eq!(cases.len(), 13);
-    let mut corrected = 0;
+    let mut balanced = 0;
     for case in cases {
         let name = case["name"].as_str().unwrap();
         let [n11, b, c, n22] = cells(case);
@@ -59,21 +59,21 @@ fn thirteen_tables_agree_with_r() {
             "{name}: {statistic}"
         );
         assert!(close(p, number(&wanted["p_value"]), 1e-12), "{name}: p {p}");
-        // With the correction, wherever the two counts differ; where they are equal R takes
-        // 1 from a difference of 0 and the engine does not (the edge cases hold that).
-        if let Some(wanted) = case.get("corrected") {
-            let (statistic, p) = chi2(b, c, true).unwrap();
-            assert!(
-                close(statistic, number(&wanted["statistic"]), 1e-12),
-                "{name}: corrected {statistic}"
-            );
-            assert!(
-                close(p, number(&wanted["p_value"]), 1e-12),
-                "{name}: corrected p {p}"
-            );
-            corrected += 1;
-        } else {
-            assert_eq!(b, c, "{name}");
+        // With the correction, on every table: where the two counts are equal R corrects
+        // nothing and gives 0, and so does the engine.
+        let wanted = &case["corrected"];
+        let (statistic, p) = chi2(b, c, true).unwrap();
+        assert!(
+            close(statistic, number(&wanted["statistic"]), 1e-12),
+            "{name}: corrected {statistic}"
+        );
+        assert!(
+            close(p, number(&wanted["p_value"]), 1e-12),
+            "{name}: corrected p {p}"
+        );
+        if b == c {
+            assert_eq!((statistic, p), (0.0, 1.0), "{name}");
+            balanced += 1;
         }
         // The exact p-value is that of R's binomial test of the two counts.
         let p = exact(b, c);
@@ -95,7 +95,8 @@ fn thirteen_tables_agree_with_r() {
             "{name}: {ci:?}"
         );
     }
-    assert_eq!(corrected, 12);
+    // One table of the thirteen has equal counts.
+    assert_eq!(balanced, 1);
 }
 
 fn go(script: &str) -> (i32, String, String) {
@@ -210,7 +211,7 @@ fn the_shipped_survey_gives_the_reference_from_its_rows() {
 #[test]
 fn the_edge_cases() {
     // Equal counts: no difference to test, a statistic of 0 and a p-value of 1, with the
-    // correction or without, where R's corrected statistic is 1 / (b + c).
+    // correction or without, as R gives.
     assert_eq!(chi2(7, 7, true), Some((0.0, 1.0)));
     assert_eq!(chi2(7, 7, false), Some((0.0, 1.0)));
     assert_eq!(exact(7, 7), 1.0);

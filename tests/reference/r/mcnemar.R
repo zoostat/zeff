@@ -6,10 +6,10 @@
 # balanced and lopsided, with an empty cell, with a single pair that differs, and that of the
 # shipped survey `engagement`, counted here from its file.
 #
-# Where the two counts of pairs that differ are equal, mcnemar.test() with the correction
-# gives 1 / (b + c), having taken 1 from a difference of 0; the engine gives 0 there, and such
-# a table carries R's uncorrected statistic alone ("corrected" is left out). Where no pair
-# differs R gives NaN, and no such table is here. Run with `Rscript tests/reference/r/mcnemar.R`.
+# Where the two counts of pairs that differ are equal, mcnemar.test() makes no correction (it
+# corrects only a table that is not symmetric) and gives 0 with `correct = TRUE` as without;
+# the engine gives the same, and such a table is here. Where no pair differs R gives NaN, and
+# no such table is here. Run with `Rscript tests/reference/r/mcnemar.R`.
 source(file.path(dirname(sub("^--file=", "", commandArgs(FALSE)[grepl("^--file=", commandArgs(FALSE))])), "common.R"))
 options(warn = -1)
 
@@ -23,10 +23,8 @@ paired <- function(name, cells) {
   out <- list(name = name, table = as.list(as.integer(cells)),
               uncorrected = list(statistic = num(unname(plain$statistic)), df = as.integer(plain$parameter),
                                  p_value = num(plain$p.value)))
-  if (b != c) {
-    yates <- mcnemar.test(tab, correct = TRUE)
-    out$corrected <- list(statistic = num(unname(yates$statistic)), p_value = num(yates$p.value))
-  }
+  yates <- mcnemar.test(tab, correct = TRUE)
+  out$corrected <- list(statistic = num(unname(yates$statistic)), p_value = num(yates$p.value))
   out$exact_p_value <- num(binom.test(c(b, c))$p.value)
   d <- (c - b) / n
   se <- sqrt(b + c - (b - c)^2 / n) / n

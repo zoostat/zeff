@@ -37,7 +37,8 @@ const LEVEL: f64 = 0.95;
 /// McNemar's chi-squared statistic of the two counts of pairs that differ, on one degree of
 /// freedom, and its p-value: `(b − c)² / (b + c)`, or with the continuity correction
 /// `(|b − c| − 1)² / (b + c)`, the correction never larger than the difference it corrects, so
-/// that two equal counts give 0. `None` when no pair differs and there is no statistic.
+/// that two equal counts give 0, as R's `mcnemar.test` gives, which corrects only a table whose
+/// two counts differ. `None` when no pair differs and there is no statistic.
 pub fn chi2(b: u64, c: u64, correct: bool) -> Option<(f64, f64)> {
     if b + c == 0 {
         return None;
