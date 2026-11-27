@@ -1,0 +1,56 @@
+---
+source: packages/tier3/identify/tests/independencies.rs
+expression: "format!(\"{stdout}---\\n{stderr}\")"
+---
+implied_independencies · 3 among 5 observed variables
+
+  variable   independent of   given
+  age        region
+  age        tenure           training
+  region     tenure           training
+
+latent, in no statement: ability
+implied_independencies · 1 among 3 observed variables
+
+  variable   independent of   given
+  x          y                m
+implied_independencies · 0 among 2 observed variables
+the graph implies no independence among its observed variables: every two are joined by an edge, or no set of observed variables separates them
+latent, in no statement: m
+implied_independencies · 3 among 4 observed variables
+
+  variable   independent of   given
+  educ       union
+  skill      union
+  educ       wage             skill
+
+the data are selected on employed: every statement is of data so selected
+implied_independencies · 0 among 3 observed variables
+the graph implies no independence among its observed variables: every two are joined by an edge, or no set of observed variables separates them
+the data are selected on d: every statement is of data so selected
+implied_independencies · 4 among 4 observed variables
+
+  variable   independent of   given
+  w          x
+  w          y
+  w          z
+  x          z                y
+implied_independencies · 5 among 5 observed variables
+
+  variable   independent of   given
+  u          v
+  u          z
+  v          z
+  y          z
+  x          y                u, v
+implied_independencies · 0 among 2 observed variables
+the graph implies no independence among its observed variables: every two are joined by an edge, or no set of observed variables separates them
+implied_independencies · 0 among 1 observed variable
+the graph has one observed variable, so it implies no independence between two of them
+implied_independencies · 0 among 0 observed variables
+the graph has no observed variable, so it implies no independence between two of them
+implied_independencies · 0 among 2 observed variables
+the graph implies no independence among its observed variables: every two are joined by an edge, or no set of observed variables separates them
+latent, in no statement: hidden and other
+the data are selected on chosen and kept: every statement is of data so selected
+---

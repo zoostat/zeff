@@ -1804,6 +1804,19 @@ fn panel_cases() -> Vec<Line> {
     // of its own, a cycle named, an edge from a node to itself, a node declared twice over.
     let graph = "let g = dag {\n    ability -> training -> productivity\n    ability -> productivity\n    training -> tenure -> productivity\n    [age, region] -> training\n    latent ability\n}\ng\nlet h = dag {\n    [age, region] -> training\n    training -> tenure -> productivity\n    ability -> [training, productivity]\n    training -> productivity\n    latent ability\n}\nprint(equal(g, h), equal(g, dag { a -> b }), type_of(g), is(g, Dag))\ndag {\n    price <-> demand\n    demand -- season\n    weather\n    `ad spend` -> demand\n    selected listed\n    latent taste, mood\n}\ndag { [a, b] -> [c, d] -> e }\ndag { }\nlet both = [g, h]\nprint(len(both), equal(first(both), last(both)))\nfn same_as(a: Dag, b: Dag) -> Bool {\n    equal(a, b)\n}\nprint(same_as(g, h), same_as(g, dag { x -> y }))\n";
     let graph_outcome = run_script(&fs, &project, "scripts/main.zeff", graph);
+    // The independencies a graph implies (release 0.10.0, step 13; open decision #246): the
+    // graph of section 7.3, a chain with its middle observed and latent, a selected node and
+    // a selected descendant of a collider, a bidirected edge, a pair that needs two variables
+    // given, graphs that imply nothing, the count as a value, and the same graph with its
+    // lines in another order.
+    let implied = "let g = dag {\n    ability -> training -> productivity\n    ability -> productivity\n    training -> tenure -> productivity\n    [age, region] -> training\n    latent ability\n}\ng.implied_independencies()\ndag { x -> m -> y }.implied_independencies()\ndag {\n    x -> m -> y\n    latent m\n}.implied_independencies()\ndag {\n    educ -> skill -> wage\n    skill -> employed\n    union -> wage\n    selected employed\n}.implied_independencies()\ndag {\n    a -> c\n    b -> c\n    c -> d\n    selected d\n}.implied_independencies()\ndag {\n    x <-> y\n    y -> z\n    w\n}.implied_independencies()\ndag {\n    u -> [x, y]\n    v -> [x, y]\n    z -> x\n}.implied_independencies()\ndag { a -> b }.implied_independencies()\ndag { }.implied_independencies()\nlet r = g.implied_independencies()\nprint(r.statistic(), r.n_obs())\nr.estimates()\ndag {\n    latent ability\n    [region, age] -> training\n    tenure -> productivity\n    training -> [tenure, productivity]\n    ability -> [productivity, training]\n}.implied_independencies()\n";
+    let implied_outcome = run_script(&fs, &project, "scripts/main.zeff", implied);
+    let implied_refused = run_script(
+        &fs,
+        &project,
+        "scripts/main.zeff",
+        "dag {\n    price -- demand\n    season -> demand\n}.implied_independencies()\n",
+    );
     let mut graph_refused = String::new();
     for script in [
         "let g = dag {\n    price -> demand\n    demand -> price\n}\n",
@@ -1929,6 +1942,18 @@ fn panel_cases() -> Vec<Line> {
         text("identify/dag/stderr", &graph_outcome.output.stderr),
         text("identify/dag_refused/stderr", &graph_refused),
         text("identify/kernel", &graph_kernel()),
+        text(
+            "identify/independencies/stdout",
+            &implied_outcome.output.stdout,
+        ),
+        text(
+            "identify/independencies/stderr",
+            &implied_outcome.output.stderr,
+        ),
+        text(
+            "identify/independencies_refused/stderr",
+            &implied_refused.output.stderr,
+        ),
         text("tests/fields/stdout", &fields_outcome.output.stdout),
         text("tests/fields/stderr", &fields_outcome.output.stderr),
         text("tests/shapiro/stdout", &normality_outcome.output.stdout),

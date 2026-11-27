@@ -367,8 +367,11 @@ pub fn test_result_after(result: &TestResult) -> Vec<String> {
         2
     };
     // A test of several rows (a factorial `anova`) prints each statistic in its table; a curve
-    // has an area and no test, and prints the area as its estimate.
-    if result.terms.is_empty() && result.method != "curve" {
+    // has an area and no test, and prints the area as its estimate; the independencies a graph
+    // implies are a list and no test, whose count is in its title.
+    if result.terms.is_empty()
+        && !matches!(result.method.as_str(), "curve" | "implied_independencies")
+    {
         lines.push(statistic_line_to(
             &result.statistic,
             result.p_value,

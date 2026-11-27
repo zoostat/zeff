@@ -75,11 +75,12 @@ adjusted inside square brackets after its name; here `latent` and `selected` are
 block. Stata has no command for causal graphs.
 
 ## Related tasks
+- For the independencies a graph implies, which data can contradict, use `implied_independencies`.
 - To compare two graphs, use `equal`.
 - To ask what a value is, use `type_of`.
 
 ## See also
-equal, type_of
+implied_independencies, equal, type_of
 
 ## Examples
 // A graph of one edge.

@@ -262,6 +262,9 @@ identify/dag/stdout 0fc50280fd577ac4
 identify/dag/stderr 1793d1f91b201b85
 identify/dag_refused/stderr a4ae850708680357
 identify/kernel b9950d0a114cf488
+identify/independencies/stdout 19805c2121a119ea
+identify/independencies/stderr cbf29ce484222325
+identify/independencies_refused/stderr 2f56f18e7b29f209
 tests/fields/stdout cbf29ce484222325
 tests/fields/stderr 066add1139daf971
 tests/shapiro/stdout bb094c197a0d6c4d

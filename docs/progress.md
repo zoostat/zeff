@@ -94,7 +94,11 @@ Step 11 `[engine]` (28 November 2026): the `dag { }` block is a value of type `D
 
 Step 12 `[engine]` (28 November 2026): the graph kernel, in the package `identify`. A graph is prepared (a bidirected edge becomes a latent common cause; a selected node is conditioned on in every question) and answers for ancestors, descendants, the nodes on proper causal paths, and d-separation on the moral graph of the ancestors. Held to a second way that shares nothing with it, a walk over every path, on all 29,854 graphs of causes over up to five nodes (2.36 million questions) and on 2,000 generated graphs with latent and selected nodes; two faults put in on purpose were each caught. No function of the language is added.
 
-**Next.** Step 13 `[function]`: `g.implied_independencies()`, the basis set as dagitty returns it.
+Step 13 `[function]` (28 November 2026): `g.implied_independencies()`. One statement for each pair of observed variables with no edge between them that observed variables can separate, with a smallest set that does so, in one order however the graph was written; latent variables in no statement, selected ones conditioned on throughout, a graph with an undirected edge refused. Which list the specification meant was a question, entered as #246 and taken as recommended (dagitty's default list, not the one it calls the basis set). Held to a second way that tries every set, on 32,108 small graphs and 2,000 generated ones; dagitty's one printed example agrees. Catalogue row 431 is implemented, `data:` waiting for step 18: 273 of the 284 functions of 1.0.
+
+**Next.** Step 14 `[engine]`: `g.adjustment_sets(exposure:, outcome:, type:)`.
+
+**For the owner, from step 13.** #246 is yours to overturn: `implied_independencies` lists dagitty's default kind of statement (two variables and a smallest set), not what dagitty calls the basis set, though section 7.3 used that word.
 
 **For the owner, from step 12.** dagitty is not installed here, so the graph kernel has no value of dagitty behind it: its reference is the independent search above. `Rscript tests/reference/r/install.R`, run by you, installs it; steps 13, 14, 16 and 17 name dagitty as their reference, and until it is there each is held to the same kind of independent search and says so.
 

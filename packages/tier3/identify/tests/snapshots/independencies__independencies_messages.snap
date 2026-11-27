@@ -1,0 +1,43 @@
+---
+source: packages/tier3/identify/tests/independencies.rs
+expression: all
+---
+error[Z0401]: the graph has an undirected edge, `--`, so `implied_independencies` cannot say what it implies
+ --> scripts/main.zeff:1:1
+  |
+1 | dag {
+  | ^^^^^ a graph with an undirected edge
+  |
+  = help: an undirected edge is for drawing and says nothing of cause: write `a -> b` for a cause, or `a <-> b` for a common cause that is not observed
+
+error[Z0407]: `implied_independencies` takes 0 arguments, but more were given
+ --> scripts/main.zeff:2:26
+  |
+2 | g.implied_independencies(a)
+  |                          ^ one too many
+  |
+  = help: usage: `g.implied_independencies()`
+
+error[Z0404]: `implied_independencies` has no argument called `type`
+ --> scripts/main.zeff:2:26
+  |
+2 | g.implied_independencies(type: basis_set)
+  |                          ^^^^ unknown argument
+  |
+  = help: usage: `g.implied_independencies()`
+
+error[Z0401]: `implied_independencies` cannot be called on a Frame
+ --> scripts/main.zeff:1:1
+  |
+1 | dataset(wages).implied_independencies()
+  | ^^^^^^^^^^^^^^ this is a Frame
+  |
+  = help: `implied_independencies` takes a Dag first; `x.implied_independencies(...)` is `implied_independencies(x, ...)`
+
+error[Z0406]: `implied_independencies` needs `g`
+ --> scripts/main.zeff:1:1
+  |
+1 | implied_independencies()
+  | ^^^^^^^^^^^^^^^^^^^^^^ `g` is missing
+  |
+  = help: usage: `g.implied_independencies()`
