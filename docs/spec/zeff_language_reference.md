@@ -957,7 +957,7 @@ A directed cycle is an error naming it (Z0508), as are an edge from a node to it
 
 ```
 warning[W0510]: tenure lies on the path training → tenure → productivity
-  = note: adjusting for a mediator removes part of the effect of training; drop tenure to estimate the total effect
+  = help: adjusting for a mediator removes part of the effect of training; drop tenure to estimate the total effect
 warning[W0511]: no sufficient adjustment set exists: ability is latent and confounds training and productivity
   = help: consider an instrument for training, or a front-door design
 ```
@@ -1348,6 +1348,8 @@ Zeff reports problems the way Rust does: a code, the location, a marker under th
 | W0212 | Tied values in `ks_test`, whose distribution theory assumes a continuous distribution, with their count; the asymptotic p-value is used |
 | W0213 | An item of `reliability` that runs against the rest of its scale, its correlation with the sum of the other items negative, and is not named in `reverse:`; or an item with one value in every row kept. The item is named and the scale is not changed |
 | W0401 | An option written out that changes nothing in the call, printed as a note: `level:` of `posthoc` with a step-wise method, which has no intervals (open decision #105) |
+| W0510 | A regressor of a fit that `check` finds on a causal path from the exposure to the outcome in the graph, or below a variable on one (a mediator, a descendant of a mediator, a descendant of the outcome): it takes away part of the effect. The regressor and the path are named; the fit is not changed (section 7.3) |
+| W0511 | Regressors of a fit that `check` finds are not a sufficient adjustment set: a back-door path none of them closes, or a path one of them opens as a collider or a descendant of one, or that the selection of the data opens, the path named with a set that would do; or no set of observed variables exists, with what stands in the way. The fit is not changed (section 7.3) |
 | Z0225 | A function whose body, or a `return` in it, gives a type other than the declared return type, or no value where one is declared (sections 3.7, "Inference", and 5.3) |
 | Z0226 | `x == NA` or `x != NA` written with the literal `NA`: the comparison is `NA` whatever `x` holds, so the checker refuses it and names `is_missing(x)` (section 4.1, the row "Testing") |
 | Z0323 | A module file that is not one: a statement in a file of `functions/`, or a file whose name is not a name of the language or is a package's (section 5.3, "Modules") |

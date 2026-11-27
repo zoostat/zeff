@@ -268,6 +268,9 @@ identify/independencies_refused/stderr 2f56f18e7b29f209
 identify/adjustment/stdout f0706e0203bb7513
 identify/adjustment/stderr a6e28f3f2ebb7f72
 identify/adjustment_refused/stderr 6596a1033313bd4f
+identify/check/stdout a0ae7db9a8338e72
+identify/check/stderr c2baf7e97773fcdb
+identify/check_refused/stderr 638b1cefcdc786bd
 tests/fields/stdout cbf29ce484222325
 tests/fields/stderr 066add1139daf971
 tests/shapiro/stdout bb094c197a0d6c4d

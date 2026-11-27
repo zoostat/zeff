@@ -1,0 +1,77 @@
+---
+source: packages/tier3/identify/tests/check.rs
+expression: "format!(\"{stdout}---\\n{stderr}\")"
+---
+check · m · the effect of training on productivity
+the regressors are not a sufficient adjustment set for the effect of training on productivity
+
+  regressor   in the graph
+  training    the exposure
+  tenure      a mediator: removes part of the effect
+  age         harmless: closes no path and opens none
+  region      harmless: closes no path and opens none
+check · the effect of tenure on productivity
+the regressors are a sufficient adjustment set for the effect of tenure on productivity
+
+  regressor   in the graph
+  tenure      the exposure
+  training    closes a path that is no effect
+check · the effect of tenure on productivity
+the regressors are not a sufficient adjustment set for the effect of tenure on productivity
+
+  regressor   in the graph
+  tenure      the exposure
+check · the effect of age on productivity
+the regressors are a sufficient adjustment set for the effect of age on productivity
+
+  regressor   in the graph
+  age         the exposure
+  region      harmless: closes no path and opens none
+check · the effect of training on productivity
+the regressors are not a sufficient adjustment set for the effect of training on productivity
+
+  regressor   in the graph
+  training    the exposure
+check · the effect of training on productivity
+the regressors are not a sufficient adjustment set for the effect of training on productivity
+
+  regressor   in the graph
+  training    the exposure
+  tenure      closes one path and opens another
+check · the effect of training on productivity
+the regressors are a sufficient adjustment set for the effect of training on productivity
+
+  regressor   in the graph
+  training    the exposure
+  tenure      closes a path that is no effect
+  region      closes a path that is no effect
+check · the effect of training on productivity
+training is instrumented: the paths into it are for its instruments to answer, and are not held against the regressors
+
+  regressor   in the graph
+  training    the exposure
+  age         harmless: closes no path and opens none
+check · the effect of training on productivity
+the regressors are not a sufficient adjustment set for the effect of training on productivity
+
+  regressor   in the graph
+  training    the exposure
+  site        not in the graph
+  distance    not in the graph
+
+not in the graph, so the check says nothing of them: site and distance
+---
+warning[W0510]: tenure lies on the path training → tenure → productivity (line 10)
+  = help: adjusting for a mediator removes part of the effect of training; drop tenure to estimate the total effect
+warning[W0511]: no sufficient adjustment set exists: ability is latent and confounds training and productivity (line 10)
+  = help: consider an instrument for training, or a front-door design
+warning[W0511]: the regressors leave the back-door path tenure ← training → productivity open (line 12)
+  = help: 1 more back-door path is open
+  = help: { training } is a sufficient adjustment set; `adjustment_sets` lists every one
+warning[W0511]: the regressors leave the back-door path training ← tenure → productivity open (line 20)
+  = help: 2 more back-door paths are open
+  = help: { age, tenure } is a sufficient adjustment set; `adjustment_sets` lists every one
+warning[W0511]: adjusting for tenure closes the path training ← tenure → productivity and opens the path training ← age → tenure ← region → productivity (line 21)
+  = help: { age, tenure } is a sufficient adjustment set; `adjustment_sets` lists every one
+warning[W0511]: no sufficient adjustment set exists: ability is latent and confounds training and productivity (line 24)
+  = help: consider an instrument for training, or a front-door design

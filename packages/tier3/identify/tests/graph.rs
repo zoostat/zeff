@@ -178,6 +178,134 @@ fn two_thousand_generated_graphs_with_common_causes_and_selected_nodes() {
     );
 }
 
+/// The open paths (release 0.10.0, step 15): the kernel finds them length by length with its
+/// rule applied as it goes; the second way walks every path to its end and judges it then.
+#[test]
+fn the_open_paths_of_two_thousand_generated_graphs() {
+    let mut draws = Draws(0x2026_1128_0015_0001);
+    let (mut questions, mut paths, mut none, mut through_colliders) = (0, 0, 0, 0);
+    for _ in 0..2000 {
+        let n = 2 + draws.below(6);
+        let mut order: Vec<usize> = (0..n).collect();
+        for i in (1..n).rev() {
+            order.swap(i, draws.below(i + 1));
+        }
+        let (mut directed, mut bidirected) = (Vec::new(), Vec::new());
+        for i in 0..n {
+            for j in i + 1..n {
+                if draws.chance(42) {
+                    directed.push((order[i], order[j]));
+                }
+                if draws.chance(8) {
+                    bidirected.push((order[i], order[j]));
+                }
+            }
+        }
+        let selected: Vec<usize> = (0..n).filter(|_| draws.chance(8)).collect();
+        let plain = Plain::new(n, &directed, &bidirected, &selected);
+        let graph = kernel(n, &directed, &bidirected, &[], &selected);
+        for _ in 0..6 {
+            // Two different nodes, but one time in sixteen the same node twice.
+            let x = draws.below(n);
+            let y = if draws.chance(6) {
+                x
+            } else {
+                (x + 1 + draws.below(n - 1)) % n
+            };
+            let given: Vec<usize> = (0..n)
+                .filter(|&v| draws.chance(if v == x || v == y { 4 } else { 22 }))
+                .collect();
+            let said = format!(
+                "{directed:?} {bidirected:?} selected {selected:?}: {x} to {y} given {given:?}"
+            );
+            let got = graph.open_paths(x, y, &given, usize::MAX, usize::MAX);
+            assert!(got.complete, "{said}");
+            let mut held = marks(&given, plain.n);
+            for &s in &selected {
+                held[s] = true;
+            }
+            let mut wanted = if x == y || held[x] || held[y] {
+                Vec::new()
+            } else {
+                plain.open_paths(x, y, &held)
+            };
+            // The same paths, and none twice.
+            let mut found: Vec<Vec<usize>> = got.paths.iter().map(|p| p.nodes.clone()).collect();
+            let listed = found.clone();
+            found.sort();
+            wanted.sort();
+            assert_eq!(found, wanted, "{said}");
+            // Some path is open exactly when the two are not separated.
+            if x != y {
+                assert_eq!(
+                    got.paths.is_empty(),
+                    graph.d_separated(&[x], &[y], &given),
+                    "{said}"
+                );
+            }
+            // The shorter first and, of one length, in the order of the names along them.
+            let names = |path: &Vec<usize>| -> Vec<String> {
+                path.iter().map(|&v| graph.name(v).to_string()).collect()
+            };
+            for pair in listed.windows(2) {
+                assert!(
+                    (pair[0].len(), names(&pair[0])) < (pair[1].len(), names(&pair[1])),
+                    "{said}"
+                );
+            }
+            for path in &got.paths {
+                // The arrows are the graph's, each collider is let through by a node held
+                // and no other inner node is held.
+                for (i, &onward) in path.onward.iter().enumerate() {
+                    let (a, b) = (path.nodes[i], path.nodes[i + 1]);
+                    assert!(if onward {
+                        plain.has(a, b)
+                    } else {
+                        plain.has(b, a)
+                    });
+                }
+                for collider in path.colliders() {
+                    let by = graph
+                        .opener(collider, &given)
+                        .expect("a collider let through");
+                    assert!(held[by] && plain.reaches()[collider][by]);
+                }
+                assert!(path.passes().iter().all(|&v| !held[v]));
+                assert_eq!(
+                    path.colliders().len() + path.passes().len() + 2,
+                    path.nodes.len()
+                );
+                through_colliders += usize::from(!path.colliders().is_empty());
+                // In words: every written node of the path once, the common causes unnamed.
+                let text = graph.path_text(path);
+                let words = text.split(' ').filter(|w| w.starts_with('v')).count();
+                assert_eq!(
+                    words,
+                    path.nodes.iter().filter(|&&v| v < n).count(),
+                    "{text}"
+                );
+                assert!(!text.contains("<->"), "{text}");
+            }
+            // Asked for one path, the search gives the first and says whether it is all.
+            let one = graph.open_paths(x, y, &given, 1, usize::MAX);
+            assert_eq!(one.paths.first(), got.paths.first());
+            assert_eq!(one.complete, got.paths.len() <= 1, "{said}");
+            // Allowed no step, it finds nothing and says so unless there was nothing to try.
+            let cut = graph.open_paths(x, y, &given, usize::MAX, 0);
+            assert!(cut.paths.is_empty());
+            assert!(cut.complete || !got.paths.is_empty() || x != y, "{said}");
+            questions += 1;
+            paths += got.paths.len();
+            none += usize::from(got.paths.is_empty());
+        }
+    }
+    assert_eq!(questions, 12000);
+    assert!(
+        paths > 10_000 && none > 3000 && through_colliders > 3000,
+        "{paths} {none} {through_colliders}"
+    );
+}
+
 #[test]
 fn the_graphs_of_the_textbooks() {
     let none: [usize; 0] = [];

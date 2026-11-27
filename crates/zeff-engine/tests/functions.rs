@@ -154,7 +154,7 @@ fn return_leaves_the_function_with_its_value() {
     // A function that returns nothing is a statement.
     assert_eq!(
         prints(
-            "/// Warns when small.\nfn check(n: Int) -> Nothing {\n    if n < 30 { warn(\"few rows\") }\n}\ncheck(100)\n"
+            "/// Warns when small.\nfn few(n: Int) -> Nothing {\n    if n < 30 { warn(\"few rows\") }\n}\nfew(100)\n"
         ),
         ""
     );

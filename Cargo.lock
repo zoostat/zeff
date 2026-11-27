@@ -2541,6 +2541,7 @@ dependencies = [
  "zeff-core",
  "zeff-diagnostics",
  "zeff-registry",
+ "zeff-regress",
  "zeff-testkit",
 ]
 

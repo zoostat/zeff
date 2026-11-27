@@ -381,7 +381,10 @@ pub fn test_result_after(result: &TestResult) -> Vec<String> {
     // has an area and no test, and prints the area as its estimate; the independencies a graph
     // implies are a list and no test, whose count is in its title.
     if result.terms.is_empty()
-        && !matches!(result.method.as_str(), "curve" | "implied_independencies")
+        && !matches!(
+            result.method.as_str(),
+            "curve" | "implied_independencies" | "check"
+        )
     {
         lines.push(statistic_line_to(
             &result.statistic,

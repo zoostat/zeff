@@ -1,0 +1,123 @@
+---
+source: packages/tier3/identify/tests/check.rs
+expression: all
+---
+error[Z0401]: the graph has an undirected edge, `--`, so `check` cannot say what the regressors do
+ --> scripts/main.zeff:2:9
+  |
+2 | m.check(dag {
+  |         ^^^^^ a graph with an undirected edge
+  |
+  = help: an undirected edge is for drawing and says nothing of cause: write `a -> b` for a cause, or `a <-> b` for a common cause that is not observed
+
+error[Z0101]: the outcome of the fit, `productivity`, is no node of the graph
+ --> scripts/main.zeff:2:9
+  |
+2 | m.check(dag { training -> output }, exposure: training)
+  |         ^^^^^^^^^^^^^^^^^^^^^^^^^^ the graph has no such node
+  |
+  = help: the nodes of the graph are: training, output; write the outcome into the graph with its arrows
+
+error[Z0101]: no node `trainning` in the graph
+ --> scripts/main.zeff:2:53
+  |
+2 | m.check(dag { training -> productivity }, exposure: trainning)
+  |                                                     ^^^^^^^^^ not a node of the graph
+  |
+  = help: did you mean `training`?
+
+error[Z0101]: no node `wage` in the graph
+ --> scripts/main.zeff:2:53
+  |
+2 | m.check(dag { training -> productivity }, exposure: wage)
+  |                                                     ^^^^ not a node of the graph
+  |
+  = help: the nodes of the graph are: training, productivity
+
+error[Z0401]: `age` is not a regressor of the fit
+ --> scripts/main.zeff:2:60
+  |
+2 | m.check(dag { [age, training] -> productivity }, exposure: age)
+  |                                                            ^^^ not in the model
+  |
+  = help: the regressors of the fit are: training; the check is of a model that estimates the effect of the exposure
+
+error[Z0401]: `productivity` is not a regressor of the fit
+ --> scripts/main.zeff:2:53
+  |
+2 | m.check(dag { training -> productivity }, exposure: productivity)
+  |                                                     ^^^^^^^^^^^^ not in the model
+  |
+  = help: the regressors of the fit are: training; the check is of a model that estimates the effect of the exposure
+
+error[Z0401]: the outcome of the fit, `productivity - tenure`, is made of 2 nodes of the graph: productivity and tenure
+ --> scripts/main.zeff:2:1
+  |
+2 | m.check(dag { training -> [productivity, tenure] }, exposure: training)
+  | ^ the fit
+  |
+  = help: the check is of the effect on one variable of the graph: write the outcome as one node, the variable the model explains
+
+error[Z0401]: `exposure:` of `check` is `training`, which is one the data are selected on
+ --> scripts/main.zeff:5:14
+  |
+5 | }, exposure: training)
+  |              ^^^^^^^^ declared `selected` in the graph
+  |
+  = help: the data hold `training` fixed, so they show no relation of it to anything; if `training` varies in the data, take it out of the `selected` line
+
+error[Z0401]: the outcome of the fit is `productivity`, which is one the data are selected on
+ --> scripts/main.zeff:2:1
+  |
+2 | m.check(dag {
+  | ^ declared `selected` in the graph
+  |
+  = help: the data hold `productivity` fixed, so they show no relation of it to anything; if `productivity` varies in the data, take it out of the `selected` line
+
+error[Z0406]: `check` needs `exposure:`
+ --> scripts/main.zeff:2:3
+  |
+2 | m.check(dag { training -> productivity })
+  |   ^^^^^ `exposure:` is missing
+  |
+  = help: usage: `fit.check(g, exposure: Var)`
+
+error[Z0406]: `check` needs `g`
+ --> scripts/main.zeff:2:3
+  |
+2 | m.check(exposure: training)
+  |   ^^^^^ `g` is missing
+  |
+  = help: usage: `fit.check(g, exposure: Var)`
+
+error[Z0401]: `exposure` of `check` must be a Var, but this is a Str
+ --> scripts/main.zeff:2:53
+  |
+2 | m.check(dag { training -> productivity }, exposure: "training")
+  |                                                     ^^^^^^^^^^ a Str
+  |
+  = help: name one node of the graph, without quotes
+
+error[Z0404]: `check` has no argument called `outcome`
+ --> scripts/main.zeff:2:63
+  |
+2 | m.check(dag { training -> productivity }, exposure: training, outcome: productivity)
+  |                                                               ^^^^^^^ unknown argument
+  |
+  = help: usage: `fit.check(g, exposure: Var)`
+
+error[Z0401]: `check` cannot be called on a Frame
+ --> scripts/main.zeff:1:1
+  |
+1 | dataset(staff).check(dag { training -> productivity }, exposure: training)
+  | ^^^^^^^^^^^^^^ this is a Frame
+  |
+  = help: `check` takes a RegFit, IvFit or GlmFit first; `x.check(...)` is `check(x, ...)`
+
+error[Z0401]: `check` cannot be called on a TestResult
+ --> scripts/main.zeff:1:1
+  |
+1 | dataset(staff).t_test(productivity, by: training).check(dag { training -> productivity }, exposure: training)
+  | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ this is a TestResult
+  |
+  = help: `check` takes a RegFit, IvFit or GlmFit first; `x.check(...)` is `check(x, ...)`

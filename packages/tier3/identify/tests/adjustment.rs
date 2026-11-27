@@ -18,56 +18,6 @@ use proptest::prelude::*;
 use zeff_identify::adjustment::{sets, sets_within};
 use zeff_testkit::run;
 
-/// Whether some path from `x` to `y` that is not causal is open given the nodes marked:
-/// every path that meets no node twice is walked; one made of arrows that all point onward
-/// is causal and is left alone; any other is open when each node inside it lets it through,
-/// a collider when it or one of its descendants is given, any other node when it is not.
-fn open_path_not_causal(
-    g: &Plain,
-    x: usize,
-    y: usize,
-    given: &[bool],
-    reaches: &[Vec<bool>],
-) -> bool {
-    fn walk(
-        g: &Plain,
-        path: &mut Vec<usize>,
-        onward: bool,
-        y: usize,
-        given: &[bool],
-        reaches: &[Vec<bool>],
-    ) -> bool {
-        let here = path[path.len() - 1];
-        if here == y {
-            return !onward;
-        }
-        for next in 0..g.n {
-            if path.contains(&next) || !(g.has(here, next) || g.has(next, here)) {
-                continue;
-            }
-            if path.len() >= 2 {
-                let before = path[path.len() - 2];
-                let collider = g.has(before, here) && g.has(next, here);
-                let lets_through = if collider {
-                    (0..g.n).any(|d| given[d] && reaches[here][d])
-                } else {
-                    !given[here]
-                };
-                if !lets_through {
-                    continue;
-                }
-            }
-            path.push(next);
-            if walk(g, path, onward && g.has(here, next), y, given, reaches) {
-                return true;
-            }
-            path.pop();
-        }
-        false
-    }
-    walk(g, &mut vec![x], true, y, given, reaches)
-}
-
 /// The second way: the sufficient sets among the observed variables, every one of them and
 /// the minimal ones, by size and then by name. The nodes are called `v0`, `v1`, … and there
 /// are at most ten, so the order of the names is the order of the numbers.
@@ -105,7 +55,7 @@ fn by_the_definition(
         if (0..plain.n).any(|v| given[v] && forbidden[v]) {
             continue;
         }
-        if !open_path_not_causal(&plain, x, y, &given, &reaches) {
+        if !plain.open_path_not_causal(x, y, &given, &reaches) {
             all.push(set);
         }
     }

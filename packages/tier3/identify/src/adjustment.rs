@@ -156,9 +156,28 @@ fn listed(names: &[String]) -> String {
 
 /// Why no set of observed variables is sufficient, in the words of a note, and what may be
 /// done about it, in the words of its help.
-fn reason(graph: &Graph, exposure: usize, outcome: usize) -> (String, String) {
+///
+/// `arrow` writes the two as `x -> y`, the words of this function's note; without it they
+/// are `x and y` and the design is "a front-door design", the words of the warning that
+/// `check` gives (Language Reference, section 7.3).
+pub(crate) fn reason(
+    graph: &Graph,
+    exposure: usize,
+    outcome: usize,
+    arrow: bool,
+) -> (String, String) {
     let (x, y) = (graph.name(exposure), graph.name(outcome));
-    let design = format!("consider an instrument for {x}, or a front-door variable");
+    let (pair, design) = if arrow {
+        (
+            format!("{x} -> {y}"),
+            format!("consider an instrument for {x}, or a front-door variable"),
+        )
+    } else {
+        (
+            format!("{x} and {y}"),
+            format!("consider an instrument for {x}, or a front-door design"),
+        )
+    };
     // An arrow from the outcome into the exposure is a path no set can close, and the graph
     // then says that the exposure has no effect on the outcome at all.
     if graph.parents(exposure).contains(&outcome) {
@@ -230,17 +249,16 @@ fn reason(graph: &Graph, exposure: usize, outcome: usize) -> (String, String) {
                 .iter()
                 .all(|&v| !graph.is_latent(v) || v < graph.written());
             let why = match (hidden.len() == 1, declared) {
-                (true, true) => format!("{} is latent and confounds {x} -> {y}", hidden[0]),
+                (true, true) => format!("{} is latent and confounds {pair}", hidden[0]),
                 (false, true) => {
-                    format!("{} are latent and confound {x} -> {y}", listed(&hidden))
+                    format!("{} are latent and confound {pair}", listed(&hidden))
                 }
                 (true, false) => {
-                    format!("{} is not observed and confounds {x} -> {y}", hidden[0])
+                    format!("{} is not observed and confounds {pair}", hidden[0])
                 }
-                (false, false) => format!(
-                    "{} are not observed and confound {x} -> {y}",
-                    listed(&hidden)
-                ),
+                (false, false) => {
+                    format!("{} are not observed and confound {pair}", listed(&hidden))
+                }
             };
             return (why, design);
         }
@@ -366,7 +384,7 @@ pub fn adjustment_sets(ctx: &mut CallContext<'_>, args: Args) -> Result<Value, F
     let every = matches!(args.get(TYPE), Some(Value::Word(w)) if w == "all");
     let found = sets(&graph, &[exposure], &[outcome], every);
     if found.sets.is_empty() && found.complete {
-        let (why, help) = reason(&graph, exposure, outcome);
+        let (why, help) = reason(&graph, exposure, outcome, true);
         ctx.message(
             Diagnostic::plain_note(format!("no adjustment set among observed variables: {why}"))
                 .help(help),

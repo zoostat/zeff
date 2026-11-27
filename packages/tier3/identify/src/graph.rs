@@ -235,6 +235,16 @@ impl Graph {
         graph
     }
 
+    /// The same graph with the nodes listed taken as observed, whatever the graph declared:
+    /// a variable a fitted model holds is in the data.
+    pub fn observing(&self, nodes: &[usize]) -> Graph {
+        let mut graph = self.clone();
+        for &node in nodes {
+            graph.latent[node] = false;
+        }
+        graph
+    }
+
     /// The proper back-door graph of an exposure and an outcome (van der Zander, Liśkiewicz and
     /// Textor 2014): the graph without the first arrow of every proper causal path from the
     /// exposure to the outcome. What still joins the two in it is no part of the effect.
@@ -276,5 +286,212 @@ impl Graph {
         }
         self.proper_back_door(exposure, outcome)
             .d_separated(exposure, outcome, set)
+    }
+
+    /// The nodes held fixed in a question: those given and those the data are selected on.
+    fn held(&self, given: &[usize]) -> Vec<bool> {
+        let mut held = self.selected.clone();
+        for &node in given {
+            held[node] = true;
+        }
+        held
+    }
+
+    /// The node by which a collider lets a path through, `given` and the selected nodes held
+    /// fixed: the collider itself when it is held, else the first by name of its descendants
+    /// that are; `None` when the collider closes the path.
+    pub fn opener(&self, collider: usize, given: &[usize]) -> Option<usize> {
+        let held = self.held(given);
+        if held[collider] {
+            return Some(collider);
+        }
+        let below = self.descendants(&[collider]);
+        (0..self.len())
+            .filter(|&v| below[v] && held[v])
+            .min_by(|&a, &b| self.names[a].cmp(&self.names[b]))
+    }
+
+    /// The open paths between `x` and `y`, `given` and the selected nodes held fixed: the paths
+    /// that meet no node twice and whose every inner node lets them through, a collider when
+    /// it or a descendant of it is held, any other node when it is not. The shorter first
+    /// and, of one length, in the order of the names along them; at most `most` paths, found
+    /// in at most `limit` steps of the search. `complete` says that there are no others.
+    pub fn open_paths(
+        &self,
+        x: usize,
+        y: usize,
+        given: &[usize],
+        most: usize,
+        limit: usize,
+    ) -> Paths {
+        let held = self.held(given);
+        // A collider lets a path through when it is an ancestor of a node held, itself among
+        // them.
+        let holding: Vec<usize> = (0..self.len()).filter(|&v| held[v]).collect();
+        let above_held = self.ancestors(&holding);
+        // Each node's neighbours in the order of their names, with the way the arrow points.
+        let mut around: Vec<Vec<(usize, bool)>> = (0..self.len())
+            .map(|v| {
+                let mut near: Vec<(usize, bool)> = self.children[v]
+                    .iter()
+                    .map(|&c| (c, true))
+                    .chain(self.parents[v].iter().map(|&p| (p, false)))
+                    .collect();
+                near.sort_by(|a, b| self.names[a.0].cmp(&self.names[b.0]));
+                near.dedup();
+                near
+            })
+            .collect();
+        // A path ends at `y` and does not come back to `x`.
+        around[y].clear();
+        let mut search = Search {
+            around: &around,
+            held: &held,
+            above_held: &above_held,
+            y,
+            most,
+            limit,
+            steps: 0,
+            found: Vec::new(),
+            cut: false,
+        };
+        if x != y && !held[x] && !held[y] {
+            for length in 1..self.len() {
+                let mut path = Path {
+                    nodes: vec![x],
+                    onward: Vec::new(),
+                };
+                search.walk(&mut path, length);
+                if search.cut {
+                    break;
+                }
+            }
+        }
+        Paths {
+            paths: search.found,
+            complete: !search.cut,
+        }
+    }
+
+    /// A path in words: `x ← a → m ← b → y`. The common cause a bidirected edge stands for is
+    /// not named: the two it joins are written `a ↔ b`.
+    pub fn path_text(&self, path: &Path) -> String {
+        let mut text = self.names[path.nodes[0]].clone();
+        let mut at = 0;
+        while at + 1 < path.nodes.len() {
+            let next = path.nodes[at + 1];
+            if next >= self.written && at + 2 < path.nodes.len() {
+                text.push_str(" ↔ ");
+                text.push_str(&self.names[path.nodes[at + 2]]);
+                at += 2;
+            } else {
+                text.push_str(if path.onward[at] { " → " } else { " ← " });
+                text.push_str(&self.names[next]);
+                at += 1;
+            }
+        }
+        text
+    }
+}
+
+/// A path: its nodes from one end to the other and, for each step, whether its arrow points
+/// onward.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct Path {
+    pub nodes: Vec<usize>,
+    pub onward: Vec<bool>,
+}
+
+impl Path {
+    /// The colliders of the path: the inner nodes both of whose arrows point into them.
+    pub fn colliders(&self) -> Vec<usize> {
+        (1..self.nodes.len().saturating_sub(1))
+            .filter(|&i| self.onward[i - 1] && !self.onward[i])
+            .map(|i| self.nodes[i])
+            .collect()
+    }
+
+    /// Whether every arrow points onward: a causal path from its first node to its last.
+    pub fn is_causal(&self) -> bool {
+        self.onward.iter().all(|&o| o)
+    }
+
+    /// The inner nodes that are no colliders: those that close the path when held fixed.
+    pub fn passes(&self) -> Vec<usize> {
+        (1..self.nodes.len().saturating_sub(1))
+            .filter(|&i| !(self.onward[i - 1] && !self.onward[i]))
+            .map(|i| self.nodes[i])
+            .collect()
+    }
+}
+
+/// The open paths found, and whether there are no others.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct Paths {
+    pub paths: Vec<Path>,
+    pub complete: bool,
+}
+
+/// One search for the open paths of one length.
+struct Search<'a> {
+    around: &'a [Vec<(usize, bool)>],
+    held: &'a [bool],
+    above_held: &'a [bool],
+    y: usize,
+    most: usize,
+    limit: usize,
+    steps: usize,
+    found: Vec<Path>,
+    cut: bool,
+}
+
+impl Search<'_> {
+    /// Every open path that goes on from `path` and has `length` steps in all.
+    fn walk(&mut self, path: &mut Path, length: usize) {
+        let here = path.nodes[path.nodes.len() - 1];
+        if here == self.y {
+            if path.onward.len() == length {
+                if self.found.len() >= self.most {
+                    self.cut = true;
+                } else {
+                    self.found.push(path.clone());
+                }
+            }
+            return;
+        }
+        if path.onward.len() == length {
+            return;
+        }
+        for k in 0..self.around[here].len() {
+            if self.cut {
+                return;
+            }
+            let (next, onward) = self.around[here][k];
+            if path.nodes.contains(&next) {
+                continue;
+            }
+            // The node `here` lies inside the path when an arrow led to it.
+            if let Some(&came_onward) = path.onward.last() {
+                let collider = came_onward && !onward;
+                let lets_through = if collider {
+                    self.above_held[here]
+                } else {
+                    !self.held[here]
+                };
+                if !lets_through {
+                    continue;
+                }
+            }
+            self.steps += 1;
+            if self.steps > self.limit {
+                self.cut = true;
+                return;
+            }
+            path.nodes.push(next);
+            path.onward.push(onward);
+            self.walk(path, length);
+            path.nodes.pop();
+            path.onward.pop();
+        }
     }
 }

@@ -9,6 +9,7 @@
 //! the instruments follow.
 
 pub mod adjustment;
+pub mod check;
 pub mod graph;
 pub mod independencies;
 
@@ -82,6 +83,42 @@ pub fn functions() -> Vec<Function> {
                 accuracy: None,
             },
             body: adjustment::adjustment_sets,
+        },
+        Function {
+            spec: FunctionSpec {
+                name: "check",
+                package: "identify",
+                method: true,
+                params: vec![
+                    ParamSpec::required("fit", "RegFit | IvFit | GlmFit"),
+                    ParamSpec::required("g", "Dag"),
+                    ParamSpec::option("exposure", "Var"),
+                ],
+                rest: None,
+                returns: "TestResult",
+                diagnostics: vec![
+                    DiagnosticDecl::new(
+                        "W0510",
+                        "a regressor on a causal path from the exposure to the outcome, or below one: it takes away part of the effect",
+                    ),
+                    DiagnosticDecl::new(
+                        "W0511",
+                        "a path that is no effect left open by the regressors, or opened by one of them or by the selection of the data, the path named; or no sufficient set of observed variables exists",
+                    ),
+                    DiagnosticDecl::new(
+                        "Z0101",
+                        "`exposure:` or the outcome of the fit is no node of the graph",
+                    ),
+                    DiagnosticDecl::new(
+                        "Z0401",
+                        "a graph with an undirected edge; an exposure that is no regressor of the fit; an exposure or an outcome the data are selected on",
+                    ),
+                    DiagnosticDecl::new("Z0406", "`exposure:` not given"),
+                ],
+                help: include_str!("../help/check.md"),
+                accuracy: None,
+            },
+            body: check::check,
         },
         Function {
             spec: FunctionSpec {

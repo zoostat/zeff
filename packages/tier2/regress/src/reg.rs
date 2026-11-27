@@ -114,6 +114,16 @@ pub(crate) fn effect_specs(terms: &[Term]) -> Vec<(String, Vec<String>)> {
 /// out: its time variable is read for the relative periods alone and is usually a fixed effect
 /// too (`event(year, treat)` with `fe: unit + year`, as fixest's `i(rel) | unit + year`).
 pub(crate) fn formula_variables(formula: &Formula, columns: &[String]) -> Vec<String> {
+    variables_named(formula.outcome.as_ref(), &formula.terms, columns)
+}
+
+/// The variables one term of a formula names, as [`formula_variables`] lists them: what a
+/// function outside this package asks of a fit's model (`check` of a causal graph).
+pub fn term_variables(term: &Term, columns: &[String]) -> Vec<String> {
+    variables_named(None, std::slice::from_ref(term), columns)
+}
+
+fn variables_named(outcome: Option<&Term>, terms: &[Term], columns: &[String]) -> Vec<String> {
     fn of_expr(expr: &ColumnExpr, out: &mut Vec<String>) {
         match expr {
             ColumnExpr::Var(name) => {
@@ -164,13 +174,10 @@ pub(crate) fn formula_variables(formula: &Formula, columns: &[String]) -> Vec<St
         }
     }
     let mut out = Vec::new();
-    if let Some(outcome) = &formula.outcome {
+    if let Some(outcome) = outcome {
         of_term(outcome, columns, &mut out);
     }
-    formula
-        .terms
-        .iter()
-        .for_each(|t| of_term(t, columns, &mut out));
+    terms.iter().for_each(|t| of_term(t, columns, &mut out));
     out
 }
 

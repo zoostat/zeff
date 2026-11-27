@@ -98,7 +98,11 @@ Step 13 `[function]` (28 November 2026): `g.implied_independencies()`. One state
 
 Step 14 `[engine]` (28 November 2026): `g.adjustment_sets(exposure:, outcome:, type: minimal | all)`. The sets of observed variables that satisfy the generalized adjustment criterion, as a `List<Vars>` printed one set to a line in braces (`{}` is "adjust for nothing"), by size and then by name; latent variables in no set, selected ones given in every question. When no set exists the list is empty and a note names what stands in the way (a latent common cause by name, a selection, an arrow from the outcome into the exposure) with advice. Held to a second search that checks the criterion by its definition, path by path: every exposure and outcome on every graph of up to five nodes, and 2,000 generated graphs with common causes, latent and selected nodes; the specification's two examples word for word. dagitty is not installed, and no agreement with it is claimed. Decisions: docs/decisions.md.
 
-**Next.** Step 15 `[engine]`: `fit.check(g, exposure:)`.
+Step 15 `[engine]` (28 November 2026): `fit.check(g, exposure:)` on a fit of `reg`, `ivreg` or `glm`. The regressors are held to the adjustment criterion in the graph: W0510 for a mediator, a descendant of one or of the outcome; W0511 for a path that is no effect and is open, named (a back-door path left open, one opened by a collider or its descendant, one opened by the selection), or for no observed set existing; both facts said of a variable that closes one path and opens another. It gives back a table of the regressors with the part of each. The kernel finds and names open paths. Held to the second way on 2,000 generated graphs and to the classic graphs word for word; section 13 of the sample script runs to its warning. Decisions: docs/decisions.md.
+
+**Next.** Step 16 `[function]`: `iv.exclusion_check(g, instrument:)`.
+
+**For the owner, from step 15.** #248 is yours to overturn, three parts, each taken as recommended: the line under a warning is `= help:` (the specification's example had `= note:`); `check` gives back a table of the regressors and their parts, not the warnings alone; on a fit by instrumental variables whose exposure is instrumented, the back-door paths are not held against the regressors.
 
 **For the owner, from step 13.** #246 is yours to overturn: `implied_independencies` lists dagitty's default kind of statement (two variables and a smallest set), not what dagitty calls the basis set, though section 7.3 used that word.
 

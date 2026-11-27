@@ -104,6 +104,106 @@ impl Plain {
         walk(self, &mut vec![x], y, given, reaches)
     }
 
+    /// Every open path from `x` to `y` given the nodes marked, as its nodes in order: every
+    /// path that meets no node twice is walked to its end and then asked, node by node,
+    /// whether each inner node lets it through.
+    pub fn open_paths(&self, x: usize, y: usize, given: &[bool]) -> Vec<Vec<usize>> {
+        fn walk(g: &Plain, path: &mut Vec<usize>, y: usize, all: &mut Vec<Vec<usize>>) {
+            let here = path[path.len() - 1];
+            if here == y {
+                all.push(path.clone());
+                return;
+            }
+            for next in 0..g.n {
+                if !path.contains(&next) && (g.has(here, next) || g.has(next, here)) {
+                    path.push(next);
+                    walk(g, path, y, all);
+                    path.pop();
+                }
+            }
+        }
+        let reaches = self.reaches();
+        let mut all = Vec::new();
+        walk(self, &mut vec![x], y, &mut all);
+        all.retain(|path| {
+            (1..path.len() - 1).all(|i| {
+                let (before, here, after) = (path[i - 1], path[i], path[i + 1]);
+                if self.has(before, here) && self.has(after, here) {
+                    (0..self.n).any(|d| given[d] && reaches[here][d])
+                } else {
+                    !given[here]
+                }
+            })
+        });
+        all
+    }
+
+    /// Whether some path from `x` to `y` that is not causal is open given the nodes marked:
+    /// every path that meets no node twice is walked; one made of arrows that all point onward
+    /// is causal and is left alone; any other is open when each node inside it lets it through,
+    /// a collider when it or one of its descendants is given, any other node when it is not.
+    pub fn open_path_not_causal(
+        &self,
+        x: usize,
+        y: usize,
+        given: &[bool],
+        reaches: &[Vec<bool>],
+    ) -> bool {
+        fn walk(
+            g: &Plain,
+            path: &mut Vec<usize>,
+            onward: bool,
+            y: usize,
+            given: &[bool],
+            reaches: &[Vec<bool>],
+        ) -> bool {
+            let here = path[path.len() - 1];
+            if here == y {
+                return !onward;
+            }
+            for next in 0..g.n {
+                if path.contains(&next) || !(g.has(here, next) || g.has(next, here)) {
+                    continue;
+                }
+                if path.len() >= 2 {
+                    let before = path[path.len() - 2];
+                    let collider = g.has(before, here) && g.has(next, here);
+                    let lets_through = if collider {
+                        (0..g.n).any(|d| given[d] && reaches[here][d])
+                    } else {
+                        !given[here]
+                    };
+                    if !lets_through {
+                        continue;
+                    }
+                }
+                path.push(next);
+                if walk(g, path, onward && g.has(here, next), y, given, reaches) {
+                    return true;
+                }
+                path.pop();
+            }
+            false
+        }
+        walk(self, &mut vec![x], true, y, given, reaches)
+    }
+
+    /// Whether `set`, with the nodes the data are selected on, gives the effect of `x` on `y`
+    /// by the generalized adjustment criterion as it is defined: none of them lies on a causal
+    /// path from `x` to `y` or below a node that does, and every path between the two that is
+    /// not causal is blocked.
+    pub fn adjusts(&self, x: usize, y: usize, set: &[usize]) -> bool {
+        let reaches = self.reaches();
+        let causal = self.proper_causal(&[x], &[y]);
+        let mut given = vec![false; self.n];
+        for &v in set.iter().chain(&self.selected) {
+            given[v] = true;
+        }
+        let forbidden = |v: usize| (0..self.n).any(|c| causal[c] && reaches[c][v]);
+        !(0..self.n).any(|v| given[v] && forbidden(v))
+            && !self.open_path_not_causal(x, y, &given, &reaches)
+    }
+
     /// Whether the sets are separated: no node of one, not given, has an open path to a node
     /// of the other, not given; two sets that share such a node are not separated.
     pub fn separated(&self, x: &[usize], y: &[usize], given: &[usize]) -> bool {

@@ -1841,6 +1841,29 @@ fn panel_cases() -> Vec<Line> {
         );
         adjustment_refused.push('\n');
     }
+    // A fitted model held against a graph (release 0.10.0, step 15): the example of section
+    // 7.3 with its two warnings; a model that is right; a confounder left out; a collider
+    // among the controls (M-bias) and a descendant of it; butterfly bias with its two causes
+    // latent and observed; a selected node; a descendant of a mediator and of the outcome;
+    // an instrumented exposure; a fit of `glm`; fixed effects; a regressor that is no node
+    // and one declared latent; the count of warnings as a value.
+    let checked = "let staff = dataset(staff)\nlet g = dag {\n    ability -> training -> productivity\n    ability -> productivity\n    training -> tenure -> productivity\n    [age, region] -> training\n    latent ability\n}\nlet m = staff.reg(productivity ~ training + tenure + age + region)\nm.check(g, exposure: training)\nstaff.reg(productivity ~ tenure + training).check(g, exposure: tenure)\nlet simple = dag {\n    age -> training -> productivity\n    age -> productivity\n}\nstaff.reg(productivity ~ training).check(simple, exposure: training)\nlet mg = dag {\n    training -> productivity\n    age -> [training, tenure]\n    region -> [tenure, productivity]\n    tenure -> offer\n}\nstaff.reg(productivity ~ training + tenure).check(mg, exposure: training)\nstaff.reg(productivity ~ training + offer).check(mg, exposure: training)\nstaff.reg(productivity ~ training + tenure + region).check(mg, exposure: training)\nlet hidden = dag {\n    age -> [training, tenure]\n    region -> [tenure, productivity]\n    tenure -> [training, productivity]\n    training -> productivity\n    latent age, region\n}\nstaff.reg(productivity ~ training + tenure).check(hidden, exposure: training)\nlet seen = dag {\n    age -> [training, tenure]\n    region -> [tenure, productivity]\n    tenure -> [training, productivity]\n    training -> productivity\n}\nstaff.reg(productivity ~ training + tenure).check(seen, exposure: training)\nlet chosen = dag {\n    training -> productivity\n    [training, age] -> tenure\n    age -> productivity\n    selected tenure\n}\nstaff.reg(productivity ~ training).check(chosen, exposure: training)\nstaff.reg(productivity ~ training + age).check(chosen, exposure: training)\nlet below = dag {\n    training -> tenure -> productivity\n    training -> productivity\n    tenure -> offer\n    productivity -> site\n    training -> distance\n    age -> productivity\n}\nstaff.reg(productivity ~ training + offer + site + distance + age).check(below, exposure: training)\nlet iv = dag {\n    ability -> [training, productivity]\n    offer -> training -> productivity\n    training -> tenure -> productivity\n    latent ability\n}\nstaff.ivreg(productivity ~ training + tenure, instruments: training ~ offer).check(iv, exposure: training)\nstaff.glm(training ~ age + region, family: binomial).check(dag {\n    region -> [age, training]\n    age -> training\n}, exposure: age)\nstaff.reg(log(productivity) ~ training + age^2 + distance, fe: region).check(dag {\n    [age, region] -> training -> productivity\n    [age, region] -> productivity\n    latent age\n}, exposure: training)\nlet c = m.check(g, exposure: training)\nprint(c.statistic(), type_of(c))\n";
+    let checked_outcome = run_script(&fs, &project, "scripts/main.zeff", checked);
+    let mut checked_refused = String::new();
+    for script in [
+        "let m = dataset(staff).reg(productivity ~ training)\nm.check(dag {\n    training -- productivity\n}, exposure: training)\n",
+        "let m = dataset(staff).reg(productivity ~ training)\nm.check(dag { training -> output }, exposure: training)\n",
+        "let m = dataset(staff).reg(productivity ~ training)\nm.check(dag { training -> productivity }, exposure: trainning)\n",
+        "let m = dataset(staff).reg(productivity ~ training)\nm.check(dag { [age, training] -> productivity }, exposure: age)\n",
+        "let m = dataset(staff).reg(productivity ~ training)\nm.check(dag { training -> productivity })\n",
+    ] {
+        checked_refused.push_str(
+            &run_script(&fs, &project, "scripts/main.zeff", script)
+                .output
+                .stderr,
+        );
+        checked_refused.push('\n');
+    }
     let mut graph_refused = String::new();
     for script in [
         "let g = dag {\n    price -> demand\n    demand -> price\n}\n",
@@ -1987,6 +2010,9 @@ fn panel_cases() -> Vec<Line> {
             &adjustment_outcome.output.stderr,
         ),
         text("identify/adjustment_refused/stderr", &adjustment_refused),
+        text("identify/check/stdout", &checked_outcome.output.stdout),
+        text("identify/check/stderr", &checked_outcome.output.stderr),
+        text("identify/check_refused/stderr", &checked_refused),
         text("tests/fields/stdout", &fields_outcome.output.stdout),
         text("tests/fields/stderr", &fields_outcome.output.stderr),
         text("tests/shapiro/stdout", &normality_outcome.output.stdout),
