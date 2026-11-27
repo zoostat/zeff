@@ -8261,3 +8261,11 @@ Both differences are in the pages' Details, in the pages' own words, and held by
 **The repository is as it was.** Nothing of the trial is committed: the working copy was put back file by file from the last commit, the font tests pass on IBM Plex as before, and the unfinished work (the files, their record of sources and hashes, the rebuilt HarfBuzz reference, the edits to the font module and its tests) is kept in the session's scratch folder for the step's return.
 
 **Reason.** Open decision #222; the standing rule that a design question the plan did not foresee goes to the owner as an open decision, and is not settled by building.
+
+## 27 November 2026: release 0.10.0, step 4 split on the owner's decision of #234
+
+**The owner's word.** "A, from JetBrains Mono", on the four options of #234 set side by side in the real font files. A letter the label face of a figure lacks is taken from JetBrains Mono, letter by letter, in the same line.
+
+**The split.** Step 4a is the engine piece the decision needs and the plan did not have: one line set in two faces. It is built on the faces of today (IBM Plex Sans falling back to IBM Plex Mono), so that it has its own tests and commit, and so that no stored figure changes with it: a text the first face has whole must be set exactly as before. Step 4b is the step 4 of the plan, the change of faces and the redrawing of every stored figure, taken up from the work kept in the scratch folder.
+
+**Reason.** Open decision #234; the rule that a step that turns out too large is split in the checklist.

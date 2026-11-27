@@ -1112,3 +1112,7 @@ The owner asked for Zeff's counterparts of R's `switch`, `ifelse` and `cut`; eac
 ## 27 November 2026 — zeff_open_decisions.md, #239 (the owner's ruling)
 
 The owner ruled on #239: "A: keep it, warn". The entry is marked decided: the rule of section 5.1 of the Language Reference stands, and from 0.11.0 a warning counts the rows that reach `_` of a `case` because a condition was `NA`. No normative text is changed now; section 5.1 and section 11 gain their sentence and row at the step of 0.11.0 that builds it.
+
+## 27 November 2026 — zeff_open_decisions.md, #234 (the owner's decision)
+
+The owner chose option A, "A, from JetBrains Mono": a letter the label face of a figure lacks is taken from JetBrains Mono, letter by letter. The entry is marked decided and step 4 of release 0.10.0 split into 4a and 4b. No normative text is changed here; section 7.6 of the Language Reference is amended at step 4b.
