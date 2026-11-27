@@ -2,6 +2,10 @@
 //! section 9.1, "The contract of 0.8.0"; open decision #103): the list of unrevised pages shrinks
 //! release by release and is empty at 0.10.0; the pages off the list carry every part; the
 //! common mistake of a page prints what the page says.
+//!
+//! "Empty at 0.10.0" is held of the release: while `0.10.0-dev` is built the last 61 pages are
+//! being revised and the list shrinks step by step, and the workspace cannot be set to 0.10.0,
+//! or to any version after it, with a line left (release 0.10.0, step 1; `docs/decisions.md`).
 
 use zeff_engine::VERSION;
 use zeff_engine::registry::registry;
@@ -15,10 +19,19 @@ fn minor() -> u32 {
         .expect("a version major.minor.patch")
 }
 
+/// Whether the revision of the old pages is over at this version: at the release 0.10.0 and at
+/// every version after it, a development version of 0.11.0 among them, and not while
+/// `0.10.0-dev` is built.
+fn the_revision_has_ended() -> bool {
+    let before_one = VERSION.starts_with("0.");
+    let released = !VERSION.contains('-');
+    !before_one || minor() > 10 || (minor() == 10 && released)
+}
+
 #[test]
 fn the_list_of_unrevised_pages_is_empty_from_0_10_0() {
     let pages = zeff_registry::unrevised_pages();
-    if minor() >= 10 {
+    if the_revision_has_ended() {
         assert!(
             pages.is_empty(),
             "{} pages are still to be revised; the revision ends at 0.10.0",
