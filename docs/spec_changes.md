@@ -1030,3 +1030,7 @@ Three entries of the close of release 0.9.0, logged together here. #226 (25 Nove
 ## 26 November 2026 — zeff_risk_register.md, the review at 0.9.0; zeff_open_decisions.md, the status at the close of release 0.9.0
 
 The risk register gains its review at 0.9.0: no rating is changed; the impact of R9 is put to the owner with a recommendation of Medium, and the keeping of the signing key is named as a risk for him to enter or not. The open-decisions register gains its status at the close: what was built as decided, what was taken as recommended and is his to overturn, and what is open with its release. No normative text changed.
+
+## 27 November 2026 — zeff_open_decisions.md, new entry #231
+
+The owner asked for the rules of the project folder, their loopholes and remedies, and that the loopholes be recorded ("Yes, record them"). #231 is entered, open, with fifteen loopholes (six of them tried and seen on the engine of 0.9.0: raw data overwritten, writes into the engine's folders, reads of earlier runs, files a replication package leaves out, a data root that is the whole disk, a read-only root inside the project), recommending option A, deadline 0.11.0. No normative text changed.
