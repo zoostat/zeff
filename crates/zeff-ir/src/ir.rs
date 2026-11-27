@@ -336,6 +336,9 @@ pub enum ExprKind {
     /// `y ~ terms`: a formula value (sections 3.3 and 7.1), its outcome and the steps that build
     /// its terms in the order written.
     Formula(Formula),
+    /// `dag { }`: a causal graph (section 7.3), its lines lowered to nodes and edges and found
+    /// to be a graph of causes.
+    Dag(Dag),
     /// `f + terms` or `f - term` on a formula value: a new formula with the steps applied.
     FormulaSteps {
         formula: Box<Expr>,
@@ -349,6 +352,36 @@ pub enum ExprKind {
     Instruments(Instruments),
     /// An expression that could not be lowered; its error has been reported.
     Error,
+}
+
+/// A causal graph as the checker lowers a `dag { }` block (section 7.3): the nodes in the order
+/// first written, each edge once in the order first written, and the nodes declared `latent`
+/// and `selected` in the order declared. No edge joins a node to itself and the directed edges
+/// have no cycle: a block that breaks either is refused (Z0508) and never becomes this.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct Dag {
+    pub nodes: Vec<String>,
+    pub edges: Vec<DagEdge>,
+    pub latent: Vec<usize>,
+    pub selected: Vec<usize>,
+}
+
+/// An edge of a graph: the places of its two nodes, as written, and its kind.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct DagEdge {
+    pub from: usize,
+    pub to: usize,
+    pub kind: DagEdgeKind,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum DagEdgeKind {
+    /// `a -> b`
+    Directed,
+    /// `a <-> b`
+    Bidirected,
+    /// `a -- b`
+    Undirected,
 }
 
 /// A formula as the checker lowers it: the outcome (none in the one-sided form, which no

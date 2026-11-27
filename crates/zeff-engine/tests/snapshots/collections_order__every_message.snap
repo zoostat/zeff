@@ -48,7 +48,7 @@ error[Z0401]: `record` of `keys` must be a Record or Mapping, but this is a List
   = help: usage: `keys(record)`
 
 ## equal_frame (exit 1)
-error[Z0401]: `a` of `equal` must be a Bool, Int, Float, Str, Date, DateTime, List, Record, Mapping or Column, but this is a Frame
+error[Z0401]: `a` of `equal` must be a Bool, Int, Float, Str, Date, DateTime, List, Record, Mapping, Column or Dag, but this is a Frame
  --> scripts/main.zeff:2:7
   |
 2 | equal(d, d)

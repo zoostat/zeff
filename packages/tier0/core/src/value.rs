@@ -1489,6 +1489,8 @@ pub enum Value {
     Type(TypeValue),
     Distribution(Distribution),
     Formula(Formula),
+    /// A causal graph, `dag { }` (sections 3.8 and 7.3), shared rather than copied.
+    Dag(Rc<crate::dag::Dag>),
     /// Fixed-effect terms given to a parameter of type `Terms` (section 7.1, `fe:`): the right
     /// side of a formula without `~`, admitting `+` and `:` only.
     Terms(Vec<Term>),
@@ -1566,6 +1568,7 @@ impl Value {
             Value::Type(_) => "Type",
             Value::Distribution(_) => "Distribution",
             Value::Formula(_) => "Formula",
+            Value::Dag(_) => "Dag",
             Value::Terms(_) => "Terms",
             Value::Instruments { .. } => "Instruments",
             Value::Fit(fit) => fit.kind,

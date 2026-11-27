@@ -2,7 +2,7 @@
 source: crates/zeff-cli/tests/cli.rs
 expression: list
 ---
-149 codes are explained; `zeff explain <code>` prints a code's page.
+150 codes are explained; `zeff explain <code>` prints a code's page.
 
 Z00xx  Errors a script raises itself
     Z0001  the script stopped itself with error()
@@ -98,6 +98,7 @@ Z05xx  Formulas and model blocks
     Z0504  an instrumented variable that is not a regressor
     Z0505  a variable on both sides of `instruments:`
     Z0507  `event` given a reference period the data lack
+    Z0508  a `dag { }` block that is no graph of causes
 
 Z06xx  Data: import, merge, reshape
     Z0601  a panel declaration refused

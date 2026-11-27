@@ -1796,6 +1796,31 @@ fn panel_cases() -> Vec<Line> {
     // item that does not vary, rows with `NA`, and the figures read as values at full length.
     let scale = "let survey = dataset(engagement)\nlet a = survey.reliability([eng1..eng6], reverse: [eng4])\na\nprint(format(a.statistic(), digits: 15), format(a.statistic(\"standardized alpha\"), digits: 15), format(a.statistic(\"average correlation\"), digits: 15), a.n_obs())\na.estimates()\na.ci()\nsurvey.reliability([eng1..eng6])\nlet s = survey.reliability([eng1..eng6], reverse: [eng4], standardize: true, ci: duhachek, level: 0.9)\ns\ns.estimates()\nsurvey.reliability([eng1, eng2, eng3], ci: duhachek)\nlet quiz = frame(q1 = [1, 0, 1, 1, 0, 1, 0, 1, 1, 0, 1, 1, 0, 0, 1, 1], q2 = [1, 0, 1, 0, 0, 1, 0, 1, 1, 0, 1, 1, 0, 1, 1, 0], q3 = [true, true, true, true, false, true, false, false, true, false, true, false, false, false, true, true], q4 = [0, 0, 1, 1, 0, 1, 1, 1, 1, 0, 0, 1, 0, 0, 1, 1])\nquiz.reliability([q1, q2, q3, q4])\nquiz.reliability([q1, q2])\nlet odd = frame(u = [1, 2, 3, 4, 5, 2, 4, 3, 5, 1], v = [5, 4, 3, 2, 1, 4, 3, 3, 1, 4], w = [2, 3, 3, 5, 4, 1, 4, 2, 5, 2], same = [3, 3, 3, 3, 3, 3, 3, 3, 3, 3], gap = [1.5, NA, 2.5, 4.0, 4.5, NA, 3.5, 3.0, 5.0, 1.0])\nodd.reliability([u, v, w])\nodd.reliability([u, v, w], reverse: [v])\nodd.reliability([u, w, same])\nodd.reliability([u, w, gap])\n";
     let scale_outcome = run_script(&fs, &project, "scripts/main.zeff", scale);
+    // The `dag { }` block as a value (release 0.10.0, step 11): the graph of section 7.3 kept
+    // and printed; the three links, a group on either side, a chain, a node alone, a name in
+    // backticks and the two declarations; an empty graph; `equal` on the same graph with its
+    // lines in another order and on another graph; `type_of`, `is`, a list of graphs and a
+    // function of the script that takes one. `identify/dag_refused`: each refusal in a script
+    // of its own, a cycle named, an edge from a node to itself, a node declared twice over.
+    let graph = "let g = dag {\n    ability -> training -> productivity\n    ability -> productivity\n    training -> tenure -> productivity\n    [age, region] -> training\n    latent ability\n}\ng\nlet h = dag {\n    [age, region] -> training\n    training -> tenure -> productivity\n    ability -> [training, productivity]\n    training -> productivity\n    latent ability\n}\nprint(equal(g, h), equal(g, dag { a -> b }), type_of(g), is(g, Dag))\ndag {\n    price <-> demand\n    demand -- season\n    weather\n    `ad spend` -> demand\n    selected listed\n    latent taste, mood\n}\ndag { [a, b] -> [c, d] -> e }\ndag { }\nlet both = [g, h]\nprint(len(both), equal(first(both), last(both)))\nfn same_as(a: Dag, b: Dag) -> Bool {\n    equal(a, b)\n}\nprint(same_as(g, h), same_as(g, dag { x -> y }))\n";
+    let graph_outcome = run_script(&fs, &project, "scripts/main.zeff", graph);
+    let mut graph_refused = String::new();
+    for script in [
+        "let g = dag {\n    price -> demand\n    demand -> price\n}\n",
+        "let g = dag {\n    a -> b\n    c -> d\n    b -> c\n    x -> a\n    d -> a\n}\n",
+        "let g = dag { [a, b] -> c -> [a, d] }\n",
+        "let g = dag { a <-> a }\n",
+        "let g = dag {\n    a -> b\n    latent a\n    selected a\n}\n",
+        "let g = dag { a -> b, b -> c }\n",
+        "let g = dag { a -> b }\ng == g\n",
+    ] {
+        graph_refused.push_str(
+            &run_script(&fs, &project, "scripts/main.zeff", script)
+                .output
+                .stderr,
+        );
+        graph_refused.push('\n');
+    }
     // A `TestResult` read as values (release 0.7.0, step 12b; open decision #94): the six
     // methods on a t test, a chi-squared test, a Wald test and an exact test, the widened
     // `estimates` of a test and of a fit, the sentence built with `format` and `join`, and the
@@ -1900,6 +1925,9 @@ fn panel_cases() -> Vec<Line> {
         text("tests/mcnemar/stderr", &paired_outcome.output.stderr),
         text("measure/reliability/stdout", &scale_outcome.output.stdout),
         text("measure/reliability/stderr", &scale_outcome.output.stderr),
+        text("identify/dag/stdout", &graph_outcome.output.stdout),
+        text("identify/dag/stderr", &graph_outcome.output.stderr),
+        text("identify/dag_refused/stderr", &graph_refused),
         text("tests/fields/stdout", &fields_outcome.output.stdout),
         text("tests/fields/stderr", &fields_outcome.output.stderr),
         text("tests/shapiro/stdout", &normality_outcome.output.stdout),

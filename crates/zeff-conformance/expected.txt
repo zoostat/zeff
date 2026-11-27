@@ -258,6 +258,9 @@ tests/mcnemar/stdout 4e3e27af6a64f068
 tests/mcnemar/stderr 919d2ca7a6ab09ec
 measure/reliability/stdout cb5286632ea289e4
 measure/reliability/stderr 75407367403d4d4d
+identify/dag/stdout 0fc50280fd577ac4
+identify/dag/stderr 1793d1f91b201b85
+identify/dag_refused/stderr a4ae850708680357
 tests/fields/stdout cbf29ce484222325
 tests/fields/stderr 066add1139daf971
 tests/shapiro/stdout bb094c197a0d6c4d

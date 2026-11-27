@@ -953,7 +953,7 @@ m.check(g, exposure: training)
 
 A graph states assumptions, and stays as its author wrote it: no function, option or viewer draws or proposes an arrow that a test points to, on a causal graph or on the diagram of a structural equation model. The implied independencies are tested and the result is printed; choosing the arrows from that result would be choosing the graph from the data (zeff_open_decisions.md, #194, rule 1).
 
-A directed cycle is an error naming it. Names in a graph are checked against a frame only when the graph is used with one. The lexer enters a graph mode at `dag {`, where `->`, `<->` and `--` are tokens; elsewhere `a--b` is `a - -b`, and `zeff fmt` writes it with spaces.
+A directed cycle is an error naming it (Z0508), as are an edge from a node to itself and a node declared both `latent` and `selected`. Names in a graph are checked against a frame only when the graph is used with one. The lexer enters a graph mode at `dag {`, where `->`, `<->` and `--` are tokens; elsewhere `a--b` is `a - -b`, and `zeff fmt` writes it with spaces.
 
 ```
 warning[W0510]: tenure lies on the path training → tenure → productivity
@@ -1329,6 +1329,7 @@ Zeff reports problems the way Rust does: a code, the location, a marker under th
 | Z0505 | A variable on both sides of `~` in `instruments:`, which would instrument itself (section 7.1) |
 | Z0804 | Fewer excluded instruments than instrumented regressors, counted after an instrument that is also a regressor of the formula is moved to the included instruments: the model is under-identified (section 7.1) |
 | Z0507 | `event` given a `ref:` that is not a relative period of the data; the message lists the periods present |
+| Z0508 | A `dag { }` block that is no graph of causes: a directed cycle, which the message names; an edge from a node to itself; a node declared both `latent` and `selected` (section 7.3) |
 | W0701 | A data root's file has changed since the last run: its hash differs from the one the last run recorded, and both modification times are given (section 2 of the Engine and Project Specification, "Data roots") |
 | Z0417 | A definition given to `derive` that it cannot differentiate; a variable whose effect `margins` cannot take or that it cannot hold at a value or at its mean (one that enters the model both as a number and as a category, a slope that is not finite where it is asked for, or a term with no value at the values asked for) |
 | Z0418 | A `seq` that cannot be built: a zero step, a step pointing away from `to`, an argument that is `NA` or infinite, or more than ten million values |

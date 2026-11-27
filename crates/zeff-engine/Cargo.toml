@@ -24,6 +24,7 @@ zeff-results.workspace = true
 zeff-regress.workspace = true
 zeff-glm.workspace = true
 zeff-measure.workspace = true
+zeff-identify.workspace = true
 zeff-columns.workspace = true
 zeff-numeric.workspace = true
 zeff-registry.workspace = true

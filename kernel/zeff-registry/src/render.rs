@@ -186,9 +186,20 @@ pub fn header(spec: &FunctionSpec, doc: &HelpDoc, row: &CatalogueRow) -> String 
     format!("{left}{}{right}", " ".repeat(gap))
 }
 
+/// The usage as a page and a list show it. A function's is written from its signature; a
+/// constant is its bare name, since it takes no parentheses; a block is what the catalogue
+/// writes for it, since it is a construct of the language and no call.
+pub fn usage_text(spec: &FunctionSpec, row: &CatalogueRow) -> String {
+    match row.kind.as_str() {
+        "constant" => spec.name.to_string(),
+        "block" => row.usage.clone(),
+        _ => spec.usage(),
+    }
+}
+
 /// The usage, wrapped after commas with the continuation aligned under the first argument.
-pub fn usage_lines(spec: &FunctionSpec) -> Vec<String> {
-    let usage = spec.usage();
+pub fn usage_lines(spec: &FunctionSpec, row: &CatalogueRow) -> Vec<String> {
+    let usage = usage_text(spec, row);
     if width(&usage) + INDENT.len() <= TEXT_WIDTH {
         return vec![format!("{INDENT}{usage}")];
     }
@@ -236,7 +247,7 @@ pub fn render_page_with(
     }
 
     heading(&mut out, "USAGE");
-    for line in usage_lines(spec) {
+    for line in usage_lines(spec, row) {
         out.push_str(&line);
         out.push('\n');
     }

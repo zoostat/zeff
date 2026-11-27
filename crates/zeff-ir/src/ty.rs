@@ -56,6 +56,8 @@ pub enum Ty {
     Distribution,
     /// A formula value, `y ~ x` (sections 4 and 7.1).
     Formula,
+    /// A causal graph, `dag { }` (sections 3.8 and 7.3).
+    Dag,
     /// The right side of a formula without `~`, as `fe:` takes it at 0.6.0; nothing takes it yet.
     Terms,
     /// `endog ~ instr`, as `instruments:` takes it (section 7.1; release 0.8.0): the
@@ -291,6 +293,7 @@ impl Ty {
             "Plot" => Ty::Plot,
             "Distribution" => Ty::Distribution,
             "Formula" => Ty::Formula,
+            "Dag" => Ty::Dag,
             "Terms" => Ty::Terms,
             "Instruments" => Ty::Instruments,
             "Result" => Ty::Result(None),
@@ -433,6 +436,7 @@ impl fmt::Display for Ty {
             Ty::Plot => write!(f, "Plot"),
             Ty::Distribution => write!(f, "Distribution"),
             Ty::Formula => write!(f, "Formula"),
+            Ty::Dag => write!(f, "Dag"),
             Ty::Terms => write!(f, "Terms"),
             Ty::Instruments => write!(f, "Instruments"),
             Ty::Result(None) => write!(f, "Result"),
@@ -491,6 +495,7 @@ mod tests {
         for text in [
             "Frame",
             "Formula",
+            "Dag",
             "Terms",
             "Result",
             "RegFit",

@@ -523,6 +523,9 @@ fn the_sample_script_of_the_specification_checks_with_its_module() {
     // and the two with `cluster:` wait for step 7: 7 wait. From step 7b, `cluster:` on `glm`:
     // 5 wait. From release 0.10.0, step 10, `reliability` is taken, and section 12 has one
     // statement more, which turns the reversed item round (open decision #241): 76 statements,
-    // of which 4 wait, for the `dag { }` block and its three functions.
+    // of which 4 wait, for the `dag { }` block and its three functions. From step 11 the block
+    // is taken, and the statement that draws the graph, which stood behind the block's
+    // refusal, waits in its place for `plot` of a graph: 4 wait still, the three functions of
+    // a graph and its plot.
     assert_eq!((parsed.script.items.len(), waiting), (76, 4));
 }

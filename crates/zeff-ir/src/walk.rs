@@ -147,6 +147,7 @@ fn expr_walk<'p>(expr: &'p Expr, tell: &mut dyn FnMut(Found<'p>)) {
     match &expr.kind {
         ExprKind::Int(_)
         | ExprKind::Float(_)
+        | ExprKind::Dag(_)
         | ExprKind::Str(_)
         | ExprKind::Bool(_)
         | ExprKind::Na

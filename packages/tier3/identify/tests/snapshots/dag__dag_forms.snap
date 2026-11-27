@@ -1,0 +1,46 @@
+---
+source: packages/tier3/identify/tests/dag.rs
+expression: "format!(\"{stdout}---\\n{stderr}\")"
+---
+dag {
+    ability -> training
+    training -> productivity
+    ability -> productivity
+    training -> tenure
+    tenure -> productivity
+    age -> training
+    region -> training
+    latent ability
+}
+dag {
+    a -> b
+}
+dag { }
+dag {
+    price <-> demand
+    demand -- season
+    `ad spend` -> demand
+    weather
+    latent taste, mood
+    selected listed
+}
+dag {
+    a -> c
+    a -> d
+    b -> c
+    b -> d
+    c -> e
+    d -> e
+}
+dag {
+    lone
+    latent hidden
+}
+Dag
+dag {
+    a -> b
+}
+dag {
+    b -> c
+}
+---

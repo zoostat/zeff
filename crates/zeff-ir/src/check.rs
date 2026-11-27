@@ -6,9 +6,9 @@
 //! `Unknown`, which no later check reports again.
 
 use crate::ir::{
-    Arm, Binding, BindingId, BindingKind, Block, Call, CallSignature, Expr, ExprKind, FnId,
-    Formula, Function, FunctionValue, Instruments, Param, Program, RecordField, Slot, Spread,
-    Statement, Term, TermKind, TermStep,
+    Arm, Binding, BindingId, BindingKind, Block, Call, CallSignature, Dag, DagEdge, DagEdgeKind,
+    Expr, ExprKind, FnId, Formula, Function, FunctionValue, Instruments, Param, Program,
+    RecordField, Slot, Spread, Statement, Term, TermKind, TermStep,
 };
 use crate::schema::{FrameSchema, ImportRequest, SchemaLookup, Schemas, statement_hash};
 use crate::ty::{ResultKind, Ty};
@@ -231,6 +231,7 @@ const TYPE_NAMES: &[&str] = &[
     "Mapping",
     "Distribution",
     "Formula",
+    "Dag",
     "Terms",
     "Term",
     "Result",
@@ -903,6 +904,159 @@ impl Checker<'_> {
         );
     }
 
+    /// A `dag { }` block (section 7.3) lowered to a graph: the nodes in the order first
+    /// written, each edge once, a chain as its edges and a group as an edge for each of its
+    /// members. Z0508 for what is no graph of causes: an edge from a node to itself, a node
+    /// declared both `latent` and `selected`, and a directed cycle, which is named. The names
+    /// are not looked up anywhere: a graph is checked against a frame only when it is used
+    /// with one.
+    fn dag(&mut self, lines: &[ast::DagLine], span: Span) -> Expr {
+        let mut nodes: Vec<String> = Vec::new();
+        let mut edges: Vec<DagEdge> = Vec::new();
+        // Where each directed edge was written, for the message of a cycle.
+        let mut written_at: Vec<Span> = Vec::new();
+        let (mut latent, mut selected): (Vec<usize>, Vec<usize>) = (Vec::new(), Vec::new());
+        let mut sound = true;
+        let place = |nodes: &mut Vec<String>, name: &str| -> usize {
+            match nodes.iter().position(|n| n == name) {
+                Some(at) => at,
+                None => {
+                    nodes.push(name.to_string());
+                    nodes.len() - 1
+                }
+            }
+        };
+        for line in lines {
+            match line {
+                ast::DagLine::Edges {
+                    nodes: written,
+                    edges: links,
+                } => {
+                    let members = |node: &ast::DagNode| -> Vec<ast::Ident> {
+                        match node {
+                            ast::DagNode::Single(name) => vec![name.clone()],
+                            ast::DagNode::Group(names) => names.clone(),
+                        }
+                    };
+                    // Every node of the line is a node of the graph, in the order written,
+                    // one that stands alone among them.
+                    for node in written {
+                        for name in members(node) {
+                            place(&mut nodes, &name.text);
+                        }
+                    }
+                    for (i, link) in links.iter().enumerate() {
+                        let kind = match link {
+                            ast::EdgeKind::Directed => DagEdgeKind::Directed,
+                            ast::EdgeKind::Bidirected => DagEdgeKind::Bidirected,
+                            ast::EdgeKind::Undirected => DagEdgeKind::Undirected,
+                        };
+                        for left in members(&written[i]) {
+                            for right in members(&written[i + 1]) {
+                                let (from, to) = (
+                                    place(&mut nodes, &left.text),
+                                    place(&mut nodes, &right.text),
+                                );
+                                if from == to {
+                                    sound = false;
+                                    self.report(
+                                        Diagnostic::error(
+                                            "Z0508",
+                                            format!(
+                                                "`{}` is joined to itself in a `dag {{ }}` block",
+                                                left.text
+                                            ),
+                                        )
+                                        .primary(right.span, "the same node on both sides")
+                                        .help("an edge joins two different variables; a variable that depends on its own past is two variables, one for each time"),
+                                    );
+                                    continue;
+                                }
+                                let same = |e: &DagEdge| {
+                                    e.kind == kind
+                                        && ((e.from == from && e.to == to)
+                                            || (kind != DagEdgeKind::Directed
+                                                && e.from == to
+                                                && e.to == from))
+                                };
+                                if !edges.iter().any(same) {
+                                    edges.push(DagEdge { from, to, kind });
+                                    written_at.push(Span::new(left.span.start, right.span.end));
+                                }
+                            }
+                        }
+                    }
+                }
+                ast::DagLine::Declare { kind, names } => {
+                    for name in names {
+                        let at = place(&mut nodes, &name.text);
+                        let (list, other, word, clash) = match kind {
+                            ast::DagDeclaration::Latent => {
+                                (&mut latent, &selected, "latent", "selected")
+                            }
+                            ast::DagDeclaration::Selected => {
+                                (&mut selected, &latent, "selected", "latent")
+                            }
+                        };
+                        if other.contains(&at) {
+                            sound = false;
+                            self.report(
+                                Diagnostic::error(
+                                    "Z0508",
+                                    format!(
+                                        "`{}` is declared both `{clash}` and `{word}` in a `dag {{ }}` block",
+                                        name.text
+                                    ),
+                                )
+                                .primary(name.span, format!("declared `{clash}` above"))
+                                .help("a latent variable is not observed, and the data cannot be selected on what is not observed: declare the variable one or the other"),
+                            );
+                        } else if !list.contains(&at) {
+                            list.push(at);
+                        }
+                    }
+                }
+            }
+        }
+        // A directed cycle, found by following the directed edges from each node in the order
+        // written, and named from its first node round to it again.
+        let directed: Vec<(usize, usize, usize)> = edges
+            .iter()
+            .enumerate()
+            .filter(|(_, e)| e.kind == DagEdgeKind::Directed)
+            .map(|(i, e)| (e.from, e.to, i))
+            .collect();
+        if let Some((cycle, closing)) = directed_cycle(nodes.len(), &directed) {
+            sound = false;
+            let mut names: Vec<&str> = cycle.iter().map(|&at| nodes[at].as_str()).collect();
+            names.push(nodes[cycle[0]].as_str());
+            self.report(
+                Diagnostic::error(
+                    "Z0508",
+                    format!(
+                        "the `dag {{ }}` block has a directed cycle: {}",
+                        names.join(" -> ")
+                    ),
+                )
+                .primary(written_at[closing], "this edge closes the cycle")
+                .help("a causal graph has no cycle: a variable cannot be a cause of itself. For two variables that move together write `a <-> b`; for feedback over time write one variable for each period"),
+            );
+        }
+        if !sound {
+            return Expr::error(span);
+        }
+        Expr {
+            ty: Ty::Dag,
+            span,
+            kind: ExprKind::Dag(Dag {
+                nodes,
+                edges,
+                latent,
+                selected,
+            }),
+        }
+    }
+
     fn lookup(&self, name: &str) -> Option<BindingId> {
         self.scope
             .iter()
@@ -1337,15 +1491,7 @@ impl Checker<'_> {
                 );
                 Expr::error(span)
             }
-            ast::ExprKind::Dag(_) => {
-                self.not_yet(
-                    span,
-                    "a `dag { }` block",
-                    "0.10.0",
-                    "causal graphs arrive with release 0.10.0",
-                );
-                Expr::error(span)
-            }
+            ast::ExprKind::Dag(lines) => self.dag(lines, span),
             ast::ExprKind::As { .. } => {
                 self.not_yet(
                     span,
@@ -4669,7 +4815,11 @@ impl Checker<'_> {
                     self.report(
                         Diagnostic::error("Z0208", format!("`{symbol}` is not defined for {}", found.with_article()))
                             .primary(span, "compared here")
-                            .help("comparison is for single values: numbers, text, Bool, dates and NA; compare the items of a list one by one"),
+                            .help(if found == Ty::Dag {
+                                "comparison is for single values: numbers, text, Bool, dates and NA; `equal(g, h)` says whether two graphs are the same graph"
+                            } else {
+                                "comparison is for single values: numbers, text, Bool, dates and NA; compare the items of a list one by one"
+                            }),
                     );
                     return Expr::error(span);
                 }
@@ -9106,6 +9256,53 @@ fn is_number(ty: &Ty) -> bool {
     matches!(ty, Ty::Int | Ty::Float | Ty::Na)
 }
 
+/// A cycle among directed edges `(from, to, edge)` over `count` nodes: its nodes in order from
+/// the first met, and the edge that leads back to that node; `None` when there is none. The
+/// nodes are tried in order and the edges of each in the order given, so the same graph always
+/// names the same cycle. The walk keeps its own stack: a chain of any length is no deeper for
+/// the engine.
+pub fn directed_cycle(
+    count: usize,
+    edges: &[(usize, usize, usize)],
+) -> Option<(Vec<usize>, usize)> {
+    // 0: not met; 1: on the path being walked; 2: done, with no cycle through it.
+    let mut state = vec![0u8; count];
+    let out = |node: usize| edges.iter().filter(move |e| e.0 == node);
+    for start in 0..count {
+        if state[start] != 0 {
+            continue;
+        }
+        // The path walked, each node with the number of its edges already followed.
+        let mut path: Vec<(usize, usize)> = vec![(start, 0)];
+        state[start] = 1;
+        while let Some(&(node, followed)) = path.last() {
+            match out(node).nth(followed) {
+                None => {
+                    state[node] = 2;
+                    path.pop();
+                }
+                Some(&(_, to, edge)) => {
+                    if let Some(last) = path.last_mut() {
+                        last.1 += 1;
+                    }
+                    match state[to] {
+                        0 => {
+                            state[to] = 1;
+                            path.push((to, 0));
+                        }
+                        1 => {
+                            let from = path.iter().position(|&(n, _)| n == to).unwrap_or(0);
+                            return Some((path[from..].iter().map(|&(n, _)| n).collect(), edge));
+                        }
+                        _ => {}
+                    }
+                }
+            }
+        }
+    }
+    None
+}
+
 fn is_int_like(ty: &Ty) -> bool {
     matches!(ty, Ty::Int | Ty::Na | Ty::Unknown)
 }
@@ -9126,6 +9323,7 @@ fn is_compound(ty: &Ty) -> bool {
             | Ty::Table
             | Ty::Plot
             | Ty::Formula
+            | Ty::Dag
             | Ty::Terms
             | Ty::Instruments
             | Ty::Result(_)

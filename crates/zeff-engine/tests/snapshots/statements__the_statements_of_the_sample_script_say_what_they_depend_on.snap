@@ -66,7 +66,7 @@ expression: "said.join(\"\\n\")"
  62 lines 215-221 g              reads []
  63 lines 222-222 -              reads []
  64 lines 223-223 -              reads []
- 65 lines 224-224 -              reads [62] writes a file
+ 65 lines 224-224 -              reads [] writes a file
  66 lines 226-226 staff          reads [] reads a file
  67 lines 227-227 mt             reads [66]
  68 lines 228-228 -              reads []

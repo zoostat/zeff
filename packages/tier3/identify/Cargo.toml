@@ -1,0 +1,20 @@
+[package]
+name = "zeff-identify"
+description = "Package identify (tier 3): causal graphs; at this release the `dag { }` block as a value."
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+publish = false
+
+[lints]
+workspace = true
+
+[dependencies]
+zeff-core.workspace = true
+zeff-diagnostics.workspace = true
+zeff-registry.workspace = true
+
+[dev-dependencies]
+zeff-testkit.workspace = true
+insta = "=1.49.0"
+proptest = "=1.12.0"

@@ -91,6 +91,7 @@ pub fn expr_uses(expr: &Expr, used: &mut Vec<BindingId>) {
         }
         ExprKind::Int(_)
         | ExprKind::Float(_)
+        | ExprKind::Dag(_)
         | ExprKind::Str(_)
         | ExprKind::Bool(_)
         | ExprKind::Na

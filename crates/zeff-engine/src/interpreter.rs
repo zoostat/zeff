@@ -2543,6 +2543,30 @@ impl<'a> Interpreter<'a> {
                 }
                 Value::Vars(names.clone())
             }
+            // A causal graph (section 7.3): the checker has lowered the block and found it a
+            // graph of causes; the value holds it as written.
+            ExprKind::Dag(graph) => {
+                use zeff_core::dag::{Dag, Edge, Link};
+                use zeff_ir::ir::DagEdgeKind;
+                Value::Dag(std::rc::Rc::new(Dag::new(
+                    graph.nodes.clone(),
+                    graph
+                        .edges
+                        .iter()
+                        .map(|edge| Edge {
+                            from: edge.from,
+                            to: edge.to,
+                            link: match edge.kind {
+                                DagEdgeKind::Directed => Link::Directed,
+                                DagEdgeKind::Bidirected => Link::Bidirected,
+                                DagEdgeKind::Undirected => Link::Undirected,
+                            },
+                        })
+                        .collect(),
+                    graph.latent.clone(),
+                    graph.selected.clone(),
+                )))
+            }
             ExprKind::Formula(formula) => {
                 let outcome = match &formula.outcome {
                     Some(term) => Some(self.term_value(term, expr)?),

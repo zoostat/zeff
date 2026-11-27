@@ -2,6 +2,7 @@
 
 pub mod cases;
 pub mod collections;
+pub mod dag;
 pub mod display;
 pub mod fused;
 pub mod lift;

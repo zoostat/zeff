@@ -2490,6 +2490,7 @@ dependencies = [
  "zeff-dist",
  "zeff-glm",
  "zeff-hash",
+ "zeff-identify",
  "zeff-ir",
  "zeff-measure",
  "zeff-numeric",
@@ -2528,6 +2529,18 @@ name = "zeff-hash"
 version = "0.10.0-dev"
 dependencies = [
  "blake3",
+]
+
+[[package]]
+name = "zeff-identify"
+version = "0.10.0-dev"
+dependencies = [
+ "insta",
+ "proptest",
+ "zeff-core",
+ "zeff-diagnostics",
+ "zeff-registry",
+ "zeff-testkit",
 ]
 
 [[package]]

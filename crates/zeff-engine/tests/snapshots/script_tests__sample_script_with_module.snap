@@ -2,11 +2,11 @@
 source: crates/zeff-engine/tests/script_tests.rs
 expression: all
 ---
-error[Z0304]: a `dag { }` block is not available in this release
- --> zeff_samples.zeff:215:9
 error[Z0103]: no function is called `adjustment_sets`
  --> zeff_samples.zeff:222:3
 error[Z0103]: no function is called `implied_independencies`
  --> zeff_samples.zeff:223:3
+error[Z0401]: `plot` cannot be called on a Dag
+ --> zeff_samples.zeff:224:1
 error[Z0103]: no function is called `check`
  --> zeff_samples.zeff:228:4

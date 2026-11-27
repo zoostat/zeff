@@ -313,6 +313,9 @@ pub fn deep_identical(a: &Value, b: &Value) -> bool {
                     )
                 })
         }
+        // Two causal graphs (release 0.10.0, step 11): the same nodes, edges and declarations,
+        // whatever order their lines were written in.
+        (Value::Dag(x), Value::Dag(y)) => x == y,
         (Value::List(_) | Value::Record(_) | Value::Mapping(_) | Value::Column(_), _)
         | (_, Value::List(_) | Value::Record(_) | Value::Mapping(_) | Value::Column(_)) => false,
         (x, y) => identical(x, y),
@@ -546,7 +549,7 @@ fn seq(ctx: &mut CallContext<'_>, args: Args) -> Result<Value, Fail> {
 /// The scalar types a list may hold, which `is_in` looks for; and the values `equal` compares.
 const SCALARS: &str = "Bool | Int | Float | Str | Date | DateTime";
 const COMPARABLE: &str =
-    "Bool | Int | Float | Str | Date | DateTime | List | Record | Mapping | Column";
+    "Bool | Int | Float | Str | Date | DateTime | List | Record | Mapping | Column | Dag";
 
 pub fn functions() -> Vec<Function> {
     vec![

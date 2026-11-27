@@ -526,7 +526,6 @@ fn constructs_of_later_releases_are_z0304_with_their_release() {
         // Packages with Zeff 2.0 (open decision #123); model blocks with 1.12 (#113).
         ("use clean\n", "2.0"),
         ("let m = model {\n    y ~ x\n}\n", "1.12"),
-        ("let g = dag {\n    a -> b\n}\n", "0.10.0"),
     ];
     for (text, release) in cases {
         let found = codes(text);
@@ -542,6 +541,10 @@ fn constructs_of_later_releases_are_z0304_with_their_release() {
         codes("let x = -5\nlet y = -2.5\nprint(x, y)\n").is_empty(),
         "a negative literal is a literal"
     );
+    // A `dag { }` block was among them until release 0.10.0, step 11, and is now taken; what
+    // is no graph of causes is refused by a code of its own.
+    assert!(codes("let g = dag {\n    a -> b\n}\n").is_empty());
+    assert_eq!(codes("let g = dag {\n    a -> b -> a\n}\n"), ["Z0508"]);
 }
 
 // ----- everything is reported -----

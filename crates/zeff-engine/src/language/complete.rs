@@ -498,7 +498,7 @@ fn engine_function(f: &zeff_registry::Registered, label: &str) -> Completion {
         } else {
             CompletionKind::Function
         },
-        detail: f.spec.usage(),
+        detail: zeff_registry::render::usage_text(&f.spec, &f.row),
         summary: f.doc.summary.clone(),
     }
 }

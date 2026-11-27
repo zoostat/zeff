@@ -94,6 +94,7 @@ fn inline(value: &Value) -> String {
         Value::Column(c) => column_header(c),
         Value::Distribution(d) => distribution_text(d),
         Value::Formula(formula) => formula.to_string(),
+        Value::Dag(graph) => graph.to_string(),
         Value::Terms(terms) => crate::value::terms_text(terms),
         Value::Instruments {
             endogenous,

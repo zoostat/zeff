@@ -70,6 +70,13 @@ doc = false
 bench = false
 
 [[bin]]
+name = "dag"
+path = "fuzz_targets/dag.rs"
+test = false
+doc = false
+bench = false
+
+[[bin]]
 name = "format"
 path = "fuzz_targets/format.rs"
 test = false

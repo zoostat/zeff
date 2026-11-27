@@ -1,0 +1,184 @@
+---
+source: packages/tier3/identify/tests/dag.rs
+expression: all
+---
+error[Z0508]: the `dag { }` block has a directed cycle: price -> demand -> price
+ --> scripts/main.zeff:3:5
+  |
+3 |     demand -> price
+  |     ^^^^^^^^^^^^^^^ this edge closes the cycle
+  |
+  = help: a causal graph has no cycle: a variable cannot be a cause of itself. For two variables that move together write `a <-> b`; for feedback over time write one variable for each period
+
+error[Z0508]: the `dag { }` block has a directed cycle: a -> b -> c -> a
+ --> scripts/main.zeff:1:25
+  |
+1 | let g = dag { a -> b -> c -> a }
+  |                         ^^^^^^ this edge closes the cycle
+  |
+  = help: a causal graph has no cycle: a variable cannot be a cause of itself. For two variables that move together write `a <-> b`; for feedback over time write one variable for each period
+
+error[Z0508]: the `dag { }` block has a directed cycle: a -> b -> c -> d -> a
+ --> scripts/main.zeff:6:5
+  |
+6 |     d -> a
+  |     ^^^^^^ this edge closes the cycle
+  |
+  = help: a causal graph has no cycle: a variable cannot be a cause of itself. For two variables that move together write `a <-> b`; for feedback over time write one variable for each period
+
+error[Z0508]: the `dag { }` block has a directed cycle: a -> c -> a
+ --> scripts/main.zeff:1:25
+  |
+1 | let g = dag { [a, b] -> c -> [a, d] }
+  |                         ^^^^^^^ this edge closes the cycle
+  |
+  = help: a causal graph has no cycle: a variable cannot be a cause of itself. For two variables that move together write `a <-> b`; for feedback over time write one variable for each period
+
+error[Z0508]: `a` is joined to itself in a `dag { }` block
+ --> scripts/main.zeff:1:20
+  |
+1 | let g = dag { a -> a }
+  |                    ^ the same node on both sides
+  |
+  = help: an edge joins two different variables; a variable that depends on its own past is two variables, one for each time
+
+error[Z0508]: `a` is joined to itself in a `dag { }` block
+ --> scripts/main.zeff:1:21
+  |
+1 | let g = dag { a <-> a }
+  |                     ^ the same node on both sides
+  |
+  = help: an edge joins two different variables; a variable that depends on its own past is two variables, one for each time
+
+error[Z0508]: `a` is joined to itself in a `dag { }` block
+ --> scripts/main.zeff:1:20
+  |
+1 | let g = dag { a -- a }
+  |                    ^ the same node on both sides
+  |
+  = help: an edge joins two different variables; a variable that depends on its own past is two variables, one for each time
+
+error[Z0508]: `b` is joined to itself in a `dag { }` block
+ --> scripts/main.zeff:1:26
+  |
+1 | let g = dag { [a, b] -> [b, c] }
+  |                          ^ the same node on both sides
+  |
+  = help: an edge joins two different variables; a variable that depends on its own past is two variables, one for each time
+
+error[Z0508]: `a` is declared both `latent` and `selected` in a `dag { }` block
+ --> scripts/main.zeff:4:14
+  |
+4 |     selected a
+  |              ^ declared `latent` above
+  |
+  = help: a latent variable is not observed, and the data cannot be selected on what is not observed: declare the variable one or the other
+
+error[Z0508]: `b` is declared both `selected` and `latent` in a `dag { }` block
+ --> scripts/main.zeff:3:12
+  |
+3 |     latent b
+  |            ^ declared `selected` above
+  |
+  = help: a latent variable is not observed, and the data cannot be selected on what is not observed: declare the variable one or the other
+
+error[Z0301]: expected the end of the line, found `,`
+ --> scripts/main.zeff:1:21
+  |
+1 | let g = dag { a -> b, b -> c }
+  |                     ^ expected the end of the line
+
+error[Z0301]: expected a name, found `}`
+ --> scripts/main.zeff:1:20
+  |
+1 | let g = dag { a -> }
+  |                    ^ expected a name
+
+error[Z0301]: expected the end of the line, found `=>`
+ --> scripts/main.zeff:1:17
+  |
+1 | let g = dag { a => b }
+  |                 ^^ expected the end of the line
+
+error[Z0301]: expected a name, found a number
+ --> scripts/main.zeff:1:20
+  |
+1 | let g = dag { a -> 1 }
+  |                    ^ expected a name
+
+error[Z0302]: this `[` is never closed
+ --> scripts/main.zeff:1:15
+  |
+1 | let g = dag { [a, b -> c }
+  |               ^ opened here
+
+error[Z0302]: this `{` is never closed
+ --> scripts/main.zeff:1:13
+  |
+1 | let g = dag {
+  |             ^ opened here
+
+error[Z0301]: expected `{` and the edges of the graph, found the end of the line
+ --> scripts/main.zeff:1:12
+  |
+1 | let g = dag
+  |            ^ expected `{` and the edges of the graph
+
+error[Z0301]: expected `{` and the edges of the graph, found `(`
+ --> scripts/main.zeff:1:12
+  |
+1 | let g = dag()
+  |            ^ expected `{` and the edges of the graph
+
+error[Z0301]: expected `{` and the edges of the graph, found `(`
+ --> scripts/main.zeff:1:12
+  |
+1 | let g = dag(a -> b)
+  |            ^ expected `{` and the edges of the graph
+
+error[Z0208]: `==` is not defined for a Dag
+ --> scripts/main.zeff:2:1
+  |
+2 | g == g
+  | ^^^^^^ compared here
+  |
+  = help: comparison is for single values: numbers, text, Bool, dates and NA; `equal(g, h)` says whether two graphs are the same graph
+
+error[Z0221]: `+` needs numbers, but one side is a Dag
+ --> scripts/main.zeff:2:1
+  |
+2 | g + 1
+  | ^^^^^ a Dag
+  |
+  = help: arithmetic takes Ints and Floats
+
+error[Z0213]: `.nodes` reads a record field, but this is a Dag
+ --> scripts/main.zeff:2:1
+  |
+2 | g.nodes
+  | ^^^^^^^ a Dag
+  |
+  = help: a method call has parentheses: `.nodes()`
+
+error[Z0401]: `formula` of `reg` must be a Formula, but this is a Dag
+ --> scripts/main.zeff:2:20
+  |
+2 | dataset(wages).reg(g)
+  |                    ^ a Dag
+  |
+  = help: usage: `data.reg(formula, fe: Terms, se: classical | robust | hc2 | hc3, cluster: Var, weights: Var, weight_type: frequency | analytic | sampling = sampling, level: Float = 0.95)`
+
+warning[W0303]: `f` has no summary line
+ --> scripts/main.zeff:1:4
+  |
+1 | fn f(a: Dag) -> Dag {
+  |    ^ a function without `///` text
+  |
+  = help: write one line above it, `/// What the function gives.`; the line is its help, its hover text and the title of its dialog
+error[Z0401]: `a` of `f` must be a Dag, but this is an Int
+ --> scripts/main.zeff:4:3
+  |
+4 | f(1)
+  |   ^ an Int
+  |
+  = help: usage: `f(a: Dag)`

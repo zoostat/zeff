@@ -210,7 +210,7 @@ jobs:
 
       - name: Seed each corpus with the scripts and data files of the repository
         run: |
-          mkdir -p fuzz/corpus/lexer fuzz/corpus/parser fuzz/corpus/checker fuzz/corpus/format fuzz/corpus/csv fuzz/corpus/distribution fuzz/corpus/formula
+          mkdir -p fuzz/corpus/lexer fuzz/corpus/parser fuzz/corpus/checker fuzz/corpus/format fuzz/corpus/csv fuzz/corpus/distribution fuzz/corpus/formula fuzz/corpus/dag
           for target in lexer parser checker format; do
             cp docs/spec/zeff_samples.zeff "fuzz/corpus/$target/"
             for script in samples/*/scripts/main.zeff samples/*/functions/*.zeff packages/*/*/functions/*.zeff; do
@@ -234,13 +234,13 @@ jobs:
         # The runner's own target, named so that cargo-fuzz never picks a statically linked one.
         run: cargo +nightly fuzz build --target x86_64-unknown-linux-gnu
 
-      - name: Fuzz the lexer, the parser, the checker, the formatter, the CSV reader, the distributions, the formulas and the language server for ten minutes each
+      - name: Fuzz the lexer, the parser, the checker, the formatter, the CSV reader, the distributions, the formulas, the causal graphs and the language server for ten minutes each
         working-directory: fuzz
         run: |
           # The status of the fuzzer, not of `tail`: a crash or a timeout fails the job.
           set -o pipefail
           status=0
-          for target in lexer parser checker format csv distribution formula lsp; do
+          for target in lexer parser checker format csv distribution formula dag lsp; do
             echo "::group::$target"
             # The language targets take the dictionary of the language's words, the language
             # server that of its protocol.
@@ -267,7 +267,7 @@ jobs:
             echo "A crash leaves its input under \`artifacts/<target>/\`; it becomes a regression test (testing handbook, section 1)."
             echo
             echo '```'
-            for target in lexer parser checker format csv distribution formula lsp; do
+            for target in lexer parser checker format csv distribution formula dag lsp; do
               echo "$target: $(grep -E '^Done|^#[0-9]+ +DONE' "fuzz-$target.log" | tail -1)"
             done
             echo "crash inputs: $(find artifacts -type f 2>/dev/null | wc -l | tr -d ' ')"
