@@ -197,7 +197,7 @@ error[Z0401]: the size of a figure is a width and a height above 0, in millimetr
 
 == too_low_for_the_notes
 note: 6 rows with NA in educ or wage dropped (line 2)
-error[Z0401]: a page of 60 by 26 mm is too small for this plot: its labels, never set below 8 points, leave 21.1 by 0 mm for the panel
+error[Z0401]: a page of 60 by 26 mm is too small for this plot: its labels, never set below 8 points, leave 21.7 by 2.9 mm for the panel
  --> scripts/main.zeff:3:28
   |
 3 | p.export("wage.svg", size: [60, 26], notes: true)

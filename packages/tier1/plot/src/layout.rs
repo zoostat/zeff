@@ -13,7 +13,7 @@
 //! the same drawing on every machine.
 //!
 //! The journal theme: a white page, the major gridlines alone in a light grey, the two axes
-//! as thin dark lines with their ticks outside the panel, text in IBM Plex Sans, 8 points for
+//! as thin dark lines with their ticks outside the panel, text in Atkinson Hyperlegible Next, 8 points for
 //! labels and 9 for titles, and no frame round the panel or the legend. No text is smaller
 //! than 8 points ([`SMALLEST_TEXT`]). Its constants are in one place, [`JOURNAL`]. The owner
 //! read them on the six sample figures and froze them on 12 November 2026 (step 22): they,

@@ -58,7 +58,8 @@ caption; it needs Typst 0.11 or later and no package. The three files depend on 
 bytes on every machine, and the conformance suite checks them.
 
 A figure. The plot is laid out for the page it is written on, so a wider page has a wider
-panel and the same size of type, 8 points for labels and 9 for titles, in IBM Plex Sans; give
+panel and the same size of type, 8 points for labels and 9 for titles, in Atkinson
+Hyperlegible Next; give
 the size the figure will be printed at, and do not enlarge it afterwards. Nothing in a file
 says when or where it was made, and it holds no row of the data and not the name of the frame:
 what it shows is what it holds.

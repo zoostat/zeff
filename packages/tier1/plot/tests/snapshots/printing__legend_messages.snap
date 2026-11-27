@@ -39,7 +39,7 @@ error[Z0401]: `legend` cannot be called on a Frame
 == a_legend_with_no_room_for_the_panel
 note: 245 rows with NA in educ, wage or hours dropped (line 4)
 note: `industry` has 12 categories and the palette 8 colours, so the colours repeat from the ninth category (line 4)
-error[Z0401]: a page of 89 by 66 mm is too small for this plot: its labels, never set below 8 points, leave 67.6 by 0.5 mm for the panel
+error[Z0401]: a page of 89 by 66 mm is too small for this plot: its labels, never set below 8 points, leave 67.9 by 4.2 mm for the panel
  --> scripts/main.zeff:4:1
   |
 4 | export(w.plot(x: educ, y: wage, color: industry, size: hours).points().legend(bottom), "small.svg")

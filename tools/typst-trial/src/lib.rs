@@ -28,9 +28,9 @@ mod set {
     use typst_layout::PagedDocument;
 
     const FONTS: [&[u8]; 3] = [
-        include_bytes!("../../../packages/tier1/plot/fonts/IBMPlexSans-Regular.ttf"),
-        include_bytes!("../../../packages/tier1/plot/fonts/IBMPlexSans-SemiBold.ttf"),
-        include_bytes!("../../../packages/tier1/plot/fonts/IBMPlexMono-Regular.ttf"),
+        include_bytes!("../../../packages/tier1/plot/fonts/AtkinsonHyperlegibleNext-Regular.ttf"),
+        include_bytes!("../../../packages/tier1/plot/fonts/AtkinsonHyperlegibleNext-SemiBold.ttf"),
+        include_bytes!("../../../packages/tier1/plot/fonts/JetBrainsMono-Regular.ttf"),
     ];
 
     struct Fixed {

@@ -1,12 +1,15 @@
 //! The fonts of a figure (Language Reference, section 7.6, "Rendering and export"; release
-//! 0.7.0, step 21a): IBM Plex Sans and IBM Plex Mono, embedded in the engine and never taken
-//! from the computer, so that a text has the same width and the same shape on every machine.
+//! 0.7.0, step 21a): Atkinson Hyperlegible Next and JetBrains Mono, embedded in the engine and
+//! never taken from the computer, so that a text has the same width and the same shape on every
+//! machine. They took the place of IBM Plex Sans and Mono at release 0.10.0 (step 4b; open
+//! decision #222), so that a figure is set in the faces of the website and of Zemp Lite.
 //!
 //! The files are in `fonts/`, unchanged, under the SIL Open Font License (`fonts/SOURCE.md`
 //! gives their source and hashes). This module reads from them, with its own code, what a
 //! figure needs and nothing more:
 //!
-//! - which glyph draws a character (`cmap`, the Unicode map of format 4);
+//! - which glyph draws a character (`cmap`: the Unicode map of format 4, and for the
+//!   characters beyond the basic plane the map of format 12 when the font has one);
 //! - how far each glyph advances (`hmtx`) and the heights of the face (`hhea`, `OS/2`);
 //! - the outline of each glyph (`glyf` and `loca`), simple or made of other glyphs;
 //! - how much closer or farther two neighbours are set (`GPOS`, the pair adjustments of the
@@ -37,11 +40,12 @@ use unicode_normalization::char::decompose_canonical;
 /// The faces embedded.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum FaceName {
-    /// IBM Plex Sans Regular: the labels.
+    /// Atkinson Hyperlegible Next Regular: the labels.
     Sans,
-    /// IBM Plex Sans SemiBold: the titles.
+    /// Atkinson Hyperlegible Next SemiBold: the titles.
     SansSemiBold,
-    /// IBM Plex Mono Regular: code and aligned digits.
+    /// JetBrains Mono Regular: code and aligned digits, and the characters the other two lack
+    /// (the Greek alphabet but for four letters, arrows, Cyrillic).
     Mono,
 }
 
@@ -51,18 +55,20 @@ impl FaceName {
     /// The file of the face, as it is embedded.
     pub fn bytes(self) -> &'static [u8] {
         match self {
-            FaceName::Sans => include_bytes!("../fonts/IBMPlexSans-Regular.ttf"),
-            FaceName::SansSemiBold => include_bytes!("../fonts/IBMPlexSans-SemiBold.ttf"),
-            FaceName::Mono => include_bytes!("../fonts/IBMPlexMono-Regular.ttf"),
+            FaceName::Sans => include_bytes!("../fonts/AtkinsonHyperlegibleNext-Regular.ttf"),
+            FaceName::SansSemiBold => {
+                include_bytes!("../fonts/AtkinsonHyperlegibleNext-SemiBold.ttf")
+            }
+            FaceName::Mono => include_bytes!("../fonts/JetBrainsMono-Regular.ttf"),
         }
     }
 
     /// The name of the file in `fonts/`.
     pub fn file(self) -> &'static str {
         match self {
-            FaceName::Sans => "IBMPlexSans-Regular.ttf",
-            FaceName::SansSemiBold => "IBMPlexSans-SemiBold.ttf",
-            FaceName::Mono => "IBMPlexMono-Regular.ttf",
+            FaceName::Sans => "AtkinsonHyperlegibleNext-Regular.ttf",
+            FaceName::SansSemiBold => "AtkinsonHyperlegibleNext-SemiBold.ttf",
+            FaceName::Mono => "JetBrainsMono-Regular.ttf",
         }
     }
 }
@@ -577,19 +583,26 @@ impl Face {
     /// The characters of the Unicode map of format 4, each with its glyph.
     fn read_map(cmap: Bytes<'static>, glyphs: usize) -> Result<Vec<(u32, u16)>, FontError> {
         let mut found = None;
+        // The map of the whole of Unicode, of format 12, when the font has one: it is read for
+        // the characters beyond the basic plane alone (release 0.10.0, step 4b: the mono face
+        // has the double-struck letters there).
+        let mut beyond = None;
         for i in 0..usize::from(cmap.u16(2)?) {
             let at = 4 + 8 * i;
             let (platform, encoding) = (cmap.u16(at)?, cmap.u16(at + 2)?);
             let subtable = cmap.from(cmap.u32(at + 4)? as usize)?;
             // Unicode, of the basic plane: platform 3 with encoding 1, or platform 0.
             let unicode = (platform == 3 && encoding == 1) || platform == 0;
-            if unicode && subtable.u16(0)? == 4 {
-                found = Some(subtable);
-                if platform == 3 {
-                    break;
-                }
+            if unicode && subtable.u16(0)? == 4 && !matches!(found, Some((3, _))) {
+                found = Some((platform, subtable));
+            }
+            // Unicode, in full: platform 3 with encoding 10, or platform 0.
+            let full = (platform == 3 && encoding == 10) || platform == 0;
+            if full && subtable.u16(0)? == 12 && !matches!(beyond, Some((3, _))) {
+                beyond = Some((platform, subtable));
             }
         }
+        let found = found.map(|(_, subtable)| subtable);
         let table = found.ok_or(FontError::Unsupported(
             "a font with no Unicode map of format 4",
         ))?;
@@ -622,6 +635,32 @@ impl Face {
                 };
                 if glyph != 0 && usize::from(glyph) < glyphs {
                     map.push((u32::from(code), glyph));
+                }
+            }
+        }
+        if let Some((_, table)) = beyond {
+            // Groups of neighbouring characters drawn by neighbouring glyphs: first, last,
+            // glyph of the first. They stand in order and apart, which also bounds the work a
+            // damaged file can ask for.
+            let groups = table.u32(12)? as usize;
+            let mut last: Option<u32> = None;
+            for group in 0..groups {
+                let at = 16 + 12 * group;
+                let (start, end, first) = (table.u32(at)?, table.u32(at + 4)?, table.u32(at + 8)?);
+                if start > end || end > 0x10_FFFF || last.is_some_and(|before| start <= before) {
+                    return Err(FontError::Unsupported(
+                        "a map whose groups are not in order",
+                    ));
+                }
+                last = Some(end);
+                for code in start.max(0x1_0000)..=end {
+                    // A sum a damaged file may push past what a number holds.
+                    let glyph = first
+                        .checked_add(code - start)
+                        .ok_or(FontError::Truncated)?;
+                    if glyph != 0 && (glyph as usize) < glyphs {
+                        map.push((code, glyph as u16));
+                    }
                 }
             }
         }
@@ -761,7 +800,8 @@ impl Face {
         self.bounds
     }
 
-    /// The name the font goes by in a PDF file, `IBMPlexSans`; empty when the file gives none.
+    /// The name the font goes by in a PDF file, `JetBrainsMono-Regular`; empty when the file
+    /// gives none.
     pub fn postscript_name(&self) -> &str {
         &self.postscript_name
     }
@@ -1189,20 +1229,25 @@ mod tests {
     #[test]
     fn the_three_faces_read_and_are_three_different_fonts() {
         let [sans, bold, mono] = FaceName::ALL.map(face);
-        assert_eq!(sans.glyphs(), 1019);
-        assert_eq!(bold.glyphs(), 1019);
-        assert_eq!(mono.glyphs(), 1207);
+        assert_eq!(sans.glyphs(), 392);
+        assert_eq!(bold.glyphs(), 392);
+        assert_eq!(mono.glyphs(), 1743);
         assert_ne!(sans, bold);
-        for font in [sans, bold, mono] {
+        // The two families have their own heights: the sans faces share theirs.
+        for (font, heights) in [
+            (sans, (984, -316, 0)),
+            (bold, (984, -316, 0)),
+            (mono, (1020, -300, 0)),
+        ] {
             assert_eq!(font.units_per_em(), 1000);
             assert_eq!(
                 (font.ascender(), font.descender(), font.line_gap()),
-                (1025, -275, 0)
+                heights
             );
             assert!(font.x_height() > 400 && font.cap_height() > font.x_height());
             assert!(font.cap_height() < font.ascender());
         }
         assert!(mono.kerning.is_empty());
-        assert_eq!(sans.kerning.len(), 3);
+        assert_eq!(sans.kerning.len(), 2);
     }
 }

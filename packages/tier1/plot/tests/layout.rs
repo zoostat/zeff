@@ -1097,7 +1097,8 @@ fn the_journal_theme_and_the_sizes_are_as_the_owner_froze_them() {
     assert_eq!(zeff_plot::svg::MARK_STROKE, 0.9);
     assert_eq!(zeff_plot::scene::POINT_SIZE, 4.5);
     assert_eq!(zeff_plot::scene::LARGEST_SIZE, 18.0);
-    // The faces: labels in the regular face of IBM Plex Sans, as every text of the figures is.
+    // The faces: labels in the regular face of Atkinson Hyperlegible Next, as every text of the
+    // figures is.
     let figure = layout(
         &drawn(
             small(),

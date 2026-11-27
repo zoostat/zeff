@@ -584,11 +584,12 @@ fn every_primitive_of_the_closed_set_is_written() {
     assert!(found.page.contains("q 5 5 190 50 re W n\n"));
     // A text read upwards is turned a quarter, exactly; ending at its place, it starts its
     // own length below it.
-    assert!(
-        found
-            .page
-            .contains(" Tf 0.133 0.133 0.133 rg 0 -1 -1 0 190 109.184 Tm ")
-    );
+    let long = f64::from(set(FaceName::Sans, "up").width) * 8.0 / 1000.0;
+    assert_eq!(long, 8.848);
+    assert!(found.page.contains(&format!(
+        " Tf 0.133 0.133 0.133 rg 0 -1 -1 0 190 {} Tm ",
+        100.0 + long
+    )));
     // The grid of cells is one image, each cell 42 dots by 42.
     assert_eq!(found.images.len(), 1);
     let (across, down, dots) = &found.images[0];

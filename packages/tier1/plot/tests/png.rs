@@ -501,12 +501,17 @@ impl ttf_parser::OutlineBuilder for Area {
 #[test]
 fn the_letters_have_the_area_of_their_outlines_and_stand_where_the_font_sets_them() {
     let size = 40.0;
+    // The line starts far enough from the left edge of the page for the tallest letters of the
+    // faces to stand whole when the line is turned to read upwards: a bracket of the mono face
+    // of release 0.10.0 is 34 points tall at this size, where 30 points were room enough for
+    // the faces before it.
+    const LEFT: f64 = 60.0;
     let line = |words: &str, name: FaceName, turn: f64| {
         of(
-            260.0,
+            320.0,
             260.0,
             vec![unnamed(Primitive::Text {
-                at: (30.0, 200.0),
+                at: (LEFT, 200.0),
                 anchor: Anchor::Start,
                 turn,
                 spans: vec![Span {
@@ -577,15 +582,15 @@ fn the_letters_have_the_area_of_their_outlines_and_stand_where_the_font_sets_the
                 -f64::from(font.descender()) * size / em,
             );
             if turn == 0.0 {
-                assert!(least.0 as f64 >= 30.0 - 3.0 && most.0 as f64 <= 30.0 + long + 3.0);
+                assert!(least.0 as f64 >= LEFT - 3.0 && most.0 as f64 <= LEFT + long + 3.0);
                 assert!(least.1 as f64 >= 200.0 - up && most.1 as f64 <= 200.0 + down);
                 // The last letter may leave some of its advance empty, never half the size
                 // of the type.
-                assert!(most.0 as f64 > 30.0 + long - 0.5 * size, "{words}");
+                assert!(most.0 as f64 > LEFT + long - 0.5 * size, "{words}");
             } else if turn == 90.0 {
                 // Read upwards: from its place towards the top of the page.
                 assert!(most.1 as f64 <= 200.0 + 3.0 && least.1 as f64 >= 200.0 - long - 3.0);
-                assert!(least.0 as f64 >= 30.0 - up && most.0 as f64 <= 30.0 + down);
+                assert!(least.0 as f64 >= LEFT - up && most.0 as f64 <= LEFT + down);
             }
         }
     }

@@ -2,4 +2,4 @@
 source: packages/tier1/plot/tests/png.rs
 expression: "kept(&picture, &file)"
 ---
-1051 by 779 dots, 91a783f9e4f487cde131be86185eaa076c8a92c735e2a3a47bee449024598244; the file 28767 bytes, fe2c792eda80789529f58008d3a5bf69db5a7879504cec0afa8b79e1895f0fc4
+1051 by 779 dots, 20582c92705ef098af4edf326b5958058020d8c0c33abd7605e38f0ce7746914; the file 29272 bytes, abcf86ad97869ecc090f8fb0dc009c4e262e6a4266af3f024daac1453c92d461

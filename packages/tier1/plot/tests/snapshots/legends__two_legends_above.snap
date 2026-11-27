@@ -4,70 +4,70 @@ expression: drawing.describe()
 ---
 drawing 518.74 by 311.811
 [background] rectangle 0,0 518.74 by 311.811 fill #FFFFFF
-[grid] segment 57.509,53.292 to 57.509,279.977 stroke #E3E3E3 0.35
-[grid] segment 144.143,53.292 to 144.143,279.977 stroke #E3E3E3 0.35
-[grid] segment 230.778,53.292 to 230.778,279.977 stroke #E3E3E3 0.35
-[grid] segment 317.412,53.292 to 317.412,279.977 stroke #E3E3E3 0.35
-[grid] segment 404.047,53.292 to 404.047,279.977 stroke #E3E3E3 0.35
-[grid] segment 490.682,53.292 to 490.682,279.977 stroke #E3E3E3 0.35
-[grid] segment 35.85,269.673 to 512.34,269.673 stroke #E3E3E3 0.35
-[grid] segment 35.85,228.458 to 512.34,228.458 stroke #E3E3E3 0.35
-[grid] segment 35.85,187.242 to 512.34,187.242 stroke #E3E3E3 0.35
-[grid] segment 35.85,146.027 to 512.34,146.027 stroke #E3E3E3 0.35
-[grid] segment 35.85,104.811 to 512.34,104.811 stroke #E3E3E3 0.35
-[grid] segment 35.85,63.596 to 512.34,63.596 stroke #E3E3E3 0.35
-[panel] clip 35.85,53.292 476.49 by 226.685
-  [layer:1] point 57.509,269.673 circle 0 #E69F00 opacity 1
-  [layer:1] point 144.143,125.419 circle 8.05 #56B4E9 opacity 1
-  [layer:1] point 230.778,207.85 circle 11.384 #009E73 opacity 1
-  [layer:1] point 317.412,63.596 circle 13.943 #E69F00 opacity 1
-  [layer:1] point 404.047,146.027 circle 16.1 #56B4E9 opacity 1
-  [layer:1] point 490.682,228.458 circle 18 #009E73 opacity 1
-[axis:x] segment 35.85,279.977 to 512.34,279.977 stroke #222222 0.5
-[axis:x] segment 57.509,279.977 to 57.509,282.977 stroke #222222 0.5
-[axis:x] text 57.509,291.561 middle "0" sans 8 #222222
-[axis:x] segment 144.143,279.977 to 144.143,282.977 stroke #222222 0.5
-[axis:x] text 144.143,291.561 middle "1" sans 8 #222222
-[axis:x] segment 230.778,279.977 to 230.778,282.977 stroke #222222 0.5
-[axis:x] text 230.778,291.561 middle "2" sans 8 #222222
-[axis:x] segment 317.412,279.977 to 317.412,282.977 stroke #222222 0.5
-[axis:x] text 317.412,291.561 middle "3" sans 8 #222222
-[axis:x] segment 404.047,279.977 to 404.047,282.977 stroke #222222 0.5
-[axis:x] text 404.047,291.561 middle "4" sans 8 #222222
-[axis:x] segment 490.682,279.977 to 490.682,282.977 stroke #222222 0.5
-[axis:x] text 490.682,291.561 middle "5" sans 8 #222222
-[axis:x] text 274.095,305.561 middle "x" sans 9 #222222
-[axis:y] segment 35.85,53.292 to 35.85,279.977 stroke #222222 0.5
-[axis:y] segment 32.85,269.673 to 35.85,269.673 stroke #222222 0.5
-[axis:y] text 29.85,272.465 end "0" sans 8 #222222
-[axis:y] segment 32.85,228.458 to 35.85,228.458 stroke #222222 0.5
-[axis:y] text 29.85,231.25 end "2" sans 8 #222222
-[axis:y] segment 32.85,187.242 to 35.85,187.242 stroke #222222 0.5
-[axis:y] text 29.85,190.034 end "4" sans 8 #222222
-[axis:y] segment 32.85,146.027 to 35.85,146.027 stroke #222222 0.5
-[axis:y] text 29.85,148.819 end "6" sans 8 #222222
-[axis:y] segment 32.85,104.811 to 35.85,104.811 stroke #222222 0.5
-[axis:y] text 29.85,107.603 end "8" sans 8 #222222
-[axis:y] segment 32.85,63.596 to 35.85,63.596 stroke #222222 0.5
-[axis:y] text 29.85,66.388 end "10" sans 8 #222222
-[axis:y] text 13,166.635 middle turned 90 "y" sans 9 #222222
-[legend:color] text 35.85,13 start "The group each of the units was assigned" sans 9 #222222
-[legend:color] text 35.85,24.25 start "to at the start of the trial" sans 9 #222222
-[legend:color] point 38.1,34.5 circle 4.5 #E69F00 opacity 1
-[legend:color] text 43.35,37.292 start "group 00" sans 8 #222222
-[legend:color] point 85.872,34.5 circle 4.5 #56B4E9 opacity 1
-[legend:color] text 91.122,37.292 start "group 01" sans 8 #222222
-[legend:color] point 133.644,34.5 circle 4.5 #009E73 opacity 1
-[legend:color] text 138.894,37.292 start "group 02" sans 8 #222222
-[legend:size] text 211.63,13 start "z" sans 9 #222222
-[legend:size] point 220.63,28.25 circle 8.05 #222222 opacity 1
-[legend:size] text 232.63,31.042 start "10" sans 8 #222222
-[legend:size] point 259.23,28.25 circle 11.384 #222222 opacity 1
-[legend:size] text 271.23,31.042 start "20" sans 8 #222222
-[legend:size] point 297.83,28.25 circle 13.943 #222222 opacity 1
-[legend:size] text 309.83,31.042 start "30" sans 8 #222222
-[legend:size] point 336.43,28.25 circle 16.1 #222222 opacity 1
-[legend:size] text 348.43,31.042 start "40" sans 8 #222222
-[legend:size] point 375.03,28.25 circle 18 #222222 opacity 1
-[legend:size] text 387.03,31.042 start "50" sans 8 #222222
+[grid] segment 56.404,53.172 to 56.404,280.217 stroke #E3E3E3 0.35
+[grid] segment 143.258,53.172 to 143.258,280.217 stroke #E3E3E3 0.35
+[grid] segment 230.112,53.172 to 230.112,280.217 stroke #E3E3E3 0.35
+[grid] segment 316.966,53.172 to 316.966,280.217 stroke #E3E3E3 0.35
+[grid] segment 403.82,53.172 to 403.82,280.217 stroke #E3E3E3 0.35
+[grid] segment 490.675,53.172 to 490.675,280.217 stroke #E3E3E3 0.35
+[grid] segment 34.69,269.897 to 512.388,269.897 stroke #E3E3E3 0.35
+[grid] segment 34.69,228.616 to 512.388,228.616 stroke #E3E3E3 0.35
+[grid] segment 34.69,187.335 to 512.388,187.335 stroke #E3E3E3 0.35
+[grid] segment 34.69,146.054 to 512.388,146.054 stroke #E3E3E3 0.35
+[grid] segment 34.69,104.773 to 512.388,104.773 stroke #E3E3E3 0.35
+[grid] segment 34.69,63.492 to 512.388,63.492 stroke #E3E3E3 0.35
+[panel] clip 34.69,53.172 477.698 by 227.045
+  [layer:1] point 56.404,269.897 circle 0 #E69F00 opacity 1
+  [layer:1] point 143.258,125.414 circle 8.05 #56B4E9 opacity 1
+  [layer:1] point 230.112,207.975 circle 11.384 #009E73 opacity 1
+  [layer:1] point 316.966,63.492 circle 13.943 #E69F00 opacity 1
+  [layer:1] point 403.82,146.054 circle 16.1 #56B4E9 opacity 1
+  [layer:1] point 490.675,228.616 circle 18 #009E73 opacity 1
+[axis:x] segment 34.69,280.217 to 512.388,280.217 stroke #222222 0.5
+[axis:x] segment 56.404,280.217 to 56.404,283.217 stroke #222222 0.5
+[axis:x] text 56.404,291.561 middle "0" sans 8 #222222
+[axis:x] segment 143.258,280.217 to 143.258,283.217 stroke #222222 0.5
+[axis:x] text 143.258,291.561 middle "1" sans 8 #222222
+[axis:x] segment 230.112,280.217 to 230.112,283.217 stroke #222222 0.5
+[axis:x] text 230.112,291.561 middle "2" sans 8 #222222
+[axis:x] segment 316.966,280.217 to 316.966,283.217 stroke #222222 0.5
+[axis:x] text 316.966,291.561 middle "3" sans 8 #222222
+[axis:x] segment 403.82,280.217 to 403.82,283.217 stroke #222222 0.5
+[axis:x] text 403.82,291.561 middle "4" sans 8 #222222
+[axis:x] segment 490.675,280.217 to 490.675,283.217 stroke #222222 0.5
+[axis:x] text 490.675,291.561 middle "5" sans 8 #222222
+[axis:x] text 273.539,305.561 middle "x" sans 9 #222222
+[axis:y] segment 34.69,53.172 to 34.69,280.217 stroke #222222 0.5
+[axis:y] segment 31.69,269.897 to 34.69,269.897 stroke #222222 0.5
+[axis:y] text 28.69,272.569 end "0" sans 8 #222222
+[axis:y] segment 31.69,228.616 to 34.69,228.616 stroke #222222 0.5
+[axis:y] text 28.69,231.288 end "2" sans 8 #222222
+[axis:y] segment 31.69,187.335 to 34.69,187.335 stroke #222222 0.5
+[axis:y] text 28.69,190.007 end "4" sans 8 #222222
+[axis:y] segment 31.69,146.054 to 34.69,146.054 stroke #222222 0.5
+[axis:y] text 28.69,148.726 end "6" sans 8 #222222
+[axis:y] segment 31.69,104.773 to 34.69,104.773 stroke #222222 0.5
+[axis:y] text 28.69,107.445 end "8" sans 8 #222222
+[axis:y] segment 31.69,63.492 to 34.69,63.492 stroke #222222 0.5
+[axis:y] text 28.69,66.164 end "10" sans 8 #222222
+[axis:y] text 13,166.695 middle turned 90 "y" sans 9 #222222
+[legend:color] text 34.69,13 start "The group each of the units was assigned" sans 9 #222222
+[legend:color] text 34.69,24.25 start "to at the start of the trial" sans 9 #222222
+[legend:color] point 36.94,34.5 circle 4.5 #E69F00 opacity 1
+[legend:color] text 42.19,37.172 start "group 00" sans 8 #222222
+[legend:color] point 85.432,34.5 circle 4.5 #56B4E9 opacity 1
+[legend:color] text 90.682,37.172 start "group 01" sans 8 #222222
+[legend:color] point 131.996,34.5 circle 4.5 #009E73 opacity 1
+[legend:color] text 137.246,37.172 start "group 02" sans 8 #222222
+[legend:size] text 208.85,13 start "z" sans 9 #222222
+[legend:size] point 217.85,28.25 circle 8.05 #222222 opacity 1
+[legend:size] text 229.85,30.922 start "10" sans 8 #222222
+[legend:size] point 255.29,28.25 circle 11.384 #222222 opacity 1
+[legend:size] text 267.29,30.922 start "20" sans 8 #222222
+[legend:size] point 293.858,28.25 circle 13.943 #222222 opacity 1
+[legend:size] text 305.858,30.922 start "30" sans 8 #222222
+[legend:size] point 332.65,28.25 circle 16.1 #222222 opacity 1
+[legend:size] text 344.65,30.922 start "40" sans 8 #222222
+[legend:size] point 371.746,28.25 circle 18 #222222 opacity 1
+[legend:size] text 383.746,30.922 start "50" sans 8 #222222
 note: 1 row with z of 0 is drawn with no size

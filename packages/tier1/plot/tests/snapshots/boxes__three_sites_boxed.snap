@@ -4,42 +4,42 @@ expression: "layout(&boxed(sites(), Some(\"site\"), \"v\", boxes(true)), Size::O
 ---
 drawing 252.283 by 187.087
 [background] rectangle 0,0 252.283 by 187.087 fill #FFFFFF
-[grid] segment 71.205,7.792 to 71.205,155.253 stroke #E3E3E3 0.35
-[grid] segment 138.131,7.792 to 138.131,155.253 stroke #E3E3E3 0.35
-[grid] segment 205.056,7.792 to 205.056,155.253 stroke #E3E3E3 0.35
-[grid] segment 31.05,129.399 to 245.211,129.399 stroke #E3E3E3 0.35
-[grid] segment 31.05,91.098 to 245.211,91.098 stroke #E3E3E3 0.35
-[grid] segment 31.05,52.796 to 245.211,52.796 stroke #E3E3E3 0.35
-[grid] segment 31.05,14.495 to 245.211,14.495 stroke #E3E3E3 0.35
-[panel] clip 31.05,7.792 214.161 by 147.461
-  [layer:1] segment 71.205,148.55 to 71.205,129.399 stroke #222222 0.5
-  [layer:1] segment 71.205,52.796 to 71.205,33.645 stroke #222222 0.5
-  [layer:1] polygon 46.108,129.399 96.302,129.399 96.302,52.796 46.108,52.796 fill #FFFFFF stroke #222222 0.5 opacity 1
-  [layer:1] segment 46.108,91.098 to 96.302,91.098 stroke #222222 1
-  [layer:1] segment 138.131,129.399 to 138.131,110.248 stroke #222222 0.5
-  [layer:1] segment 138.131,33.645 to 138.131,14.495 stroke #222222 0.5
-  [layer:1] polygon 113.034,110.248 163.228,110.248 163.228,33.645 113.034,33.645 fill #FFFFFF stroke #222222 0.5 opacity 1
-  [layer:1] segment 113.034,71.947 to 163.228,71.947 stroke #222222 1
-  [layer:1] segment 205.056,148.55 to 205.056,138.974 stroke #222222 0.5
-  [layer:1] segment 205.056,119.824 to 205.056,110.248 stroke #222222 0.5
-  [layer:1] polygon 179.959,138.974 230.153,138.974 230.153,119.824 179.959,119.824 fill #FFFFFF stroke #222222 0.5 opacity 1
-  [layer:1] segment 179.959,129.399 to 230.153,129.399 stroke #222222 1
-[axis:x] segment 31.05,155.253 to 245.211,155.253 stroke #222222 0.5
-[axis:x] segment 71.205,155.253 to 71.205,158.253 stroke #222222 0.5
-[axis:x] text 71.205,166.837 middle "n" sans 8 #222222
-[axis:x] segment 138.131,155.253 to 138.131,158.253 stroke #222222 0.5
-[axis:x] text 138.131,166.837 middle "s" sans 8 #222222
-[axis:x] segment 205.056,155.253 to 205.056,158.253 stroke #222222 0.5
-[axis:x] text 205.056,166.837 middle "w" sans 8 #222222
-[axis:x] text 138.131,180.837 middle "site" sans 9 #222222
-[axis:y] segment 31.05,7.792 to 31.05,155.253 stroke #222222 0.5
-[axis:y] segment 28.05,129.399 to 31.05,129.399 stroke #222222 0.5
-[axis:y] text 25.05,132.191 end "2" sans 8 #222222
-[axis:y] segment 28.05,91.098 to 31.05,91.098 stroke #222222 0.5
-[axis:y] text 25.05,93.89 end "4" sans 8 #222222
-[axis:y] segment 28.05,52.796 to 31.05,52.796 stroke #222222 0.5
-[axis:y] text 25.05,55.588 end "6" sans 8 #222222
-[axis:y] segment 28.05,14.495 to 31.05,14.495 stroke #222222 0.5
-[axis:y] text 25.05,17.287 end "8" sans 8 #222222
-[axis:y] text 13,81.522 middle turned 90 "v" sans 9 #222222
+[grid] segment 71.366,7.672 to 71.366,155.493 stroke #E3E3E3 0.35
+[grid] segment 138.359,7.672 to 138.359,155.493 stroke #E3E3E3 0.35
+[grid] segment 205.352,7.672 to 205.352,155.493 stroke #E3E3E3 0.35
+[grid] segment 31.17,129.576 to 245.547,129.576 stroke #E3E3E3 0.35
+[grid] segment 31.17,91.181 to 245.547,91.181 stroke #E3E3E3 0.35
+[grid] segment 31.17,52.786 to 245.547,52.786 stroke #E3E3E3 0.35
+[grid] segment 31.17,14.391 to 245.547,14.391 stroke #E3E3E3 0.35
+[panel] clip 31.17,7.672 214.377 by 147.821
+  [layer:1] segment 71.366,148.773 to 71.366,129.576 stroke #222222 0.5
+  [layer:1] segment 71.366,52.786 to 71.366,33.589 stroke #222222 0.5
+  [layer:1] polygon 46.243,129.576 96.488,129.576 96.488,52.786 46.243,52.786 fill #FFFFFF stroke #222222 0.5 opacity 1
+  [layer:1] segment 46.243,91.181 to 96.488,91.181 stroke #222222 1
+  [layer:1] segment 138.359,129.576 to 138.359,110.379 stroke #222222 0.5
+  [layer:1] segment 138.359,33.589 to 138.359,14.391 stroke #222222 0.5
+  [layer:1] polygon 113.236,110.379 163.481,110.379 163.481,33.589 113.236,33.589 fill #FFFFFF stroke #222222 0.5 opacity 1
+  [layer:1] segment 113.236,71.984 to 163.481,71.984 stroke #222222 1
+  [layer:1] segment 205.352,148.773 to 205.352,139.175 stroke #222222 0.5
+  [layer:1] segment 205.352,119.977 to 205.352,110.379 stroke #222222 0.5
+  [layer:1] polygon 180.229,139.175 230.474,139.175 230.474,119.977 180.229,119.977 fill #FFFFFF stroke #222222 0.5 opacity 1
+  [layer:1] segment 180.229,129.576 to 230.474,129.576 stroke #222222 1
+[axis:x] segment 31.17,155.493 to 245.547,155.493 stroke #222222 0.5
+[axis:x] segment 71.366,155.493 to 71.366,158.493 stroke #222222 0.5
+[axis:x] text 71.366,166.837 middle "n" sans 8 #222222
+[axis:x] segment 138.359,155.493 to 138.359,158.493 stroke #222222 0.5
+[axis:x] text 138.359,166.837 middle "s" sans 8 #222222
+[axis:x] segment 205.352,155.493 to 205.352,158.493 stroke #222222 0.5
+[axis:x] text 205.352,166.837 middle "w" sans 8 #222222
+[axis:x] text 138.359,180.837 middle "site" sans 9 #222222
+[axis:y] segment 31.17,7.672 to 31.17,155.493 stroke #222222 0.5
+[axis:y] segment 28.17,129.576 to 31.17,129.576 stroke #222222 0.5
+[axis:y] text 25.17,132.248 end "2" sans 8 #222222
+[axis:y] segment 28.17,91.181 to 31.17,91.181 stroke #222222 0.5
+[axis:y] text 25.17,93.853 end "4" sans 8 #222222
+[axis:y] segment 28.17,52.786 to 31.17,52.786 stroke #222222 0.5
+[axis:y] text 25.17,55.458 end "6" sans 8 #222222
+[axis:y] segment 28.17,14.391 to 31.17,14.391 stroke #222222 0.5
+[axis:y] text 25.17,17.063 end "8" sans 8 #222222
+[axis:y] text 13,81.582 middle turned 90 "v" sans 9 #222222
 note: 1 row with NA in site or v dropped

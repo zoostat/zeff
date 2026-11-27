@@ -2,4 +2,4 @@
 source: packages/tier1/plot/tests/pdf.rs
 expression: "format!(\"a picture of {columns} by {rows} dots, {}; the file {} bytes, {}\",\nzeff_hash::hash_hex(wanted), pdf.len(), zeff_hash::hash_hex(&pdf))"
 ---
-a picture of 876 by 615 dots, cd76b5aa1db152c38bfeddfcb634d21e5c8877929247fd6c28076c6d90bb339b; the file 104583 bytes, d976e61208e1f7ab766f84ca5c8b769d6fadca688fcbc1deb9076f857f6d9c74
+a picture of 881 by 616 dots, 54c1f4d4daf21782737ba0eb374dcee91ceeb9669cea2661885b9dcfa4581c5d; the file 48003 bytes, c622d55e2e3fbd14c0803a1651b02e2ba6e5b344e199cfb738d44ba17c7b3374

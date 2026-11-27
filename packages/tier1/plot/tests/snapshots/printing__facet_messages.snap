@@ -181,7 +181,7 @@ error[Z0402]: `loose` is not one of the allowed words
   |                           ^^^^^ expected one of fixed, free, free_x, free_y
 
 == too_many_panels_for_the_page
-error[Z0401]: a page of 40 by 40 mm is too small for the 6 panels of this plot: however they are laid, it leaves each 6.1 by 6.3 mm
+error[Z0401]: a page of 40 by 40 mm is too small for the 6 panels of this plot: however they are laid, it leaves each 6.1 by 6.4 mm
  --> scripts/main.zeff:3:98
   |
 3 | export(d.plot(x: week, y: count).points().facet(by: [site, arm, week, count]), "many.svg", size: [40, 40])

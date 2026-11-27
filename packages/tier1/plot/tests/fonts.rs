@@ -1,5 +1,6 @@
 //! The fonts of a figure (Language Reference, section 7.6; release 0.7.0, step 21a): the three
-//! embedded faces of IBM Plex as the engine's own reader gives them, against two independent
+//! embedded faces (Atkinson Hyperlegible Next and JetBrains Mono from release 0.10.0, IBM Plex
+//! before it) as the engine's own reader gives them, against two independent
 //! readers. The reference: every character, advance, height, outline and kerning pair of each
 //! face against the crate `ttf-parser`, which the tests alone use; and 110 texts set in each
 //! face against HarfBuzz (`tests/reference/fonts/shaping.json`), glyph by glyph and to the last
@@ -31,23 +32,24 @@ fn other(name: FaceName) -> ttf_parser::Face<'static> {
 
 #[test]
 fn the_embedded_files_are_the_ones_recorded() {
-    // The hashes of the project (BLAKE3) of the three files as they were copied from IBM's
-    // archives on 12 November 2026; `fonts/SOURCE.md` gives their SHA-256 and their source.
+    // The hashes of the project (BLAKE3) of the three files as they were fetched from their
+    // publishers' repositories on 27 November 2026; `fonts/SOURCE.md` gives their SHA-256 and
+    // their source.
     for (name, bytes, hash) in [
         (
             FaceName::Sans,
-            200_500,
-            "a99deab680943960731178f9ef7f019d26c54b3faa1a4d3b5db4de662e6de543",
+            65_068,
+            "393feb612f4db2f9b37f265208cb74717ad1846008ae138abd56b4fbe53c7244",
         ),
         (
             FaceName::SansSemiBold,
-            202_632,
-            "537f94beb9b5e160c00c30f661f8033d961ff8bad4fa2ee86ad32520b15ff259",
+            66_680,
+            "ae2ad98bc281cdc586165fc436d1a303b17da6ad6ed5758bffc00cae1d16c420",
         ),
         (
             FaceName::Mono,
-            173_052,
-            "51ac7ac25d0fdec160d6d810dd2a58a6b2eaa241c89e1224befcce187a99b5f4",
+            273_900,
+            "9dd51647d526d83d45d0784c817ade59d27773d41a3cd11059858d462389e2ec",
         ),
     ] {
         assert_eq!(name.bytes().len(), bytes, "{}", name.file());
@@ -63,9 +65,25 @@ fn the_embedded_files_are_the_ones_recorded() {
             name.bytes()
         );
     }
-    let licence = std::fs::read_to_string(folder.join("LICENSE.txt")).unwrap();
-    assert!(licence.contains("SIL OPEN FONT LICENSE Version 1.1"));
-    assert!(licence.contains("Reserved Font Name \"Plex\""));
+    // Each family's licence text beside its files, as its publisher gives it.
+    for (file, holder) in [
+        (
+            "LICENSE-AtkinsonHyperlegibleNext.txt",
+            "The Atkinson Hyperlegible Next Project Authors",
+        ),
+        (
+            "LICENSE-JetBrainsMono.txt",
+            "The JetBrains Mono Project Authors",
+        ),
+    ] {
+        let licence = std::fs::read_to_string(folder.join(file)).unwrap();
+        assert!(
+            licence.contains("SIL OPEN FONT LICENSE Version 1.1"),
+            "{file}"
+        );
+        assert!(licence.contains(holder), "{file}");
+        assert!(source.contains(file), "{file}");
+    }
 }
 
 // ----- the reference: an independent reader of the tables -----
@@ -108,7 +126,8 @@ fn every_character_advance_and_height_agrees_with_an_independent_reader() {
             drawn += usize::from(glyph.is_some());
         }
         assert_eq!(drawn, ours.characters().count());
-        assert!(drawn > 700, "{}: {drawn} characters", name.file());
+        // The sans faces draw 362 characters and the mono face 1,317.
+        assert!(drawn > 350, "{}: {drawn} characters", name.file());
         for glyph in 0..ours.glyphs() {
             assert_eq!(
                 Some(ours.advance(glyph)),
@@ -220,7 +239,7 @@ fn every_outline_agrees_with_an_independent_reader() {
             assert_eq!(moves, closes);
         }
         assert!(
-            outlined > 900 && empty > 0,
+            outlined > 350 && empty > 0,
             "{}: {outlined}, {empty}",
             name.file()
         );
@@ -322,7 +341,7 @@ fn every_kerning_pair_agrees_with_an_independent_reader() {
             // A face of one width kerns nothing.
             FaceName::Mono => assert_eq!((lookups.len(), kerned), (0, 0)),
             _ => {
-                assert_eq!(lookups, [0, 1, 2]);
+                assert_eq!(lookups, [0, 1]);
                 assert!(kerned > 10_000, "{}: {kerned} of {pairs}", name.file());
             }
         }
@@ -330,8 +349,12 @@ fn every_kerning_pair_agrees_with_an_independent_reader() {
     // Figures a reader can check by eye: A before V is drawn closer, and a full stop after T.
     let sans = face(FaceName::Sans);
     let glyph = |c: char| sans.glyph(c).unwrap();
-    assert_eq!(sans.advance(glyph('A')), 641);
-    assert_eq!(sans.kern(glyph('A'), glyph('V')), -41);
+    // HarfBuzz's 586 for A before V is its advance with their kerning (`shaping.json`).
+    assert_eq!(
+        i32::from(sans.advance(glyph('A'))) + i32::from(sans.kern(glyph('A'), glyph('V'))),
+        586
+    );
+    assert!(sans.kern(glyph('A'), glyph('V')) < 0);
     assert!(sans.kern(glyph('T'), glyph('.')) < 0);
     assert_eq!(sans.kern(glyph('n'), glyph('n')), 0);
 }
@@ -397,7 +420,7 @@ fn a_hundred_and_ten_texts_are_set_as_harfbuzz_sets_them() {
     assert_eq!(texts, 330);
     // The rule on ligatures, on record: HarfBuzz left to itself joins `fi` and `ffi` in the
     // Sans faces, and the text is then a few units narrower; the engine does not join them.
-    let sans = &reference["faces"]["IBMPlexSans-Regular.ttf"];
+    let sans = &reference["faces"]["AtkinsonHyperlegibleNext-Regular.ttf"];
     let office = sans
         .as_array()
         .unwrap()
@@ -408,7 +431,13 @@ fn a_hundred_and_ten_texts_are_set_as_harfbuzz_sets_them() {
         face(FaceName::Sans).shape("office").width,
         office["width"].as_i64().unwrap() as i32
     );
-    assert!(office["width_with_ligatures"].as_i64() < office["width"].as_i64());
+    // In the faces of release 0.10.0 no text of the list is set narrower by HarfBuzz left to
+    // itself: Atkinson Hyperlegible Next joins no letters, and the joined signs of JetBrains
+    // Mono (an arrow for `->`) are as wide as their parts. With IBM Plex, `fi` was narrower.
+    assert_eq!(
+        office["width_with_ligatures"].as_i64(),
+        office["width"].as_i64()
+    );
 }
 
 // ----- a line in two faces (release 0.10.0, step 4a; open decision #234) -----
@@ -593,9 +622,10 @@ fn an_empty_text_a_character_the_face_lacks_and_a_mark_after_its_letter() {
     assert_eq!(parts.width, sans.shape("g").width);
     assert_eq!(sans.shape("\u{301}").width, 0);
     // The widths in points: units times the size over a thousand.
-    assert_eq!(sans.shape("AV").width, 641 - 41 + 609);
-    assert_eq!(sans.width("AV", 10.0), 12.09);
-    assert_eq!(sans.width("AV", 8.0), 9.672);
+    // HarfBuzz sets A at 586 units before V, its advance less their kerning, and V at 593.
+    assert_eq!(sans.shape("AV").width, 586 + 593);
+    assert_eq!(sans.width("AV", 10.0), 11.79);
+    assert_eq!(sans.width("AV", 8.0), 9.432);
     // The SemiBold face is wider than the Regular, and the Mono face has one width.
     let (bold, mono) = (face(FaceName::SansSemiBold), face(FaceName::Mono));
     assert!(bold.shape("Hourly wage").width > sans.shape("Hourly wage").width);
@@ -812,7 +842,11 @@ proptest! {
 
 #[test]
 fn what_a_pdf_asks_of_a_font_is_read_as_the_second_reader_reads_it() {
-    let names = ["IBMPlexSans", "IBMPlexSans-SmBld", "IBMPlexMono"];
+    let names = [
+        "AtkinsonHyperlegibleNext-Regular",
+        "AtkinsonHyperlegibleNext-SemiBold",
+        "JetBrainsMono-Regular",
+    ];
     let weights = [400, 600, 400];
     for (i, name) in FaceName::ALL.into_iter().enumerate() {
         let font = face(name);

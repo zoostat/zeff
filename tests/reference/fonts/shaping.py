@@ -31,7 +31,7 @@ import subprocess
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 FONTS = os.path.normpath(os.path.join(HERE, "..", "..", "..", "packages", "tier1", "plot", "fonts"))
-FACES = ["IBMPlexSans-Regular.ttf", "IBMPlexSans-SemiBold.ttf", "IBMPlexMono-Regular.ttf"]
+FACES = ["AtkinsonHyperlegibleNext-Regular.ttf", "AtkinsonHyperlegibleNext-SemiBold.ttf", "JetBrainsMono-Regular.ttf"]
 PLAIN = "-liga,-clig,-calt,-rlig,-ccmp,-locl,-mark,-mkmk"
 
 TEXTS = [

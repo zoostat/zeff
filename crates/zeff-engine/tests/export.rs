@@ -327,7 +327,9 @@ fn a_plot_is_written_as_pdf_and_as_png_by_its_extension() {
     let pdf = read("wage.pdf");
     assert!(pdf.starts_with(b"%PDF-1.4\n") && pdf.ends_with(b"%%EOF\n"));
     assert!(holds(&pdf, "/MediaBox [0 0 252.283 187.087]"));
-    assert!(holds(&pdf, "/FontFile2") && holds(&pdf, "/BaseFont /IBMPlexSans"));
+    assert!(
+        holds(&pdf, "/FontFile2") && holds(&pdf, "/BaseFont /AtkinsonHyperlegibleNext-Regular")
+    );
     assert!(holds(&read("wide.PDF"), "/MediaBox [0 0 518.74 311.811]"));
     assert!(holds(&read("own.pdf"), "/MediaBox [0 0 340.157 228.189]"));
     // The largest page a PDF may have is written.

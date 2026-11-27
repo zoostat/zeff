@@ -13,7 +13,7 @@ endobj
 << /Type /Page /Parent 2 0 R /MediaBox [0 0 200 120] /Resources << /ExtGState << /G1 << /ca 0.5 /CA 0.5 >> /G2 << /ca 0.6 /CA 0.6 >> >> /Font << /F1 5 0 R /F2 10 0 R /F3 15 0 R >> /XObject << /I1 20 0 R >> >> /Contents 4 0 R /Group << /S /Transparency /CS /DeviceRGB >> >>
 endobj
 4 0 obj
-<< /Length 3246 >>
+<< /Length 3241 >>
 stream
 1 0 0 -1 0 120 cm 4 M
 1 1 1 rg
@@ -76,19 +76,19 @@ Q
 0.133 0.133 0.133 rg
 150 86 m 144.528 89.236 l 143.705 85.117 l h f
 BT
-/F1 9 Tf 0.133 0.133 0.133 rg 1 0 0 -1 -0.171 104 Tm [<0037> 10 <0004000B> 6 <0009000300530003000E0015001B0018001900030099003F003B003E003B009A>] TJ
+/F1 9 Tf 0.133 0.133 0.133 rg 1 0 0 -1 0.635 104 Tm [<0061> 4 <0070008F008500E7011400E7009300AF00C800BB00BE00E70131016F016D016E016D0130>] TJ
 ET
 0.969 0.969 0.969 rg
 0.133 0.133 0.133 RG 0.4 w
-119.5 102 m 165.3 102 l 166.128 102 166.8 102.672 166.8 103.5 c 166.8 114.5 l 166.8 115.328 166.128 116 165.3 116 c 119.5 116 l 118.672 116 118 115.328 118 114.5 c 118 103.5 l 118 102.672 118.672 102 119.5 102 c h B
+119.5 102 m 167.08 102 l 167.908 102 168.58 102.672 168.58 103.5 c 168.58 114.5 l 168.58 115.328 167.908 116 167.08 116 c 119.5 116 l 118.672 116 118 115.328 118 114.5 c 118 103.5 l 118 102.672 118.672 102 119.5 102 c h B
 BT
-/F2 10 Tf 0.133 0.133 0.133 rg 1 0 0 -1 120 112 Tm [<0032> 3 <0354000300960003>] TJ
-/F3 10 Tf 0.133 0.133 0.133 rg 1 0 0 -1 140.8 112 Tm [<003C005F00420045>] TJ
+/F2 10 Tf 0.133 0.133 0.133 rg 1 0 0 -1 120 112 Tm [<004A018600E7012E00E7>] TJ
+/F3 10 Tf 0.133 0.133 0.133 rg 1 0 0 -1 142.58 112 Tm [<02D4032902D802DB>] TJ
 ET
 0.133 0.133 0.133 RG 0.4 w
-182.6 110.184 m 182.6 99 l 192.6 99 l 192.6 110.184 l h S
+182.6 109.848 m 182.6 99 l 192.6 99 l 192.6 109.848 l h S
 BT
-/F1 8 Tf 0.133 0.133 0.133 rg 0 -1 -1 0 190 109.184 Tm [<001B0016>] TJ
+/F1 8 Tf 0.133 0.133 0.133 rg 0 -1 -1 0 190 108.848 Tm [<00C800B8>] TJ
 ET
 q 30 0 0 -20 160 80 cm /I1 Do Q
 0.133 0.133 0.133 RG 0.25 w
@@ -97,18 +97,18 @@ q 30 0 0 -20 160 80 cm /I1 Do Q
 endstream
 endobj
 5 0 obj
-<< /Type /Font /Subtype /Type0 /BaseFont /IBMPlexSans /Encoding /Identity-H /DescendantFonts [6 0 R] /ToUnicode 9 0 R >>
+<< /Type /Font /Subtype /Type0 /BaseFont /AtkinsonHyperlegibleNext-Regular /Encoding /Identity-H /DescendantFonts [6 0 R] /ToUnicode 9 0 R >>
 endobj
 6 0 obj
-<< /Type /Font /Subtype /CIDFontType2 /BaseFont /IBMPlexSans /CIDSystemInfo << /Registry (Adobe) /Ordering (Identity) /Supplement 0 >> /FontDescriptor 7 0 R /DW 1000 /W [3 [236 534] 9 [549] 11 [528] 14 [568] 21 [560 580] 24 [367 487] 27 [568] 55 [891] 59 [600] 62 [600 600] 83 [694] 153 [600 600]] /CIDToGIDMap /Identity >>
+<< /Type /Font /Subtype /CIDFontType2 /BaseFont /AtkinsonHyperlegibleNext-Regular /CIDSystemInfo << /Registry (Adobe) /Ordering (Identity) /Supplement 0 >> /FontDescriptor 7 0 R /DW 1000 /W [97 [856] 112 [525] 133 [538] 143 [558] 147 [550] 175 [548] 184 [566] 187 [349] 190 [471] 200 [540] 231 [280] 276 [731] 304 [553 553] 365 [648 407 548]] /CIDToGIDMap /Identity >>
 endobj
 7 0 obj
-<< /Type /FontDescriptor /FontName /IBMPlexSans /Flags 4 /FontBBox [-260 -245 1241 1119] /ItalicAngle 0 /Ascent 1025 /Descent -275 /CapHeight 698 /StemV 96 /FontFile2 8 0 R >>
+<< /Type /FontDescriptor /FontName /AtkinsonHyperlegibleNext-Regular /Flags 4 /FontBBox [-61 -250 1289 903] /ItalicAngle 0 /Ascent 984 /Descent -316 /CapHeight 668 /StemV 96 /FontFile2 8 0 R >>
 endobj
 8 0 obj
-<< /Length1 200500 /Length 200500 >>
+<< /Length1 65068 /Length 65068 >>
 stream
-(200500 bytes that are not text, a99deab680943960)
+(65068 bytes that are not text, 393feb612f4db2f9)
 endstream
 endobj
 9 0 obj
@@ -124,23 +124,23 @@ begincmap
 <0000> <FFFF>
 endcodespacerange
 17 beginbfchar
-<0003> <0020>
-<0004> <0061>
-<0009> <0065>
-<000B> <0067>
-<000E> <0068>
-<0015> <006F>
-<0016> <0070>
-<0018> <0072>
-<0019> <0073>
-<001B> <0075>
-<0037> <0057>
-<003B> <0030>
-<003E> <0031>
-<003F> <0032>
-<0053> <0026>
-<0099> <003C>
-<009A> <003E>
+<0061> <0057>
+<0070> <0061>
+<0085> <0065>
+<008F> <0067>
+<0093> <0068>
+<00AF> <006F>
+<00B8> <0070>
+<00BB> <0072>
+<00BE> <0073>
+<00C8> <0075>
+<00E7> <0020>
+<0114> <0026>
+<0130> <003E>
+<0131> <003C>
+<016D> <0030>
+<016E> <0031>
+<016F> <0032>
 endbfchar
 endcmap
 CMapName currentdict /CMap defineresource pop
@@ -150,18 +150,18 @@ end
 endstream
 endobj
 10 0 obj
-<< /Type /Font /Subtype /Type0 /BaseFont /IBMPlexSans-SmBld /Encoding /Identity-H /DescendantFonts [11 0 R] /ToUnicode 14 0 R >>
+<< /Type /Font /Subtype /Type0 /BaseFont /AtkinsonHyperlegibleNext-SemiBold /Encoding /Identity-H /DescendantFonts [11 0 R] /ToUnicode 14 0 R >>
 endobj
 11 0 obj
-<< /Type /Font /Subtype /CIDFontType2 /BaseFont /IBMPlexSans-SmBld /CIDSystemInfo << /Registry (Adobe) /Ordering (Identity) /Supplement 0 >> /FontDescriptor 12 0 R /DW 1000 /W [3 [236] 50 [664] 150 [600] 852 [347]] /CIDToGIDMap /Identity >>
+<< /Type /Font /Subtype /CIDFontType2 /BaseFont /AtkinsonHyperlegibleNext-SemiBold /CIDSystemInfo << /Registry (Adobe) /Ordering (Identity) /Supplement 0 >> /FontDescriptor 12 0 R /DW 1000 /W [74 [639] 231 [303] 302 [617] 390 [396]] /CIDToGIDMap /Identity >>
 endobj
 12 0 obj
-<< /Type /FontDescriptor /FontName /IBMPlexSans-SmBld /Flags 4 /FontBBox [-293 -266 1305 1141] /ItalicAngle 0 /Ascent 1025 /Descent -275 /CapHeight 698 /StemV 144 /FontFile2 13 0 R >>
+<< /Type /FontDescriptor /FontName /AtkinsonHyperlegibleNext-SemiBold /Flags 4 /FontBBox [-66 -251 1344 914] /ItalicAngle 0 /Ascent 984 /Descent -316 /CapHeight 668 /StemV 144 /FontFile2 13 0 R >>
 endobj
 13 0 obj
-<< /Length1 202632 /Length 202632 >>
+<< /Length1 66680 /Length 66680 >>
 stream
-(202632 bytes that are not text, 537f94beb9b5e160)
+(66680 bytes that are not text, ae2ad98bc281cdc5)
 endstream
 endobj
 14 0 obj
@@ -177,10 +177,10 @@ begincmap
 <0000> <FFFF>
 endcodespacerange
 4 beginbfchar
-<0003> <0020>
-<0032> <0052>
-<0096> <003D>
-<0354> <00B2>
+<004A> <0052>
+<00E7> <0020>
+<012E> <003D>
+<0186> <00B2>
 endbfchar
 endcmap
 CMapName currentdict /CMap defineresource pop
@@ -190,18 +190,18 @@ end
 endstream
 endobj
 15 0 obj
-<< /Type /Font /Subtype /Type0 /BaseFont /IBMPlexMono /Encoding /Identity-H /DescendantFonts [16 0 R] /ToUnicode 19 0 R >>
+<< /Type /Font /Subtype /Type0 /BaseFont /JetBrainsMono-Regular /Encoding /Identity-H /DescendantFonts [16 0 R] /ToUnicode 19 0 R >>
 endobj
 16 0 obj
-<< /Type /Font /Subtype /CIDFontType2 /BaseFont /IBMPlexMono /CIDSystemInfo << /Registry (Adobe) /Ordering (Identity) /Supplement 0 >> /FontDescriptor 17 0 R /DW 1000 /W [60 [600] 66 [600] 69 [600] 95 [600]] /CIDToGIDMap /Identity >>
+<< /Type /Font /Subtype /CIDFontType2 /BaseFont /JetBrainsMono-Regular /CIDSystemInfo << /Registry (Adobe) /Ordering (Identity) /Supplement 0 >> /FontDescriptor 17 0 R /DW 1000 /W [724 [600] 728 [600] 731 [600] 809 [600]] /CIDToGIDMap /Identity >>
 endobj
 17 0 obj
-<< /Type /FontDescriptor /FontName /IBMPlexMono /Flags 5 /FontBBox [-260 -350 648 1119] /ItalicAngle 0 /Ascent 1025 /Descent -275 /CapHeight 698 /StemV 96 /FontFile2 18 0 R >>
+<< /Type /FontDescriptor /FontName /JetBrainsMono-Regular /Flags 5 /FontBBox [-1735 -400 765 1120] /ItalicAngle 0 /Ascent 1020 /Descent -300 /CapHeight 730 /StemV 96 /FontFile2 18 0 R >>
 endobj
 18 0 obj
-<< /Length1 173052 /Length 173052 >>
+<< /Length1 273900 /Length 273900 >>
 stream
-(173052 bytes that are not text, 51ac7ac25d0fdec1)
+(273900 bytes that are not text, 9dd51647d526d83d)
 endstream
 endobj
 19 0 obj
@@ -217,10 +217,10 @@ begincmap
 <0000> <FFFF>
 endcodespacerange
 4 beginbfchar
-<003C> <0030>
-<0042> <0034>
-<0045> <0037>
-<005F> <002E>
+<02D4> <0030>
+<02D8> <0034>
+<02DB> <0037>
+<0329> <002E>
 endbfchar
 endcmap
 CMapName currentdict /CMap defineresource pop
@@ -245,26 +245,26 @@ xref
 0000000064 00000 n 
 0000000121 00000 n 
 0000000409 00000 n 
-0000003707 00000 n 
-0000003843 00000 n 
-0000004182 00000 n 
-0000004373 00000 n 
-0000204943 00000 n 
-0000205557 00000 n 
-0000205702 00000 n 
-0000205959 00000 n 
-0000206159 00000 n 
-0000408862 00000 n 
-0000409294 00000 n 
-0000409433 00000 n 
-0000409683 00000 n 
-0000409875 00000 n 
-0000582998 00000 n 
-0000583430 00000 n 
-0000615351 00000 n 
+0000003702 00000 n 
+0000003859 00000 n 
+0000004243 00000 n 
+0000004452 00000 n 
+0000069588 00000 n 
+0000070202 00000 n 
+0000070363 00000 n 
+0000070638 00000 n 
+0000070851 00000 n 
+0000137600 00000 n 
+0000138032 00000 n 
+0000138181 00000 n 
+0000138445 00000 n 
+0000138648 00000 n 
+0000412619 00000 n 
+0000413051 00000 n 
+0000444972 00000 n 
 trailer
-<< /Size 22 /Root 1 0 R /Info 21 0 R /ID [<356c7f53e3e54cd0e9aca5c6e8cb8b69> <356c7f53e3e54cd0e9aca5c6e8cb8b69>] >>
+<< /Size 22 /Root 1 0 R /Info 21 0 R /ID [<ca44f7a754eb5b0bf5687c9411e7fe0c> <ca44f7a754eb5b0bf5687c9411e7fe0c>] >>
 startxref
-615390
+445011
 %%EOF
---- with its streams compressed: 258018 bytes, 6a781c4f37b606e0c8b4c70a880db200bdf3b44542eaa192ea8bcf96f8d664df
+--- with its streams compressed: 199166 bytes, 490b9ee2d2a8f49e03c65d85668c073c7a6012d03634ba9c844928c7465767f4

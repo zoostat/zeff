@@ -210,13 +210,19 @@ is never listed here as accepted: it is fixed or the function is withdrawn.
   back-reference and no look-around (Z0419). `replace` writes its replacement as plain text, with
   no reference to a group. `split` takes one text and not a column, and keeps a last empty
   piece, which R drops. (Since 0.7.0.)
-- **A figure's text is set in IBM Plex and no other face**, upright only: there is no italic,
-  no ligature and no shaping of scripts that need it. A character the faces lack (Chinese, an
-  emoji) is drawn as an empty box, with a note. (Since 0.7.0; italic by open decision #119,
-  after 1.0; wider coverage with the fetch store of 0.11.0.)
+- **A figure's text is set in two faces and no other**, upright only: Atkinson Hyperlegible
+  Next for labels and titles, and JetBrains Mono for the characters it lacks (IBM Plex until
+  0.9.0, so a figure exported again from 0.10.0 has other letters and its text sits up to a few
+  points elsewhere). There is no italic, no ligature and no shaping of scripts that need it.
+  The label face has four letters of the Greek alphabet (Δ, Ω, μ, π), no arrow and no
+  Cyrillic: such a character is taken from JetBrains Mono, so a Greek letter in a label is a
+  little wider and squarer than the words around it. A character neither face has (Chinese, an
+  emoji) is drawn as an empty box, with a note. (Since 0.7.0; the two faces since 0.10.0, open
+  decisions #222 and #234; italic by open decision #119, after 1.0; wider coverage with the
+  fetch store of 0.11.0.)
 - **A figure file is plain.** SVG: the text is drawn as outlines, so a dense figure is large
   (0.85 to 3 MB for 18,201 points) and has no title or description for a screen reader. PDF:
-  version 1.4, one page, each face embedded whole (a small figure is about 91 kB), no tagging.
+  version 1.4, one page, each face embedded whole (a small figure is about 35 kB; 91 kB until 0.9.0), no tagging.
   PNG: a white page at 300 dots to the inch, with no option for another. A page too small for
   its labels is refused and never set smaller; no text is below 8 points. (Since 0.7.0;
   accessible files at 1.2.)

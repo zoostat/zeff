@@ -55,7 +55,7 @@ error[Z0401]: a rug has no place in polar coordinates: its ticks stand along the
   = help: show the values as `points`, or leave out `rug` or `coord(polar)`
 
 == a_circle_too_small
-error[Z0401]: a page of 30 by 30 mm is too small for this plot: its labels, never set below 8 points, leave 6 by 20.1 mm for the panel
+error[Z0401]: a page of 30 by 30 mm is too small for this plot: its labels, never set below 8 points, leave 6.2 by 20.1 mm for the panel
  --> scripts/main.zeff:3:43
   |
 3 | export(p.coord(polar), "small.svg", size: [30, 30])
@@ -109,7 +109,7 @@ error[Z0401]: `ratio` of `coord` must be a Float, but this is a Str
   = help: usage: `p.coord(type: cartesian | flip | polar | fixed = cartesian, ratio: Float)`
 
 == a_panel_too_thin
-error[Z0401]: fixed coordinates make the panel of this plot 420 times as high as it is wide: on a page of 89 by 66 mm that is 0.1 by 52 mm
+error[Z0401]: fixed coordinates make the panel of this plot 420 times as high as it is wide: on a page of 89 by 66 mm that is 0.1 by 52.1 mm
  --> scripts/main.zeff:3:1
   |
 3 | export(d.plot(x: dose, y: change).points().coord(fixed, ratio: 500), "thin.svg")
@@ -118,7 +118,7 @@ error[Z0401]: fixed coordinates make the panel of this plot 420 times as high as
   = help: a panel needs 12.7 mm each way; `coord(fixed, ratio: 0.85)` fills this page, and a plot whose two axes do not share a unit needs no `coord(fixed)`
 
 == a_panel_too_flat
-error[Z0401]: fixed coordinates make the panel of this plot 600 times as wide as it is high: on a page of 89 by 66 mm that is 73.3 by 0.1 mm
+error[Z0401]: fixed coordinates make the panel of this plot 600 times as wide as it is high: on a page of 89 by 66 mm that is 73.4 by 0.1 mm
  --> scripts/main.zeff:3:1
   |
 3 | export(d.plot(x: dose, y: change).points().coord(fixed, ratio: 0.002), "flat.svg")
