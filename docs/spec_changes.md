@@ -1108,3 +1108,7 @@ The owner ruled on #238: "Go with A". The entry is marked decided: `with:` of `m
 ## 27 November 2026 — zeff_open_decisions.md, new entry #239
 
 The owner asked for Zeff's counterparts of R's `switch`, `ifelse` and `cut`; each was run on the engine. It was found that a row whose `case` condition is `NA` goes to the catch-all `_` with no message: 211 workers of `wages` with no wage were classed "low". Shown this, he said "Yes, record it". #239 is entered, open: a warning counting such rows (recommended), or R's rule that they stay `NA`; at 0.11.0. Deadline: the opening of 0.11.0. No normative text is changed.
+
+## 27 November 2026 — zeff_open_decisions.md, #239 (the owner's ruling)
+
+The owner ruled on #239: "A: keep it, warn". The entry is marked decided: the rule of section 5.1 of the Language Reference stands, and from 0.11.0 a warning counts the rows that reach `_` of a `case` because a condition was `NA`. No normative text is changed now; section 5.1 and section 11 gain their sentence and row at the step of 0.11.0 that builds it.
