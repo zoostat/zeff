@@ -2053,6 +2053,7 @@ fn panel_cases() -> Vec<Line> {
         text("identify/dag_refused/stderr", &graph_refused),
         text("plot/graph_form", &graph_forms()),
         text("plot/layers", &graph_layers()),
+        text("plot/placed", &graph_placed()),
         text("identify/kernel", &graph_kernel()),
         text(
             "identify/independencies/stdout",
@@ -3809,6 +3810,127 @@ fn graph_layers() -> String {
                 }
             }
             Err(why) => out.push_str(&format!("{name}: {why:?}\n")),
+        }
+    }
+    out
+}
+
+/// A diagram on the page (release 0.10.0, step 21): for three graphs, down the page and to
+/// the right, the place and the size of each node and the line of each edge, every number as
+/// the bits of its 64-bit form, so that the four targets must agree to the last bit.
+fn graph_placed() -> String {
+    use zeff_core::dag::{Dag, Edge, Link};
+    use zeff_plot::drawing::Step;
+    use zeff_plot::graph::GraphForm;
+    use zeff_plot::layered::layers;
+    use zeff_plot::placed::{Direction, Options, place};
+    type Described = (
+        &'static str,
+        &'static [&'static str],
+        &'static [(usize, usize, Link)],
+        &'static [usize],
+    );
+    const D: Link = Link::Directed;
+    let graphs: [Described; 3] = [
+        (
+            "training",
+            &[
+                "ability",
+                "training",
+                "productivity",
+                "tenure",
+                "age",
+                "region",
+            ],
+            &[
+                (0, 1, D),
+                (1, 2, D),
+                (0, 2, D),
+                (1, 3, D),
+                (3, 2, D),
+                (4, 1, D),
+                (5, 1, D),
+            ],
+            &[0],
+        ),
+        (
+            "front door",
+            &["x", "m", "y", "a note"],
+            &[
+                (0, 1, D),
+                (1, 2, D),
+                (0, 2, Link::Bidirected),
+                (3, 0, Link::Undirected),
+            ],
+            &[],
+        ),
+        (
+            "common causes",
+            &["price", "demand", "season", "x̄ and β̂"],
+            &[
+                (2, 1, D),
+                (0, 1, Link::Bidirected),
+                (0, 3, Link::Bidirected),
+            ],
+            &[3],
+        ),
+    ];
+    let bits = |x: f64| format!("{:016x}", x.to_bits());
+    let at = |p: (f64, f64)| format!("{} {}", bits(p.0), bits(p.1));
+    let mut out = String::new();
+    for (name, names, edges, latent) in graphs {
+        let dag = Dag::new(
+            names.iter().map(|n| (*n).to_string()).collect(),
+            edges
+                .iter()
+                .map(|&(from, to, link)| Edge { from, to, link })
+                .collect(),
+            latent.to_vec(),
+            Vec::new(),
+        );
+        let form = GraphForm::of_dag(&dag);
+        let Ok(laid) = layers(&form, &[]) else {
+            out.push_str(&format!("{name}: no layers\n"));
+            continue;
+        };
+        for (way, direction, spacing) in [
+            ("down", Direction::Down, 1.0),
+            ("right", Direction::Right, 1.0),
+            ("down, spread", Direction::Down, 1.75),
+        ] {
+            let options = Options {
+                direction,
+                spacing,
+                ..Options::at(8.0)
+            };
+            let placed = place(&form, &laid, &options);
+            out.push_str(&format!(
+                "{name}, {way}: {} {}\n",
+                bits(placed.width),
+                bits(placed.height)
+            ));
+            for (v, node) in placed.nodes.iter().enumerate() {
+                out.push_str(&format!(
+                    "  {} {} {} {}\n",
+                    form.nodes[v].name(),
+                    at(node.centre),
+                    bits(node.width),
+                    bits(node.height)
+                ));
+            }
+            for (e, edge) in placed.edges.iter().enumerate() {
+                let line: Vec<String> = edge
+                    .steps
+                    .iter()
+                    .map(|step| match *step {
+                        Step::Move(p) => format!("M {}", at(p)),
+                        Step::Line(p) => format!("L {}", at(p)),
+                        Step::Curve(c1, c2, p) => format!("C {} {} {}", at(c1), at(c2), at(p)),
+                        _ => "?".to_string(),
+                    })
+                    .collect();
+                out.push_str(&format!("  {} {}\n", form.edge_name(e), line.join(" ")));
+            }
         }
     }
     out

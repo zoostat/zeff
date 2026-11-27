@@ -263,6 +263,7 @@ identify/dag/stderr 1793d1f91b201b85
 identify/dag_refused/stderr a4ae850708680357
 plot/graph_form 86332087ddd4d0f5
 plot/layers 93507a35b578ece1
+plot/placed 87b1313a3b853bb8
 identify/kernel b9950d0a114cf488
 identify/independencies/stdout 19805c2121a119ea
 identify/independencies/stderr cbf29ce484222325

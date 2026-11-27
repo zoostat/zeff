@@ -110,7 +110,9 @@ Step 19 `[engine]` (28 November 2026): one graph form under every diagram (#191)
 
 Step 20 `[engine]` (28 November 2026): the layered layout, layers and order (`plot::layered`). The layers that make the arrows shortest, by the network simplex, with `same_rank:`; a bend on each layer a long edge passes; the order within the layers by median sweeps from four first orders, and every order tried on a small diagram that still has a crossing. The layers are held to the least length and the order to the fewest crossings, each found in the tests by trying everything; the same diagram written in another order has the same layout.
 
-**Next.** Step 21 `[engine]`: the layered layout, coordinates, edges and labels.
+Step 21 `[engine]` (28 November 2026): the layered layout, coordinates, edges and labels (`plot::placed`). Outlines sized from the measured label; places along the layers by Brandes and Köpf's four alignments; `direction:` and `spacing:`; edges from border to border, straight or as a spline through their bends, a common cause as an arc. No two outlines touch and every edge ends on its borders, on the examples and on 240 generated graphs of up to thirty nodes; thirty nodes take about 1 ms. Nothing is drawn yet: `g.plot()` is step 22.
+
+**Next.** Step 22 `[engine]`: `g.plot()`.
 
 **For the owner, from step 20.** Ties in the layout are broken by the names of the nodes, not by the order of the lines in the script (the words of #121, D4), so that one graph written two ways is drawn one way.
 

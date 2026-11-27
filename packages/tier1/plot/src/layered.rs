@@ -27,7 +27,8 @@
 
 use crate::graph::{EdgeKind, GraphForm};
 
-/// The sweeps of the ordering from each first order: down and up by turns.
+/// The most sweeps of the ordering from each first order, down and up by turns; fewer where
+/// four in a row better nothing.
 pub const SWEEPS: usize = 24;
 
 /// A diagram with no more orders of its layers than this, every order of every layer
@@ -552,6 +553,7 @@ pub fn layers(form: &GraphForm, same_rank: &[Vec<usize>]) -> Result<Layers, Unla
             fewest = first;
             best = rows.clone();
         }
+        let mut idle = 0;
         for sweep in 0..SWEEPS {
             if fewest == 0 {
                 break;
@@ -610,21 +612,37 @@ pub fn layers(form: &GraphForm, same_rank: &[Vec<usize>]) -> Result<Layers, Unla
                 }
                 rows[r] = keyed.iter().map(|&(m, _, _)| m).collect();
             }
-            // Neighbours exchanged where that leaves fewer crossings, until none does.
+            // Neighbours exchanged where that leaves fewer crossings, until none does. Two
+            // neighbours on a layer cross one another's pieces and no others differently
+            // when they change places, so only their own pieces are counted.
+            let mut place = place_of(&rows);
             let mut improved = true;
             let mut rounds = 0;
             while improved && rounds < 2 * members.len() + 2 {
                 improved = false;
                 rounds += 1;
-                for r in 0..depth {
-                    for at in 0..rows[r].len().saturating_sub(1) {
-                        let before = local(&rows, &pieces, r, &place_of(&rows));
-                        rows[r].swap(at, at + 1);
-                        let after = local(&rows, &pieces, r, &place_of(&rows));
-                        if after < before {
+                for row in rows.iter_mut() {
+                    for at in 0..row.len().saturating_sub(1) {
+                        let (u, v) = (row[at], row[at + 1]);
+                        // With `u` before `v`: a neighbour of `u` after a neighbour of `v`
+                        // is a crossing; with `v` before `u`, the other way.
+                        let (mut as_it_is, mut exchanged) = (0usize, 0usize);
+                        for side in [&above, &below] {
+                            for &a in &side[u] {
+                                for &b in &side[v] {
+                                    if place[a] > place[b] {
+                                        as_it_is += 1;
+                                    } else if place[a] < place[b] {
+                                        exchanged += 1;
+                                    }
+                                }
+                            }
+                        }
+                        if exchanged < as_it_is {
+                            row.swap(at, at + 1);
+                            place[u] = at + 1;
+                            place[v] = at;
                             improved = true;
-                        } else {
-                            rows[r].swap(at, at + 1);
                         }
                     }
                 }
@@ -633,6 +651,13 @@ pub fn layers(form: &GraphForm, same_rank: &[Vec<usize>]) -> Result<Layers, Unla
             if now < fewest {
                 fewest = now;
                 best = rows.clone();
+                idle = 0;
+            } else {
+                idle += 1;
+                // Four sweeps that better nothing: this first order has given what it has.
+                if idle >= 4 {
+                    break;
+                }
             }
         }
     }
@@ -743,16 +768,4 @@ fn every_order(
         }
         chosen.pop();
     }
-}
-
-/// The crossings that touch layer `r`: those with the layer above and with the layer below.
-fn local(rows: &[Vec<usize>], pieces: &[Vec<(usize, usize)>], r: usize, place: &[usize]) -> usize {
-    let mut total = 0;
-    if r > 0 {
-        total += crossings_between(&pieces[r - 1], place, place);
-    }
-    if r + 1 < rows.len() {
-        total += crossings_between(&pieces[r], place, place);
-    }
-    total
 }

@@ -29,6 +29,7 @@ pub mod layout;
 mod mapping;
 pub mod marks;
 pub mod pdf;
+pub mod placed;
 pub mod png;
 pub mod raster;
 pub mod scale;
