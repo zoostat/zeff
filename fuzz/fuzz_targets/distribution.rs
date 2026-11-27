@@ -12,7 +12,7 @@ use zeff_engine::project::Project;
 use zeff_engine::run::run_script;
 
 /// Each family with the names of its parameters.
-const FAMILIES: [(&str, &[&str]); 12] = [
+const FAMILIES: [(&str, &[&str]); 14] = [
     ("normal", &["mean", "sd"]),
     ("lognormal", &["meanlog", "sdlog"]),
     ("uniform", &["min", "max"]),
@@ -25,6 +25,8 @@ const FAMILIES: [(&str, &[&str]); 12] = [
     ("binomial", &["n", "p"]),
     ("poisson", &["lambda"]),
     ("negbinomial", &["size", "p"]),
+    ("weibull", &["shape", "scale"]),
+    ("logistic", &["location", "scale"]),
 ];
 
 /// A number as a script writes it.

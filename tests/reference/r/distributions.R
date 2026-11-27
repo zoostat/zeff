@@ -120,6 +120,51 @@ mix_norm <- local({
 })
 families <- c(families, list(trunc_norm, trunc_t, trunc_pois, mix_norm))
 
+# The Weibull and the logistic (release 0.10.0, step 5), from dweibull, pweibull, qweibull and
+# dlogis, plogis, qlogis, appended so that the entries before them keep their places. Each has
+# everyday parameters and parameters of 1e7 and 1e12 beside them. A shape of 1e7 is given a scale
+# of 1e6 so that no point of the grid lies beyond the scale: there R's dweibull multiplies an
+# overflowed power by an underflowed exponential and gives NaN where the density is nought, and
+# the engine's tests hold that case to nought by itself.
+weibull_family <- function(shape, scale) {
+  family("weibull", list(shape = shape, scale = scale),
+         function(x) dweibull(x, shape, scale),
+         function(x, lower.tail = TRUE) pweibull(x, shape, scale, lower.tail = lower.tail),
+         function(p) qweibull(p, shape, scale))
+}
+logistic_family <- function(location, scale) {
+  family("logistic", list(location = location, scale = scale),
+         function(x) dlogis(x, location, scale),
+         function(x, lower.tail = TRUE) plogis(x, location, scale, lower.tail = lower.tail),
+         function(p) qlogis(p, location, scale))
+}
+trunc_weibull <- local({
+  a <- 0.5; b <- 4; Z <- pweibull(b, 1.5, 2) - pweibull(a, 1.5, 2)
+  composite("dist.truncated(dist.weibull(shape: 1.5, scale: 2), lower: 0.5, upper: 4)",
+    function(x) ifelse(x < a | x > b, 0, dweibull(x, 1.5, 2) / Z),
+    function(x) pmin(1, pmax(0, (pweibull(x, 1.5, 2) - pweibull(a, 1.5, 2)) / Z)),
+    function(x) pmin(1, pmax(0, (pweibull(x, 1.5, 2, lower.tail = FALSE) - pweibull(b, 1.5, 2, lower.tail = FALSE)) / Z)),
+    function(p) qweibull(pweibull(a, 1.5, 2) + p * Z, 1.5, 2))
+})
+mix_logistic_weibull <- local({
+  dmix <- function(x) 0.4 * dlogis(x) + 0.6 * dweibull(x, 2, 1)
+  pmix <- function(x) 0.4 * plogis(x) + 0.6 * pweibull(x, 2, 1)
+  smix <- function(x) 0.4 * plogis(x, lower.tail = FALSE) + 0.6 * pweibull(x, 2, 1, lower.tail = FALSE)
+  qmix <- function(p) vapply(p, function(pp) {
+    if (pp <= 0) return(-Inf)
+    if (pp >= 1) return(Inf)
+    uniroot(function(x) pmix(x) - pp, c(-800, 800), tol = 1e-14)$root
+  }, 0)
+  composite("dist.mixture([dist.logistic(), dist.weibull(shape: 2)], probs: [0.4, 0.6])", dmix, pmix, smix, qmix)
+})
+families <- c(families, list(
+  weibull_family(1.5, 1), weibull_family(0.5, 2), weibull_family(5, 100),
+  weibull_family(1e7, 1e6), weibull_family(2, 1e12),
+  logistic_family(0, 1), logistic_family(100, 15), logistic_family(-2.5, 0.01),
+  logistic_family(0, 1e7), logistic_family(1e12, 1e7),
+  trunc_weibull, mix_logistic_weibull
+))
+
 # A truncation near its bounds (release 0.8.0, step 20i). Close to a bound the formula above,
 # (F(x) - F(a)) / Z, subtracts two nearly equal numbers and keeps few digits, so the reference
 # takes the probability between two near points from the series of the integral of the density

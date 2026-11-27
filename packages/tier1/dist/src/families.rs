@@ -1,8 +1,9 @@
-//! The thirteen families' density, distribution function, quantile and draw (Engine and Project
+//! The fifteen families' density, distribution function, quantile and draw (Engine and Project
 //! Specification, section 13: tails computed directly; every draw by inverse CDF from the uniform
 //! stream, section 8.3, point 3). This release's families: normal, log-normal, uniform and
 //! exponential (step 7); the rest follow at steps 8 to 10. The thirteenth, the studentized range
-//! (release 0.7.0, step 18), is summed in `zeff_numeric::tukey`.
+//! (release 0.7.0, step 18), is summed in `zeff_numeric::tukey`; the Weibull and the logistic
+//! (release 0.10.0, step 5) have closed forms.
 
 use zeff_core::value::Distribution;
 use zeff_numeric::maths;
@@ -145,6 +146,38 @@ pub fn pdf(d: &Distribution, x: f64) -> f64 {
             } else {
                 special::beta_density(a, b, x)
             }
+        }
+        "weibull" => {
+            let (shape, scale) = (param(params, "shape"), param(params, "scale"));
+            if x < 0.0 {
+                return 0.0;
+            }
+            if x == 0.0 {
+                // The density at the origin is unbounded for a shape below one, 1 / scale at a
+                // shape of one (the exponential) and nought above it.
+                return if shape < 1.0 {
+                    f64::INFINITY
+                } else if shape == 1.0 {
+                    1.0 / scale
+                } else {
+                    0.0
+                };
+            }
+            // (k/λ) z^(k−1) e^(−z^k) with z = x/λ. Far out the survival e^(−z^k) is nought
+            // before the power in front of it overflows, and the density is nought with it.
+            let z = x / scale;
+            let survival = maths::exp(-zeff_numeric::pow(z, shape));
+            if survival == 0.0 {
+                return 0.0;
+            }
+            shape / scale * zeff_numeric::pow(z, shape - 1.0) * survival
+        }
+        "logistic" => {
+            let (location, scale) = (param(params, "location"), param(params, "scale"));
+            // e^(−|z|) / (s (1 + e^(−|z|))²): the density is even in z, and written on the
+            // side where the exponential is at most one it neither overflows nor loses digits.
+            let e = maths::exp(-((x - location) / scale).abs());
+            e / (scale * (1.0 + e) * (1.0 + e))
         }
         "binomial" => {
             let (n, p) = (param(params, "n"), param(params, "p"));
@@ -908,6 +941,38 @@ pub fn cdf(d: &Distribution, x: f64) -> Tails {
                 special::incomplete_beta(a, b, x)
             }
         }
+        "weibull" => {
+            let (shape, scale) = (param(params, "shape"), param(params, "scale"));
+            if x <= 0.0 {
+                exact(0.0)
+            } else {
+                // 1 − e^(−t) and e^(−t) with t = (x/λ)^k, each computed directly.
+                let t = zeff_numeric::pow(x / scale, shape);
+                Tails {
+                    lower: -maths::expm1(-t),
+                    upper: maths::exp(-t),
+                }
+            }
+        }
+        "logistic" => {
+            let (location, scale) = (param(params, "location"), param(params, "scale"));
+            // 1 / (1 + e^(−z)) and its complement, each from the exponential that is at most
+            // one, so that the small tail is a quotient and never one minus the large tail.
+            let z = (x - location) / scale;
+            let e = maths::exp(-z.abs());
+            let (small, large) = (e / (1.0 + e), 1.0 / (1.0 + e));
+            if z >= 0.0 {
+                Tails {
+                    lower: large,
+                    upper: small,
+                }
+            } else {
+                Tails {
+                    lower: small,
+                    upper: large,
+                }
+            }
+        }
         "binomial" => {
             let (n, p) = (param(params, "n"), param(params, "p"));
             let k = floor_whole(x);
@@ -1023,6 +1088,23 @@ pub fn quantile(d: &Distribution, p: f64) -> f64 {
         }
         "beta" => {
             special::incomplete_beta_inverse(param(params, "a"), param(params, "b"), p, false)
+        }
+        "weibull" => {
+            let (shape, scale) = (param(params, "shape"), param(params, "scale"));
+            // λ (−log(1 − p))^(1/k).
+            scale * zeff_numeric::pow(-maths::log1p(-p), 1.0 / shape)
+        }
+        "logistic" => {
+            let (location, scale) = (param(params, "location"), param(params, "scale"));
+            // The log-odds of p. Near one half the odds are near one and their logarithm would
+            // lose its leading digits; there the odds less one, (2p − 1) / (1 − p), is formed
+            // from a difference that is exact, and its `log1p` taken.
+            let log_odds = if (0.25..=0.75).contains(&p) {
+                maths::log1p((2.0 * p - 1.0) / (1.0 - p))
+            } else {
+                maths::log(p / (1.0 - p))
+            };
+            location + scale * log_odds
         }
         "binomial" => {
             let (n, q) = (param(params, "n"), param(params, "p"));

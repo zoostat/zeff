@@ -75,6 +75,8 @@ fn every_family_agrees_with_r_at_six_digits() {
             "binomial",
             "poisson",
             "negbinomial",
+            "weibull",
+            "logistic",
             "composite",
         ]
         .contains(&name)

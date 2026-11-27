@@ -150,8 +150,8 @@ replace 1:10-1:12, 2 offered
     n_rows | data.n_rows() | Number of rows
 ----
 > let z = dist.|
-replace 0:13-0:13, 15 offered
-  Function (15): beta binomial chi2 exponential f gamma lognormal mixture negbinomial normal poisson t truncated tukey uniform
+replace 0:13-0:13, 17 offered
+  Function (17): beta binomial chi2 exponential f gamma logistic lognormal mixture negbinomial normal poisson t truncated tukey uniform weibull
 ----
 > let z = dist.no|
 replace 0:13-0:15, 1 offered
@@ -281,9 +281,9 @@ in /work/demo/functions/clean.zeff
 >     let n = data.n_rows()
 >     d|
 > }
-replace 3:4-3:5, 33 offered
+replace 3:4-3:5, 35 offered
   Method (10): density derive describe design df distinct draw drop drop_missing duplicates
-  Function (22): dataset datasets date datetime day diff dist.beta dist.binomial dist.chi2 dist.exponential dist.f dist.gamma dist.lognormal dist.mixture dist.negbinomial dist.normal dist.poisson dist.t dist.truncated dist.tukey dist.uniform div
+  Function (24): dataset datasets date datetime day diff dist.beta dist.binomial dist.chi2 dist.exponential dist.f dist.gamma dist.logistic dist.lognormal dist.mixture dist.negbinomial dist.normal dist.poisson dist.t dist.truncated dist.tukey dist.uniform dist.weibull div
   Binding (1): data
 ----
 in /elsewhere/try.zeff

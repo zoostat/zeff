@@ -843,10 +843,40 @@ fn distribution_cases() -> Vec<Line> {
         let mut stream = Stream::new(20_261_019, 3, 0);
         tukey.push(families::draw(&d, &mut stream));
     }
+    // The Weibull and the logistic (release 0.10.0, step 5) in a series of their own, so that
+    // the series published before them keep their digests: on the same grids, at everyday
+    // parameters and at 1e7 and 1e12, with the first draws of each.
+    let mut later = Vec::new();
+    let later_families: [(&'static str, &[(&'static str, f64)]); 8] = [
+        ("weibull", &[("shape", 1.5), ("scale", 1.0)]),
+        ("weibull", &[("shape", 0.5), ("scale", 2.0)]),
+        ("weibull", &[("shape", 1e7), ("scale", 1e6)]),
+        ("weibull", &[("shape", 2.0), ("scale", 1e12)]),
+        ("logistic", &[("location", 0.0), ("scale", 1.0)]),
+        ("logistic", &[("location", 100.0), ("scale", 15.0)]),
+        ("logistic", &[("location", -2.5), ("scale", 0.01)]),
+        ("logistic", &[("location", 1e12), ("scale", 1e7)]),
+    ];
+    for (name, params) in later_families {
+        let d = Distribution::Family {
+            name,
+            params: params.to_vec(),
+        };
+        for &x in &xs {
+            let tails = families::cdf(&d, x);
+            later.extend([families::pdf(&d, x), tails.lower, tails.upper]);
+        }
+        for &p in &ps {
+            later.push(families::quantile(&d, p));
+        }
+        let mut stream = Stream::new(20_261_019, 4, 0);
+        later.extend((0..8).map(|_| families::draw(&d, &mut stream)));
+    }
     vec![
         series("dist/values", &values),
         series("dist/draws", &draws),
         series("dist/tukey", &tukey),
+        series("dist/weibull_logistic", &later),
     ]
 }
 

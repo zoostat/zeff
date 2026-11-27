@@ -1,0 +1,119 @@
+---
+source: packages/tier1/dist/tests/weibull_logistic.rs
+expression: all
+---
+error[Z0406]: `dist.weibull` needs `shape`
+ --> scripts/main.zeff:1:6
+  |
+1 | dist.weibull()
+  |      ^^^^^^^ `shape` is missing
+  |
+  = help: usage: `dist.weibull(shape, scale: Float = 1)`
+
+error[Z0413]: `shape` of `dist.weibull` must be a positive number, but this is 0
+ --> scripts/main.zeff:1:21
+  |
+1 | dist.weibull(shape: 0)
+  |                     ^ outside the parameter's domain
+  |
+  = help: `zeff help dist.weibull` gives the domain of every parameter
+
+error[Z0413]: `shape` of `dist.weibull` must be a positive number, but this is -2
+ --> scripts/main.zeff:1:21
+  |
+1 | dist.weibull(shape: -2)
+  |                     ^^ outside the parameter's domain
+  |
+  = help: `zeff help dist.weibull` gives the domain of every parameter
+
+error[Z0413]: `shape` of `dist.weibull` must be a positive number, but this is NA
+ --> scripts/main.zeff:1:21
+  |
+1 | dist.weibull(shape: NA)
+  |                     ^^ outside the parameter's domain
+  |
+  = help: `zeff help dist.weibull` gives the domain of every parameter
+
+error[Z0413]: `scale` of `dist.weibull` must be a positive number, but this is 0
+ --> scripts/main.zeff:1:31
+  |
+1 | dist.weibull(shape: 2, scale: 0)
+  |                               ^ outside the parameter's domain
+  |
+  = help: `zeff help dist.weibull` gives the domain of every parameter
+
+error[Z0413]: `scale` of `dist.weibull` must be a positive number, but this is Inf
+ --> scripts/main.zeff:1:31
+  |
+1 | dist.weibull(shape: 2, scale: Inf)
+  |                               ^^^ outside the parameter's domain
+  |
+  = help: `zeff help dist.weibull` gives the domain of every parameter
+
+error[Z0404]: `dist.weibull` has no argument called `rate`
+ --> scripts/main.zeff:1:24
+  |
+1 | dist.weibull(shape: 2, rate: 0.5)
+  |                        ^^^^ unknown argument
+  |
+  = help: usage: `dist.weibull(shape, scale: Float = 1)`
+
+error[Z0401]: `shape` of `dist.weibull` must be a Float, but this is a Str
+ --> scripts/main.zeff:1:21
+  |
+1 | dist.weibull(shape: "two")
+  |                     ^^^^^ a Str
+  |
+  = help: usage: `dist.weibull(shape, scale: Float = 1)`
+
+error[Z0413]: `scale` of `dist.logistic` must be a positive number, but this is 0
+ --> scripts/main.zeff:1:22
+  |
+1 | dist.logistic(scale: 0)
+  |                      ^ outside the parameter's domain
+  |
+  = help: `zeff help dist.logistic` gives the domain of every parameter
+
+error[Z0413]: `scale` of `dist.logistic` must be a positive number, but this is -1
+ --> scripts/main.zeff:1:22
+  |
+1 | dist.logistic(scale: -1)
+  |                      ^^ outside the parameter's domain
+  |
+  = help: `zeff help dist.logistic` gives the domain of every parameter
+
+error[Z0413]: `location` of `dist.logistic` must be a finite number, but this is Inf
+ --> scripts/main.zeff:1:25
+  |
+1 | dist.logistic(location: Inf)
+  |                         ^^^ outside the parameter's domain
+  |
+  = help: `zeff help dist.logistic` gives the domain of every parameter
+
+error[Z0413]: `location` of `dist.logistic` must be a finite number, but this is NA
+ --> scripts/main.zeff:1:25
+  |
+1 | dist.logistic(location: NA)
+  |                         ^^ outside the parameter's domain
+  |
+  = help: `zeff help dist.logistic` gives the domain of every parameter
+
+error[Z0404]: `dist.logistic` has no argument called `mean`
+ --> scripts/main.zeff:1:15
+  |
+1 | dist.logistic(mean: 0, sd: 1)
+  |               ^^^^ unknown argument
+  |
+  = help: usage: `dist.logistic(location: Float = 0, scale: Float = 1)`
+
+error[Z0413]: `p` of `quantile` must be a probability between 0 and 1, but this is 1.5
+ --> scripts/main.zeff:1:33
+  |
+1 | dist.weibull(shape: 2).quantile(1.5)
+  |                                 ^^^ not a probability
+
+error[Z0413]: `p` of `quantile` must be a probability between 0 and 1, but this is -0.1
+ --> scripts/main.zeff:1:26
+  |
+1 | dist.logistic().quantile(-0.1)
+  |                          ^^^^ not a probability

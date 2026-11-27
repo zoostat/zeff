@@ -328,6 +328,42 @@ pub fn beta(ctx: &mut CallContext<'_>, args: Args) -> Result<Value, Fail> {
     family(ctx, "beta", &BETA, &args)
 }
 
+const WEIBULL: [Param; 2] = [
+    Param {
+        name: "shape",
+        default: f64::NAN,
+        rule: Rule::Positive,
+    },
+    Param {
+        name: "scale",
+        default: 1.0,
+        rule: Rule::Positive,
+    },
+];
+
+/// `dist.weibull(shape: Float, scale: Float = 1)`.
+pub fn weibull(ctx: &mut CallContext<'_>, args: Args) -> Result<Value, Fail> {
+    family(ctx, "weibull", &WEIBULL, &args)
+}
+
+const LOGISTIC: [Param; 2] = [
+    Param {
+        name: "location",
+        default: 0.0,
+        rule: Rule::Any,
+    },
+    Param {
+        name: "scale",
+        default: 1.0,
+        rule: Rule::Positive,
+    },
+];
+
+/// `dist.logistic(location: Float = 0, scale: Float = 1)`.
+pub fn logistic(ctx: &mut CallContext<'_>, args: Args) -> Result<Value, Fail> {
+    family(ctx, "logistic", &LOGISTIC, &args)
+}
+
 const BINOMIAL: [Param; 2] = [
     Param {
         name: "n",
@@ -839,6 +875,26 @@ pub fn functions() -> Vec<Function> {
             include_str!("../help/dist.beta.md"),
             "R 4.6.0 dbeta, pbeta, qbeta and the exact decimal reference of the kernel",
             beta,
+        ),
+        constructor(
+            "dist.weibull",
+            vec![
+                ParamSpec::required("shape", "Float"),
+                ParamSpec::option_with_default("scale", "Float", "1"),
+            ],
+            include_str!("../help/dist.weibull.md"),
+            "R 4.6.0 dweibull, pweibull, qweibull",
+            weibull,
+        ),
+        constructor(
+            "dist.logistic",
+            vec![
+                ParamSpec::option_with_default("location", "Float", "0"),
+                ParamSpec::option_with_default("scale", "Float", "1"),
+            ],
+            include_str!("../help/dist.logistic.md"),
+            "R 4.6.0 dlogis, plogis, qlogis",
+            logistic,
         ),
         constructor(
             "dist.binomial",

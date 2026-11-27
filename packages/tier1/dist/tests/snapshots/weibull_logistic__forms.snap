@@ -1,0 +1,58 @@
+---
+source: packages/tier1/dist/tests/weibull_logistic.rs
+expression: "format!(\"{stdout}{stderr}\")"
+---
+weibull distribution · shape: 1.5, scale: 1
+weibull distribution · shape: 2, scale: 0.5
+logistic distribution · location: 0, scale: 1
+logistic distribution · location: 100, scale: 15
+0
+0
+1
+0
+0
+0
+Inf
+Inf
+0.25
+1
+0
+-Inf
+0
+Inf
+0
+1
+0
+NA
+NA
+NA
+NA
+NA
+Column<Float> · 4 values
+4.24496
+0.489918
+1.29743
+0.657511
+true
+Column<Float> · 3 values
+3.04571
+-2.04876
+-0.376545
+frame · 4 rows × 3 variables
+
+        x          f           g
+  1   0.5   0.117503    0.235004
+  2     1   0.297811    0.196612
+  3    NA         NA          NA
+  4     4   0.940894   0.0176627
+weibull distribution · shape: 1.5, scale: 2 · truncated to [0.5, 4]
+0
+0
+1
+1.65583
+0.218983
+mixture · 0.4 × (logistic distribution · location: 0, scale: 1) + 0.6 × (weibull distribution · shape: 2, scale: 1)
+0.561282
+0.381703
+0.700498
+Distribution

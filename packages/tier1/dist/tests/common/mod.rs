@@ -1,4 +1,4 @@
-//! The fourteen distributions of the stochastic class with their exact mean and variance, shared by
+//! The sixteen distributions of the stochastic class with their exact mean and variance, shared by
 //! the quick recovery test and the nightly one.
 
 use zeff_core::value::Distribution;
@@ -95,5 +95,29 @@ pub fn recovery_cases() -> Vec<(String, Distribution, f64, f64)> {
                 .enumerate()
                 .map(|(i, (d, m, v))| (format!("composite {i}"), d, m, v)),
         )
+        // The Weibull and the logistic (release 0.10.0, step 5), after every case that was here
+        // before them, so that each of those keeps its place and with it its stream of draws.
+        // Weibull(k = 1.5, λ = 2): mean λ Γ(1 + 1/k), variance λ² (Γ(1 + 2/k) − Γ(1 + 1/k)²),
+        // from R's `gamma` at 17 digits. Logistic(μ = 1, s = 2): mean μ, variance s² π² / 3.
+        .chain([
+            (
+                "weibull".to_string(),
+                Distribution::Family {
+                    name: "weibull",
+                    params: vec![("shape", 1.5), ("scale", 2.0)],
+                },
+                1.805_490_585_901_867_3,
+                1.502_761_139_255_727,
+            ),
+            (
+                "logistic".to_string(),
+                Distribution::Family {
+                    name: "logistic",
+                    params: vec![("location", 1.0), ("scale", 2.0)],
+                },
+                1.0,
+                4.0 * std::f64::consts::PI * std::f64::consts::PI / 3.0,
+            ),
+        ])
         .collect()
 }
