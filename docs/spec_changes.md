@@ -1100,3 +1100,7 @@ The owner ruled on #237: "Go with A". The entry is marked decided: `on:` with a 
 ## 27 November 2026 — zeff_open_decisions.md, new entry #238
 
 The owner asked for Zeff's counterparts of R's `mapply`, `Recall` and `Vectorize`; each was run on the engine. Shown that `with:` of `map` (#233) takes one further list only, and that a calculation column operations cannot express has no way to run once per row, he said "Yes, record them". #238 is entered, open: `with:` taking a record of lists, and `map` over a column giving a column, recommended at 0.12.0 beside #233. Deadline: the opening of 0.12.0. No normative text is changed.
+
+## 27 November 2026 — zeff_open_decisions.md, #238 (the owner's ruling)
+
+The owner ruled on #238: "Go with A". The entry is marked decided: `with:` of `map` taking a record of lists, and `map` over a column giving a column, at 0.12.0 beside #233; the catalogue's row to be amended at the opening of 0.12.0. No normative text is changed.
