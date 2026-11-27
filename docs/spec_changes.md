@@ -1092,3 +1092,7 @@ The owner ruled on #236: "Go with A". The entry is marked decided: `each:` of `a
 ## 27 November 2026 — zeff_open_decisions.md, new entry #237
 
 The owner asked for Zeff's counterparts of R's `aggregate`, `merge` and `reshape`; each was run on the engine. Shown that `merge` cannot join keys of different names nor match on the nearest date or within a range, and that five reshape and merge gaps of #99 stand after 1.0, he said "Yes, record them". #237 is entered, open: `on:` taking a mapping of key names, `nearest:` and `between:` of `merge`, and, amending #99's ruling on question 3 for those five items alone, several stubs and value columns in `to_long` and `to_wide`, `indicator:`, `join: right` and `relation: many_to_many`, recommended at 0.12.0 beside #233 to #236. Deadline: the opening of 0.12.0. No normative text is changed.
+
+## 27 November 2026 — zeff_open_decisions.md, #237 (the owner's ruling) and #99
+
+The owner ruled on #237: "Go with A". The entry is marked decided: `on:` with a mapping of key names, `nearest:` and `between:` of `merge`, several stubs and value columns in `to_long` and `to_wide`, `indicator:`, `join: right` and `relation: many_to_many`, all at 0.12.0 beside #233 to #236; the catalogue's rows to be amended at the opening of 0.12.0. #99 gains a dated paragraph, and its row a clause, saying that these five items of its section 3 leave its ruling on question 3, which otherwise stands. No normative text is changed.
