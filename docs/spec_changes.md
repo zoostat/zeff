@@ -1034,3 +1034,7 @@ The risk register gains its review at 0.9.0: no rating is changed; the impact of
 ## 27 November 2026 — zeff_open_decisions.md, new entry #231
 
 The owner asked for the rules of the project folder, their loopholes and remedies, and that the loopholes be recorded ("Yes, record them"). #231 is entered, open, with fifteen loopholes (six of them tried and seen on the engine of 0.9.0: raw data overwritten, writes into the engine's folders, reads of earlier runs, files a replication package leaves out, a data root that is the whole disk, a read-only root inside the project), recommending option A, deadline 0.11.0. No normative text changed.
+
+## 27 November 2026 — zeff_open_decisions.md, #231 (L16 to L18 added)
+
+The owner asked whether Zeff loads or saves projects from GitHub or Dropbox, and what it does with a folder chosen from the computer; shown three gaps, he said "Yes, add them". #231 gains L16 (no way to make an existing folder a project: `zeff new` refuses an existing folder, and the Zemp Specification does not say what **Open folder…** does with a folder without `zeff.toml`), L17 (a project inside another, which `zeff new` allowed on the engine of 0.9.0) and L18 (a project in a synced folder: the cache synced, a lock from another machine, files kept online only, conflicted copies). Option A becomes eighteen remedies at 0.11.0, with **Open folder…** of Zemp Lite 0.5, and the owner's choices gain one: what **Open folder…** offers for a folder without `zeff.toml`. The entry stays open. No normative text is changed.
