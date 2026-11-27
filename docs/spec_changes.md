@@ -1068,3 +1068,7 @@ The owner ruled on #233: "Go with A, names as recommended". The entry is marked 
 ## 27 November 2026 — `merge(join: semi | anti)` in the catalogue, the Language Reference and the help examples (release 0.10.0, step 7)
 
 Applies open decision #88 (decided 7 November 2026), which placed the two words at 0.10.0. zeff_functions.csv, row 115: the usage reads `join: left | inner | full | semi | anti = left`, the description says what the two keep, and the note that they were to come is replaced by the note that they came. zeff_language_reference.md, section 6, the row "Combine": a sentence that the two joins keep the left frame's rows that have, or lack, a match, each once, add no column, and refuse `suffixes:` (Z0410, a code of section 11 used as it stands). zeff_help_examples.md, the example page of `merge`: the usage, the argument `join:` and one example. No rule that stood is changed.
+
+## 27 November 2026 — zeff_open_decisions.md, new entry #234
+
+Raised at step 4 of release 0.10.0: Atkinson Hyperlegible Next, the face #222 gives the labels and titles of figures, has four letters of the Greek alphabet, no arrow, no Cyrillic and few superscripts, where IBM Plex Sans has them all, and the engine draws a character its face lacks as an empty box. #234 is entered, open, with four options and a recommendation (the missing letters taken from JetBrains Mono, letter by letter), for the owner to decide; step 4 waits on it. No normative text is changed, and the faces of figures are as they were.
