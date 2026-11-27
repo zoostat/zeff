@@ -2052,6 +2052,7 @@ fn panel_cases() -> Vec<Line> {
         text("identify/dag/stderr", &graph_outcome.output.stderr),
         text("identify/dag_refused/stderr", &graph_refused),
         text("plot/graph_form", &graph_forms()),
+        text("plot/layers", &graph_layers()),
         text("identify/kernel", &graph_kernel()),
         text(
             "identify/independencies/stdout",
@@ -3669,6 +3670,145 @@ fn graph_forms() -> String {
         match form.to_dag() {
             Ok(back) => out.push_str(&format!("{back}\nthe same graph: {}\n", back == dag)),
             Err(fault) => out.push_str(&format!("{fault:?}\n")),
+        }
+    }
+    out
+}
+
+/// The layers of a diagram and the order within them (release 0.10.0, step 20): for six
+/// graphs of causes, the layer of each node and each layer's members in order, a bend by the
+/// edge it belongs to, with the crossings left; and the same with two nodes asked to share a
+/// layer. The four targets must agree to the character.
+fn graph_layers() -> String {
+    use zeff_core::dag::{Dag, Edge, Link};
+    use zeff_plot::graph::GraphForm;
+    use zeff_plot::layered::{Slot, layers};
+    type Described = (
+        &'static str,
+        &'static [&'static str],
+        &'static [(usize, usize, Link)],
+        &'static [usize],
+    );
+    const D: Link = Link::Directed;
+    let graphs: [Described; 6] = [
+        (
+            "training",
+            &[
+                "ability",
+                "training",
+                "productivity",
+                "tenure",
+                "age",
+                "region",
+            ],
+            &[
+                (0, 1, D),
+                (1, 2, D),
+                (0, 2, D),
+                (1, 3, D),
+                (3, 2, D),
+                (4, 1, D),
+                (5, 1, D),
+            ],
+            &[],
+        ),
+        (
+            "earnings",
+            &[
+                "female", "ability", "educ", "exper", "union", "lwage", "age",
+            ],
+            &[
+                (0, 2, D),
+                (1, 2, D),
+                (0, 5, D),
+                (2, 5, D),
+                (3, 5, D),
+                (4, 5, D),
+                (1, 5, D),
+                (0, 4, D),
+                (6, 3, D),
+                (2, 3, D),
+            ],
+            &[],
+        ),
+        (
+            "butterfly",
+            &["x", "y", "a", "b", "m"],
+            &[
+                (0, 1, D),
+                (2, 0, D),
+                (2, 4, D),
+                (3, 4, D),
+                (3, 1, D),
+                (4, 0, D),
+                (4, 1, D),
+            ],
+            &[],
+        ),
+        (
+            "front door",
+            &["x", "m", "y", "note"],
+            &[
+                (0, 1, D),
+                (1, 2, D),
+                (0, 2, Link::Bidirected),
+                (3, 0, Link::Undirected),
+            ],
+            &[],
+        ),
+        (
+            "long edges",
+            &["a", "b", "c", "d", "e"],
+            &[
+                (0, 1, D),
+                (1, 2, D),
+                (2, 3, D),
+                (3, 4, D),
+                (0, 4, D),
+                (0, 3, D),
+                (1, 4, D),
+            ],
+            &[],
+        ),
+        (
+            "same rank",
+            &["z", "a", "b", "x", "y"],
+            &[(0, 1, D), (1, 2, D), (2, 3, D), (0, 4, D)],
+            &[3, 4],
+        ),
+    ];
+    let mut out = String::new();
+    for (name, names, edges, together) in graphs {
+        let dag = Dag::new(
+            names.iter().map(|n| (*n).to_string()).collect(),
+            edges
+                .iter()
+                .map(|&(from, to, link)| Edge { from, to, link })
+                .collect(),
+            Vec::new(),
+            Vec::new(),
+        );
+        let form = GraphForm::of_dag(&dag);
+        let sets: Vec<Vec<usize>> = if together.is_empty() {
+            Vec::new()
+        } else {
+            vec![together.to_vec()]
+        };
+        match layers(&form, &sets) {
+            Ok(laid) => {
+                out.push_str(&format!("{name}: {} crossings\n", laid.crossings));
+                for (layer, row) in laid.rows.iter().enumerate() {
+                    let members: Vec<String> = row
+                        .iter()
+                        .map(|slot| match slot {
+                            Slot::Node(v) => form.nodes[*v].id.clone(),
+                            Slot::Bend(e) => format!("({})", form.edge_name(*e)),
+                        })
+                        .collect();
+                    out.push_str(&format!("  {layer}: {}\n", members.join(" ")));
+                }
+            }
+            Err(why) => out.push_str(&format!("{name}: {why:?}\n")),
         }
     }
     out

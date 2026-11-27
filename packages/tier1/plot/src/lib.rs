@@ -24,6 +24,7 @@ pub mod font;
 pub mod grammar;
 pub mod graph;
 pub mod json;
+pub mod layered;
 pub mod layout;
 mod mapping;
 pub mod marks;

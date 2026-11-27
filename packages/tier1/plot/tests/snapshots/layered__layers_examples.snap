@@ -1,0 +1,32 @@
+---
+source: packages/tier1/plot/tests/layered.rs
+expression: all
+---
+training: 0 crossings
+  ability age region | (ability~productivity) training | (ability~productivity) tenure (training~productivity) | productivity
+chain: 0 crossings
+  x | m | y
+fork: 0 crossings
+  z | x (z~y) | y
+collider: 0 crossings
+  x | (x~c) y | c
+m: 0 crossings
+  a b | x m (b~y) | y
+butterfly: 0 crossings
+  a b | (a~x) m (b~y) | x (m~y) (b~y) | y
+instrument: 0 crossings
+  u z | (u~y) x | y
+front door: 0 crossings
+  x | m (x~y) | y
+earnings: 0 crossings
+  ability female | (ability~lwage) age educ union (female~lwage) | (ability~lwage) exper (educ~lwage) (union~lwage) (female~lwage) | lwage
+long edges: 0 crossings
+  a | b (a~d) (a~e) | (b~e) c (a~d) (a~e) | (b~e) d (a~e) | e
+two parts: 0 crossings
+  a alone p | b q | c
+needs a crossing: 9 crossings
+  a b c | x y z
+empty: 0 crossings
+  
+one: 0 crossings
+  only

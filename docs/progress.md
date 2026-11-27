@@ -108,7 +108,11 @@ Step 18 `[engine]` (28 November 2026): `g.implied_independencies(data:, adjust:,
 
 Step 19 `[engine]` (28 November 2026): one graph form under every diagram (#191). `plot::graph::GraphForm` holds nodes, edges, groups and ports, each with a stable element name (`node:tenure`, `edge:training->tenure`); a `Dag` lowers to it and comes back with nothing lost; the scene keeps it as its section `graph`, and a scene that has it is version 2, a plot of data staying version 1 to the byte. Section 7.6 gained its paragraph. Nothing is drawn yet: the layout is steps 20 and 21, `g.plot()` step 22.
 
-**Next.** Step 20 `[engine]`: the layered layout, layers and order.
+Step 20 `[engine]` (28 November 2026): the layered layout, layers and order (`plot::layered`). The layers that make the arrows shortest, by the network simplex, with `same_rank:`; a bend on each layer a long edge passes; the order within the layers by median sweeps from four first orders, and every order tried on a small diagram that still has a crossing. The layers are held to the least length and the order to the fewest crossings, each found in the tests by trying everything; the same diagram written in another order has the same layout.
+
+**Next.** Step 21 `[engine]`: the layered layout, coordinates, edges and labels.
+
+**For the owner, from step 20.** Ties in the layout are broken by the names of the nodes, not by the order of the lines in the script (the words of #121, D4), so that one graph written two ways is drawn one way.
 
 **For the owner, from step 18.** #251 is yours to overturn, three statistical choices, each taken as recommended: the p values are adjusted by Holm's method unless `adjust:` says otherwise, the unadjusted one printed beside; the test is the t test with Fisher's interval, as R's `cor.test`; a category of more than two levels as one of the two variables is not tested.
 
