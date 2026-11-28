@@ -2,5 +2,4 @@
 source: crates/zeff-engine/tests/script_tests.rs
 expression: all
 ---
-error[Z0401]: `plot` cannot be called on a Dag
- --> zeff_samples.zeff:224:1
+

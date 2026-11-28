@@ -2545,6 +2545,7 @@ dependencies = [
  "zeff-dist",
  "zeff-kernels",
  "zeff-numeric",
+ "zeff-plot",
  "zeff-registry",
  "zeff-regress",
  "zeff-stats",

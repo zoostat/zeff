@@ -118,6 +118,31 @@ pub struct Plot {
     /// `qq_plot`): a note about the rows left out names the variables the script wrote, not
     /// these (release 0.8.0, step 8o). Empty for a plot the script built itself.
     pub made: Vec<String>,
+    /// The diagram the plot draws in place of marks (`g.plot()`, section 7.3; release
+    /// 0.10.0, step 22b); `None` for a plot of data. Such a plot has no layer, no scale and
+    /// no axis, and its frame is empty.
+    pub diagram: Option<Rc<Diagram>>,
+}
+
+/// A diagram as a plot holds it (Language Reference, sections 7.3 and 7.6, "Diagrams"): a
+/// causal graph, the parts two of its nodes play in the question the figure is drawn for,
+/// and how the script asks for it to be placed. The nodes are named by their places in the
+/// graph. The `plot` package lowers it to the graph form every diagram is laid out from.
+#[derive(Debug, Clone, PartialEq)]
+pub struct Diagram {
+    pub dag: Rc<crate::dag::Dag>,
+    pub exposure: Option<usize>,
+    pub outcome: Option<usize>,
+    /// Whether the layers follow one another to the right; down the page otherwise.
+    pub right: bool,
+    /// Sets of nodes kept on one layer.
+    pub same_rank: Vec<Vec<usize>>,
+    /// The room between two layers and between two neighbours on a layer, in millimetres,
+    /// where the script gives them.
+    pub spacing: Option<(f64, f64)>,
+    /// The column and the row of each node on a grid, counted from 0, where the script
+    /// places the nodes itself.
+    pub at: Option<Vec<(f64, f64)>>,
 }
 
 /// The words of the script for a plot: its title, subtitle and caption, and the titles of

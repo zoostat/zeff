@@ -84,6 +84,7 @@ fn axis(
     let Some(Value::Plot(plot)) = args.get(P) else {
         return Err(internal(ctx, "a scale reached its body without a plot"));
     };
+    crate::diagram::marks_refused(ctx, plot)?;
     let plot: Rc<Plot> = plot.clone();
     let name = aesthetic.name();
     let kind = match args.get(KIND) {
@@ -461,6 +462,7 @@ pub fn scale(ctx: &mut CallContext<'_>, args: Args) -> Result<Value, Fail> {
     let Some(Value::Plot(plot)) = args.get(P) else {
         return Err(internal(ctx, "a scale reached its body without a plot"));
     };
+    crate::diagram::marks_refused(ctx, plot)?;
     let plot: Rc<Plot> = plot.clone();
     let mut next = (*plot).clone();
     let mut said: Vec<(usize, Aesthetic)> = Vec::new();
@@ -686,6 +688,7 @@ pub fn legend(ctx: &mut CallContext<'_>, args: Args) -> Result<Value, Fail> {
     let Some(Value::Plot(plot)) = args.get(P) else {
         return Err(internal(ctx, "a legend reached its body without a plot"));
     };
+    crate::diagram::marks_refused(ctx, plot)?;
     let place = match args.get(L_POSITION) {
         None | Some(Value::Na) => LegendPlace::Right,
         Some(Value::Word(word)) => match word.as_str() {
@@ -860,6 +863,7 @@ pub fn coord(ctx: &mut CallContext<'_>, args: Args) -> Result<Value, Fail> {
             "coordinates reached their body without a plot",
         ));
     };
+    crate::diagram::marks_refused(ctx, plot)?;
     // `ratio:` belongs to `fixed`: how many units of `x` are as long as one unit of `y`.
     let ratio = match args.get(C_RATIO) {
         None | Some(Value::Na) => None,
@@ -934,6 +938,7 @@ pub fn facet(ctx: &mut CallContext<'_>, args: Args) -> Result<Value, Fail> {
     let Some(Value::Plot(plot)) = args.get(P) else {
         return Err(internal(ctx, "facets reached their body without a plot"));
     };
+    crate::diagram::marks_refused(ctx, plot)?;
     let plot: Rc<Plot> = plot.clone();
     // The variable of the rows of a grid, and that of its columns.
     let mut grid: [Option<String>; 2] = [None, None];

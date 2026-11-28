@@ -1927,6 +1927,47 @@ fn panel_cases() -> Vec<Line> {
         );
         on_data_refused.push('\n');
     }
+    // A causal graph drawn (release 0.10.0, step 22b): what the plot of a graph prints with
+    // each of its options; the figure of the graph of section 7.3 in the three formats, with
+    // a title, to the right and in the slide theme; a graph placed on a grid and the same by
+    // name; a graph with every kind of edge, a selected node and a name in backticks.
+    let drawn = "let g = dag {\n    ability -> training -> productivity\n    ability -> productivity\n    training -> tenure -> productivity\n    [age, region] -> training\n    latent ability\n}\nlet p = g.plot(exposure: training, outcome: productivity)\np\ng.plot()\ng.plot(direction: right, spacing: [14, 5])\ng.plot(same_rank: [[ability, age, region]])\np.export(\"output/dag.svg\")\np.export(\"output/dag.pdf\", size: one_column)\np.export(\"output/dag.png\")\np.labels(title: \"What is assumed of training\", caption: \"Ability is not observed.\").export(\"output/dag_titled.svg\")\ng.plot(direction: right, outcome: productivity).theme(slide).export(\"output/dag_right.svg\", size: slide)\nlet f = dag {\n    x -> m -> y\n    u -> [x, y]\n    latent u\n}\nf.plot(layout: [\". u .\", \"x m y\"], exposure: x, outcome: y)\nf.plot(layout: [\". u .\", \"x m y\"]).export(\"output/grid.svg\", size: [70, 45])\nf.plot(at: {u: [1, 0], x: [0, 1], m: [1, 1], y: [2, 1]}).export(\"output/named.svg\", size: [70, 45])\nlet k = dag {\n    price <-> demand\n    demand -- season\n    `ad spend` -> demand\n    demand -> listed\n    selected listed\n    latent taste\n}\nk.plot(outcome: demand)\nk.plot(outcome: demand).export(\"output/kinds.svg\")\ndag { }.plot()\n";
+    let drawn_outcome = run_script(&fs, &project, "scripts/main.zeff", drawn);
+    let mut drawn_files: Vec<u8> = Vec::new();
+    for name in [
+        "dag.svg",
+        "dag.pdf",
+        "dag.png",
+        "dag_titled.svg",
+        "dag_right.svg",
+        "grid.svg",
+        "named.svg",
+        "kinds.svg",
+    ] {
+        // The project of these cases is `/n`. A figure that was not written is said to be
+        // so in the bytes, so that the digest cannot pass for that of the figures.
+        drawn_files.extend(
+            zeff_engine::fs::FileSystem::read(&fs, Path::new(&format!("/n/output/{name}")))
+                .unwrap_or_else(|_| b"not written".to_vec()),
+        );
+        drawn_files.extend_from_slice(name.as_bytes());
+    }
+    let mut drawn_refused = String::new();
+    for script in [
+        "dag { x -> y }.plot(exposure: z)\n",
+        "dag { x -> m -> y }.plot(layout: [\"x . y\"])\n",
+        "dag { x -> m -> y }.plot(at: {x: [0, 0], m: [0, 0], y: [1, 0]})\n",
+        "dag { x -> m -> y }.plot(same_rank: [[x, y]])\n",
+        "dag { x -> m -> y }.plot(spacing: [10, 0])\n",
+        "dag { x -> m -> y }.plot().points()\n",
+    ] {
+        drawn_refused.push_str(
+            &run_script(&fs, &project, "scripts/main.zeff", script)
+                .output
+                .stderr,
+        );
+        drawn_refused.push('\n');
+    }
     let mut graph_refused = String::new();
     for script in [
         "let g = dag {\n    price -> demand\n    demand -> price\n}\n",
@@ -2112,6 +2153,10 @@ fn panel_cases() -> Vec<Line> {
             "identify/independencies_tested_refused/stderr",
             &on_data_refused,
         ),
+        text("identify/plot/stdout", &drawn_outcome.output.stdout),
+        text("identify/plot/stderr", &drawn_outcome.output.stderr),
+        bytes("identify/plot/figures", &drawn_files),
+        text("identify/plot_refused/stderr", &drawn_refused),
         text("tests/fields/stdout", &fields_outcome.output.stdout),
         text("tests/fields/stderr", &fields_outcome.output.stderr),
         text("tests/shapiro/stdout", &normality_outcome.output.stdout),

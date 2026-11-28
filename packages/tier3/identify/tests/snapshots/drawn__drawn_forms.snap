@@ -1,0 +1,99 @@
+---
+source: packages/tier3/identify/tests/drawn.rs
+expression: "format!(\"{stdout}---\\n{stderr}\")"
+---
+plot · causal graph · 6 nodes, 7 edges
+
+  node           kind
+  ability        latent
+  training       observed
+  productivity   observed
+  tenure         observed
+  age            observed
+  region         observed
+
+placed in layers, down the page
+plot · causal graph · 6 nodes, 7 edges
+
+  node           kind       part
+  ability        latent
+  training       observed   exposure
+  productivity   observed   outcome
+  tenure         observed
+  age            observed
+  region         observed
+
+placed in layers, down the page
+plot · causal graph · 6 nodes, 7 edges
+
+  node           kind       part
+  ability        latent
+  training       observed
+  productivity   observed   outcome
+  tenure         observed
+  age            observed
+  region         observed
+
+placed in layers, to the right
+plot · causal graph · 6 nodes, 7 edges
+
+  node           kind
+  ability        latent
+  training       observed
+  productivity   observed
+  tenure         observed
+  age            observed
+  region         observed
+
+placed in layers, down the page
+on one layer: ability, age, region
+plot · causal graph · 6 nodes, 7 edges
+
+  node           kind
+  ability        latent
+  training       observed
+  productivity   observed
+  tenure         observed
+  age            observed
+  region         observed
+
+placed in layers, down the page
+12 mm between layers, 6.5 mm between neighbours
+plot · causal graph · 4 nodes, 4 edges
+
+  node   kind       part
+  x      observed   exposure
+  m      observed
+  y      observed   outcome
+  u      latent
+
+placed by the script, each node on its place of a grid
+plot · causal graph · 4 nodes, 4 edges
+
+  node   kind
+  x      observed
+  m      observed
+  y      observed
+  u      latent
+
+placed by the script, each node on its place of a grid
+10 mm between layers, 4 mm between neighbours
+plot · causal graph · 2 nodes, 1 edge
+
+  node          kind
+  gross sales   observed
+  profit        observed
+
+placed by the script, each node on its place of a grid
+plot · causal graph · 1 node, 0 edges
+
+  node   kind
+  a      observed
+
+placed in layers, down the page
+plot · causal graph · 0 nodes, 0 edges
+
+  node   kind
+
+placed in layers, down the page
+---

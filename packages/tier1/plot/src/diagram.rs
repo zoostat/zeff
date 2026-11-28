@@ -383,8 +383,12 @@ pub fn draw(scene: &Scene, size: Size, theme: &Theme, noted: bool) -> Result<Dra
             stroke: None,
         },
     )];
-    // The edges, under the nodes.
-    for (e, edge) in plan.edges.iter().enumerate() {
+    // The edges, under the nodes: in the order of their names, as the nodes are, so that
+    // one graph written in two orders is one figure to the byte.
+    let mut edge_order: Vec<usize> = (0..plan.edges.len()).collect();
+    edge_order.sort_by_key(|&e| form.edge_name(e));
+    for e in edge_order {
+        let edge = &plan.edges[e];
         let name = form.edge_name(e);
         let dash = if form.edges[e].kind == EdgeKind::CommonCause {
             LineType::Dashed
@@ -447,7 +451,10 @@ pub fn draw(scene: &Scene, size: Size, theme: &Theme, noted: bool) -> Result<Dra
         }
     }
     // The nodes: the outline, a second inside it for a selected node, and the label.
-    for (v, placed) in plan.nodes.iter().enumerate() {
+    let mut node_order: Vec<usize> = (0..plan.nodes.len()).collect();
+    node_order.sort_by(|&a, &b| form.nodes[a].id.cmp(&form.nodes[b].id));
+    for v in node_order {
+        let placed = &plan.nodes[v];
         let node = &form.nodes[v];
         let name = node.name();
         let (fill, text_colour, face) = match node.role {
@@ -609,4 +616,29 @@ pub fn draw(scene: &Scene, size: Size, theme: &Theme, noted: bool) -> Result<Dra
         items,
         notes,
     })
+}
+
+/// The refusal of a method of a plot that has no meaning for a diagram: a mark, a scale, an
+/// axis, a legend, coordinates or panels. `labels`, `theme` and `export` are not refused. The
+/// method is named as the script wrote it.
+pub fn marks_refused(
+    ctx: &zeff_core::runtime::CallContext<'_>,
+    plot: &zeff_core::value::Plot,
+) -> Result<(), zeff_core::runtime::Fail> {
+    if plot.diagram.is_none() {
+        return Ok(());
+    }
+    let name = ctx
+        .text
+        .get(ctx.callee_span.start..ctx.callee_span.end)
+        .unwrap_or("this method");
+    Err(zeff_core::runtime::fail(
+        zeff_diagnostics::Diagnostic::error(
+            "Z0401",
+            format!("`{name}` has no meaning for a diagram"),
+        )
+        .in_file(ctx.script)
+        .primary(ctx.callee_span, "the plot draws a causal graph")
+        .help("a diagram has no marks, scales, axes or panels; it takes `labels`, `theme` and `export`, and its nodes are placed by the options of the `plot` that made it: `layout:`, `at:`, `direction:`, `same_rank:` and `spacing:`"),
+    ))
 }

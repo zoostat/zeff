@@ -1,15 +1,14 @@
 //! Section 13 of the specification's sample script, "Causal graph: check the model against
-//! its assumptions", runs to its warning (release 0.10.0, step 15): the graph, its adjustment
-//! sets, the independencies it implies, the model with tenure among its controls and the
-//! check of that model, which warns that tenure is a mediator.
+//! its assumptions", runs whole (release 0.10.0, steps 15 and 22b): the graph, its adjustment
+//! sets, the independencies it implies, the graph drawn and written as a PDF, the model with
+//! tenure among its controls and the check of that model, which warns that tenure is a
+//! mediator.
 //!
 //! The section is read from `docs/spec/zeff_samples.zeff` itself, so the test follows the
-//! specification's text. Two things are supplied. The file it imports is the shipped dataset
-//! of the same name, whose sites stand for the sample's firms. The statement that draws the
-//! graph is left out until the plot of a graph is built (steps 19 to 23), and the test says
-//! so by asserting that it is there to be left out.
+//! specification's text; only the file it imports is supplied, as the shipped dataset of the
+//! same name, whose sites stand for the sample's firms.
 
-use zeff_testkit::run;
+use zeff_testkit::{FileSystem, project, run_script};
 
 /// The lines of the section, from its heading to the next.
 fn section() -> String {
@@ -22,16 +21,21 @@ fn section() -> String {
 }
 
 #[test]
-fn the_section_runs_to_its_warning() {
+fn the_section_runs_whole_to_its_figure_and_its_warning() {
     let text = section();
     let drawing = "g.plot().export(\"output/fig_dag.pdf\", size: one_column)\n";
     assert!(text.contains(drawing), "{text}");
     assert!(text.contains("import(\"data/staff.csv\")"), "{text}");
-    let text = text.replace(drawing, "").replace(
+    let text = text.replace(
         "import(\"data/staff.csv\")",
         "dataset(staff).add(firm = site)",
     );
-    let outcome = run(&text);
+    let (fs, project) = project();
+    let outcome = run_script(&fs, &project, "scripts/main.zeff", &text);
+    // The graph is written as a figure of one column.
+    let figure = FileSystem::read(&fs, std::path::Path::new("/t/output/fig_dag.pdf"))
+        .expect("the section's figure is written");
+    assert!(figure.starts_with(b"%PDF-"));
     let (stdout, stderr) = (outcome.output.stdout, outcome.output.stderr);
     assert_eq!(outcome.exit_code, 0, "{stderr}");
     assert!(!stderr.contains("error["), "{stderr}");

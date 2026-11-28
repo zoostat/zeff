@@ -528,6 +528,7 @@ fn the_sample_script_of_the_specification_checks_with_its_module() {
     // refusal, waits in its place for `plot` of a graph: 4 wait still, the three functions of
     // a graph and its plot. From step 13, `implied_independencies` is taken: 3 wait. From
     // step 14, `adjustment_sets`: 2 wait, the check of a fit against the graph and the plot.
-    // From step 15, `check`: 1 waits, the plot of a graph.
-    assert_eq!((parsed.script.items.len(), waiting), (76, 1));
+    // From step 15, `check`: 1 waits, the plot of a graph. From step 22b, `plot` of a graph:
+    // none waits, and every statement of the sample script is taken whole.
+    assert_eq!((parsed.script.items.len(), waiting), (76, 0));
 }

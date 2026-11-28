@@ -3267,6 +3267,17 @@ fn dealt(layer: &Layer, of: &[usize], panel: usize) -> Layer {
 
 /// The scene of a plot.
 pub fn scene<'a>(plot: &'a Plot) -> Scene {
+    // A plot that draws a diagram has no mark to place: its scene is the graph form under
+    // the plot's theme and titles.
+    if let Some(diagram) = &plot.diagram {
+        return Scene::of_diagram(
+            form_of(diagram),
+            plot.theme,
+            said(&plot.labels.title),
+            said(&plot.labels.subtitle),
+            said(&plot.labels.caption),
+        );
+    }
     let colourings: Vec<Colouring<'_>> = [
         Aesthetic::Color,
         Aesthetic::Fill,
@@ -5354,10 +5365,88 @@ fn part(columns: Vec<(String, Align)>, rows: Vec<Vec<String>>) -> Table {
     }
 }
 
+/// The printed form of a plot that draws a diagram: what it draws in its title, a line for
+/// each node with what it is and the part it plays, and under them how it is placed.
+fn diagram_summary(form: &crate::graph::GraphForm) -> Table {
+    use crate::graph::{Direction, NodeKind, Role};
+    let rows: Vec<Vec<String>> = form
+        .nodes
+        .iter()
+        .map(|node| {
+            let mut kind = match node.kind {
+                NodeKind::Observed => "observed",
+                NodeKind::Latent => "latent",
+            }
+            .to_string();
+            if node.selected {
+                kind.push_str(", selected on");
+            }
+            let part = match node.role {
+                Some(Role::Exposure) => "exposure",
+                Some(Role::Outcome) => "outcome",
+                None => "",
+            };
+            vec![node.id.clone(), kind, part.to_string()]
+        })
+        .collect();
+    let placed = match (&form.placing.at, form.placing.direction) {
+        (Some(_), _) => "placed by the script, each node on its place of a grid".to_string(),
+        (None, Direction::Down) => "placed in layers, down the page".to_string(),
+        (None, Direction::Right) => "placed in layers, to the right".to_string(),
+    };
+    let mut after = vec![placed];
+    for set in &form.placing.same_rank {
+        let names: Vec<&str> = set
+            .iter()
+            .filter_map(|&at| form.nodes.get(at))
+            .map(|node| node.id.as_str())
+            .collect();
+        if names.len() > 1 && form.placing.at.is_none() {
+            after.push(format!("on one layer: {}", names.join(", ")));
+        }
+    }
+    if let Some((layers, nodes)) = form.placing.spacing {
+        after.push(format!(
+            "{} mm between layers, {} mm between neighbours",
+            zeff_core::display::format_float(layers),
+            zeff_core::display::format_float(nodes)
+        ));
+    }
+    let has_part = rows.iter().any(|row| !row[2].is_empty());
+    let mut columns = vec![
+        ("node".to_string(), Align::Left),
+        ("kind".to_string(), Align::Left),
+    ];
+    if has_part {
+        columns.push(("part".to_string(), Align::Left));
+    }
+    Table {
+        behind: None,
+        title: format!("plot · causal graph · {}", form.summary()),
+        before: Vec::new(),
+        columns,
+        rows: rows
+            .into_iter()
+            .map(|mut row| {
+                if !has_part {
+                    row.truncate(2);
+                }
+                row
+            })
+            .collect(),
+        after,
+        more: Vec::new(),
+        rules: Vec::new(),
+    }
+}
+
 /// The scene read as text, the printed form of a plot: a line for each axis with its title, its
 /// limits and its breaks, a line for each other aesthetic with what it shows and as what, then
 /// a line for each layer with the number of marks it draws.
 pub fn summary(plot: &Plot, scene: &Scene) -> Table {
+    if let Some(form) = &scene.graph {
+        return diagram_summary(form);
+    }
     // The frame is named when the script named it; a frame written in place has no name to give.
     let shown = plot.frame.shown_name();
     let named = match &plot.frame.name {
@@ -6086,9 +6175,48 @@ pub fn start(frame: Frame, mappings: Vec<PlotMapping>, constants: Vec<PlotConsta
         },
         figure: Some(zeff_core::value::FigureWriter(crate::figure::write)),
         made: Vec::new(),
+        diagram: None,
     };
     describe(&mut plot);
     plot
+}
+
+/// A plot that draws `diagram` and nothing else, its printed form written: what `g.plot()`
+/// gives. It has no frame of data, no mapping and no layer; `labels` and `theme` change it as
+/// they change any plot, and `export` writes it.
+pub fn start_diagram(diagram: zeff_core::value::Diagram) -> Plot {
+    let mut plot = start(
+        Frame::new(zeff_columns::Table::new(Vec::new()).expect("a table of no column is a table")),
+        Vec::new(),
+        Vec::new(),
+    );
+    plot.diagram = Some(std::rc::Rc::new(diagram));
+    describe(&mut plot);
+    plot
+}
+
+/// The graph form of the diagram a plot holds: the graph lowered, the exposure and the
+/// outcome marked, and the placing the script asks for.
+pub fn form_of(diagram: &zeff_core::value::Diagram) -> crate::graph::GraphForm {
+    use crate::graph::{Direction, GraphForm, Placing, Role};
+    let mut form = GraphForm::of_dag(&diagram.dag);
+    if let Some(node) = diagram.exposure.and_then(|at| form.nodes.get_mut(at)) {
+        node.role = Some(Role::Exposure);
+    }
+    if let Some(node) = diagram.outcome.and_then(|at| form.nodes.get_mut(at)) {
+        node.role = Some(Role::Outcome);
+    }
+    form.placing = Placing {
+        direction: if diagram.right {
+            Direction::Right
+        } else {
+            Direction::Down
+        },
+        same_rank: diagram.same_rank.clone(),
+        spacing: diagram.spacing,
+        at: diagram.at.clone(),
+    };
+    form
 }
 
 /// The plot with one layer more on top, its printed form written, and its scene.

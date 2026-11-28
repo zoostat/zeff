@@ -1,0 +1,233 @@
+---
+source: packages/tier3/identify/tests/drawn.rs
+expression: all
+---
+error[Z0101]: `exposure:` names `z`, which is no node of the graph
+ --> scripts/main.zeff:6:18
+  |
+6 | f.plot(exposure: z)
+  |                  ^ not a node of the graph
+  |
+  = help: the nodes of the graph are: x, m, y, u
+
+error[Z0101]: `outcome:` names `mm`, which is no node of the graph
+ --> scripts/main.zeff:6:17
+  |
+6 | f.plot(outcome: mm)
+  |                 ^^ not a node of the graph
+  |
+  = help: did you mean `m`?
+
+error[Z0101]: `layout:` names `z`, which is no node of the graph
+ --> scripts/main.zeff:6:16
+  |
+6 | f.plot(layout: [". u .", "x m z"])
+  |                ^^^^^^^^^^^^^^^^^^ not a node of the graph
+  |
+  = help: the nodes of the graph are: x, m, y, u
+
+error[Z0101]: `at:` names `w`, which is no node of the graph
+ --> scripts/main.zeff:6:12
+  |
+6 | f.plot(at: {u: [1, 0], x: [0, 1], m: [1, 1], w: [2, 1]})
+  |            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ not a node of the graph
+  |
+  = help: the nodes of the graph are: x, m, y, u
+
+error[Z0101]: `same_rank:` names `q`, which is no node of the graph
+ --> scripts/main.zeff:6:19
+  |
+6 | f.plot(same_rank: [[u, q]])
+  |                   ^^^^^^^^ not a node of the graph
+  |
+  = help: the nodes of the graph are: x, m, y, u
+
+error[Z0401]: `layout:` leaves out a node of the graph: m
+ --> scripts/main.zeff:6:16
+  |
+6 | f.plot(layout: [". u .", "x . y"])
+  |                ^^^^^^^^^^^^^^^^^^ not every node is placed
+  |
+  = help: where the script places the nodes it places them all; without the option the layout places every node
+
+error[Z0401]: `layout:` places `u` twice
+ --> scripts/main.zeff:6:16
+  |
+6 | f.plot(layout: ["u u", "x m y"])
+  |                ^^^^^^^^^^^^^^^^ a node on two places
+  |
+  = help: each node of the graph stands on one place of the grid
+
+error[Z0401]: `at:` leaves out nodes of the graph: m and y
+ --> scripts/main.zeff:6:12
+  |
+6 | f.plot(at: {u: [1, 0], x: [0, 1]})
+  |            ^^^^^^^^^^^^^^^^^^^^^^ not every node is placed
+  |
+  = help: where the script places the nodes it places them all; without the option the layout places every node
+
+error[Z0401]: `at:` puts `m` and `y` on one place
+ --> scripts/main.zeff:6:12
+  |
+6 | f.plot(at: {u: [1, 0], x: [0, 1], m: [1, 1], y: [1, 1]})
+  |            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ two nodes on one place
+  |
+  = help: give each node a place of its own; half a step is allowed, as in `[1, 0.5]`
+
+error[Z0401]: `at:` gives `u` a place that is not two numbers
+ --> scripts/main.zeff:6:12
+  |
+6 | f.plot(at: {u: [1, 0, 2], x: [0, 1], m: [1, 1], y: [2, 1]})
+  |            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ not a column and a row
+  |
+  = help: write its column and its row, counted from 0: `u: [1, 0]`
+
+error[Z0401]: `at:` gives `u` a place that is not two numbers
+ --> scripts/main.zeff:6:12
+  |
+6 | f.plot(at: {u: "top", x: [0, 1], m: [1, 1], y: [2, 1]})
+  |            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ not a column and a row
+  |
+  = help: write its column and its row, counted from 0: `u: [1, 0]`
+
+error[Z0401]: `layout` of `plot` must be a List<Str>, but this is a List<Int>
+ --> scripts/main.zeff:6:16
+  |
+6 | f.plot(layout: [1, 2])
+  |                ^^^^^^ a List<Int>
+  |
+  = help: usage: `g.plot(exposure: Var, outcome: Var, direction: down | right = down, layout: List<Str>, at: Record, same_rank: List<Vars>, spacing: List<Float>)`
+
+error[Z0401]: row 1 of `layout:` has a backtick that is not closed
+ --> scripts/main.zeff:6:16
+  |
+6 | f.plot(layout: ["`u x", "m y"])
+  |                ^^^^^^^^^^^^^^^ this row
+  |
+  = help: a name that is not a plain one is written in backticks inside the text, as in the graph
+
+error[Z0401]: `layout:` and `at:` both place the nodes
+ --> scripts/main.zeff:6:40
+  |
+6 | f.plot(layout: [". u .", "x m y"], at: {u: [1, 0], x: [0, 1], m: [1, 1], y: [2, 1]})
+  |                                        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ the nodes are placed twice
+  |
+  = help: give one of the two: `layout:` for a grid written row by row, `at:` for a column and a row to each node
+
+error[Z0401]: `same_rank:` adjusts the automatic layout, and the script places every node itself
+ --> scripts/main.zeff:6:47
+  |
+6 | f.plot(layout: [". u .", "x m y"], same_rank: [[x, y]])
+  |                                               ^^^^^^^^ changes nothing here
+  |
+  = help: put the nodes on one row of `layout:`, or give them one row in `at:`, and leave `same_rank:` out
+
+error[Z0401]: `same_rank:` asks for `x` and `m` on one layer, and an arrow, or a chain of arrows, leads from one to the other
+ --> scripts/main.zeff:6:19
+  |
+6 | f.plot(same_rank: [[x, m]])
+  |                   ^^^^^^^^ cannot share a layer
+  |
+  = help: a cause stands on a layer before its effect; keep on one layer only nodes that no chain of arrows joins
+
+error[Z0401]: `same_rank:` asks for `x` and `y` on one layer, and an arrow, or a chain of arrows, leads from one to the other
+ --> scripts/main.zeff:6:19
+  |
+6 | f.plot(same_rank: [[x, y]])
+  |                   ^^^^^^^^ cannot share a layer
+  |
+  = help: a cause stands on a layer before its effect; keep on one layer only nodes that no chain of arrows joins
+
+error[Z0401]: `same_rank:` names `m` in two of its sets
+ --> scripts/main.zeff:6:19
+  |
+6 | f.plot(same_rank: [[u, m], [m, y]])
+  |                   ^^^^^^^^^^^^^^^^ a node in two sets
+  |
+  = help: nodes that are all to share one layer go into one set
+
+error[Z0401]: `spacing:` is two lengths above zero, in millimetres
+ --> scripts/main.zeff:6:17
+  |
+6 | f.plot(spacing: [10])
+  |                 ^^^^ not two lengths
+  |
+  = help: the room between two layers, then the room between two neighbours on a layer: `spacing: [12, 6]`
+
+error[Z0401]: `spacing:` is two lengths above zero, in millimetres
+ --> scripts/main.zeff:6:17
+  |
+6 | f.plot(spacing: [10, 0])
+  |                 ^^^^^^^ not two lengths
+  |
+  = help: the room between two layers, then the room between two neighbours on a layer: `spacing: [12, 6]`
+
+error[Z0401]: `spacing` of `plot` must be a List<Float>, but this is an Int
+ --> scripts/main.zeff:6:17
+  |
+6 | f.plot(spacing: 10)
+  |                 ^^ an Int
+  |
+  = help: usage: `g.plot(exposure: Var, outcome: Var, direction: down | right = down, layout: List<Str>, at: Record, same_rank: List<Vars>, spacing: List<Float>)`
+
+error[Z0401]: `exposure:` and `outcome:` of `plot` are both `x`
+ --> scripts/main.zeff:6:30
+  |
+6 | f.plot(exposure: x, outcome: x)
+  |                              ^ the exposure again
+  |
+  = help: an effect is of one variable on another: mark two nodes, or one, or none
+
+error[Z0402]: `up` is not one of the allowed words
+ --> scripts/main.zeff:6:19
+  |
+6 | f.plot(direction: up)
+  |                   ^^ expected one of down, right
+
+error[Z0404]: `plot` has no argument called `highlight`
+ --> scripts/main.zeff:6:8
+  |
+6 | f.plot(highlight: open_paths)
+  |        ^^^^^^^^^ unknown argument
+  |
+  = help: usage: `g.plot(exposure: Var, outcome: Var, direction: down | right = down, layout: List<Str>, at: Record, same_rank: List<Vars>, spacing: List<Float>)`
+
+error[Z0401]: `points` has no meaning for a diagram
+ --> scripts/main.zeff:6:10
+  |
+6 | f.plot().points()
+  |          ^^^^^^ the plot draws a causal graph
+  |
+  = help: a diagram has no marks, scales, axes or panels; it takes `labels`, `theme` and `export`, and its nodes are placed by the options of the `plot` that made it: `layout:`, `at:`, `direction:`, `same_rank:` and `spacing:`
+
+error[Z0401]: `facet` has no meaning for a diagram
+ --> scripts/main.zeff:6:10
+  |
+6 | f.plot().facet(by: x)
+  |          ^^^^^ the plot draws a causal graph
+  |
+  = help: a diagram has no marks, scales, axes or panels; it takes `labels`, `theme` and `export`, and its nodes are placed by the options of the `plot` that made it: `layout:`, `at:`, `direction:`, `same_rank:` and `spacing:`
+
+error[Z0401]: `scale_x` has no meaning for a diagram
+ --> scripts/main.zeff:6:10
+  |
+6 | f.plot().scale_x(log)
+  |          ^^^^^^^ the plot draws a causal graph
+  |
+  = help: a diagram has no marks, scales, axes or panels; it takes `labels`, `theme` and `export`, and its nodes are placed by the options of the `plot` that made it: `layout:`, `at:`, `direction:`, `same_rank:` and `spacing:`
+
+error[Z0401]: `coord` has no meaning for a diagram
+ --> scripts/main.zeff:6:10
+  |
+6 | f.plot().coord(flip)
+  |          ^^^^^ the plot draws a causal graph
+  |
+  = help: a diagram has no marks, scales, axes or panels; it takes `labels`, `theme` and `export`, and its nodes are placed by the options of the `plot` that made it: `layout:`, `at:`, `direction:`, `same_rank:` and `spacing:`
+
+error[Z0401]: `legend` has no meaning for a diagram
+ --> scripts/main.zeff:6:10
+  |
+6 | f.plot().legend(top)
+  |          ^^^^^^ the plot draws a causal graph
+  |
+  = help: a diagram has no marks, scales, axes or panels; it takes `labels`, `theme` and `export`, and its nodes are placed by the options of the `plot` that made it: `layout:`, `at:`, `direction:`, `same_rank:` and `spacing:`

@@ -6,11 +6,13 @@
 //! ancestors and descendants, its proper causal paths and its separations. The functions
 //! themselves join it step by step: the implied independencies ([`independencies`], step 13)
 //! and the adjustment sets ([`adjustment`], step 14) are here; the check of a fitted model
-//! ([`check`], step 15) and of an instrument ([`exclusion`], step 16), and the list of the
-//! instruments a graph allows ([`instruments`], step 17).
+//! ([`check`], step 15) and of an instrument ([`exclusion`], step 16), the list of the
+//! instruments a graph allows ([`instruments`], step 17), and the graph as a figure
+//! ([`drawn`], step 22b), which the `plot` package lays out and draws.
 
 pub mod adjustment;
 pub mod check;
+pub mod drawn;
 pub mod exclusion;
 pub mod graph;
 pub mod independencies;
@@ -184,6 +186,38 @@ pub fn functions() -> Vec<Function> {
                 accuracy: None,
             },
             body: instruments::instruments_of,
+        },
+        Function {
+            spec: FunctionSpec {
+                name: "plot",
+                package: "identify",
+                method: true,
+                params: vec![
+                    ParamSpec::required("g", "Dag"),
+                    ParamSpec::option("exposure", "Var"),
+                    ParamSpec::option("outcome", "Var"),
+                    ParamSpec::option_with_default("direction", "down | right", "down"),
+                    ParamSpec::option("layout", "List<Str>"),
+                    ParamSpec::option("at", "Record"),
+                    ParamSpec::option("same_rank", "List<Vars>"),
+                    ParamSpec::option("spacing", "List<Float>"),
+                ],
+                rest: None,
+                returns: "Plot",
+                diagnostics: vec![
+                    DiagnosticDecl::new(
+                        "Z0101",
+                        "a name in `exposure:`, `outcome:`, `layout:`, `at:` or `same_rank:` that is no node of the graph",
+                    ),
+                    DiagnosticDecl::new(
+                        "Z0401",
+                        "a node left out of `layout:` or `at:`, or placed twice; `layout:` beside `at:`; `same_rank:` beside either, or for nodes an arrow sets apart; `spacing:` that is not two lengths above zero; the exposure and the outcome the same node",
+                    ),
+                ],
+                help: include_str!("../help/plot.md"),
+                accuracy: None,
+            },
+            body: drawn::plot,
         },
         Function {
             spec: FunctionSpec {

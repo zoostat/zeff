@@ -6509,12 +6509,18 @@ impl Checker<'_> {
                     Some(f) => f,
                     None if r.ty == Ty::Unknown => return Expr::error(span),
                     None => {
-                        let takes = homes
+                        // "a Frame or a Result"; of three or more, "a Frame, a Result or a
+                        // Dag".
+                        let each: Vec<String> = homes
                             .iter()
                             .filter_map(|f| f.spec.params.first())
                             .map(|p| Ty::parse(p.ty).map_or(p.ty.to_string(), |t| t.with_article()))
-                            .collect::<Vec<_>>()
-                            .join(" or ");
+                            .collect();
+                        let takes = match each.as_slice() {
+                            [] => String::new(),
+                            [one] => one.clone(),
+                            [head @ .., last] => format!("{} or {last}", head.join(", ")),
+                        };
                         let on_a_kind = homes.iter().any(|f| {
                             f.spec.receiver().is_some_and(|p| {
                                 matches!(Ty::parse(p.ty), Some(Ty::Result(Some(_))))

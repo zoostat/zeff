@@ -547,6 +547,7 @@ pub fn points(ctx: &mut CallContext<'_>, args: Args) -> Result<Value, Fail> {
     let Some(Value::Plot(plot)) = args.get(P) else {
         return Err(internal(ctx, "`points` reached its body without a plot"));
     };
+    crate::diagram::marks_refused(ctx, plot)?;
     let plot: Rc<Plot> = plot.clone();
     // What the layer names of its own (open decision #106), read as `plot` reads it, on the
     // frame the layer draws: its own, or the plot's.
@@ -756,6 +757,7 @@ fn joined(
     let Some(Value::Plot(plot)) = args.get(P) else {
         return Err(internal(ctx, "a mark reached its body without a plot"));
     };
+    crate::diagram::marks_refused(ctx, plot)?;
     let plot: Rc<Plot> = plot.clone();
     let frame: Frame = match args.get(DATA) {
         Some(Value::Frame(own)) => own.clone(),
@@ -943,6 +945,7 @@ fn filled(
     let Some(Value::Plot(plot)) = args.get(P) else {
         return Err(internal(ctx, "a mark reached its body without a plot"));
     };
+    crate::diagram::marks_refused(ctx, plot)?;
     let plot: Rc<Plot> = plot.clone();
     let band = mark == Mark::Ribbon;
     let (fill, group, opacity, usual) = if band {
@@ -1119,6 +1122,7 @@ fn spanning(
     let Some(Value::Plot(plot)) = args.get(P) else {
         return Err(internal(ctx, "a mark reached its body without a plot"));
     };
+    crate::diagram::marks_refused(ctx, plot)?;
     let plot: Rc<Plot> = plot.clone();
     let (axis, along, other) = if mark == Mark::Hline {
         ("y", Aesthetic::Y, "vline")
@@ -1383,6 +1387,7 @@ pub fn rug(ctx: &mut CallContext<'_>, args: Args) -> Result<Value, Fail> {
     let Some(Value::Plot(plot)) = args.get(P) else {
         return Err(internal(ctx, "`rug` reached its body without a plot"));
     };
+    crate::diagram::marks_refused(ctx, plot)?;
     let plot: Rc<Plot> = plot.clone();
     let sides = match args.get(G_SIDES) {
         None | Some(Value::Na) => Sides::X,
@@ -1524,6 +1529,7 @@ pub fn bars(ctx: &mut CallContext<'_>, args: Args) -> Result<Value, Fail> {
     let Some(Value::Plot(plot)) = args.get(P) else {
         return Err(internal(ctx, "`bars` reached its body without a plot"));
     };
+    crate::diagram::marks_refused(ctx, plot)?;
     let plot: Rc<Plot> = plot.clone();
     let how = match args.get(B_POSITION) {
         None | Some(Value::Na) => Arrangement::Stack,
@@ -1671,6 +1677,7 @@ pub fn histogram(ctx: &mut CallContext<'_>, args: Args) -> Result<Value, Fail> {
     let Some(Value::Plot(plot)) = args.get(P) else {
         return Err(internal(ctx, "`histogram` reached its body without a plot"));
     };
+    crate::diagram::marks_refused(ctx, plot)?;
     let plot: Rc<Plot> = plot.clone();
     let frame: Frame = match args.get(DATA) {
         Some(Value::Frame(own)) => own.clone(),
@@ -1925,6 +1932,7 @@ pub fn density(ctx: &mut CallContext<'_>, args: Args) -> Result<Value, Fail> {
     let Some(Value::Plot(plot)) = args.get(P) else {
         return Err(internal(ctx, "`density` reached its body without a plot"));
     };
+    crate::diagram::marks_refused(ctx, plot)?;
     let plot: Rc<Plot> = plot.clone();
     let frame: Frame = match args.get(DATA) {
         Some(Value::Frame(own)) => own.clone(),
@@ -2062,6 +2070,7 @@ pub fn boxplot(ctx: &mut CallContext<'_>, args: Args) -> Result<Value, Fail> {
     let Some(Value::Plot(plot)) = args.get(P) else {
         return Err(internal(ctx, "`boxplot` reached its body without a plot"));
     };
+    crate::diagram::marks_refused(ctx, plot)?;
     let plot: Rc<Plot> = plot.clone();
     let frame: Frame = match args.get(DATA) {
         Some(Value::Frame(own)) => own.clone(),
@@ -2138,6 +2147,7 @@ pub fn errorbars(ctx: &mut CallContext<'_>, args: Args) -> Result<Value, Fail> {
     let Some(Value::Plot(plot)) = args.get(P) else {
         return Err(internal(ctx, "`errorbars` reached its body without a plot"));
     };
+    crate::diagram::marks_refused(ctx, plot)?;
     let plot: Rc<Plot> = plot.clone();
     let frame: Frame = match args.get(DATA) {
         Some(Value::Frame(own)) => own.clone(),
@@ -2252,6 +2262,7 @@ pub fn tile(ctx: &mut CallContext<'_>, args: Args) -> Result<Value, Fail> {
     let Some(Value::Plot(plot)) = args.get(P) else {
         return Err(internal(ctx, "`tile` reached its body without a plot"));
     };
+    crate::diagram::marks_refused(ctx, plot)?;
     let plot: Rc<Plot> = plot.clone();
     let frame: Frame = match args.get(DATA) {
         Some(Value::Frame(own)) => own.clone(),
@@ -2345,6 +2356,7 @@ pub fn text(ctx: &mut CallContext<'_>, args: Args) -> Result<Value, Fail> {
     let Some(Value::Plot(plot)) = args.get(P) else {
         return Err(internal(ctx, "`text` reached its body without a plot"));
     };
+    crate::diagram::marks_refused(ctx, plot)?;
     let plot: Rc<Plot> = plot.clone();
     let frame: Frame = match args.get(DATA) {
         Some(Value::Frame(own)) => own.clone(),
@@ -2650,6 +2662,7 @@ pub fn annotate(ctx: &mut CallContext<'_>, args: Args) -> Result<Value, Fail> {
     let Some(Value::Plot(plot)) = args.get(P) else {
         return Err(internal(ctx, "`annotate` reached its body without a plot"));
     };
+    crate::diagram::marks_refused(ctx, plot)?;
     let plot: Rc<Plot> = plot.clone();
     let missing = |ctx: &CallContext<'_>, what: &str| {
         fail(

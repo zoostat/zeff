@@ -478,6 +478,10 @@ impl Host {
                         marks.push(mark);
                     }
                 }
+                // A plot that draws a diagram has no mark: it is listed as what it is.
+                if made.plot.diagram.is_some() {
+                    marks.push("diagram");
+                }
                 format!(
                     "{{\"index\": {index}, \"name\": {}, \"line\": {}, \"kind\": {}, \"theme\": {}}}",
                     made.name.as_deref().map_or("null".to_string(), json_string),

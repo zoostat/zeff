@@ -114,7 +114,9 @@ Step 21 `[engine]` (28 November 2026): the layered layout, coordinates, edges an
 
 Step 22a `[engine]` (28 November 2026): a diagram drawn. Step 22 was split: 22a draws a diagram inside the plot package, 22b is the function `g.plot()`. The graph form now holds the placement a script asks for; nodes can be placed on a grid; an arrow meets the side of a box that faces the other layer; and a scene that holds a diagram is drawn with the primitives of every figure and written as SVG, PDF and PNG: latent variables dashed, the exposure and the outcome filled, a selected variable with a double outline, a line at the foot naming the marks. Six figures were read by eye.
 
-**Next.** Step 22b `[engine]`: `g.plot()`.
+Step 22b `[engine]` (28 November 2026): `g.plot(exposure:, outcome:, direction:, layout:, at:, same_rank:, spacing:)`. A causal graph is a plot value: it prints as a table of its nodes, `export` writes it as SVG, PDF or PNG, `labels` and `theme` change it, and the methods of a plot of data are refused. `layout:` (a grid of names) and `at:` (a column and a row by name) place every node; a node left out is refused. One graph written in two orders is one figure to the byte. Section 13 of the sample script runs whole, and all 76 statements of the sample script are taken.
+
+**Next.** Step 23 `[engine]`: the layouts measured against known figures (#192).
 
 **For the owner, from step 22a.** The look of a causal graph follows the mock-up you saw on 18 November: the exposure filled blue, the outcome filled dark, a latent variable a dashed ellipse. A diagram that fits the page is not enlarged to fill it. Both are yours to change.
 

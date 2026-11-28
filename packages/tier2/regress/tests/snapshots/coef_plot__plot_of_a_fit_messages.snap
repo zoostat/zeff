@@ -36,4 +36,4 @@ error[Z0401]: `plot` cannot be called on an Int
 2 | k.plot()
   | ^ this is an Int
   |
-  = help: `plot` takes a Frame or a Result first; `x.plot(...)` is `plot(x, ...)`
+  = help: `plot` takes a Frame, a Result or a Dag first; `x.plot(...)` is `plot(x, ...)`

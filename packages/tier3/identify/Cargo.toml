@@ -19,6 +19,7 @@ zeff-kernels.workspace = true
 zeff-numeric.workspace = true
 zeff-dist.workspace = true
 zeff-stats.workspace = true
+zeff-plot.workspace = true
 
 [dev-dependencies]
 zeff-testkit.workspace = true

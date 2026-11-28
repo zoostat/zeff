@@ -264,8 +264,8 @@ identify/dag_refused/stderr a4ae850708680357
 plot/graph_form ebdcf355a339cf63
 plot/layers 93507a35b578ece1
 plot/placed 2677f8136ff72cc7
-plot/diagram/svg b01e70654b8c8042
-plot/diagram/pdf 22edce53bec3865a
+plot/diagram/svg 99a9d3bf4ee9f500
+plot/diagram/pdf 2cee525885c5b288
 plot/diagram/png f7578e35a368a360
 identify/kernel b9950d0a114cf488
 identify/independencies/stdout 19805c2121a119ea
@@ -286,6 +286,10 @@ identify/instruments_refused/stderr e7ab217b05985ab8
 identify/independencies_tested/stdout b255f92cd9e9cc5d
 identify/independencies_tested/stderr cbf29ce484222325
 identify/independencies_tested_refused/stderr b09c5adc26dffd27
+identify/plot/stdout dbd52bd2530457e0
+identify/plot/stderr cbf29ce484222325
+identify/plot/figures 7dcdd7bc6e62adfb
+identify/plot_refused/stderr 12ea48e9f4007ee2
 tests/fields/stdout cbf29ce484222325
 tests/fields/stderr 066add1139daf971
 tests/shapiro/stdout bb094c197a0d6c4d

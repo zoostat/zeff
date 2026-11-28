@@ -1200,3 +1200,7 @@ At step 19 of release 0.10.0, applying the owner's decision on open decision #19
 ## 28 November 2026 — zeff_language_reference.md, section 7.6 ("Diagrams", three sentences more)
 
 At step 22a of release 0.10.0, still applying the owner's decision on #191. The paragraph now says that the graph form holds the placement the script asks for, and how a diagram is drawn: the marks for a latent variable, a selected one, the exposure and the outcome, the three kinds of edge, the line at the foot, and that a diagram is drawn smaller to fit a page and never enlarged.
+
+## 28 November 2026 — zeff_language_reference.md, section 7.3 (`g.plot`); zeff_functions.csv, row 501
+
+At step 22b of release 0.10.0. The row of `g.plot()` in section 7.3 named its placement options without their forms, and said that the exposure and the outcome are marked without saying how the call names them. It now gives the usage with `exposure:` and `outcome:`, the form of `at:` (a column and a row by name), that `layout:` and `at:` place every node, the unit and the form of `spacing:` (two lengths in millimetres, as the proposal behind #121 has them), and that the value is a plot that `labels`, `theme` and `export` take. The catalogue's row 501 has the same usage and is `implemented`.
