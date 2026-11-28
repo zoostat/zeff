@@ -174,7 +174,7 @@ fn the_parameters_of_a_usage() {
         "`...` is not a parameter"
     );
     assert_eq!(
-        params("results", "report"),
+        params("publish", "report"),
         ["fits", "stats", "digits", "stars", "labels"],
         "a list parameter is written in brackets"
     );

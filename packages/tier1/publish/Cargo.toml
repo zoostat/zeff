@@ -1,0 +1,27 @@
+[package]
+name = "zeff-publish"
+description = "Package publish (tier 1): say what was found, and cite it. At this release the publication table of several results, `report`, moved here from `results`."
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+publish = false
+
+[lints]
+workspace = true
+
+[dependencies]
+zeff-core.workspace = true
+zeff-diagnostics.workspace = true
+zeff-registry.workspace = true
+# The information criteria of a fit, which a report lists: `results` comes before `publish`
+# in tier 1.
+zeff-results.workspace = true
+
+[dev-dependencies]
+zeff-columns.workspace = true
+zeff-data.workspace = true
+zeff-datasets.workspace = true
+zeff-regress.workspace = true
+zeff-testkit.workspace = true
+insta = "=1.49.0"
+serde_json = "=1.0.154"

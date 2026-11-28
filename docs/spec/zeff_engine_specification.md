@@ -291,7 +291,7 @@ Counts are functions in 1.0 / proposed for 1.0 (none since 16 October 2026) / on
 | 2 | `text` | Work with text | Matching, replacing, splitting, formatting numbers and dates | 14 / 0 / 0 |
 | 3 | `data` | Make any dataset ready for analysis | Frames, verbs, panels, reducers, files | 57 / 0 / 17 |
 | 4 | `dist` | Probability distributions | Fifteen families, the studentized range, truncation and mixtures; `pdf`, `cdf`, `quantile`, `draw` | 22 / 0 / 0 |
-| 5 | `results` | Every result looks and behaves the same | Result interface, estimator interface with marginal effects, publication tables, export | 24 / 0 / 5 |
+| 5 | `results` | Every result looks and behaves the same | Result interface, estimator interface with marginal effects, export | 23 / 0 / 5 |
 | 6 | `stats` | Classical inference | Correlation, tests, post-hoc comparisons, power, effect sizes, smoothing | 15 / 0 / 17 |
 | 7 | `optim` | Fit anything defined by an objective | Minimisers, MLE and GMM frameworks, mathematical programming | 0 / 0 / 11 |
 | 8 | `resample` | Uncertainty and validation by resampling | Bootstrap, jackknife, permutation, holdout splits and cross-validation folds | 0 / 0 / 7 |
@@ -299,7 +299,7 @@ Counts are functions in 1.0 / proposed for 1.0 (none since 16 October 2026) / on
 | 10 | `plot` | Draw anything the same way | Layered plot grammar and renderer (section 7.6 of the Language Reference), shorthands, result plots | 36 / 0 / 94 |
 | 11 | `datasets` | Data for examples, tests and users | Shipped public and synthetic datasets with help pages; the `zeff:` data root (section 8.5) | 2 / 0 / 0 |
 | 12 | `web` | Data from APIs, reproducibly | `fetch` with caching, pagination and recorded provenance; secrets kept out of projects (section 8.6) | 0 / 0 / 4 |
-| 13 | `publish` | Say what was found, and cite it | Citations of Zeff, of methods and of datasets; publication tables, moved here from `results` at release 0.10.0; reports written in Markdown after 1.0 (zeff_open_decisions.md, #135 and #141) | 1 / 0 / 0 |
+| 13 | `publish` | Say what was found, and cite it | Citations of Zeff, of methods and of datasets; publication tables, moved here from `results` at release 0.10.0; reports written in Markdown after 1.0 (zeff_open_decisions.md, #135 and #141) | 2 / 0 / 0 |
 
 **Tier 2: models**, which fit a model and return a result
 
@@ -648,11 +648,10 @@ fn share_missing(data: Frame, var: Var) -> Float {
 - **Distributions:** `dist.normal`, `dist.lognormal`, `dist.t`, `dist.chi2`, `dist.f`, `dist.binomial`, `dist.poisson`, `dist.negbinomial`, `dist.uniform`, `dist.exponential`, `dist.gamma`, `dist.beta`, `dist.weibull`, `dist.logistic`, `dist.hypergeometric`, `dist.tukey`, `dist.truncated`, `dist.mixture`
 - **Methods on a distribution:** `pdf`, `cdf`, `quantile`, `draw`
 
-#### `results` (tier 1) · 24 in 1.0, 0 proposed, 5 on the roadmap
+#### `results` (tier 1) · 23 in 1.0, 0 proposed, 5 on the roadmap
 
 - **Result interface:** `summary`, `estimates`, `std_errors`, `p_values`, `ci`, `n_obs`, `export`; on a `TestResult` alone, `statistic`, `df`, `effect_size`, `h0`, `h1`, `alternative` (open decision #94)
 - **Estimator interface:** `coef`, `vcov`, `fit_measures`, `predict`, `residuals`, `fitted`, `compare`, `test`, `derive`, `margins` (0.9.0; for `reg` and `glm` in 1.0)
-- **Tables and export:** `report`
 - **Roadmap, by release:** further options of `predict`, `export` (1.2); `contrasts` (1.6); further options of `export` (1.28)
 
 #### `stats` (tier 1) · 15 in 1.0, 0 proposed, 17 on the roadmap
@@ -688,10 +687,11 @@ fn share_missing(data: Frame, var: Var) -> Float {
 
 - **Roadmap, by release:** `fetch`, `secret`, `flatten`, `rate_limit` (1.1)
 
-#### `publish` (tier 1) · 1 in 1.0, 0 proposed, 0 on the roadmap
+#### `publish` (tier 1) · 2 in 1.0, 0 proposed, 0 on the roadmap
 
+- **Tables and export:** `report` (in `results` until release 0.10.0; zeff_open_decisions.md, #141)
 - **Citations:** `cite` (0.10.0; zeff_open_decisions.md, #135)
-- **To come:** `report` moves here from `results` in the course of release 0.10.0 (zeff_open_decisions.md, #141); `render` and the reports written in Markdown follow after 1.0, and enter the catalogue when their release is planned
+- **To come:** `render` and the reports written in Markdown follow after 1.0, and enter the catalogue when their release is planned
 
 #### `regress` (tier 2) · 11 in 1.0, 0 proposed, 14 on the roadmap
 

@@ -10,7 +10,7 @@ use common::{Options, call, fit_with, json, number, table_of, text};
 use zeff_core::display::fixed;
 use zeff_core::value::Value;
 use zeff_diagnostics::count;
-use zeff_results::report::{report, se_label, stars};
+use zeff_publish::report::{report, se_label, stars};
 use zeff_testkit::run_with;
 
 #[test]

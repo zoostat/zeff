@@ -20,6 +20,7 @@ zeff-datasets.workspace = true
 zeff-dist.workspace = true
 zeff-stats.workspace = true
 zeff-plot.workspace = true
+zeff-publish.workspace = true
 zeff-results.workspace = true
 zeff-regress.workspace = true
 zeff-glm.workspace = true

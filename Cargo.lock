@@ -2496,6 +2496,7 @@ dependencies = [
  "zeff-measure",
  "zeff-numeric",
  "zeff-plot",
+ "zeff-publish",
  "zeff-registry",
  "zeff-regress",
  "zeff-results",
@@ -2661,6 +2662,23 @@ dependencies = [
 ]
 
 [[package]]
+name = "zeff-publish"
+version = "0.10.0-dev"
+dependencies = [
+ "insta",
+ "serde_json",
+ "zeff-columns",
+ "zeff-core",
+ "zeff-data",
+ "zeff-datasets",
+ "zeff-diagnostics",
+ "zeff-registry",
+ "zeff-regress",
+ "zeff-results",
+ "zeff-testkit",
+]
+
+[[package]]
 name = "zeff-registry"
 version = "0.10.0-dev"
 dependencies = [
@@ -2721,6 +2739,7 @@ dependencies = [
  "zeff-dist",
  "zeff-kernels",
  "zeff-numeric",
+ "zeff-publish",
  "zeff-registry",
  "zeff-results",
  "zeff-testkit",

@@ -27,7 +27,7 @@ const TIERS: [&[&str]; 4] = [
     &["core"],
     &[
         "time", "text", "data", "dist", "results", "stats", "optim", "resample", "survey", "plot",
-        "datasets", "web",
+        "datasets", "web", "publish",
     ],
     &[
         "regress",

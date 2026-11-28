@@ -11,9 +11,9 @@ use zeff_core::display::{decision_line, estimate_line, statistic_line, test_resu
 use zeff_core::runtime::{Args, CallContext, Fail, Files, Randomness};
 use zeff_core::value::{Alternative, Estimate, Frame, Hypotheses, Statistic, TestResult, Value};
 use zeff_diagnostics::{Diagnostic, Span};
+use zeff_publish::report::report;
 use zeff_results::export::{result_table, tex};
 use zeff_results::interface::{ci, estimates, n_obs, p_values, summary};
-use zeff_results::report::report;
 use zeff_stats::testing;
 use zeff_testkit::root;
 

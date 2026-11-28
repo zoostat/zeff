@@ -1138,14 +1138,21 @@ fn zeff_help_lists_a_package_and_says_when_a_function_arrives() {
         "{}",
         out(&two_shipped)
     );
-    // `glm` until release 0.9.0, step 2, where `glm` became a function's name as well (#112);
-    // `measure` until release 0.10.0, step 10, where `reliability` arrived.
-    let package_later = zeff(dir.path(), &["help", "publish"]);
-    assert!(
-        out(&package_later)
-            .contains("has no function in this release; its first arrives with release 0.10.0"),
-        "{}",
-        out(&package_later)
+    // A package with a function to come before 1.0 and none yet said "its first arrives with
+    // release ...": `glm` until release 0.9.0, step 2, `measure` until release 0.10.0, step
+    // 10, and `publish` until step 24 of that release, where `report` moved into it. No
+    // package of the catalogue is in that state now, so the line is not written by this
+    // engine; `publish` lists what it has and says the rest is to come, and a package whose
+    // functions all come after 1.0 says so.
+    let package_part = zeff(dir.path(), &["help", "publish"]);
+    assert_eq!(
+        out(&package_part),
+        "publish · tier 1 · 1 of 2 functions in this release\n\n  report   Publication table of several regressions\n\nthe rest arrive with later releases; `zeff help <name>` says when\n"
+    );
+    let package_later = zeff(dir.path(), &["help", "web"]);
+    assert_eq!(
+        out(&package_later),
+        "the `web` package has no function in this release; it is on the roadmap after 1.0\n"
     );
 }
 

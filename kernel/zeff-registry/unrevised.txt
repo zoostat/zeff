@@ -10,7 +10,7 @@ results p_values
 results ci
 results n_obs
 results export
-results report
+publish report
 plot plot
 plot coef_plot
 plot histogram

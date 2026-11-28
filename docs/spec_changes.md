@@ -1208,3 +1208,8 @@ At step 22b of release 0.10.0. The row of `g.plot()` in section 7.3 named its pl
 ## 28 November 2026 — zeff_language_reference.md, section 7.6 ("Diagrams", its last sentence)
 
 At step 23 of release 0.10.0, correcting an error found while measuring the layouts. The paragraph said that a diagram too large for the page is drawn in smaller type so that it fits, with no limit; the table of the same section says that text is never below 8 pt in an export, and the engine as built at step 22a drew a large diagram in type as small as the page asked for. The sentence now says that an export never sets a diagram in type below 8 pt: it is refused with Z0401 and the message says the page the diagram needs. The behaviour follows the table, and the paragraph is corrected to agree with it.
+
+## 28 November 2026 — zeff_engine_specification.md, section 8.2 (`results`, `publish`); zeff_functions.csv, row 166 (`report`)
+
+At step 24 of release 0.10.0, applying the owner's decision on open decision #141 (option A): `report` is in the package `publish` from this step. Row 166 of the catalogue names `publish` (tier 1, package 13), its note saying where the function was before. In section 8.2 the table gives `results` 23 functions in 1.0 and `publish` 2, the list of `results` loses its line "Tables and export" (its `export` is in the result interface already), and the list of `publish` names `report` where it said the move was to come. Nothing `report` takes or prints changed.
+

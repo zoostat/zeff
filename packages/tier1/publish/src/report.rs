@@ -1,7 +1,8 @@
 //! `report` (catalogue row 166; Language Reference, sections 3.8, 6, 7.2, 10.2 and 11.1; Engine
 //! and Project Specification, section 13; release 0.4.0, step 19): the publication table of
 //! several regressions side by side, in the layout of section 10.2, as `modelsummary` and
-//! Stata's `esttab` make it.
+//! Stata's `esttab` make it. In the package `results` until release 0.10.0, step 24 (open
+//! decision #141).
 
 use std::rc::Rc;
 use zeff_core::display::fixed;
@@ -9,7 +10,7 @@ use zeff_core::runtime::{Args, CallContext, Fail, fail};
 use zeff_core::value::{Align, Fit, FollowUp, Table, TestResult, Value};
 use zeff_diagnostics::{Diagnostic, count};
 
-use crate::interface::information_criteria;
+use zeff_results::interface::information_criteria;
 
 const FITS: usize = 0;
 const STATS: usize = 1;

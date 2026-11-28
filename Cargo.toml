@@ -17,6 +17,7 @@ members = [
     "packages/tier1/results",
     "packages/tier1/stats",
     "packages/tier1/plot",
+    "packages/tier1/publish",
     "packages/tier2/regress",
     "packages/tier2/glm",
     "packages/tier2/measure",
@@ -64,6 +65,7 @@ zeff-dist = { path = "packages/tier1/dist" }
 zeff-results = { path = "packages/tier1/results" }
 zeff-stats = { path = "packages/tier1/stats" }
 zeff-plot = { path = "packages/tier1/plot" }
+zeff-publish = { path = "packages/tier1/publish" }
 zeff-regress = { path = "packages/tier2/regress" }
 zeff-glm = { path = "packages/tier2/glm" }
 zeff-measure = { path = "packages/tier2/measure" }

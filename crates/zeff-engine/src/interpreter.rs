@@ -5060,7 +5060,7 @@ fn takes_failed(call: &Call) -> bool {
             | ("core", "print")
             | ("core", "len")
             | ("core", "n_missing")
-            | ("results", "report")
+            | ("publish", "report")
     )
 }
 
