@@ -1221,3 +1221,7 @@ At the close of Zemp Lite 0.3.1, the amendment that #243, #244 and #245 place at
 ## 28 November 2026 — zemp_specification.md, section 15 (rows 0.4 and 0.5); zeff_open_decisions.md, entry 247
 
 The owner decided #247: A for all eight of its questions, the coloured dots on the notes (K5) included, against the recommendation. Section 15's row for Zemp Lite 0.4 gains the polish of #232 (its eight items left after 0.3.1, placed there by that ruling but not yet written in the row) and K1 to K6 of #247; K8 is kept as built. The row for 0.5 gains K7, the past runs, which need the run records of Zeff 0.11.0. The register's row and section say what was decided and where it is placed.
+
+## 28 November 2026 — zeff_open_decisions.md, new entry #252; entries 15, 120, 163 and 242
+
+The owner decided two releases of methods before 1.0: 0.13.0 "Everyday models and diagnostics" and 0.14.0 "Designs, panels and measurement", with the psychometric basics in place of regression discontinuity, and the bridges at 0.15.0. Entry #252 records the ruling, the functions moved and the engine work they bring. #242 is marked decided by it (the data and lists at 0.12.0, the bridges last); #15, #120 and #163 each gain a note on what #252 changes in them. No normative text changes now: section 14 of the Engine and Project Specification and the catalogue's release column are amended at the opening of 0.12.0 and logged then.
