@@ -1,0 +1,18 @@
+---
+source: packages/tier1/plot/tests/measures.rs
+expression: table
+---
+graph         nodes  edges  layers  crossings  crossing pairs  touching  needs, down  needs, to the right  fits
+M-bias            3      3       2          0               0         0    21 x 25          26 x 21        one_column
+confounding       5      7       4          0               0         0    28 x 48          48 x 28        one_column
+mediator          4      5       4          0               0         0    18 x 48          48 x 18        one_column
+paths            17     19      17          0               0         0    28 x 215        222 x 27        slide, to the right
+Sebastiani       36     60       7         12              10         0   340 x 86         158 x 213       a page of its own
+Polzer           14     69      10        186             182         0   326 x 125        217 x 269       a page of its own
+Schipf            7     14       5          3               3         0    55 x 60          71 x 46        one_column
+Shrier           13     19       6          0               0         0   167 x 73         198 x 55        two_column
+Thoemmes         13     14       7          0               0         0    72 x 96         107 x 65        two_column
+Kampen           12     24       8          3               3         0    87 x 99         129 x 71        two_column
+Acid             18     22       8          0               0         0    51 x 99         115 x 42        two_column
+training          6      7       4          0               0         0    54 x 50          86 x 34        one_column
+earnings          7     10       4          0               0         0    65 x 50          75 x 49        one_column

@@ -105,8 +105,23 @@ jobs:
       - name: Install the pinned Rust toolchain
         run: rustup toolchain install
 
+      # Graphviz's `dot` is the yardstick of the measured layouts (zeff_open_decisions.md, #192,
+      # option A): a program this job runs and reads, never linked into anything and never
+      # shipped. With ZEFF_EXPECT_DOT set, the test fails where `dot` is missing.
+      - name: Install Graphviz, the yardstick of the measured layouts
+        run: sudo apt-get update && sudo apt-get install -y --no-install-recommends graphviz
+
       - name: Run every test
+        env:
+          ZEFF_EXPECT_DOT: 1
         run: cargo test --workspace --locked
+
+      - name: The measured layouts beside those of dot, the crossings of both printed
+        env:
+          ZEFF_EXPECT_DOT: 1
+        run: |
+          dot -V
+          cargo test --locked -p zeff-plot --test measures -- --nocapture
 
       - name: The parser's stack at the deepest nesting stays within its budget (section 3.8)
         run: cargo test --release --locked -p zeff-syntax --test stack_limits

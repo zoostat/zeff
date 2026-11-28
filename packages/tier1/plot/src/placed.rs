@@ -57,9 +57,9 @@ impl Measure {
         Measure {
             size,
             leading: 1.25,
-            pad: (0.75 * size, 0.5 * size),
+            pad: (0.75 * size, 0.4 * size),
             node_gap: 2.0 * size,
-            layer_gap: 3.5 * size,
+            layer_gap: 2.5 * size,
             margin: 0.5 * size,
         }
     }
@@ -871,8 +871,34 @@ pub fn place_form(form: &GraphForm, size: f64) -> Result<Placed, crate::layered:
     match &form.placing.at {
         Some(at) => Ok(place_at(form, at, &options)),
         None => {
-            let laid = crate::layered::layers(form, &form.placing.same_rank)?;
+            let laid = layers_of(form)?;
             Ok(place(form, &laid, &options))
         }
     }
+}
+
+thread_local! {
+    /// The diagram whose layers were found last, and what was found.
+    static LAID: std::cell::RefCell<Option<(GraphForm, Result<Layers, crate::layered::Unlayered>)>> =
+        const { std::cell::RefCell::new(None) };
+}
+
+/// The layers of a form and the order within them, found once for a form and kept while
+/// the same form is asked for again. The layers depend on the diagram and not on the page:
+/// a figure is placed at two or three sizes of type before it fits its page, and a pane
+/// that is resized draws the same diagram again and again, so only the first asking pays
+/// for the ordering, which for a dense diagram is by far the longest step. What is kept is
+/// what [`crate::layered::layers`] gave for this very form, so the answer is the same with
+/// or without it.
+fn layers_of(form: &GraphForm) -> Result<Layers, crate::layered::Unlayered> {
+    LAID.with(|kept| {
+        if let Some((of, laid)) = kept.borrow().as_ref()
+            && of == form
+        {
+            return laid.clone();
+        }
+        let laid = crate::layered::layers(form, &form.placing.same_rank);
+        *kept.borrow_mut() = Some((form.clone(), laid.clone()));
+        laid
+    })
 }

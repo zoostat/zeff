@@ -52,8 +52,9 @@ long arrow runs as straight as its neighbours allow. Ties are settled by the nam
 variables, never by the order of the lines.
 
 The type is that of the labels of the theme. A graph too large for the page is drawn in
-smaller type so that it fits; one that leaves room is not made larger, so that its type
-matches the other figures of a paper.
+smaller type so that it fits, but never in type below 8 points: `export` then refuses, and
+its message says the page the graph needs. A graph that leaves room is not made larger, so
+that its type matches the other figures of a paper.
 
 With `layout:` or `at:` the script places every node, and the arrows run straight between
 them. A step of the grid is the widest node and the room between neighbours one way, the

@@ -192,6 +192,22 @@ error[Z0404]: `plot` has no argument called `highlight`
   |
   = help: usage: `g.plot(exposure: Var, outcome: Var, direction: down | right = down, layout: List<Str>, at: Record, same_rank: List<Vars>, spacing: List<Float>)`
 
+error[Z0401]: a page of 89 by 66 mm is too small for this diagram: in type of 8 points, below which no figure is set, it needs 21 by 154 mm
+ --> scripts/main.zeff:6:27
+  |
+6 | f.plot(spacing: [40, 10]).export("output/f.svg")
+  |                           ^^^^^^ too small a page
+  |
+  = help: give it the page it needs, `size: [21, 154]`; or turn the layers with `direction: right`; or bring the nodes closer with `spacing:`; or place them with `layout:`
+
+error[Z0401]: a page of 30 by 30 mm is too small for this diagram: in type of 8 points, below which no figure is set, it needs 21 by 154 mm
+ --> scripts/main.zeff:6:56
+  |
+6 | f.plot(spacing: [40, 10]).export("output/f.pdf", size: [30, 30])
+  |                                                        ^^^^^^^^ too small a page
+  |
+  = help: give it the page it needs, `size: [21, 154]`; or turn the layers with `direction: right`; or bring the nodes closer with `spacing:`; or place them with `layout:`
+
 error[Z0401]: `points` has no meaning for a diagram
  --> scripts/main.zeff:6:10
   |

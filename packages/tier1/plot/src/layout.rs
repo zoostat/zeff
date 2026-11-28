@@ -224,6 +224,9 @@ pub enum LayoutError {
     /// way in the room the page leaves it: the panel, in points, and the ratio at which it
     /// would fill that room.
     TooThin { panel: (f64, f64), filling: f64 },
+    /// A diagram that does not fit the page in the smallest type a page is written with:
+    /// the page it needs in that type, in points.
+    DiagramTooLarge { needs: (f64, f64) },
 }
 
 /// Measures text and remembers the characters neither its face nor the face behind it has.

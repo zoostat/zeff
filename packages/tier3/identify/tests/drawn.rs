@@ -97,7 +97,8 @@ fn the_graph_of_section_7_3_prints_and_is_written_in_three_formats() {
 fn the_script_places_the_nodes_and_each_option_changes_the_figure() {
     let figure = |call: &str| -> Vec<u8> {
         written(
-            &format!("{FRONT}f.{call}.export(\"output/f.svg\")\n"),
+            // A page with room for the widest gaps asked for below.
+            &format!("{FRONT}f.{call}.export(\"output/f.svg\", size: [120, 120])\n"),
             &["f.svg"],
         )
         .remove(0)
@@ -233,6 +234,10 @@ fn every_form_and_every_message() {
         "f.plot(exposure: x, outcome: x)",
         "f.plot(direction: up)",
         "f.plot(highlight: open_paths)",
+        // A page too small for the diagram in type of eight points: the page it needs is
+        // said.
+        "f.plot(spacing: [40, 10]).export(\"output/f.svg\")",
+        "f.plot(spacing: [40, 10]).export(\"output/f.pdf\", size: [30, 30])",
         // The methods of a plot of data.
         "f.plot().points()",
         "f.plot().facet(by: x)",

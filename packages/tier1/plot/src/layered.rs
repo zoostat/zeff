@@ -11,9 +11,13 @@
 //! within the layers is then improved in a fixed number of sweeps, down and up by turns, each
 //! placing a layer's members by the median of their neighbours on the layer before and then
 //! exchanging neighbours where that leaves fewer crossings; the order with the fewest
-//! crossings met is kept. The sweeps start from four first orders in turn, and a diagram
-//! small enough has every order of its layers tried where the sweeps leave a crossing, so
-//! that a small diagram, which most causal graphs are, has no crossing it does not need.
+//! crossings met is kept. The sweeps start from four first orders in turn, and each sweep
+//! ends by moving every member to the place on its layer where it crosses least. A diagram
+//! small enough then has every order of its layers tried where the sweeps leave a crossing,
+//! so that a small diagram, which most causal graphs are, has no crossing it does not need.
+//! A larger one that is left with crossings is shaken loose from the order the sweeps
+//! settled in and settles again (`shaken`; release 0.10.0, step 23): on the dense graphs of
+//! the literature the sweeps alone left a third more crossings than a long search finds.
 //!
 //! Only an arrow, a path from a cause to its effect, says which of two nodes stands above.
 //! A common cause and a link for drawing join two nodes without ranking them: they take
@@ -21,9 +25,9 @@
 //!
 //! Nothing here depends on the order in which the diagram was written. The nodes are taken
 //! in the order of their names and the edges in the order of the names of their ends, every
-//! tie is broken by that order, and no step draws a number at random: the same diagram has
-//! the same layout in every run and on every machine, and so has the same diagram with its
-//! lines in another order.
+//! tie is broken by that order, and the one step that draws numbers draws the same whole
+//! numbers from the same start every time: the same diagram has the same layout in every
+//! run and on every machine, and so has the same diagram with its lines in another order.
 
 use crate::graph::{EdgeKind, GraphForm};
 
@@ -647,6 +651,12 @@ pub fn layers(form: &GraphForm, same_rank: &[Vec<usize>]) -> Result<Layers, Unla
                     }
                 }
             }
+            // Each member taken to the place on its layer where its pieces cross fewest:
+            // a move past many neighbours at once, which no exchange of two would make.
+            let mut rounds = 0;
+            while rounds < 8 && sift(&mut rows, &mut place, &above, &below) {
+                rounds += 1;
+            }
             let now = count(&rows);
             if now < fewest {
                 fewest = now;
@@ -682,6 +692,16 @@ pub fn layers(form: &GraphForm, same_rank: &[Vec<usize>]) -> Result<Layers, Unla
                 &mut found,
             );
             best = found;
+        } else {
+            // Too many orders to try them all: the order is shaken loose from where the
+            // sweeps left it, and settles again.
+            let mut found = best.clone();
+            shaken(&mut found, &above, &below);
+            let now = count(&found);
+            if now < fewest {
+                fewest = now;
+                best = found;
+            }
         }
     }
     let mut rank = vec![0; n];
@@ -696,6 +716,163 @@ pub fn layers(form: &GraphForm, same_rank: &[Vec<usize>]) -> Result<Layers, Unla
             .collect(),
         crossings: fewest,
     })
+}
+
+/// Each member in turn, layer by layer and in the order of the members' numbers, moved to
+/// the place on its layer where its pieces cross those of the others least; it stays where
+/// no place is better, and of equal places takes the nearest, the one before first. Says
+/// whether any member moved. Passing a neighbour changes only the crossings between the
+/// two, so a move is costed neighbour by neighbour.
+fn sift(
+    rows: &mut [Vec<usize>],
+    place: &mut [usize],
+    above: &[Vec<usize>],
+    below: &[Vec<usize>],
+) -> bool {
+    // The crossings between the pieces of `u` and of `v` with `u` before `v`.
+    let crossed = |u: usize, v: usize, place: &[usize]| -> i64 {
+        let mut n = 0;
+        for side in [above, below] {
+            for &a in &side[u] {
+                for &b in &side[v] {
+                    if place[a] > place[b] {
+                        n += 1;
+                    }
+                }
+            }
+        }
+        n
+    };
+    let mut moved = false;
+    for row in rows.iter_mut() {
+        let mut turn: Vec<usize> = row.clone();
+        turn.sort_unstable();
+        for m in turn {
+            if above[m].is_empty() && below[m].is_empty() {
+                continue;
+            }
+            let at = place[m];
+            // The change in crossings at each place: before, past each neighbour on that
+            // side in turn; then after. The first place with the least is taken, the
+            // nearer of two equal ones before.
+            let (mut gain, mut to) = (0i64, at);
+            let mut sum = 0i64;
+            for (p, &w) in row.iter().enumerate().take(at).rev() {
+                sum += crossed(m, w, place) - crossed(w, m, place);
+                if sum < gain {
+                    gain = sum;
+                    to = p;
+                }
+            }
+            let mut sum = 0i64;
+            for (p, &w) in row.iter().enumerate().skip(at + 1) {
+                sum += crossed(w, m, place) - crossed(m, w, place);
+                if sum < gain || (sum == gain && to < at && p - at < at - to) {
+                    gain = sum;
+                    to = p;
+                }
+            }
+            if gain < 0 {
+                let member = row.remove(at);
+                row.insert(to, member);
+                for (p, &w) in row.iter().enumerate() {
+                    place[w] = p;
+                }
+                moved = true;
+            }
+        }
+    }
+    moved
+}
+
+/// The steps of each stage of the shaking, for each member of the layers, and the most a
+/// stage has.
+const SHAKES: usize = 400;
+const MOST_SHAKES: usize = 50_000;
+
+/// The stages of the shaking: in stage `k` an exchange that adds `d` crossings is taken
+/// once in two to the power `d k`.
+const STAGES: u32 = 6;
+
+/// An order the sweeps cannot better may still be far from the best: every exchange of two
+/// neighbours and every move of one member makes it worse, and a better order lies beyond.
+/// Here the order is shaken: two neighbours on a layer, drawn by a fixed sequence of
+/// numbers, change places where that crosses no more, and now and then where it crosses
+/// more, less and less often as the stages pass (simulated annealing, Kirkpatrick, Gelatt
+/// and Vecchi 1983). The best order met is kept and settled by `sift`. The numbers drawn
+/// are whole and the sequence is the same in every run and on every machine, so the order
+/// found is too. `rows` is left as the best order met, which is the order given where none
+/// was better.
+fn shaken(rows: &mut Vec<Vec<usize>>, above: &[Vec<usize>], below: &[Vec<usize>]) {
+    let members = above.len();
+    let mut place = vec![0; members];
+    for row in rows.iter() {
+        for (at, &m) in row.iter().enumerate() {
+            place[m] = at;
+        }
+    }
+    // The crossings between the pieces of `u` and of `v` with `u` before `v`.
+    let crossed = |u: usize, v: usize, place: &[usize]| -> i64 {
+        let mut n = 0;
+        for side in [above, below] {
+            for &a in &side[u] {
+                for &b in &side[v] {
+                    if place[a] > place[b] {
+                        n += 1;
+                    }
+                }
+            }
+        }
+        n
+    };
+    let wide: Vec<usize> = (0..rows.len()).filter(|&r| rows[r].len() > 1).collect();
+    if wide.is_empty() {
+        return;
+    }
+    // A sequence of numbers from one fixed start (Marsaglia's xorshift, 2003).
+    let mut state: u64 = 0x9E37_79B9_7F4A_7C15;
+    let mut draw = move || {
+        state ^= state << 13;
+        state ^= state >> 7;
+        state ^= state << 17;
+        state
+    };
+    let steps = (SHAKES * members).min(MOST_SHAKES);
+    let mut now_rows = rows.clone();
+    // The crossings now, counted from those at the start.
+    let (mut now, mut low) = (0i64, 0i64);
+    for stage in 1..=STAGES {
+        for _ in 0..steps {
+            let r = wide[(draw() % wide.len() as u64) as usize];
+            let at = (draw() % (now_rows[r].len() as u64 - 1)) as usize;
+            let (u, v) = (now_rows[r][at], now_rows[r][at + 1]);
+            let more = crossed(v, u, &place) - crossed(u, v, &place);
+            let taken = more <= 0 || {
+                let bits = (more.unsigned_abs() * u64::from(stage)).min(60);
+                draw() & ((1u64 << bits) - 1) == 0
+            };
+            if taken {
+                now_rows[r].swap(at, at + 1);
+                place[u] = at + 1;
+                place[v] = at;
+                now += more;
+                if now < low {
+                    low = now;
+                    rows.clone_from(&now_rows);
+                }
+            }
+        }
+    }
+    // The best order met, settled.
+    for row in rows.iter() {
+        for (at, &m) in row.iter().enumerate() {
+            place[m] = at;
+        }
+    }
+    let mut rounds = 0;
+    while rounds < 32 && sift(rows, &mut place, above, below) {
+        rounds += 1;
+    }
 }
 
 /// Every order of every layer, layer by layer, a branch left as soon as the layers chosen

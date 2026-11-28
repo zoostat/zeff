@@ -4,7 +4,8 @@
 //!
 //! The form is placed as it asks ([`crate::placed::place_form`]) in the type of the theme's
 //! labels; a diagram too large for the page is placed again in smaller type, so that it
-//! fits, and one that leaves room stands in the middle of it at the size it has. Then, from
+//! fits, but never in type below 8 points on the page of an export, where it is refused
+//! with the page it needs; one that leaves room stands in the middle at the size it has. Then, from
 //! the bottom up: the page; each edge, a line from border to border with a head where its
 //! kind has one, a common cause dashed; each node, its outline and over it its label; the
 //! title and the subtitle at the top; and at the foot a line that says what the marks
@@ -28,6 +29,10 @@ use crate::graph::{EdgeKind, GraphForm, NodeKind, NodeShape, Role};
 use crate::layout::{LayoutError, SMALLEST_PANEL, Setter, Size, Theme, capital, named};
 use crate::placed::{Measure, Placed, PlacedEdge, PlacedNode, place_form};
 use crate::scene::Scene;
+
+/// The smallest type a figure is written with on a page, in points (Language Reference,
+/// section 7.6, "Text": "never below 8 pt in exports").
+pub const SMALLEST_TYPE: f64 = 8.0;
 
 /// The width of the outlines and the edges, as a share of the size of the type.
 const LINE: f64 = 0.09;
@@ -327,6 +332,27 @@ impl Plan {
             1.0
         };
         if fits < 1.0 {
+            // On the page of an export no text is set below 8 points (section 7.6, "Text"):
+            // a diagram that would need smaller type is refused, with the page it needs
+            // in the smallest type allowed. In a pane of an interface, whose size is given
+            // in points, it is drawn as small as the pane asks, since a pane is not a page.
+            let on_a_page = !matches!(size, Size::Points(..));
+            if on_a_page && label * fits < SMALLEST_TYPE {
+                let least = label.min(SMALLEST_TYPE);
+                let mut at_least = form.clone();
+                if let Some((layers, nodes)) = form.placing.spacing {
+                    at_least.placing.spacing =
+                        Some((layers * least / label, nodes * least / label));
+                }
+                let needed = place_form(&at_least, least).map_err(unlaid)?;
+                let (w, h) = inner(&needed, least);
+                return Err(LayoutError::DiagramTooLarge {
+                    needs: (
+                        w + 2.0 * theme.margin,
+                        h + 2.0 * theme.margin + heading_room + foot_room,
+                    ),
+                });
+            }
             // Scaled as the type is: the gaps a script gives in millimetres are scaled
             // with it, so that the diagram keeps its shape.
             type_size = label * fits;

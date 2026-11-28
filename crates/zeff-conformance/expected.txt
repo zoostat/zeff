@@ -263,10 +263,10 @@ identify/dag/stderr 1793d1f91b201b85
 identify/dag_refused/stderr a4ae850708680357
 plot/graph_form ebdcf355a339cf63
 plot/layers 93507a35b578ece1
-plot/placed 2677f8136ff72cc7
-plot/diagram/svg 99a9d3bf4ee9f500
-plot/diagram/pdf 2cee525885c5b288
-plot/diagram/png f7578e35a368a360
+plot/placed 38e0cfdb9a89185d
+plot/diagram/svg b697dfcd4314adf2
+plot/diagram/pdf 629c44eb361cf825
+plot/diagram/png d5aa63df40742b48
 identify/kernel b9950d0a114cf488
 identify/independencies/stdout 19805c2121a119ea
 identify/independencies/stderr cbf29ce484222325
@@ -288,7 +288,7 @@ identify/independencies_tested/stderr cbf29ce484222325
 identify/independencies_tested_refused/stderr b09c5adc26dffd27
 identify/plot/stdout dbd52bd2530457e0
 identify/plot/stderr cbf29ce484222325
-identify/plot/figures 7dcdd7bc6e62adfb
+identify/plot/figures 0dac9b5cc2c2a0ba
 identify/plot_refused/stderr 12ea48e9f4007ee2
 tests/fields/stdout cbf29ce484222325
 tests/fields/stderr 066add1139daf971

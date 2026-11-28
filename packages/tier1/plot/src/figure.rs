@@ -165,6 +165,24 @@ fn laid_out(
                 of_size: false,
             }
         }
+        LayoutError::DiagramTooLarge { needs } => {
+            let (wide, high) = page(size);
+            // To the whole millimetre above, so that the size said is one that does.
+            let (needed_wide, needed_high) = (
+                format_float((needs.0 / MM).ceil()),
+                format_float((needs.1 / MM).ceil()),
+            );
+            FigureProblem {
+                message: format!(
+                    "a page of {wide} by {high} mm is too small for this diagram: in type of 8 points, below which no figure is set, it needs {needed_wide} by {needed_high} mm"
+                ),
+                label: "too small a page".to_string(),
+                help: format!(
+                    "give it the page it needs, `size: [{needed_wide}, {needed_high}]`; or turn the layers with `direction: right`; or bring the nodes closer with `spacing:`; or place them with `layout:`"
+                ),
+                of_size: true,
+            }
+        }
         LayoutError::Undrawn(why) => FigureProblem {
             message: why,
             label: "a plot this version does not draw".to_string(),

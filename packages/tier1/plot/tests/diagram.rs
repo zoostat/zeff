@@ -3,8 +3,9 @@
 //! each edge once as a line, each under its element name, an arrow head where the kind of
 //! the edge has one, a dashed line for a latent variable and for a common cause, a second
 //! outline for a selected node, the exposure and the outcome filled; nothing off the page.
-//! A diagram too large for the page is drawn in smaller type, one that leaves room at the
-//! size of the theme's labels; where the script places the nodes they stand on its grid.
+//! A diagram too large for its page is refused with the page it needs, since no figure is
+//! set below eight points, and one that leaves room is drawn at the size of the theme's
+//! labels; where the script places the nodes they stand on its grid.
 //! The three writers give the same figure every time; and with `ZEFF_WRITE_FIGURES` set to
 //! a folder, the figures are written there to be read by eye.
 
@@ -332,7 +333,14 @@ fn every_mark_of_a_diagram() {
         Some("The graph of section 7.3".to_string()),
         Some("Ability is not observed.".to_string()),
     );
-    let drawing = layout(&titled, Size::OneColumn, &JOURNAL).unwrap();
+    // A title, a subtitle and a caption take three lines more than one column has for this
+    // graph in type of eight points: the page it needs is said, and on a taller page it is
+    // drawn.
+    assert!(matches!(
+        layout(&titled, Size::OneColumn, &JOURNAL),
+        Err(LayoutError::DiagramTooLarge { .. })
+    ));
+    let drawing = layout(&titled, Size::Millimetres(89.0, 75.0), &JOURNAL).unwrap();
     sound(&training(), &drawing);
     let baseline = |name: &str| -> f64 {
         drawing
@@ -381,39 +389,76 @@ fn every_mark_of_a_diagram() {
 }
 
 #[test]
-fn a_diagram_too_large_for_the_page_is_drawn_smaller() {
-    // Twelve nodes in a row do not fit one column in type of eight points.
+fn a_diagram_too_large_for_its_page_is_refused_with_the_page_it_needs() {
+    // Twelve nodes in a row do not fit one column in type of eight points, below which no
+    // figure is set on a page.
     let names: Vec<String> = (0..12).map(|i| format!("variable {i}")).collect();
     let names: Vec<&str> = names.iter().map(|s| s.as_str()).collect();
     let arrows: Vec<(usize, usize)> = (1..12).map(|v| (0, v)).collect();
     let wide = form(&names, &[], &arrows, &[]);
     let scene = scene_of(wide.clone());
-    let small = diagram::type_size(&scene, Size::OneColumn, &JOURNAL).unwrap();
-    assert!(small < JOURNAL.label_size && small > 0.5, "{small}");
-    let drawing = layout(&scene, Size::OneColumn, &JOURNAL).unwrap();
-    sound(&wide, &drawing);
-    // The labels are in that type, and on a larger page in larger type.
-    let label_size = |drawing: &Drawing| -> f64 {
-        drawing
-            .items
-            .iter()
-            .find_map(|item| match (&item.name, &item.primitive) {
-                (Some(name), Primitive::Text { spans, .. }) if name.starts_with("node:") => {
-                    Some(spans[0].size)
-                }
-                _ => None,
-            })
-            .unwrap()
+    let Err(LayoutError::DiagramTooLarge { needs }) = layout(&scene, Size::OneColumn, &JOURNAL)
+    else {
+        panic!("a diagram too large for its page was drawn");
     };
-    assert_eq!(label_size(&drawing), small);
-    let larger = layout(&scene, Size::Slide, &JOURNAL).unwrap();
-    sound(&wide, &larger);
-    assert!(label_size(&larger) > small);
+    let (width, height) = Size::OneColumn.points();
+    assert!(needs.0 > width && needs.1 < height, "{needs:?}");
+    assert_eq!(diagram::type_size(&scene, Size::OneColumn, &JOURNAL), None);
+    // On the page it says it needs, to the millimetre above, it is drawn in type of eight
+    // points; on a page a millimetre narrower than it needs it is refused still.
+    const MM: f64 = 72.0 / 25.4;
+    let enough = Size::Millimetres((needs.0 / MM).ceil(), (needs.1 / MM).ceil());
+    let drawing = layout(&scene, enough, &JOURNAL).unwrap();
+    sound(&wide, &drawing);
+    assert_eq!(diagram::type_size(&scene, enough, &JOURNAL), Some(8.0));
+    let short = Size::Millimetres((needs.0 / MM).floor() - 1.0, (needs.1 / MM).ceil());
+    assert!(matches!(
+        layout(&scene, short, &JOURNAL),
+        Err(LayoutError::DiagramTooLarge { .. })
+    ));
+    // A theme with larger type is drawn smaller to fit, down to eight points and no
+    // further: the slide theme's labels of sixteen points on a page too narrow for them.
+    let slide = Theme::of(&PlotTheme {
+        name: zeff_core::value::ThemeName::Slide,
+        base_size: None,
+    });
+    assert!(slide.label_size > 8.0);
+    let roomy = Size::Millimetres(1.5 * needs.0 / MM, 1.5 * needs.1 / MM);
+    let fitted = diagram::type_size(&scene, roomy, &slide).unwrap();
+    assert!(
+        fitted < slide.label_size && fitted >= diagram::SMALLEST_TYPE,
+        "{fitted}"
+    );
+    sound(&wide, &layout(&scene, roomy, &slide).unwrap());
+    assert!(matches!(
+        layout(&scene, Size::OneColumn, &slide),
+        Err(LayoutError::DiagramTooLarge { .. })
+    ));
+    // In a pane of an interface, whose size is in points, the same diagram is drawn as
+    // small as the pane asks: a pane is not a page.
+    let pane = Size::Points(width, height);
+    let small = diagram::type_size(&scene, pane, &JOURNAL).unwrap();
+    assert!(small < 8.0 && small > 0.5, "{small}");
+    let drawing = layout(&scene, pane, &JOURNAL).unwrap();
+    sound(&wide, &drawing);
+    let label_size = drawing
+        .items
+        .iter()
+        .find_map(|item| match (&item.name, &item.primitive) {
+            (Some(name), Primitive::Text { spans, .. }) if name.starts_with("node:") => {
+                Some(spans[0].size)
+            }
+            _ => None,
+        })
+        .unwrap();
+    assert_eq!(label_size, small);
     // The gaps a script gives in millimetres shrink with the type, so the shape is kept.
     let mut spaced = wide.clone();
     spaced.placing.spacing = Some((30.0, 8.0));
-    let drawing = layout(&scene_of(spaced.clone()), Size::OneColumn, &JOURNAL).unwrap();
-    sound(&spaced, &drawing);
+    sound(
+        &spaced,
+        &layout(&scene_of(spaced.clone()), pane, &JOURNAL).unwrap(),
+    );
     // A page with no room for a diagram is refused, as a page with no room for a panel is.
     assert!(matches!(
         layout(&scene, Size::Millimetres(10.0, 10.0), &JOURNAL),

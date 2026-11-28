@@ -1204,3 +1204,7 @@ At step 22a of release 0.10.0, still applying the owner's decision on #191. The 
 ## 28 November 2026 — zeff_language_reference.md, section 7.3 (`g.plot`); zeff_functions.csv, row 501
 
 At step 22b of release 0.10.0. The row of `g.plot()` in section 7.3 named its placement options without their forms, and said that the exposure and the outcome are marked without saying how the call names them. It now gives the usage with `exposure:` and `outcome:`, the form of `at:` (a column and a row by name), that `layout:` and `at:` place every node, the unit and the form of `spacing:` (two lengths in millimetres, as the proposal behind #121 has them), and that the value is a plot that `labels`, `theme` and `export` take. The catalogue's row 501 has the same usage and is `implemented`.
+
+## 28 November 2026 — zeff_language_reference.md, section 7.6 ("Diagrams", its last sentence)
+
+At step 23 of release 0.10.0, correcting an error found while measuring the layouts. The paragraph said that a diagram too large for the page is drawn in smaller type so that it fits, with no limit; the table of the same section says that text is never below 8 pt in an export, and the engine as built at step 22a drew a large diagram in type as small as the page asked for. The sentence now says that an export never sets a diagram in type below 8 pt: it is refused with Z0401 and the message says the page the diagram needs. The behaviour follows the table, and the paragraph is corrected to agree with it.
